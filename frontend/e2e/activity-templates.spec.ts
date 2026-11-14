@@ -135,6 +135,8 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
                         'Localized extra assets',
                     'settings.world_builder.npc_dialogue.scene_assets.empty':
                         'Localized empty assets',
+                    'settings.world_builder.npc_dialogue.select_media':
+                        'Localized select media',
                     'settings.world_builder.npc_dialogue.start':
                         'Localized start',
                     'settings.world_builder.npc_dialogue.start_description':
@@ -429,6 +431,9 @@ test('the activity graph, NPC dialogue surfaces, and reusable template library c
     ).toBeVisible();
     await expect(page.getByText('Localized extra assets')).toBeVisible();
     await expect(page.getByText('Localized empty assets')).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Localized select media' }).first(),
+    ).toBeVisible();
     await expect(
         page.getByRole('button', { name: 'Localized save node' }),
     ).toBeVisible();

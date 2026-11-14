@@ -1246,6 +1246,7 @@
     "settings.world_builder.npc_dialogue.position_error": "The graph position could not be saved.",
     "settings.world_builder.npc_dialogue.save_node_error": "The dialogue node could not be saved. Check its settings and try again.",
     "settings.world_builder.npc_dialogue.save_node": "Save node",
+    "settings.world_builder.npc_dialogue.select_media": "Select",
     "settings.world_builder.npc_dialogue.scene.title": "Scene presentation",
     "settings.world_builder.npc_dialogue.scene.background_dark": "Dark background image",
     "settings.world_builder.npc_dialogue.scene.background_light": "Light background image",
