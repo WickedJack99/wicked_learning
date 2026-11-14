@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
+import { usePlatformTranslation } from './original-platform-translation';
 import { MediaPicker } from './original-world-builder';
 
 type DialogueGraph = components['schemas']['AdminNpcDialogueGraph'];
@@ -41,6 +42,7 @@ export function OriginalNpcDialogueEditor({
     tools: EditableTool[];
     onClose: () => void;
 }) {
+    const t = usePlatformTranslation();
     const [createdActivityId, setCreatedActivityId] = useState(activityId);
     const [graph, setGraph] = useState<DialogueGraph | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -63,8 +65,15 @@ export function OriginalNpcDialogueEditor({
         if (!createdActivityId) return;
         setGraph(null);
         setError(null);
-        void load().catch(() => setError('The dialogue graph could not be loaded.'));
-    }, [createdActivityId, load]);
+        void load().catch(() =>
+            setError(
+                t(
+                    'settings.world_builder.npc_dialogue.load_error',
+                    'The dialogue graph could not be loaded.',
+                ),
+            ),
+        );
+    }, [createdActivityId, load, t]);
 
     async function create(): Promise<void> {
         if (!newTitle.trim() || creating) return;
@@ -89,7 +98,12 @@ export function OriginalNpcDialogueEditor({
             if (!response.ok || !data) throw new Error('create dialogue');
             setCreatedActivityId(data.activity_id);
         } catch {
-            setError('The dialogue could not be created. Check the title and try again.');
+            setError(
+                t(
+                    'settings.world_builder.npc_dialogue.create_error',
+                    'The dialogue could not be created. Check the title and try again.',
+                ),
+            );
         } finally {
             setCreating(false);
         }
@@ -97,21 +111,97 @@ export function OriginalNpcDialogueEditor({
 
     if (!createdActivityId) {
         return (
-            <section className="mx-auto max-w-xl p-6">
-                <button className="inline-flex items-center gap-2 text-sm font-medium text-teal-700 hover:underline dark:text-teal-300" onClick={onClose} type="button"><ArrowLeft className="size-4" />Activity graph</button>
-                <h2 className="mt-5 text-xl font-semibold">New NPC dialogue</h2>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Create the dedicated graph first, then add and connect its dialogue cards.</p>
+            <section
+                className="mx-auto max-w-xl p-6"
+                data-wl-id="authoring.npc-dialogue.create"
+            >
+                <button
+                    className="inline-flex items-center gap-2 text-sm font-medium text-teal-700 hover:underline dark:text-teal-300"
+                    onClick={onClose}
+                    type="button"
+                >
+                    <ArrowLeft className="size-4" />
+                    {t(
+                        'settings.world_builder.npc_dialogue.back_to_graph',
+                        'Activity graph',
+                    )}
+                </button>
+                <h2 className="mt-5 text-xl font-semibold">
+                    {t(
+                        'settings.world_builder.npc_dialogue.new_title',
+                        'New NPC dialogue',
+                    )}
+                </h2>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    {t(
+                        'settings.world_builder.npc_dialogue.new_description',
+                        'Create the dedicated graph first, then add and connect its dialogue cards.',
+                    )}
+                </p>
                 <div className="mt-5 grid gap-4 rounded-xl border border-slate-200 p-4 dark:border-white/10">
-                    <TextField label="Title" onChange={setNewTitle} value={newTitle} />
-                    <TextField label="Slug (optional)" onChange={setNewSlug} value={newSlug} />
-                    <TextField label="Introduction (optional)" multiline onChange={setNewIntroduction} value={newIntroduction} />
+                    <TextField
+                        label={t('settings.world_builder.npc_dialogue.title_label', 'Title')}
+                        onChange={setNewTitle}
+                        value={newTitle}
+                    />
+                    <TextField
+                        label={t(
+                            'settings.world_builder.npc_dialogue.slug_label',
+                            'Slug (optional)',
+                        )}
+                        onChange={setNewSlug}
+                        value={newSlug}
+                    />
+                    <TextField
+                        label={t(
+                            'settings.world_builder.npc_dialogue.introduction_label',
+                            'Introduction (optional)',
+                        )}
+                        multiline
+                        onChange={setNewIntroduction}
+                        value={newIntroduction}
+                    />
                     {error ? <p className="text-sm text-red-700 dark:text-red-300" role="alert">{error}</p> : null}
-                    <div className="flex justify-end gap-2"><button className="rounded-md px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10" onClick={onClose} type="button">Cancel</button><button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950" disabled={creating || !newTitle.trim()} onClick={() => void create()} type="button">{creating ? 'Creating…' : 'Create dialogue'}</button></div>
+                    <div className="flex justify-end gap-2">
+                        <button
+                            className="rounded-md px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10"
+                            onClick={onClose}
+                            type="button"
+                        >
+                            {t('settings.world_builder.npc_dialogue.cancel', 'Cancel')}
+                        </button>
+                        <button
+                            className="rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950"
+                            disabled={creating || !newTitle.trim()}
+                            onClick={() => void create()}
+                            type="button"
+                        >
+                            {creating
+                                ? t(
+                                      'settings.world_builder.npc_dialogue.creating',
+                                      'Creating…',
+                                  )
+                                : t(
+                                      'settings.world_builder.npc_dialogue.create',
+                                      'Create dialogue',
+                                  )}
+                        </button>
+                    </div>
                 </div>
             </section>
         );
     }
-    if (!graph) return <p className="p-6 text-sm text-slate-600 dark:text-slate-300">{error ?? 'Loading NPC dialogue…'}</p>;
+    if (!graph) {
+        return (
+            <p className="p-6 text-sm text-slate-600 dark:text-slate-300">
+                {error ??
+                    t(
+                        'settings.world_builder.npc_dialogue.loading',
+                        'Loading NPC dialogue…',
+                    )}
+            </p>
+        );
+    }
     return <DialogueCanvas graph={graph} onClose={onClose} onReload={() => void load()} tools={tools} />;
 }
 

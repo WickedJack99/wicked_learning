@@ -1,6 +1,6 @@
 import { expect, test } from './authenticated';
 
-test('the activity graph and reusable template library consume fixed platform catalog copy', async ({
+test('the activity graph, NPC dialogue entry, and reusable template library consume fixed platform catalog copy', async ({
     page,
 }) => {
     const mapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d01';
@@ -104,6 +104,22 @@ test('the activity graph and reusable template library consume fixed platform ca
                         'Localized update :activity',
                     'settings.world_builder.activity_templates.update_template':
                         'Localized update template',
+                    'settings.world_builder.npc_dialogue.back_to_graph':
+                        'Localized activity graph',
+                    'settings.world_builder.npc_dialogue.cancel':
+                        'Localized cancel',
+                    'settings.world_builder.npc_dialogue.create':
+                        'Localized create dialogue',
+                    'settings.world_builder.npc_dialogue.introduction_label':
+                        'Localized introduction',
+                    'settings.world_builder.npc_dialogue.new_description':
+                        'Localized NPC creation guidance.',
+                    'settings.world_builder.npc_dialogue.new_title':
+                        'Localized new NPC dialogue',
+                    'settings.world_builder.npc_dialogue.slug_label':
+                        'Localized slug',
+                    'settings.world_builder.npc_dialogue.title_label':
+                        'Localized title',
                 },
             }),
         });
@@ -288,6 +304,49 @@ test('the activity graph and reusable template library consume fixed platform ca
             page.getByRole('button', { exact: true, name: label }),
         ).toBeVisible();
     }
+    await page
+        .getByRole('button', { name: 'Localized NPC dialogue' })
+        .click();
+
+    const npcDialogueCreate = page.locator(
+        '[data-wl-id="authoring.npc-dialogue.create"]',
+    );
+    await expect(
+        npcDialogueCreate.getByRole('heading', {
+            name: 'Localized new NPC dialogue',
+        }),
+    ).toBeVisible();
+    await expect(
+        npcDialogueCreate.getByText('Localized NPC creation guidance.'),
+    ).toBeVisible();
+    await expect(npcDialogueCreate.getByLabel('Localized title')).toHaveValue(
+        'NPC dialogue',
+    );
+    await expect(
+        npcDialogueCreate.getByLabel('Localized slug'),
+    ).toBeVisible();
+    await expect(
+        npcDialogueCreate.getByLabel('Localized introduction'),
+    ).toBeVisible();
+    await expect(
+        npcDialogueCreate.getByRole('button', {
+            name: 'Localized create dialogue',
+        }),
+    ).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const npcBounds = await npcDialogueCreate.boundingBox();
+    expect(npcBounds).not.toBeNull();
+    expect(npcBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(npcBounds!.x + npcBounds!.width).toBeLessThanOrEqual(390);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await npcDialogueCreate
+        .getByRole('button', { name: 'Localized activity graph' })
+        .click();
+    await expect(
+        page.getByRole('button', { name: 'Localized activity templates' }),
+    ).toBeVisible();
+
     await page
         .getByRole('button', { name: 'Localized activity templates' })
         .click();
