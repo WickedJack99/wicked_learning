@@ -2394,6 +2394,17 @@ test('the source Recall Queue opens an opaque private recall run', async ({
     const recallItemId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d88';
     const recallRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d89';
 
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'activities.focus.participate': 'Take part',
+                },
+            }),
+        });
+    });
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -2570,6 +2581,7 @@ test('the source Recall Queue opens an opaque private recall run', async ({
     await expect(
         page.getByRole('heading', { name: 'Recent traces' }),
     ).toBeVisible();
+    await expect(page.getByText('Take part')).toBeVisible();
     await expect(
         page.getByRole('link', { name: 'Map orientation' }),
     ).toHaveAttribute('href', '/topics/map-orientation');

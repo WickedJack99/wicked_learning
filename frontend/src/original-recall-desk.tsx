@@ -878,7 +878,7 @@ export function OriginalRecallDeskPage({
                                                     onClick={() => updatePurposeFilter(purpose)}
                                                     type="button"
                                                 >
-                                                    {learningPurposeLabel(purpose)}
+                                                    {learningPurposeLabel(purpose, t)}
                                                 </button>
                                             ))}
                                         </div>
@@ -1100,6 +1100,7 @@ function ContinueRouteRow({
     opening: boolean;
     route: ActiveRouteRow;
 }) {
+    const t = usePlatformTranslation();
     const desk = route.start.desk;
 
     return (
@@ -1127,7 +1128,7 @@ function ContinueRouteRow({
                     {route.start.label}
                 </button>
                 <span className="mt-1 block text-xs font-medium text-[var(--learner-action-accent)]">
-                    {learningPurposeLabel(desk.learning_intent)}
+                    {learningPurposeLabel(desk.learning_intent, t)}
                 </span>
                 <p className="mt-1 truncate text-sm text-[var(--learner-muted-text)]">
                     <Link className="hover:text-[var(--learner-action-accent)] hover:underline" to={`/world?map=${route.start.map_slug}&focused=${route.start.node_slug}`}>
@@ -1269,6 +1270,7 @@ function RecentRouteRow({
     opening: boolean;
     route: RecentRouteRow;
 }) {
+    const t = usePlatformTranslation();
     const completedAt = route.start.progress?.last_completed_at;
     const desk = route.start.desk;
 
@@ -1286,7 +1288,7 @@ function RecentRouteRow({
                     {route.start.label}
                 </button>
                 <span className="mt-1 block text-xs font-medium text-[var(--learner-action-accent)]">
-                    {learningPurposeLabel(desk.learning_intent)}
+                    {learningPurposeLabel(desk.learning_intent, t)}
                 </span>
                 <p className="mt-1 truncate text-sm text-[var(--learner-muted-text)]">
                     <Link className="hover:text-[var(--learner-action-accent)] hover:underline" to={`/world?map=${route.start.map_slug}&focused=${route.start.node_slug}`}>
@@ -1773,15 +1775,16 @@ function planningChoiceClass(selected: boolean): string {
 
 function learningPurposeLabel(
     purpose: Exclude<DeskPurposeFilter, 'any'>,
+    t: ReturnType<typeof usePlatformTranslation>,
 ): string {
     return {
-        apply: 'Apply',
-        explain: 'Explain',
-        participate: 'Participate',
-        reflect: 'Reflect',
-        retrieve: 'Retrieve',
-        review: 'Review',
-        transfer: 'Transfer',
+        apply: t('activities.focus.apply', 'Apply an idea'),
+        explain: t('activities.focus.explain', 'Explain an idea in your own words'),
+        participate: t('activities.focus.participate', 'Participate'),
+        reflect: t('activities.focus.reflect', 'Reflect'),
+        retrieve: t('activities.focus.retrieve', 'Retrieve an idea'),
+        review: t('activities.focus.review', 'Review / revisit'),
+        transfer: t('activities.focus.transfer', 'Try an idea in a new context'),
     }[purpose];
 }
 
