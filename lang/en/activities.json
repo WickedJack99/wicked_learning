@@ -142,5 +142,15 @@
     "activities.messages.share": "Share and continue",
     "activities.messages.too_short": "Write at least two characters.",
     "activities.messages.topic": "Learner messages",
-    "activities.messages.wall_description": "Thoughts shared by learners who explored this topic."
+    "activities.messages.wall_description": "Thoughts shared by learners who explored this topic.",
+    "activities.support.default_prompt": "Describe what you would like help noticing or working through.",
+    "activities.support.input_label": "Your request",
+    "activities.support.load_error": "The Learning Support request could not be loaded.",
+    "activities.support.too_short": "Write at least two characters.",
+    "activities.support.save_error": "Your request could not be saved yet.",
+    "activities.support.description": "This request is shared with Learning Support, not the peer message wall.",
+    "activities.support.response_heading": "Learning Support response",
+    "activities.support.awaiting_response": "Your request is with Learning Support. You can return here to check for a response.",
+    "activities.support.sending": "Sending…",
+    "activities.support.send": "Send request"
 }

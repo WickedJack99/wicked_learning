@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import type { OriginalAppearance } from './original-appearance';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerPlaybackActivity = components['schemas']['LearnerPlaybackActivity'];
 type LearnerSupportRequestState =
@@ -25,6 +26,7 @@ export function OriginalLearningSupportRequest({
     onComplete: () => Promise<void>;
     playRunId: string;
 }) {
+    const t = usePlatformTranslation();
     const config = activity.config as {
         messageInputLabel?: unknown;
         messagePrompt?: unknown;
@@ -33,10 +35,13 @@ export function OriginalLearningSupportRequest({
     const theme = useMessageTheme(config.messageUi, appearance);
     const prompt = typeof config.messagePrompt === 'string'
         ? config.messagePrompt
-        : 'Leave a helpful note or an encouraging thought for the next learner.';
+        : t(
+              'activities.support.default_prompt',
+              'Describe what you would like help noticing or working through.',
+          );
     const inputLabel = typeof config.messageInputLabel === 'string'
         ? config.messageInputLabel
-        : 'Your message';
+        : t('activities.support.input_label', 'Your request');
     const [state, setState] = useState<LearnerSupportRequestState | null>(null);
     const [body, setBody] = useState('');
     const [loading, setLoading] = useState(true);
@@ -57,23 +62,42 @@ export function OriginalLearningSupportRequest({
             .then(({ data, response }) => {
                 if (!active) return;
                 if (!response.ok || !data) {
-                    setError('The message topic could not be loaded.');
+                    setError(
+                        t(
+                            'activities.support.load_error',
+                            'The Learning Support request could not be loaded.',
+                        ),
+                    );
                     return;
                 }
                 setState(data);
             })
-            .catch(() => active && setError('The message topic could not be loaded.'))
+            .catch(
+                () =>
+                    active &&
+                    setError(
+                        t(
+                            'activities.support.load_error',
+                            'The Learning Support request could not be loaded.',
+                        ),
+                    ),
+            )
             .finally(() => active && setLoading(false));
 
         return () => {
             active = false;
         };
-    }, [activity.slug, playRunId]);
+    }, [activity.slug, playRunId, t]);
 
     async function submit(): Promise<void> {
         const request = body.trim();
         if (request.length < 2) {
-            setError('Write at least two characters.');
+            setError(
+                t(
+                    'activities.support.too_short',
+                    'Write at least two characters.',
+                ),
+            );
             return;
         }
         setSubmitting(true);
@@ -99,7 +123,12 @@ export function OriginalLearningSupportRequest({
             setState(response.data);
             await onComplete();
         } catch {
-            setError('Your message could not be saved yet.');
+            setError(
+                t(
+                    'activities.support.save_error',
+                    'Your request could not be saved yet.',
+                ),
+            );
         } finally {
             setSubmitting(false);
         }
@@ -130,22 +159,28 @@ export function OriginalLearningSupportRequest({
                             className="text-xs font-semibold tracking-[0.16em] uppercase"
                             style={{ color: theme.accent }}
                         >
-                            {state?.topic_title ?? 'Learning Support'}
+                            {state?.topic_title ?? t('learning.support.title', 'Learning Support')}
                         </p>
                         <p className="mt-2 text-lg leading-7 font-semibold">{prompt}</p>
                         <p className="mt-2 text-sm leading-6 opacity-75">
-                            This request is shared with Learning Support, not the peer message wall.
+                            {t(
+                                'activities.support.description',
+                                'This request is shared with Learning Support, not the peer message wall.',
+                            )}
                         </p>
                     </div>
                 </div>
 
                 {loading ? (
-                    <p className="mt-6 text-sm opacity-70">Loading messages...</p>
+                    <p className="mt-6 text-sm opacity-70">{t('activities.messages.loading', 'Loading messages...')}</p>
                 ) : state?.has_contributed ? (
                     <div className="mt-6">
                         <p className="flex items-center gap-2 text-sm font-medium">
                             <Check className="size-4" style={{ color: theme.accent }} />
-                            You have already contributed to this topic.
+                            {t(
+                                'activities.messages.already_shared',
+                                'You have already contributed to this topic.',
+                            )}
                         </p>
                         {state.message?.responses.length ? (
                             <div
@@ -159,7 +194,10 @@ export function OriginalLearningSupportRequest({
                                     className="text-xs font-semibold tracking-[0.12em] uppercase"
                                     style={{ color: theme.accent }}
                                 >
-                                    Learning Support response
+                                    {t(
+                                        'activities.support.response_heading',
+                                        'Learning Support response',
+                                    )}
                                 </p>
                                 <div className="grid gap-3">
                                     {state.message.responses.map((response) => (
@@ -171,7 +209,10 @@ export function OriginalLearningSupportRequest({
                             </div>
                         ) : (
                             <p className="mt-4 text-sm leading-6 opacity-75">
-                                Your request is with Learning Support. You can return here to check for a response.
+                                {t(
+                                    'activities.support.awaiting_response',
+                                    'Your request is with Learning Support. You can return here to check for a response.',
+                                )}
                             </p>
                         )}
                         <button
@@ -181,7 +222,7 @@ export function OriginalLearningSupportRequest({
                             style={{ backgroundColor: theme.accent, color: theme.buttonText }}
                             type="button"
                         >
-                            Continue
+                            {t('activities.messages.continue', 'Continue')}
                         </button>
                     </div>
                 ) : (
@@ -206,7 +247,9 @@ export function OriginalLearningSupportRequest({
                             type="button"
                         >
                             <Send className="size-4" />
-                            {submitting ? 'Sending…' : 'Send request'}
+                            {submitting
+                                ? t('activities.support.sending', 'Sending…')
+                                : t('activities.support.send', 'Send request')}
                         </button>
                     </div>
                 )}
