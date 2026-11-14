@@ -218,6 +218,12 @@ test('organization detail preserves source section and page query parameters', a
         page.getByRole('button', { name: 'Members (2)' }),
     ).toHaveClass(/bg-\[/);
     await expect(page.getByText('Other learner')).toBeVisible();
+    await page
+        .getByRole('navigation', { name: 'Organization members' })
+        .getByRole('button', { name: 'Previous' })
+        .click();
+    await expect.poll(() => requestedMembersPage).toBe('');
+    await expect(page).toHaveURL(/\?section=members$/);
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByText('Other learner')).toBeVisible();
 });
