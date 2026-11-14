@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router';
 import { apiClient } from './api/client';
 import type { components } from './api/schema';
 import { OriginalPaginationControls } from './original-paginated-items';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type LearnerDeskSearch = components['schemas']['LearnerDeskSearch'];
 type LearnerDeskSearchPagination =
@@ -27,6 +28,7 @@ const SEARCH_PAGE_SIZE = 5;
  */
 export function OriginalLearningDeskSearch() {
     const navigate = useNavigate();
+    const t = usePlatformTranslation();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<LearnerDeskSearchResult[]>([]);
     const [page, setPage] = useState(1);
@@ -108,7 +110,12 @@ export function OriginalLearningDeskSearch() {
         <div className="relative mt-7">
             <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submit}>
                 <label className="relative min-w-0 flex-1">
-                    <span className="sr-only">Search learning content</span>
+                    <span className="sr-only">
+                        {t(
+                            'home.learning_desk.search.label',
+                            'Search learning content',
+                        )}
+                    </span>
                     <Search
                         aria-hidden="true"
                         className="pointer-events-none absolute top-1/2 left-5 size-5 -translate-y-1/2 text-slate-400"
@@ -138,12 +145,18 @@ export function OriginalLearningDeskSearch() {
                             }
                         }}
                         onFocus={() => setOpen(true)}
-                        placeholder="Enter a question, topic or thought…"
+                        placeholder={t(
+                            'home.learning_desk.search.placeholder',
+                            'Enter a question, topic or thought…',
+                        )}
                         value={query}
                     />
                     {loading ? (
                         <LoaderCircle
-                            aria-label="Searching learning content"
+                            aria-label={t(
+                                'home.learning_desk.search.label',
+                                'Search learning content',
+                            )}
                             className="absolute top-1/2 right-4 size-4 -translate-y-1/2 animate-spin text-[var(--learner-action-accent)]"
                         />
                     ) : null}
@@ -152,7 +165,7 @@ export function OriginalLearningDeskSearch() {
                     className="inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--learner-action-accent)_70%,transparent)] px-6 text-sm font-semibold text-[var(--learner-action-accent)] transition hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)] focus-visible:ring-3 focus-visible:ring-[color-mix(in_srgb,var(--learner-action-accent)_20%,transparent)] focus-visible:outline-none"
                     type="submit"
                 >
-                    Search
+                    {t('home.learning_desk.search.action', 'Search')}
                     <ArrowRight aria-hidden="true" className="size-4" />
                 </button>
             </form>
@@ -199,18 +212,27 @@ export function OriginalLearningDeskSearch() {
                                     buttonClassName="rounded px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/8 dark:hover:text-white"
                                     className="border-t border-slate-200 px-3 py-2 text-xs dark:border-white/10"
                                     currentPage={page}
-                                    label="Search result pagination"
-                                    nextLabel="Next results"
+                                    label={t(
+                                        'home.learning_desk.search.pagination',
+                                        'Search result pagination',
+                                    )}
+                                    nextLabel={t('common.next', 'Next results')}
                                     onPageChange={setPage}
                                     pageCount={pagination.last_page}
-                                    previousLabel="Previous results"
+                                    previousLabel={t(
+                                        'common.previous',
+                                        'Previous results',
+                                    )}
                                     textClassName="text-slate-500 dark:text-slate-400"
                                 />
                             ) : null}
                         </>
                     ) : (
                         <p className="px-4 py-5 text-sm text-slate-500 dark:text-slate-400">
-                            No existing learning content matches this thought yet.
+                            {t(
+                                'home.learning_desk.search.empty',
+                                'No existing learning content matches this thought yet.',
+                            )}
                         </p>
                     )}
                 </div>

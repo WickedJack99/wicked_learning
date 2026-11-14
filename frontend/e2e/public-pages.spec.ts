@@ -2587,6 +2587,19 @@ test('the source Recall Queue opens an opaque private recall run', async ({
 test('the source Learning Desk search uses its authenticated result contract', async ({
     page,
 }) => {
+    await page.route('**/api/v1/learner/platform-translations', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({
+                locale: 'test',
+                translations: {
+                    'home.learning_desk.search.action': 'Find it',
+                    'home.learning_desk.search.label': 'Search a thought',
+                    'home.learning_desk.search.placeholder': 'Start with an idea',
+                },
+            }),
+        });
+    });
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -2675,10 +2688,24 @@ test('the source Learning Desk search uses its authenticated result contract', a
     });
 
     await page.goto('/home');
-    await page.getByLabel('Search learning content').fill('map');
+    await expect(
+        page.getByRole('button', { name: 'Find it' }),
+    ).toBeVisible();
+    const search = page.getByLabel('Search a thought');
+    await expect(search).toHaveAttribute('placeholder', 'Start with an idea');
+    await search.fill('map');
     await expect(
         page.getByRole('button', { name: /Map orientation Topic/ }),
     ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const resultBounds = await page
+        .getByRole('button', { name: /Map orientation Topic/ })
+        .boundingBox();
+    expect(resultBounds).not.toBeNull();
+    expect(resultBounds?.x).toBeGreaterThanOrEqual(0);
+    expect(
+        (resultBounds?.x ?? 0) + (resultBounds?.width ?? Infinity),
+    ).toBeLessThanOrEqual(390);
     await page.getByRole('button', { name: /Map orientation Topic/ }).click();
     await expect(page).toHaveURL(/\/topics\/map-orientation$/);
 });
