@@ -173,10 +173,10 @@ test('organization detail preserves source section and page query parameters', a
                     governance_type: 'monarchy',
                     icon_url: null,
                     id: '10000000-0000-0000-0000-000000000001',
-                    is_leader: false,
+                    is_leader: true,
                     leader_count: 1,
                     leadership_rotated_at: null,
-                    member_count: 2,
+                    member_count: 1,
                     members: [
                         {
                             id: '20000000-0000-0000-0000-000000000001',
@@ -202,7 +202,15 @@ test('organization detail preserves source section and page query parameters', a
                     slug: 'source-organization',
                     slogan: null,
                     viewer_join_request: null,
-                    viewer_membership: null,
+                    viewer_membership: {
+                        id: '20000000-0000-0000-0000-000000000001',
+                        joined_at: '2026-01-01T00:00:00Z',
+                        role: 'leader',
+                        user: {
+                            id: '30000000-0000-0000-0000-000000000001',
+                            name: 'Learner',
+                        },
+                    },
                 },
             }),
         });
@@ -215,7 +223,7 @@ test('organization detail preserves source section and page query parameters', a
     ).toBeVisible();
     await expect.poll(() => requestedMembersPage).toBe('2');
     await expect(
-        page.getByRole('button', { name: 'Members (2)' }),
+        page.getByRole('button', { name: 'Members (1)' }),
     ).toHaveClass(/bg-\[/);
     await expect(page.getByText('Other learner')).toBeVisible();
     await page
@@ -224,8 +232,20 @@ test('organization detail preserves source section and page query parameters', a
         .click();
     await expect.poll(() => requestedMembersPage).toBe('');
     await expect(page).toHaveURL(/\?section=members$/);
+    await page.goto('/organizations/source-organization?section=membership');
+    await expect(
+        page.getByText(
+            'You are the last leader. Delete the organization from leader controls instead of leaving it.',
+        ),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Open leader controls' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Leader controls' }),
+    ).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByText('Other learner')).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Leader controls' }),
+    ).toBeVisible();
 });
 
 test('organizations preserve the source membership, leadership and chat workflow', async ({
