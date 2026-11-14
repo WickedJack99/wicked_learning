@@ -180,7 +180,122 @@ function CollectiveOverviewView({ settings }: { settings: SupportSignalsSettings
 
 function PeerSupportView({ items }: { items: PeerSupportItem[] }) {
     const t = usePlatformTranslation();
-    return <section className="grid max-w-5xl gap-4"><div className="border-b border-[var(--settings-border-color)] pb-4"><p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">Anonymous support queue</p><h3 className="mt-2 text-lg font-semibold text-[var(--settings-primary-text)]">Shared-task exchanges to revisit</h3><p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">These activity-level signals show accepted peer feedback for visible learners where no contributor has marked a response helpful yet. They do not expose learner writing or reviewer identities.</p></div>{items.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{items.map((item) => <article className="grid gap-3 border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4" key={item.activityId}><div><p className="text-sm font-semibold text-[var(--settings-primary-text)]">{item.activityTitle}</p><p className="mt-1 text-sm text-[var(--settings-muted-text)]">{item.mapTitle} · {item.nodeTitle}</p></div><Link aria-label={`${t('settings.learning_support.peer_support.open_context', 'Open map context')}: ${item.activityTitle}`} className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--settings-accent)] hover:underline" to={item.contextHref}>{t('settings.learning_support.peer_support.open_context', 'Open map context')}</Link><div className="grid grid-cols-2 gap-3 border-t border-[var(--settings-border-color)] pt-3 text-sm"><div><p className="font-semibold text-[var(--settings-accent)]">{item.unresolvedReviewCount}</p><p className="mt-1 text-[var(--settings-muted-text)]">{item.unresolvedReviewCount === 1 ? 'review waiting' : 'reviews waiting'}</p></div><div><p className="font-semibold text-[var(--settings-primary-text)]">{item.contributorCount}</p><p className="mt-1 text-[var(--settings-muted-text)]">{item.contributorCount === 1 ? 'contributor' : 'contributors'}</p></div></div><p className="text-sm text-[var(--settings-muted-text)]">Latest review: {formatDateTime(item.latestReviewAt)}</p></article>)}</div> : <section className="grid min-h-[18rem] place-items-center border-t border-[var(--settings-border-color)] p-6 text-center"><div className="max-w-md"><HandHelping className="mx-auto size-6 text-[var(--settings-accent)]" /><h3 className="mt-3 font-semibold text-[var(--settings-primary-text)]">No peer support follow-up is waiting</h3><p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">Shared-task feedback appears here only when a contributor has opted in to sharing and has not yet marked a received response helpful.</p></div></section>}</section>;
+    return (
+        <section className="grid max-w-5xl gap-4">
+            <div className="border-b border-[var(--settings-border-color)] pb-4">
+                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                    {t(
+                        'settings.learning_support.peer_support.eyebrow',
+                        'Anonymous support queue',
+                    )}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold text-[var(--settings-primary-text)]">
+                    {t(
+                        'settings.learning_support.peer_support.title',
+                        'Shared-task exchanges to revisit',
+                    )}
+                </h3>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">
+                    {t(
+                        'settings.learning_support.peer_support.description',
+                        'These activity-level signals show accepted peer feedback for visible learners where no contributor has marked a response helpful yet. They do not expose learner writing or reviewer identities.',
+                    )}
+                </p>
+            </div>
+            {items.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {items.map((item) => (
+                        <article
+                            className="grid gap-3 border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4"
+                            key={item.activityId}
+                        >
+                            <div>
+                                <p className="text-sm font-semibold text-[var(--settings-primary-text)]">
+                                    {item.activityTitle}
+                                </p>
+                                <p className="mt-1 text-sm text-[var(--settings-muted-text)]">
+                                    {item.mapTitle} · {item.nodeTitle}
+                                </p>
+                            </div>
+                            <Link
+                                aria-label={`${t('settings.learning_support.peer_support.open_context', 'Open map context')}: ${item.activityTitle}`}
+                                className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--settings-accent)] hover:underline"
+                                to={item.contextHref}
+                            >
+                                {t(
+                                    'settings.learning_support.peer_support.open_context',
+                                    'Open map context',
+                                )}
+                            </Link>
+                            <div className="grid grid-cols-2 gap-3 border-t border-[var(--settings-border-color)] pt-3 text-sm">
+                                <div>
+                                    <p className="font-semibold text-[var(--settings-accent)]">
+                                        {item.unresolvedReviewCount}
+                                    </p>
+                                    <p className="mt-1 text-[var(--settings-muted-text)]">
+                                        {item.unresolvedReviewCount === 1
+                                            ? t(
+                                                  'settings.learning_support.peer_support.review_waiting',
+                                                  'review waiting',
+                                              )
+                                            : t(
+                                                  'settings.learning_support.peer_support.reviews_waiting',
+                                                  'reviews waiting',
+                                              )}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-[var(--settings-primary-text)]">
+                                        {item.contributorCount}
+                                    </p>
+                                    <p className="mt-1 text-[var(--settings-muted-text)]">
+                                        {item.contributorCount === 1
+                                            ? t(
+                                                  'settings.learning_support.peer_support.contributor',
+                                                  'contributor',
+                                              )
+                                            : t(
+                                                  'settings.learning_support.peer_support.contributors',
+                                                  'contributors',
+                                              )}
+                                    </p>
+                                </div>
+                            </div>
+                            <p className="text-sm text-[var(--settings-muted-text)]">
+                                {t(
+                                    'settings.learning_support.peer_support.latest_review',
+                                    'Latest review: :review',
+                                    {
+                                        review: formatDateTime(
+                                            item.latestReviewAt,
+                                        ),
+                                    },
+                                )}
+                            </p>
+                        </article>
+                    ))}
+                </div>
+            ) : (
+                <section className="grid min-h-[18rem] place-items-center border-t border-[var(--settings-border-color)] p-6 text-center">
+                    <div className="max-w-md">
+                        <HandHelping className="mx-auto size-6 text-[var(--settings-accent)]" />
+                        <h3 className="mt-3 font-semibold text-[var(--settings-primary-text)]">
+                            {t(
+                                'settings.learning_support.peer_support.empty_title',
+                                'No peer support follow-up is waiting',
+                            )}
+                        </h3>
+                        <p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">
+                            {t(
+                                'settings.learning_support.peer_support.empty_description',
+                                'Shared-task feedback appears here only when a contributor has opted in to sharing and has not yet marked a received response helpful.',
+                            )}
+                        </p>
+                    </div>
+                </section>
+            )}
+        </section>
+    );
 }
 
 function SupportSummary({ settings }: { settings: SupportSignalsSettings }) { return <SummaryItems items={[{ label: 'Scoped learners', value: settings.summary.learners }, { label: 'Learners with signals', value: settings.summary.learnersWithSignals }, { label: 'Monthly topic signals', value: settings.summary.topicsWithMonthlyActivity }]} />; }
