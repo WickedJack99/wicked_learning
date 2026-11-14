@@ -876,6 +876,18 @@ test('the original bookmark map keeps a saved place, return link, and removal fl
     await expect(
         page.getByRole('heading', { name: 'No bookmarks yet' }),
     ).toBeVisible();
+
+    await page.unroute('**/api/v1/learner/bookmarks');
+    await page.route('**/api/v1/learner/bookmarks', async (route) => {
+        await route.fulfill({ status: 503 });
+    });
+    await page.reload();
+    await expect(
+        page.getByRole('navigation', { name: 'Learner navigation' }),
+    ).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveText(
+        'Bookmarked places are temporarily unavailable.',
+    );
 });
 
 test('the source feedback route uses translated fixed copy and its typed submission', async ({

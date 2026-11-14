@@ -86,16 +86,37 @@ export function OriginalBookmarksPage({
     );
 
     if (isAuthenticationLoading) {
-        return <BookmarksMessage message={t('bookmarks.loading', 'Loading bookmarked places…')} />;
+        return (
+            <main className="flex min-h-svh items-center justify-center bg-[#0b1117] p-6 text-slate-100">
+                <p role="alert">
+                    {t('bookmarks.loading', 'Loading bookmarked places…')}
+                </p>
+            </main>
+        );
     }
     if (!isAuthenticated) {
         return <Navigate replace to="/login" />;
     }
     if (bookmarkState.kind === 'loading') {
-        return <BookmarksMessage message={t('bookmarks.loading', 'Loading bookmarked places…')} />;
+        return (
+            <BookmarksStatusPage
+                message={t('bookmarks.loading', 'Loading bookmarked places…')}
+                onSignedOut={onSignedOut}
+                userEmail={userEmail}
+            />
+        );
     }
     if (bookmarkState.kind === 'unavailable' || !bookmarkMap) {
-        return <BookmarksMessage message={t('bookmarks.unavailable', 'Bookmarked places are temporarily unavailable.')} />;
+        return (
+            <BookmarksStatusPage
+                message={t(
+                    'bookmarks.unavailable',
+                    'Bookmarked places are temporarily unavailable.',
+                )}
+                onSignedOut={onSignedOut}
+                userEmail={userEmail}
+            />
+        );
     }
 
     async function removeBookmark(place: BookmarkPlace): Promise<void> {
@@ -191,11 +212,26 @@ export function OriginalBookmarksPage({
     );
 }
 
-function BookmarksMessage({ message }: { message: string }) {
+function BookmarksStatusPage({
+    message,
+    onSignedOut,
+    userEmail,
+}: {
+    message: string;
+    onSignedOut: () => void;
+    userEmail: string;
+}) {
     return (
-        <main className="flex min-h-svh items-center justify-center bg-[#0b1117] p-6 text-slate-100">
-            <p role="alert">{message}</p>
-        </main>
+        <div className="relative min-h-svh bg-[#0b1117] text-slate-100">
+            <OriginalLearnerHeader
+                onSignedOut={onSignedOut}
+                position="fixed"
+                userEmail={userEmail}
+            />
+            <main className="flex min-h-svh items-center justify-center p-6">
+                <p role="alert">{message}</p>
+            </main>
+        </div>
     );
 }
 
