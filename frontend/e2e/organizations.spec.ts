@@ -254,6 +254,15 @@ test('organization detail preserves source section and page query parameters', a
     await expect(
         page.getByRole('button', { name: 'Make leader' }),
     ).toBeVisible();
+    let removalMessage = '';
+    page.once('dialog', (dialog) => {
+        removalMessage = dialog.message();
+        void dialog.dismiss();
+    });
+    await page.getByRole('button', { name: 'Remove' }).click();
+    expect(removalMessage).toBe(
+        'Remove New member from this organization?',
+    );
     await page
         .getByRole('navigation', { name: 'Organization members' })
         .getByRole('button', { name: 'Previous' })

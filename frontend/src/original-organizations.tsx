@@ -26,6 +26,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { OriginalLearnerHeader } from './original-learner-header';
+import { usePlatformTranslation } from './original-platform-translation';
 
 type Detail = components['schemas']['OrganizationDetail'];
 type Directory = components['schemas']['OrganizationDirectory'];
@@ -203,6 +204,7 @@ function OrganizationIndex({ isAuthenticationLoading, isAuthenticated, onSignedO
 
 function OrganizationShow({ isAuthenticationLoading, isAuthenticated, onSignedOut, slug, userEmail }: PageProps & { slug: string }) {
     const navigate = useNavigate();
+    const t = usePlatformTranslation();
     const [params, setParams] = useSearchParams();
     const [organization, setOrganization] = useState<Detail | null>(null);
     const [error, setError] = useState('');
@@ -286,7 +288,7 @@ function OrganizationShow({ isAuthenticationLoading, isAuthenticated, onSignedOu
         {section === 'membership' ? <MembershipPanel canLeave={canLeave} isMember={isMember} joinMessage={joinMessage} joinStatus={organization.viewer_join_request?.status ?? null} onJoinMessageChange={setJoinMessage} onLeave={() => void command((token) => apiClient.DELETE('/organizations/{slug}/membership', { params: { header: { 'X-CSRF-Token': token }, path: { slug } } }))} onOpenLeaderControls={() => setSection('leader-controls')} onRequestJoin={() => void command((token) => apiClient.POST('/organizations/{slug}/join-requests', { body: { message: joinMessage }, params: { header: { 'X-CSRF-Token': token }, path: { slug } } })).then((completed) => { if (completed) setJoinMessage(''); })} saving={saving} /> : null}
         {section === 'chat' && canViewChat ? <ChatPanel canSend={organization.can_send_messages} messages={organization.messages} onBodyChange={setChatBody} onDelete={(id) => void command((token) => apiClient.DELETE('/organization-messages/{message_id}', { params: { header: { 'X-CSRF-Token': token }, path: { message_id: id } } }))} onHide={(id) => void command((token) => apiClient.PATCH('/organization-messages/{message_id}/hide', { params: { header: { 'X-CSRF-Token': token }, path: { message_id: id } } }))} onPageChange={(page) => visitPage('messages_page', page, 'chat')} onSend={() => void command((token) => apiClient.POST('/organizations/{slug}/messages', { body: { body: chatBody }, params: { header: { 'X-CSRF-Token': token }, path: { slug } } })).then((completed) => { if (completed) setChatBody(''); })} pagination={organization.messages_pagination} saving={saving} value={chatBody} /> : null}
         {section === 'join-requests' && organization.is_leader ? <JoinRequestsPanel onPageChange={(page) => visitPage('join_requests_page', page, 'join-requests')} onRespond={(requestId, approved) => void command((token) => apiClient.PATCH('/organization-join-requests/{request_id}', { body: { approved }, params: { header: { 'X-CSRF-Token': token }, path: { request_id: requestId } } }))} pagination={organization.pending_join_requests_pagination} requests={organization.pending_join_requests} saving={saving} /> : null}
-        {section === 'members' ? <MembersPanel canPromote={organization.is_leader && organization.governance_type === 'monarchy'} canRemove={organization.is_leader} members={organization.members} onPageChange={(page) => visitPage('members_page', page, 'members')} onPromote={(membershipId) => void command((token) => apiClient.PATCH('/organization-memberships/{membership_id}/leader', { params: { header: { 'X-CSRF-Token': token }, path: { membership_id: membershipId } } }))} onRemove={(membershipId) => void command((token) => apiClient.DELETE('/organization-memberships/{membership_id}', { params: { header: { 'X-CSRF-Token': token }, path: { membership_id: membershipId } } }))} pagination={organization.members_pagination} saving={saving} viewerMembershipId={organization.viewer_membership?.id ?? null} /> : null}
+        {section === 'members' ? <MembersPanel canPromote={organization.is_leader && organization.governance_type === 'monarchy'} canRemove={organization.is_leader} members={organization.members} onPageChange={(page) => visitPage('members_page', page, 'members')} onPromote={(membershipId) => void command((token) => apiClient.PATCH('/organization-memberships/{membership_id}/leader', { params: { header: { 'X-CSRF-Token': token }, path: { membership_id: membershipId } } }))} onRemove={(member) => { if (window.confirm(t('organizations.members.remove_confirmation', 'Remove :name from this organization?', { name: member.user.name }))) void command((token) => apiClient.DELETE('/organization-memberships/{membership_id}', { params: { header: { 'X-CSRF-Token': token }, path: { membership_id: member.id } } })); }} pagination={organization.members_pagination} saving={saving} viewerMembershipId={organization.viewer_membership?.id ?? null} /> : null}
         {section === 'report-icon' && organization.icon_url && !organization.is_leader ? <form className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5" onSubmit={(event) => void reportIcon(event)}><h2 className="flex items-center gap-2 text-sm font-semibold"><Flag className="size-4 text-red-500" />Report organization icon</h2><textarea className={`${field} min-h-20`} maxLength={1000} onChange={(event) => setReportReason(event.target.value)} placeholder="Why should admins review this icon?" value={reportReason} /><button className={secondaryButton} disabled={saving} type="submit"><Flag className="size-4" />Report icon</button></form> : null}
         {error ? <p className="text-sm text-red-500" role="alert">{error}</p> : null}</div></section></div></main></main>;
 }
@@ -384,7 +386,7 @@ function MembersPanel({
     members: components['schemas']['OrganizationMembership'][];
     onPageChange: (page: number) => void;
     onPromote: (membershipId: string) => void;
-    onRemove: (membershipId: string) => void;
+    onRemove: (member: components['schemas']['OrganizationMembership']) => void;
     pagination: components['schemas']['OrganizationPagination'];
     saving: boolean;
     viewerMembershipId: string | null;
@@ -396,7 +398,7 @@ function MembersPanel({
             <div><p className="font-medium">{member.user.name}</p><p className="text-xs text-slate-500 dark:text-slate-400">{member.role === 'leader' ? 'Leader' : 'Member'}</p></div>
             {canRemove && member.id !== viewerMembershipId ? <div className="flex gap-2">
                 {canPromote && member.role !== 'leader' ? <button className={secondaryButton} disabled={saving} onClick={() => onPromote(member.id)} type="button"><UserPlus className="size-4" />Make leader</button> : null}
-                <button className={secondaryButton} disabled={saving} onClick={() => onRemove(member.id)} type="button">Remove</button>
+                <button className={secondaryButton} disabled={saving} onClick={() => onRemove(member)} type="button">Remove</button>
             </div> : null}
         </article>)}
         <Pagination label="Organization members" onPageChange={onPageChange} pagination={pagination} />
