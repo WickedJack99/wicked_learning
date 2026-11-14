@@ -147,7 +147,12 @@ export function OriginalNpcDialogueActivity({
             setGrantedToolName(data?.granted_tool?.title ?? null);
             await onRefresh();
         } catch {
-            setError('The dialogue could not continue. Try again.');
+            setError(
+                t(
+                    'learning.npc_dialogue.command_error',
+                    'The dialogue could not continue. Try again.',
+                ),
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -172,7 +177,12 @@ export function OriginalNpcDialogueActivity({
             if (!response.ok) throw new Error('dialogue answer');
             await onRefresh();
         } catch {
-            setError('That answer is no longer available. Try again.');
+            setError(
+                t(
+                    'learning.npc_dialogue.answer_unavailable',
+                    'That answer is no longer available. Try again.',
+                ),
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -197,7 +207,12 @@ export function OriginalNpcDialogueActivity({
             if (!response.ok) throw new Error('dialogue reflection');
             await onRefresh();
         } catch {
-            setError('Your private reflection could not be saved. Try again.');
+            setError(
+                t(
+                    'learning.npc_dialogue.reflection_error',
+                    'Your private reflection could not be saved. Try again.',
+                ),
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -223,7 +238,7 @@ export function OriginalNpcDialogueActivity({
                     {isReflection ? <div className="mt-4 grid gap-3"><textarea className="min-h-28 resize-none rounded-lg border border-white/20 bg-slate-950/30 p-3 text-sm leading-6 text-inherit outline-none focus:border-cyan-400 dark:focus:border-teal-200" onChange={(event) => setReflection(event.target.value)} placeholder={t('learning.npc_dialogue.reflection_placeholder', 'Write a reflection for your journal.')} value={reflection} /><button className="rounded-md bg-cyan-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950" disabled={!reflection.trim() || isSubmitting} onClick={() => void saveReflection()} type="button">{t('learning.npc_dialogue.keep_reflection', 'Keep reflection')}</button></div> : null}
                     {error ? <p className="mt-3 text-sm text-rose-700 dark:text-rose-200" role="alert">{error}</p> : null}
                 </div>
-                <div className="flex items-center justify-between gap-3"><button aria-label={t('learning.npc_dialogue.previous', 'Previous dialogue')} className="rounded-md border border-[var(--learner-border-color)] p-2 disabled:opacity-50" disabled={!canGoBack || isSubmitting} onClick={() => void command('/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/back')} type="button"><ArrowLeft className="size-4" /></button><p className="text-xs text-[var(--learner-muted-text)]">{isReflection ? t('learning.npc_dialogue.reflection_continue', 'Save your reflection to continue.') : isQuestion ? t('learning.npc_dialogue.question_continue', 'Choose an answer, then confirm.') : isEnd ? 'Completing dialogue…' : t('learning.npc_dialogue.keyboard_hint', 'Use Space or arrows to move.')}</p><button aria-label={t('learning.npc_dialogue.next', 'Next dialogue')} className="rounded-md bg-cyan-700 p-2 text-white disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950" disabled={isQuestion || isReflection || isEnd || isSubmitting} onClick={() => void command('/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue')} type="button"><ArrowRight className="size-4" /></button></div>
+                <div className="flex items-center justify-between gap-3"><button aria-label={t('learning.npc_dialogue.previous', 'Previous dialogue')} className="rounded-md border border-[var(--learner-border-color)] p-2 disabled:opacity-50" disabled={!canGoBack || isSubmitting} onClick={() => void command('/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/back')} type="button"><ArrowLeft className="size-4" /></button><p className="text-xs text-[var(--learner-muted-text)]">{isReflection ? t('learning.npc_dialogue.reflection_continue', 'Save your reflection to continue.') : isQuestion ? t('learning.npc_dialogue.question_continue', 'Choose an answer, then confirm.') : isEnd ? t('learning.npc_dialogue.completing', 'Completing dialogue…') : t('learning.npc_dialogue.keyboard_hint', 'Use Space or arrows to move.')}</p><button aria-label={t('learning.npc_dialogue.next', 'Next dialogue')} className="rounded-md bg-cyan-700 p-2 text-white disabled:opacity-50 dark:bg-teal-200 dark:text-slate-950" disabled={isQuestion || isReflection || isEnd || isSubmitting} onClick={() => void command('/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue')} type="button"><ArrowRight className="size-4" /></button></div>
             </div>
             <DialogueSceneAssetLayers assets={sceneAssets} layer="overlay" />
         </div>

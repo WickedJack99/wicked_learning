@@ -188,7 +188,12 @@ export function OriginalObstacleActivity({
             await wait(successAnimationDurationMs(successAnimation));
             await onComplete();
         } catch {
-            setHint('That tool cannot be used here.');
+            setHint(
+                t(
+                    'learning.obstacle.error',
+                    'That tool cannot be used here.',
+                ),
+            );
         } finally {
             setIsResolving(false);
         }

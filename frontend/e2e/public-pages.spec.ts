@@ -4136,6 +4136,7 @@ test('the original peer-message wall localizes its authorized empty reader', asy
 
 test('the original NPC dialogue localizes its server-owned empty answer state', async ({ page }) => {
     const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d87';
+    let showFailingStatement = false;
     await page.route('**/api/v1/learner/platform-translations', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -4146,6 +4147,8 @@ test('the original NPC dialogue localizes its server-owned empty answer state', 
                     'learning.npc_dialogue.previous': 'Previous locally',
                     'learning.npc_dialogue.next': 'Next locally',
                     'learning.npc_dialogue.question_continue': 'Choose locally before confirming',
+                    'learning.npc_dialogue.command_error':
+                        'Localized dialogue command error',
                 },
             }),
         });
@@ -4180,13 +4183,21 @@ test('the original NPC dialogue localizes its server-owned empty answer state', 
                     npc_dialogue: {
                         current_node_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d01',
                         history: [],
-                        nodes: [{
-                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d01',
-                            node_type: 'npc_question',
-                            title: 'A question without choices',
-                            body: 'What do you notice?',
-                            config: {},
-                        }],
+                        nodes: showFailingStatement
+                            ? [{
+                                  id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d01',
+                                  node_type: 'npc_statement',
+                                  title: 'A statement that cannot continue',
+                                  body: 'A server-owned command will fail.',
+                                  config: {},
+                              }]
+                            : [{
+                                  id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d01',
+                                  node_type: 'npc_question',
+                                  title: 'A question without choices',
+                                  body: 'What do you notice?',
+                                  config: {},
+                              }],
                         transitions: [],
                         typing_sound_sets: [],
                     },
@@ -4194,6 +4205,22 @@ test('the original NPC dialogue localizes its server-owned empty answer state', 
             }),
         });
     });
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ token: 'test-csrf-token' }),
+        });
+    });
+    await page.route(
+        `**/api/v1/learner/play-runs/${playRunId}/activities/npc-dialogue/npc-dialogue/continue`,
+        async (route) => {
+            await route.fulfill({
+                status: 503,
+                contentType: 'application/json',
+                body: JSON.stringify({ code: 'dependency_unavailable' }),
+            });
+        },
+    );
 
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
@@ -4204,9 +4231,14 @@ test('the original NPC dialogue localizes its server-owned empty answer state', 
     await expect(page.getByRole('button', { name: 'Confirm answer' })).toHaveCount(0);
 
     await page.setViewportSize({ width: 390, height: 844 });
+    showFailingStatement = true;
     await page.reload();
-    await expect(page.getByText('Localized empty answers')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Next locally' })).toBeDisabled();
+    const nextDialogue = page.getByRole('button', { name: 'Next locally' });
+    await expect(nextDialogue).toBeEnabled();
+    await nextDialogue.click();
+    await expect(page.getByRole('alert')).toHaveText(
+        'Localized dialogue command error',
+    );
 });
 
 test('the original portal localizes its server-owned destination and traversal', async ({ page }) => {
@@ -4220,6 +4252,7 @@ test('the original portal localizes its server-owned destination and traversal',
                     'learning.portal.linked': 'Linked locally',
                     'learning.portal.travel_to': 'Travel locally to :map / :node.',
                     'learning.portal.traverse': 'Traverse locally',
+                    'learning.portal.unavailable': 'Localized portal unavailable',
                 },
             }),
         });
@@ -4274,11 +4307,9 @@ test('the original portal localizes its server-owned destination and traversal',
         `**/api/v1/learner/play-runs/${playRunId}/activities/cross-the-threshold/portal/travel`,
         async (route) => {
             await route.fulfill({
+                status: 503,
                 contentType: 'application/json',
-                body: JSON.stringify({
-                    node_slug: 'server-node',
-                    play_run_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d90',
-                }),
+                body: JSON.stringify({ code: 'dependency_unavailable' }),
             });
         },
     );
@@ -4292,9 +4323,9 @@ test('the original portal localizes its server-owned destination and traversal',
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
     await page.getByRole('button', { name: 'Traverse locally' }).click();
-    await expect(
-        page.getByRole('heading', { name: 'A small pause after Cross the threshold' }),
-    ).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveText(
+        'Localized portal unavailable',
+    );
 });
 
 test('the original item-grant surface rolls only the active configured items before completing', async ({
@@ -4313,6 +4344,7 @@ test('the original item-grant surface rolls only the active configured items bef
                 translations: {
                     'activities.item_grant.loading': 'Localized item roll',
                     'activities.item_grant.received': 'Localized item received',
+                    'common.continue': 'Continue locally',
                 },
             }),
         });
@@ -4409,7 +4441,9 @@ test('the original item-grant surface rolls only the active configured items bef
     await expect(page.getByText('Localized item roll')).toBeVisible();
     releaseGrantResponse();
     await expect(page.getByText('Localized item received')).toBeVisible();
-    const continueButton = page.getByRole('button', { name: 'Continue' });
+    const continueButton = page.getByRole('button', {
+        name: 'Continue locally',
+    });
     await expect(continueButton).toBeVisible();
     const bounds = await continueButton.boundingBox();
     expect(bounds).not.toBeNull();
@@ -4617,6 +4651,7 @@ test('the original obstacle surface selects an owned tool and uses only the acti
     page,
 }) => {
     const playRunId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d66';
+    let toolUseCount = 0;
     await page.route('**/api/v1/learner/platform-translations', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -4627,6 +4662,7 @@ test('the original obstacle surface selects an owned tool and uses only the acti
                     'learning.obstacle.label': 'Localized obstacle',
                     'learning.obstacle.selected_tool': 'Using: :tool.',
                     'learning.obstacle.use_tool': 'Use the localized tool',
+                    'learning.obstacle.error': 'Localized obstacle error',
                 },
             }),
         });
@@ -4721,6 +4757,11 @@ test('the original obstacle surface selects an owned tool and uses only the acti
             expect(route.request().postDataJSON()).toEqual({
                 tool_slug: 'hammer',
             });
+            toolUseCount += 1;
+            if (toolUseCount > 1) {
+                await route.abort('failed');
+                return;
+            }
             await route.fulfill({
                 contentType: 'application/json',
                 body: JSON.stringify({ is_resolved: true, is_useful: true }),
@@ -4765,6 +4806,15 @@ test('the original obstacle surface selects an owned tool and uses only the acti
         .getByRole('button', { name: 'Continue without answering' })
         .click();
     await expect(page).toHaveURL(/\/world\?focused=private-place$/);
+
+    await page.goto(`/learning/nodes/private-place/play?run=${playRunId}`);
+    await page.getByRole('button', { name: 'Open tools' }).click();
+    await page.getByRole('button', { name: 'Hammer' }).click();
+    await page
+        .locator('[data-wl-id="learner.activity.obstacle.scene"]')
+        .getByRole('button', { name: 'Use the localized tool' })
+        .click();
+    await expect(page.getByText('Localized obstacle error')).toBeVisible();
 });
 
 test('the original Markdown activity follows its authored pages before server-owned completion', async ({

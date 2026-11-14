@@ -65,8 +65,14 @@ export function OriginalPortalActivity({
         if (destination.node_state !== 'available') {
             setError(
                 destination.node_state === 'locked'
-                    ? `${destination.node_title} is still locked.`
-                    : `${destination.node_title} has not been discovered yet.`,
+                    ? t('learning.activity.travel.locked', ':title is still locked.', {
+                          title: destination.node_title,
+                      })
+                    : t(
+                          'learning.activity.travel.undiscovered',
+                          ':title has not been discovered yet.',
+                          { title: destination.node_title },
+                      ),
             );
             return;
         }
@@ -86,10 +92,15 @@ export function OriginalPortalActivity({
             if (!response.ok || !data) throw new Error('portal travel failed');
             onTravel(data);
         } catch {
-            setError('This portal is no longer available. Return to the map and try again.');
+            setError(
+                t(
+                    'learning.portal.unavailable',
+                    'This portal is no longer available. Return to the map and try again.',
+                ),
+            );
             setIsTravelling(false);
         }
-    }, [activity.slug, destination, isTravelling, onTravel, playRunId]);
+    }, [activity.slug, destination, isTravelling, onTravel, playRunId, t]);
 
     if (isInputPortal && !showOnArrival) {
         return (

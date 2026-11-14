@@ -147,7 +147,7 @@ export function OriginalItemGrantActivity({
                     onClick={() => void onComplete()}
                     type="button"
                 >
-                    Continue
+                    {t('common.continue', 'Continue')}
                     <ArrowRight className="ml-2 size-4" />
                 </button>
             </div>
