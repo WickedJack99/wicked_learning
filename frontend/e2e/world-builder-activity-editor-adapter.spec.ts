@@ -3,6 +3,11 @@ import { expect, test } from '@playwright/test';
 import type { components } from '../src/api/schema';
 import { adaptRustActivityEditorDocument } from '../src/lifted-world-builder-activity-editor-adapter';
 import { buildGraphEdges, buildGraphNodes } from '../src/lifted-world-builder-activity-graph-elements';
+import { activityTemplateContext } from '../src/lifted-world-builder-activity-template-context';
+import {
+    isImageMediaReference,
+    replaceTemplateMediaReferences,
+} from '../src/lifted-world-builder-activity-template-media';
 
 test('adapts a UUID selected-node document to the pinned-source activity editor shape', () => {
     const document = {
@@ -268,4 +273,41 @@ test('adapts a UUID selected-node document to the pinned-source activity editor 
             target: 'end',
         },
     ]);
+});
+
+test('retains the source template context and recursive media replacement helpers', () => {
+    expect(
+        activityTemplateContext({
+            message_topic_id: 'topic-uuid',
+            target_portal_activity_id: '',
+            type: 'message_prompt',
+        }),
+    ).toEqual({ references: ['message_topic'] });
+    expect(
+        activityTemplateContext({
+            message_topic_id: '',
+            target_portal_activity_id: 'activity-uuid',
+            type: 'portal',
+        }),
+    ).toEqual({ references: ['portal_destination'] });
+    expect(isImageMediaReference('/api/v1/admin/media-assets/a/content?size=1')).toBe(
+        false,
+    );
+    expect(isImageMediaReference('scene.webp?version=2')).toBe(true);
+    expect(
+        replaceTemplateMediaReferences(
+            {
+                nested: [
+                    'old-image.webp',
+                    { retained: 'text', visual: 'old-image.webp' },
+                ],
+            },
+            { 'old-image.webp': 'managed-image.webp' },
+        ),
+    ).toEqual({
+        nested: [
+            'managed-image.webp',
+            { retained: 'text', visual: 'managed-image.webp' },
+        ],
+    });
 });

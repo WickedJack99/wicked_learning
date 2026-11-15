@@ -1517,6 +1517,19 @@ build` passes. This is dependency-level evidence only; the complete Activity
 Editor browser matrix remains required before the route can be called
 source-visible or migrated.
 
+#### Third Activity Editor implementation prerequisite: template context and media helpers — 15 November 2026
+
+The whole pinned-source `activity-template-context.ts` and
+`activity-template-media.ts` modules are lifted into the standalone frontend.
+They preserve the source rule that copied Message activities retain an explicit
+message-topic review marker, copied Portals retain an explicit destination
+review marker, and nested template media references are replaced structurally
+rather than by shallow form-field guessing. There is no Laravel transport seam
+in either helper; only the import of the already UUID-generalized source
+`ActivityForm` types changes. The focused adapter spec now covers both source
+context cases and nested media replacement; `npm run build` passes. These
+helpers are still unmounted until the complete source editor is mounted.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
