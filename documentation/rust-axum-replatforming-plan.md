@@ -1812,9 +1812,12 @@ and error placement, then reaches the Rust `200` source reload at narrow width.
 Review / revisit has the equivalent source-form create and selected-record update
 evidence: desktop Rust `400` and `409` source error states, plus narrow Rust
 `201` and `200` source reloads with its complete reflection-shaped body and
-optimistic timestamp. The remaining types' command behavior and all other listed
-states remain unproven. It therefore does not close the P0 Activity Editor
-matrix or authorize mounting the route.
+optimistic timestamp. Markdown create now captures its complete default page
+graph, page visuals, Start/page/End edges and layout through a desktop Rust
+`400` source error and narrow Rust `201` source reload; Markdown update and
+stale-save remain unproven. The remaining types' command behavior and all other
+listed states remain unproven. It therefore does not close the P0 Activity
+Editor matrix or authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 

@@ -9,6 +9,35 @@ async function expectBounded(locator: Locator, width: number): Promise<void> {
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
 }
 
+const defaultMarkdownCreateBody = {
+    introduction: null,
+    markdown_graph_layout: {},
+    markdown_pages: [
+        {
+            body: '# First page\n\nWrite markdown content here. Use `![Alt text](/path/to/image.svg)` to insert images.',
+            id: 'page-1',
+            position: { x: 140, y: 80 },
+            title: 'First page',
+            visual: {
+                border_color_dark: '#2dd4bf',
+                border_color_light: '#0891b2',
+                heading_color_dark: '#67e8f9',
+                heading_color_light: '#0e7490',
+                page_color_dark: '#0f172a',
+                page_color_light: '#ffffff',
+                text_color_dark: '#f8fafc',
+                text_color_light: '#0f172a',
+            },
+        },
+    ],
+    markdown_transitions: [
+        { from: 'start', id: 'start-page-1', to: 'page-1' },
+        { from: 'page-1', id: 'page-1-end', to: 'end' },
+    ],
+    slug: null,
+    title: 'Write the page route',
+};
+
 async function exerciseSourceGraphDialogs(page: Page): Promise<void> {
     await page
         .getByRole('button', { name: 'Delete First activity' })
@@ -887,6 +916,82 @@ test('reloads after a typed Rust Review update succeeds at narrow width', async 
         topic: 'Learning',
         updated_at: '2026-11-15T10:00:00Z',
     });
+    await expect(
+        page.getByRole('heading', { name: 'Node activities' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});
+
+async function openMarkdownCreateForm(page: Page): Promise<void> {
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page.getByRole('option', { name: 'Markdown' }).dispatchEvent('click');
+}
+
+test('surfaces a typed Rust Markdown validation failure', async ({ page }) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/markdown-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 400 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+    await openMarkdownCreateForm(page);
+    await page.getByLabel('Title').fill('Write the page route');
+
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual(defaultMarkdownCreateBody);
+});
+
+test('reloads after a typed Rust Markdown create succeeds', async ({ page }) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/markdown-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: { activity_id: '00000000-0000-4000-8000-000000000710' },
+                status: 201,
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html');
+    await openMarkdownCreateForm(page);
+    await page.getByLabel('Title').fill('Write the page route');
+
+    const reloaded = page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+    );
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+    await reloaded;
+
+    expect(commandBody).toEqual(defaultMarkdownCreateBody);
     await expect(
         page.getByRole('heading', { name: 'Node activities' }),
     ).toBeVisible();
