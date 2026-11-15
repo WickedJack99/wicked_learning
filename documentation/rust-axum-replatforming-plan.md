@@ -585,6 +585,33 @@ bounds and the source destination handoff. It is a pinned-source-code-to-Rust
 browser comparison; direct live Laravel screenshot capture remains unavailable
 and is not claimed.
 
+#### Sixth P0 implementation evidence: unavailable graph/read shell — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+This slice directly lifts `UnavailableWorldBuilder` from
+`resources/js/features/settings/world-builder-settings-panel.tsx` and keeps it
+inside the existing lifted Settings nested workspace. The former Rust-only
+full-page `WorldBuilderStatus` and its account/network recovery copy are
+removed. No Graph, Review, Structural, map/MapAsset-editor, or read contract
+is changed. In particular, Review still mounts its separately lifted queue and
+therefore retains its own loading/error state regardless of the graph read.
+
+| Source shell requirement | Rust graph/read contract | Deliberate adapter boundary and retained behavior | Evidence |
+| --- | --- | --- | --- |
+| No permitted World Builder section | The client `GET /api/v1/me` projection yields scoped `settings_access`; Graph/Review are available when any of `world_maps`, `world_nodes`, or `world_activities` is available, while Structural additionally requires `world_maps`. | If no section is visible, the direct source panel is rendered in the Settings workspace. Its exact fixed copy is deliberately not localized through a Rust-only recovery key. | Browser fixture supplies empty `settings_access` and asserts the source panel and bounds at 1440×900 and 390×844. |
+| Graph read pending or unavailable | `GET /api/v1/admin/world-builder` returns `200 AdminWorldGraph`; `401` lacks a session, `403` lacks an application principal/role assignment, `404` means no authorized graph, and `503` represents an unavailable dependency. Network failure is also possible before a response. Rust's graph application query returns `None` when the scoped principal has none of the four source read permissions. | No status copy is invented for any transport outcome. While a non-Review graph/Structural read has no graph, the direct source unavailable panel stays nested under Settings navigation. A successful empty graph is distinct: it remains the already-lifted normal no-map Graph workspace. | Browser gate proves the initial pending panel turns into the empty Graph workspace after `200`; fixtures cover `401`, `403`, `404`, `503`, and a failed network request at both required viewports. |
+| Review ownership of its own transport state | The queue's bounded Rust reader remains `GET /api/v1/admin/world-builder/review-queue`; its documented errors and source-adapted `readJsonResponse` state remain in the fifth P0 slice. | The outer graph read does not suppress or replace the Review queue component. This preserves the source condition that Review has its own loading/error panel rather than the graph shell’s unavailable state. | Existing Review parity browser coverage continues to exercise loading, empty, populated, and failure states independently. |
+
+Focused source-derived Rust-browser evidence is
+`frontend/e2e/world-builder-status-localization.spec.ts`. Despite its retained
+filename, it now asserts the pinned source's unlocalized unavailable panel,
+its nested Settings-shell placement, state transition after a successful empty
+graph read, and bounded presentation at **1440×900** and **390×844**. It is a
+pinned-source-code-to-Rust-browser comparison; direct live Laravel screenshot
+capture remains unavailable and is not claimed.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named

@@ -561,7 +561,7 @@ function WorldBuilderContent({
     const [editableNode, setEditableNode] = useState<EditableNode | null>(null);
     const [mapReload, setMapReload] = useState(0);
     const [nodeReload, setNodeReload] = useState(0);
-    const [error, setError] = useState<string | null>(null);
+    const [, setError] = useState<string | null>(null);
     const [createMapOpen, setCreateMapOpen] = useState(false);
     const [importMapOpen, setImportMapOpen] = useState(false);
     const [importWorldOpen, setImportWorldOpen] = useState(false);
@@ -764,20 +764,6 @@ function WorldBuilderContent({
         };
     }, [nodeReload, selectedNodeId, t]);
 
-    if (resolvedWorldBuilderSection && error && !worldGraph && resolvedWorldBuilderSection !== 'review') {
-        return <WorldBuilderStatus message={error} />;
-    }
-    if (resolvedWorldBuilderSection && !worldGraph && resolvedWorldBuilderSection !== 'review') {
-        return (
-            <WorldBuilderStatus
-                message={t(
-                    'settings.world_builder.status.loading',
-                    'Loading World Builder…',
-                )}
-            />
-        );
-    }
-
     return (
         <main
             className="settings-surface h-svh min-h-0 overflow-hidden bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100"
@@ -812,7 +798,8 @@ function WorldBuilderContent({
                                 />
                             }
                         >
-                {!resolvedWorldBuilderSection ? (
+                {!resolvedWorldBuilderSection ||
+                (resolvedWorldBuilderSection !== 'review' && !worldGraph) ? (
                     <UnavailableWorldBuilder />
                 ) : resolvedWorldBuilderSection === 'review' ? (
                     <LiftedWorldBuilderSectionWorkspace>
@@ -2560,24 +2547,13 @@ function DuplicateMapDialog({
     );
 }
 
-function WorldBuilderStatus({ message }: { message: string }) {
-    return (
-        <main className="grid min-h-svh place-items-center bg-slate-100 p-6 text-slate-700 dark:bg-[#0b1117] dark:text-slate-200">
-            <p role="status">{message}</p>
-        </main>
-    );
-}
-
+/** Direct lift of main WorldBuilderSettingsPanel's unavailable state. */
 function UnavailableWorldBuilder() {
-    const t = usePlatformTranslation();
-
     return (
         <section className="grid h-full place-items-center p-6 text-center">
             <p className="max-w-lg text-sm leading-6 text-[var(--settings-muted-text)]">
-                {t(
-                    'settings.world_builder.status.unavailable_permissions',
-                    'World builder settings are not available with the current permissions.',
-                )}
+                World builder settings are not available with the current
+                permissions.
             </p>
         </section>
     );
