@@ -13896,7 +13896,25 @@ components:
           additionalProperties: false
           required: [snapshot]
           properties:
-            snapshot: { type: object, additionalProperties: true }
+            snapshot: { $ref: '#/components/schemas/AdminActivityVersionSnapshot' }
+    AdminActivityVersionSnapshot:
+      type: object
+      additionalProperties: false
+      required: [companionConfig, config, graphPositionX, graphPositionY]
+      properties:
+        companionConfig:
+          type: object
+          additionalProperties: true
+        config:
+          type: object
+          additionalProperties: true
+        graphPositionX: { type: [number, 'null'] }
+        graphPositionY: { type: [number, 'null'] }
+        transitions:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
     AdminActivityVersionDetailsResponse:
       type: object
       additionalProperties: false

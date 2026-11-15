@@ -1,5 +1,5 @@
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{Map, Value};
 use uuid::Uuid;
 
 /// The source Topic Structure workspace. This author-only projection includes
@@ -583,6 +583,22 @@ pub struct AdminActivityVersionSummary {
     pub activity_type: Option<String>,
 }
 
+/// The source Activity History dialog's bounded, inspectable part of an
+/// immutable activity revision. This is intentionally narrower than the
+/// stored JSON snapshot: only the source dialog's fields cross the API
+/// boundary, and malformed legacy values have already been normalized by the
+/// persistence adapter.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdminActivityVersionSnapshot {
+    pub companion_config: Map<String, Value>,
+    pub config: Map<String, Value>,
+    pub graph_position_x: Option<f64>,
+    pub graph_position_y: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transitions: Option<Vec<Map<String, Value>>>,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct AdminActivityVersionDetails {
     pub id: Uuid,
@@ -591,7 +607,7 @@ pub struct AdminActivityVersionDetails {
     pub slug: Option<String>,
     pub title: Option<String>,
     pub activity_type: Option<String>,
-    pub snapshot: Value,
+    pub snapshot: AdminActivityVersionSnapshot,
 }
 
 #[derive(Clone, Debug, Serialize)]

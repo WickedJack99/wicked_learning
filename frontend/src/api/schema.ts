@@ -10194,9 +10194,20 @@ export interface components {
             activity_type: string | null;
         };
         AdminActivityVersionDetails: components["schemas"]["AdminActivityVersionSummary"] & {
-            snapshot: {
+            snapshot: components["schemas"]["AdminActivityVersionSnapshot"];
+        };
+        AdminActivityVersionSnapshot: {
+            companionConfig: {
                 [key: string]: unknown;
             };
+            config: {
+                [key: string]: unknown;
+            };
+            graphPositionX: number | null;
+            graphPositionY: number | null;
+            transitions?: {
+                [key: string]: unknown;
+            }[];
         };
         AdminActivityVersionDetailsResponse: {
             version: components["schemas"]["AdminActivityVersionDetails"];

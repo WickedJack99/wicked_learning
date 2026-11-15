@@ -315,7 +315,7 @@ function HistoryDetails({
             </section>
             <dl className="grid gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <SnapshotField label={t('settings.activity_history.route_connections', 'Route connections')} value={String(transitions.length)} />
-                <SnapshotField label={t('settings.activity_history.graph_position', 'Graph position')} value={formatPosition(version.snapshot, t)} />
+                <SnapshotField label={t('settings.activity_history.graph_position', 'Graph position')} value={formatPosition(version.snapshot.graphPositionX, version.snapshot.graphPositionY, t)} />
             </dl>
             <button
                 className="inline-flex w-fit items-center gap-1 rounded-md bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
@@ -360,10 +360,8 @@ function formatVersionDate(value: string): string {
 }
 
 type Translate = (key: string, fallback?: string, replacements?: Record<string, number | string>) => string;
-function formatPosition(snapshot: Record<string, unknown>, t: Translate): string {
-    const x = snapshot.graphPositionX;
-    const y = snapshot.graphPositionY;
-    return typeof x === 'number' && typeof y === 'number'
+function formatPosition(x: number | null, y: number | null, t: Translate): string {
+    return x !== null && y !== null
         ? `${x}, ${y}`
         : t('settings.activity_history.not_positioned', 'Not positioned');
 }

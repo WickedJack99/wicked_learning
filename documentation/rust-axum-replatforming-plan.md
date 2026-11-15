@@ -1443,6 +1443,17 @@ browser lookup only to preserve a Laravel-only identifier type.
 | History, AI review, templates, citations and media | Several bespoke Rust dialogs expose related capability, but the source route owns their launch order, loading/empty/error behavior and return-to-edit lifecycle. | P1 blocking parity | Existing activity versions/restore, AI review, template, source-record and scoped upload contracts must be mapped individually; no source dialog may fall back to an untyped Laravel request. | Source-derived browser coverage for history restore conflict/failure, no-review/review-ready state, template/source pagination failure and unavailable media upload, at both required viewports. |
 | Transport unavailable/read denial | The current selected-node load error uses Rust-specific copy outside the source activity route. | P0 | The existing selected-node read returns 401/403/404/503 or network failure. A transport-only adapter may wrap the lifted outer source workspace, but it may not invent authoring controls or a substitute editor without a successful document. | Browser coverage of initial loading, 401, 403, 404, 503 and network failure at 1440×900 and 390×844, distinct from the source empty-activity state. |
 
+**History contract prerequisite — complete:** pinned `ActivityHistoryDialog`
+requires each inspected snapshot to expose `companionConfig`, `config`,
+`graphPositionX`, `graphPositionY` and optional `transitions` under its source
+names. `AdminActivityVersionDetails.snapshot` now projects exactly those fields
+with UUID version IDs. The projection keeps object-only configuration, nullable
+positions and object-only transition rows; missing or malformed legacy snapshot
+fields become empty objects or absent optional fields. It does not expose
+arbitrary stored JSON and must not be replaced by a broad client-side cast.
+This unblocks a direct source-dialog lift, but does not itself make the existing
+bespoke Rust history dialog a parity proof.
+
 #### Required implementation order
 
 1. Record a field-by-field `AdminEditableNode` to source

@@ -9,7 +9,7 @@ use wicked_learning_domain::{
     identity_access::{AuthorizedPrincipal, permission_scope_allows},
     world_content::{
         AdminActivityVersionDetails, AdminActivityVersionPage, AdminActivityVersionPagination,
-        AdminActivityVersionSummary,
+        AdminActivityVersionSnapshot, AdminActivityVersionSummary,
     },
 };
 
@@ -534,6 +534,76 @@ mod tests {
             json!({"welcome_message": "Keep this context."})
         );
     }
+
+    #[test]
+    fn projects_only_source_history_fields_from_a_stored_snapshot() {
+        let details = details(VersionRow {
+            id: Uuid::nil(),
+            created_at: "2026-11-15T12:00:00.000000Z".to_owned(),
+            snapshot: json!({
+                "companionConfig": {"welcome_message": "Keep this context."},
+                "config": {"prompt": "Why?"},
+                "graphPositionX": 12.5,
+                "graphPositionY": null,
+                "transitions": [
+                    {"fromConnector": "completed", "toConnector": "next"},
+                    "not a transition"
+                ],
+                "npcDialogueNodes": [{"title": "not exposed to the history dialog"}]
+            }),
+        });
+
+        assert_eq!(
+            details.snapshot.companion_config,
+            serde_json::Map::from_iter([(
+                "welcome_message".to_owned(),
+                json!("Keep this context."),
+            )])
+        );
+        assert_eq!(
+            details.snapshot.config,
+            serde_json::Map::from_iter([("prompt".to_owned(), json!("Why?"))])
+        );
+        assert_eq!(details.snapshot.graph_position_x, Some(12.5));
+        assert_eq!(details.snapshot.graph_position_y, None);
+        assert_eq!(
+            details.snapshot.transitions,
+            Some(vec![serde_json::Map::from_iter([
+                ("fromConnector".to_owned(), json!("completed")),
+                ("toConnector".to_owned(), json!("next")),
+            ])])
+        );
+        assert_eq!(
+            serde_json::to_value(details.snapshot).expect("history projection serializes"),
+            json!({
+                "companionConfig": {"welcome_message": "Keep this context."},
+                "config": {"prompt": "Why?"},
+                "graphPositionX": 12.5,
+                "graphPositionY": null,
+                "transitions": [{"fromConnector": "completed", "toConnector": "next"}]
+            })
+        );
+    }
+
+    #[test]
+    fn normalizes_missing_or_malformed_legacy_history_fields() {
+        let details = details(VersionRow {
+            id: Uuid::nil(),
+            created_at: "2026-11-15T12:00:00.000000Z".to_owned(),
+            snapshot: json!({
+                "companionConfig": ["not an object"],
+                "config": null,
+                "graphPositionX": "not a number",
+                "transitions": null
+            }),
+        });
+
+        assert!(details.snapshot.companion_config.is_empty());
+        assert!(details.snapshot.config.is_empty());
+        assert_eq!(details.snapshot.graph_position_x, None);
+        assert_eq!(details.snapshot.graph_position_y, None);
+        assert_eq!(details.snapshot.transitions, None);
+    }
 }
 
 fn summary(row: VersionRow) -> AdminActivityVersionSummary {
@@ -555,7 +625,34 @@ fn details(row: VersionRow) -> AdminActivityVersionDetails {
         slug: snapshot_string(&row.snapshot, "slug"),
         title: snapshot_string(&row.snapshot, "title"),
         activity_type: snapshot_string(&row.snapshot, "type"),
-        snapshot: row.snapshot,
+        snapshot: activity_version_snapshot(&row.snapshot),
+    }
+}
+
+fn activity_version_snapshot(snapshot: &Value) -> AdminActivityVersionSnapshot {
+    AdminActivityVersionSnapshot {
+        companion_config: snapshot
+            .get("companionConfig")
+            .and_then(Value::as_object)
+            .cloned()
+            .unwrap_or_default(),
+        config: snapshot
+            .get("config")
+            .and_then(Value::as_object)
+            .cloned()
+            .unwrap_or_default(),
+        graph_position_x: snapshot.get("graphPositionX").and_then(Value::as_f64),
+        graph_position_y: snapshot.get("graphPositionY").and_then(Value::as_f64),
+        transitions: snapshot
+            .get("transitions")
+            .and_then(Value::as_array)
+            .map(|transitions| {
+                transitions
+                    .iter()
+                    .filter_map(Value::as_object)
+                    .cloned()
+                    .collect()
+            }),
     }
 }
 
