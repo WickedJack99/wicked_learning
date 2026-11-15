@@ -1831,8 +1831,11 @@ and Message Wall each now prove their distinct source defaults and complete
 existing-topic forms through desktop Rust `400`/`409` failures and narrow Rust
 `201`/`200` reloads: Prompt retains its support audience and prompt fields,
 while Wall retains its peer-only optional-response setting. It therefore does
-not close the P0 Activity Editor matrix or authorize mounting the route; the
-other remaining type command behavior and all other listed states remain
+not close the P0 Activity Editor matrix or authorize mounting the route.
+Shared Task now captures its complete source default and its selected-record
+project, peer-review, contribution, validation, repeat and cycle controls
+through desktop Rust `400`/`409` failures and narrow Rust `201`/`200` reloads.
+The other remaining type command behavior and all other listed states remain
 unproven.
 
 ### Item-obstacle sound-effect slice — 6 November 2026

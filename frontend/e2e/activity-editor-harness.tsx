@@ -23,6 +23,8 @@ const fixtureType = fixtureSearch.has('reflection')
               ? 'message_prompt'
               : fixtureSearch.has('message-wall')
                 ? 'message_wall'
+                : fixtureSearch.has('shared-task')
+                  ? 'shared_task'
             : 'open_practice';
 const reflectionLikeFixture =
     fixtureType === 'reflection' || fixtureType === 'review';
@@ -93,6 +95,26 @@ const activity = {
                       textColorDark: '#f0fdf4',
                       textColorLight: '#14532d',
                   },
+              }
+            : {}),
+        ...(fixtureType === 'shared_task'
+            ? {
+                  cycleMode: 'question_response_question',
+                  inputLabel: 'Your useful contribution',
+                  instructions: 'Connect your contribution to the shared goal.',
+                  minimumLength: 40,
+                  peerReviewEnabled: true,
+                  peerReviewPrompt:
+                      'Offer one helpful explanation or example.',
+                  projectDeliverable: 'A shared field guide',
+                  projectGoal: 'Notice the details together.',
+                  projectSteps: ['Look closely', 'Share a detail'],
+                  prompt: 'What detail helps the next learner?',
+                  repeatPolicy: 'unlimited',
+                  showContributions: true,
+                  taskKind: 'reflection',
+                  threshold: 4,
+                  validationMode: 'none',
               }
             : {}),
     },
@@ -167,6 +189,8 @@ const activity = {
                       ? 'First message prompt'
                       : fixtureType === 'message_wall'
                         ? 'First message wall'
+                        : fixtureType === 'shared_task'
+                          ? 'First shared task'
                     : 'First activity',
     type: fixtureType,
     updatedAt: '2026-11-15T10:00:00Z',

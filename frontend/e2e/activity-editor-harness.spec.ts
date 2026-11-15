@@ -1804,3 +1804,222 @@ for (const variant of messageVariants) {
         );
     });
 }
+
+const defaultSharedTaskCreateBody = {
+    cycle_mode: 'none',
+    input_label: 'Your contribution',
+    instructions: '',
+    introduction: null,
+    minimum_length: 20,
+    peer_review_enabled: false,
+    peer_review_prompt:
+        'What does this contribution help you notice, question, or extend?',
+    project_deliverable: '',
+    project_goal: '',
+    project_steps: [],
+    prompt: 'Add a useful contribution.',
+    repeat_policy: 'once_per_user',
+    show_contributions: false,
+    slug: null,
+    task_kind: 'text',
+    threshold: 3,
+    title: 'Contribute together',
+    validation_mode: 'minimum_length',
+};
+
+const defaultSharedTaskUpdateBody = {
+    cycle_mode: 'question_response_question',
+    input_label: 'Your useful contribution',
+    instructions: 'Connect your contribution to the shared goal.',
+    introduction: 'Start with this activity.',
+    minimum_length: 40,
+    peer_review_enabled: true,
+    peer_review_prompt: 'Offer one helpful explanation or example.',
+    project_deliverable: 'A shared field guide',
+    project_goal: 'Notice the details together.',
+    project_steps: ['Look closely', 'Share a detail'],
+    prompt: 'What detail helps the next learner?',
+    repeat_policy: 'unlimited',
+    show_contributions: true,
+    slug: 'first-activity',
+    task_kind: 'reflection',
+    threshold: 4,
+    title: 'First shared task (edited)',
+    updated_at: '2026-11-15T10:00:00Z',
+    validation_mode: 'none',
+};
+
+async function openSharedTaskCreateForm(page: Page): Promise<void> {
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page.getByRole('option', { name: 'Shared task' }).dispatchEvent('click');
+}
+
+test('surfaces a typed Rust Shared Task validation failure with source defaults', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/shared-task-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 400 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+    await openSharedTaskCreateForm(page);
+    await page.getByLabel('Title').fill('Contribute together');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await expect(
+        page.getByRole('heading', { exact: true, name: 'Shared task' }),
+    ).toBeVisible();
+    await expect(page.locator('#shared-task-prompt')).toHaveValue(
+        'Add a useful contribution.',
+    );
+
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual(defaultSharedTaskCreateBody);
+});
+
+test('reloads after a typed Rust Shared Task create succeeds at narrow width', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/shared-task-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: { activity_id: '00000000-0000-4000-8000-000000000718' },
+                status: 201,
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html');
+    await openSharedTaskCreateForm(page);
+    await page.getByLabel('Title').fill('Contribute together');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await expectBounded(page.locator('#shared-task-prompt'), 390);
+
+    const reloaded = page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+    );
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+    await reloaded;
+
+    expect(commandBody).toEqual(defaultSharedTaskCreateBody);
+    await expect(
+        page.getByRole('heading', { name: 'Node activities' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});
+
+test('surfaces a typed Rust stale Shared Task update without overwriting', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/shared-task',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 409 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html?shared-task=1');
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page.getByLabel('Title').fill('First shared task (edited)');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await expect(page.locator('#shared-task-prompt')).toHaveValue(
+        'What detail helps the next learner?',
+    );
+    await expect(
+        page.getByLabel('Invite one anonymous peer review'),
+    ).toBeChecked();
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual(defaultSharedTaskUpdateBody);
+    await expect(
+        page.getByRole('heading', { name: 'Edit activity' }),
+    ).toBeVisible();
+});
+
+test('reloads after a typed Rust Shared Task update succeeds at narrow width', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/shared-task',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: {
+                    activity_id: '00000000-0000-4000-8000-000000000701',
+                    updated_at: '2026-11-15T10:01:00Z',
+                },
+                status: 200,
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?shared-task=1');
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page.getByLabel('Title').fill('First shared task (edited)');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await expectBounded(page.locator('#shared-task-prompt'), 390);
+
+    const reloaded = page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+    );
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+    await reloaded;
+
+    expect(commandBody).toEqual(defaultSharedTaskUpdateBody);
+    await expect(
+        page.getByRole('heading', { name: 'Node activities' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});
