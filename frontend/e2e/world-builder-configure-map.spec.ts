@@ -17,7 +17,7 @@ const graph = {
 };
 
 const editableMap = {
-    access_groups: [], can_delete_world_maps: false, can_manage_map_access: false,
+    access_groups: [{ description: 'Learners can open this map.', label: 'Learners', slug: 'learner' }], can_delete_world_maps: true, can_manage_map_access: true,
     editable_map: {
         map: {
             access_roles: [], background_config: {}, description: graph.maps[0].description,
@@ -27,7 +27,7 @@ const editableMap = {
         },
         world: graph.world,
     },
-    items: [], learning_groups: [], role_options: [], sounds: [], tools: [], topic_options: [],
+    items: [], learning_groups: [{ description: 'Can configure assigned maps.', id: '00000000-0000-4000-8000-000000000011', name: 'Map editors' }], role_options: [], sounds: [], tools: [], topic_options: [],
 };
 
 async function installRoutes(page: Page, options: { galleryFails?: boolean } = {}) {
@@ -113,4 +113,72 @@ test('the pinned-source reusable-image gallery retains its bounded unavailable s
     await page.getByRole('button', { name: 'Background image' }).click();
     await page.getByRole('button', { name: 'Select existing' }).click();
     await expect(page.getByText('Images could not be loaded.')).toBeVisible();
+});
+
+test('the pinned-source details, history, access, and delete controls use their scoped Rust contracts', async ({ page }) => {
+    await installRoutes(page);
+    await page.route(`**/api/v1/admin/world-builder/maps/${ids.map}/details`, async (route) => {
+        expect(route.request().method()).toBe('PATCH');
+        expect(JSON.parse(route.request().postData() ?? '{}')).toMatchObject({
+            description: graph.maps[0].description,
+            map_assets_locked: false,
+            title: 'Changed source map',
+            updated_at: graph.maps[0].updated_at,
+        });
+        await route.fulfill({ body: JSON.stringify({ updated_at: '2026-11-15T13:00:00Z' }), contentType: 'application/json' });
+    });
+    await page.route(`**/api/v1/admin/world-builder/maps/${ids.map}/versions**`, async (route) => {
+        if (route.request().method() === 'GET') {
+            await route.fulfill({
+                body: JSON.stringify({ items: [{ created_at: '2026-11-15T12:00:00Z', description: 'Earlier description', id: '00000000-0000-4000-8000-000000000012', map_assets_locked: false, title: 'Earlier source map', topic_id: null }], last_page: 1, page: 1, per_page: 4, total: 1 }),
+                contentType: 'application/json',
+            });
+            return;
+        }
+        expect(route.request().method()).toBe('POST');
+        await route.fulfill({ body: JSON.stringify({ description: 'Earlier description', map_assets_locked: false, title: 'Earlier source map', topic_id: null, updated_at: '2026-11-15T14:00:00Z' }), contentType: 'application/json' });
+    });
+    await page.route(`**/api/v1/admin/world-builder/maps/${ids.map}/access`, async (route) => {
+        expect(JSON.parse(route.request().postData() ?? '{}')).toEqual({ access_roles: ['user', 'admin', 'learner'] });
+        await route.fulfill({ body: JSON.stringify({}), contentType: 'application/json' });
+    });
+    await page.route(`**/api/v1/admin/world-builder/maps/${ids.map}/editing-groups`, async (route) => {
+        expect(JSON.parse(route.request().postData() ?? '{}')).toEqual({ group_ids: ['00000000-0000-4000-8000-000000000011'] });
+        await route.fulfill({ body: JSON.stringify({}), contentType: 'application/json' });
+    });
+    await page.route(`**/api/v1/admin/world-builder/maps/${ids.map}`, async (route) => {
+        if (route.request().method() === 'DELETE') {
+            await route.fulfill({ body: JSON.stringify({}), contentType: 'application/json' });
+            return;
+        }
+        await route.fallback();
+    });
+
+    await page.goto(`/settings?panel=admin-world-builder&worldSection=graph&map=${ids.map}&worldView=configure`);
+    await page.locator('input[value="Source map"]').fill('Changed source map');
+    await page.getByRole('button', { name: 'Save changes' }).first().click();
+    await expect(page.getByRole('button', { name: 'Save changes' }).first()).toBeDisabled();
+
+    await page.getByRole('button', { name: 'History' }).click();
+    await expect(page.getByRole('heading', { name: 'Map detail history' })).toBeVisible();
+    page.once('dialog', (dialog) => dialog.accept());
+    const restored = page.waitForRequest((request) => request.method() === 'POST' && request.url().endsWith('/versions/00000000-0000-4000-8000-000000000012'));
+    await page.getByRole('button', { name: 'Restore this version' }).click();
+    expect((await restored).headers()['x-csrf-token']).toBe('test-csrf');
+
+    await page.getByRole('button', { name: 'Access', exact: true }).click();
+    await page.getByText('Learners', { exact: true }).click();
+    await page.getByText('Map editors', { exact: true }).click();
+    const accessSaved = page.waitForRequest((request) => request.method() === 'PATCH' && request.url().endsWith(`/maps/${ids.map}/access`));
+    const groupEditorsSaved = page.waitForRequest((request) => request.method() === 'PATCH' && request.url().endsWith(`/maps/${ids.map}/editing-groups`));
+    await page.getByRole('button', { name: 'Save changes' }).first().click();
+    await Promise.all([accessSaved, groupEditorsSaved]);
+
+    await page.getByRole('button', { name: 'Delete world' }).click();
+    await page.getByRole('button', { name: 'Delete world map' }).first().click();
+    await expect(page.getByRole('heading', { name: 'Delete world map?' })).toBeVisible();
+    const deleted = page.waitForRequest((request) => request.method() === 'DELETE' && request.url().endsWith(`/maps/${ids.map}`));
+    await page.getByRole('button', { name: 'Delete world map' }).last().click();
+    await deleted;
+    await expect(page.getByRole('heading', { name: 'Delete world map?' })).toHaveCount(0);
 });
