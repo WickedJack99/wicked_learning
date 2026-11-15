@@ -1735,6 +1735,30 @@ The source configuration shell's content-pane/sidebar helpers were retained in
 the existing extracted shell. The form remains unmounted pending the complete
 source editor route and its browser matrix.
 
+#### Eighteenth Activity Editor implementation prerequisite: complete source route and typed transport seams — 15 November 2026
+
+`frontend/src/lifted-world-builder-edit-node-activities.tsx` is the complete
+pinned-source route lift. Its source record, template-library, scoped-image,
+activity-type, graph-layout, start-route and transition interactions cross only
+the following generated Rust client boundaries:
+
+| Source concern | Typed Rust boundary |
+| --- | --- |
+| Selected activity reads | `GET /admin/world-builder/nodes/{node_id}` through `adaptRustActivityEditorDocument` |
+| Activity creates and updates | Type-specific `/admin/world-builder/nodes/{node_id}/*-activities` and `/admin/world-builder/activities/{activity_id}/*` commands |
+| Activity delete, graph layout/position, starts and transitions | `/admin/world-builder/activities/{activity_id}`, node `activity-graph-layout`, `graph-position`, `start-routes` and `activity-transitions` commands |
+| Reusable templates, revisions and sharing | `/admin/activity-templates*` and `/admin/world-builder/activities/{activity_id}/templates` |
+| Source citations | `/admin/source-records*` |
+| Node-scoped visual upload | `/admin/world-builder/maps/{map_id}/visual-media` |
+
+This lift is intentionally **unmounted**. It must not replace the existing
+`ActivityGraph` or be called a migrated selected-node editor until the required
+source-derived browser matrix proves populated/empty, selected activity/edge/
+start, all activity type families, templates/citations/media failures, and
+transport-denial states at both 1440×900 and 390×844. The current automated
+evidence proves only UUID transport mapping and the Portal/Item Obstacle form
+command shapes; it is not browser-parity evidence.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

@@ -1,22 +1,26 @@
 import { expect, test } from '@playwright/test';
 
 import type { components } from '../src/api/schema';
+import {
+    sourceItemObstacleRequest,
+    sourcePortalRequest,
+} from '../src/lifted-source-activity-command-mapper';
 import { adaptRustActivityEditorDocument } from '../src/lifted-world-builder-activity-editor-adapter';
-import { buildGraphEdges, buildGraphNodes } from '../src/lifted-world-builder-activity-graph-elements';
 import { activityFormPayload } from '../src/lifted-world-builder-activity-form-payload';
 import {
     activityFormFromActivity,
     emptyCreateForm,
 } from '../src/lifted-world-builder-activity-form-state';
+import { buildGraphEdges, buildGraphNodes } from '../src/lifted-world-builder-activity-graph-elements';
+import {
+    sourceActivityVersion,
+    sourceActivityVersionDetails,
+} from '../src/lifted-world-builder-activity-history-dialog';
 import { activityTemplateContext } from '../src/lifted-world-builder-activity-template-context';
 import {
     isImageMediaReference,
     replaceTemplateMediaReferences,
 } from '../src/lifted-world-builder-activity-template-media';
-import {
-    sourceActivityVersion,
-    sourceActivityVersionDetails,
-} from '../src/lifted-world-builder-activity-history-dialog';
 
 test('adapts a UUID selected-node document to the pinned-source activity editor shape', () => {
     const document = {
@@ -441,5 +445,70 @@ test('retains source activity defaults, form hydration, and type-scoped payloads
         question_prompt: 'Which option?',
         type: 'question',
         updated_at: '2026-11-15T10:00:00Z',
+    });
+});
+
+test('maps direct-source portal and item-obstacle forms to typed Rust UUID commands', () => {
+    const portal = sourcePortalRequest({
+        ...emptyCreateForm('portal'),
+        portal_assets: [
+            {
+                id: 'scene-asset',
+                imageDark: 'dark.webp',
+                imageLight: 'light.webp',
+                label: 'Foreground',
+                layer: 'front',
+                mirrored: true,
+                opacity: '75',
+                width: '42',
+                x: '20',
+                y: '60',
+            },
+        ],
+        target_portal_activity_id: '00000000-0000-4000-8000-000000000501',
+        title: 'Travel',
+    });
+
+    expect(portal).toMatchObject({
+        portal_assets: [
+            {
+                image_dark: 'dark.webp',
+                image_light: 'light.webp',
+                layer: 'front',
+                opacity: 75,
+                width: 42,
+                x: 20,
+                y: 60,
+            },
+        ],
+        target_portal_activity_id: '00000000-0000-4000-8000-000000000501',
+    });
+
+    const itemObstacle = sourceItemObstacleRequest({
+        ...emptyCreateForm('item_obstacle'),
+        item_obstacle_slots: [
+            {
+                itemId: '00000000-0000-4000-8000-000000000502',
+                width: '30',
+                x: '15',
+                y: '70',
+            },
+        ],
+        item_obstacle_sound_met_id: '00000000-0000-4000-8000-000000000503',
+        item_obstacle_sound_met_enabled: true,
+        title: 'Unlock',
+    });
+
+    expect(itemObstacle).toMatchObject({
+        slots: [
+            {
+                item_id: '00000000-0000-4000-8000-000000000502',
+                width: 30,
+                x: 15,
+                y: 70,
+            },
+        ],
+        sound_met_enabled: true,
+        sound_met_id: '00000000-0000-4000-8000-000000000503',
     });
 });
