@@ -13,6 +13,10 @@ import {
     isImageMediaReference,
     replaceTemplateMediaReferences,
 } from '../src/lifted-world-builder-activity-template-media';
+import {
+    sourceActivityVersion,
+    sourceActivityVersionDetails,
+} from '../src/lifted-world-builder-activity-history-dialog';
 
 test('adapts a UUID selected-node document to the pinned-source activity editor shape', () => {
     const document = {
@@ -314,6 +318,52 @@ test('retains the source template context and recursive media replacement helper
             'managed-image.webp',
             { retained: 'text', visual: 'managed-image.webp' },
         ],
+    });
+});
+
+test('maps the typed Rust history contract to the pinned source dialog shape', () => {
+    const summary = sourceActivityVersion({
+        activity_type: 'markdown',
+        created_at: '2026-11-15T12:00:00.000000Z',
+        id: '00000000-0000-4000-8000-000000000401',
+        introduction: null,
+        slug: 'history-entry',
+        title: 'Earlier Markdown',
+    });
+    const details = sourceActivityVersionDetails({
+        ...summary,
+        activity_type: 'markdown',
+        created_at: '2026-11-15T12:00:00.000000Z',
+        id: '00000000-0000-4000-8000-000000000401',
+        introduction: null,
+        slug: 'history-entry',
+        snapshot: {
+            companionConfig: { welcome_message: 'Earlier context.' },
+            config: { markdown: 'Earlier content.' },
+            graphPositionX: null,
+            graphPositionY: 42,
+            transitions: [{ fromConnector: 'completed' }],
+        },
+        title: 'Earlier Markdown',
+    });
+
+    expect(summary).toEqual({
+        createdAt: '2026-11-15T12:00:00.000000Z',
+        id: '00000000-0000-4000-8000-000000000401',
+        introduction: null,
+        slug: 'history-entry',
+        title: 'Earlier Markdown',
+        type: 'markdown',
+    });
+    expect(details).toMatchObject({
+        id: '00000000-0000-4000-8000-000000000401',
+        snapshot: {
+            companionConfig: { welcome_message: 'Earlier context.' },
+            config: { markdown: 'Earlier content.' },
+            graphPositionX: null,
+            graphPositionY: 42,
+            transitions: [{ fromConnector: 'completed' }],
+        },
     });
 });
 

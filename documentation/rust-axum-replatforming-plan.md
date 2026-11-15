@@ -1571,6 +1571,26 @@ enable/clear semantics and picker lifecycle. It is not mounted until the full
 source form tree is mounted, so `npm run build` is the current verification;
 live browser acceptance remains part of the complete Activity Editor slice.
 
+#### Sixth Activity Editor implementation prerequisite: Activity History dialog — 15 November 2026
+
+The complete pinned-source
+`resources/js/features/settings/activity-history-dialog.tsx` is now lifted to
+`frontend/src/lifted-world-builder-activity-history-dialog.tsx`. Its component
+tree, dialog lifecycle, loading/error/empty/inspect/restore states, pagination,
+and source formatting remain intact. The only seams are existing lifted source
+primitives and one typed Rust transport adapter: UUID identity replaces numeric
+Laravel IDs; Rust `created_at`, `activity_type`, and pagination names are
+mapped once to the source names; and the source restore request uses the
+existing same-origin CSRF client. The adapter consumes the typed snapshot
+projection above, without a broad JSON cast.
+
+The focused Activity Editor adapter spec proves that UUID summary/detail values,
+nullable graph positions, configuration objects, companion configuration and
+transition rows reach the exact source dialog shape. `npm run build` passes.
+The component deliberately remains unmounted until the whole pinned Activity
+Editor replaces the bespoke editor; this is dependency/contract evidence, not
+live source-dialog browser acceptance.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
