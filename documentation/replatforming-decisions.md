@@ -7,6 +7,35 @@ These are the decisions recorded during phase 1 from the source inventory and
 greenfield proof of concept only. They do not authorize a production deployment
 or a change to the current Laravel application's user-facing behavior.
 
+## ADR-125: Exact `main` source baseline is required for frontend migrations
+
+**Status:** Accepted — 15 November 2026
+
+**Decision:** A completed frontend migration slice must be a direct adaptation
+of the exact relevant React/Inertia source from the current `main` commit, not
+an approximation inferred from an older copy in the replatform branch. Before
+editing, record the `main` commit and each source file/component that owns the
+route or control. When working off `replatform-discovery`, inspect that source
+with `git show main:<path>` in addition to the current worktree.
+
+The migration may replace only framework seams—Inertia props/navigation/forms,
+Laravel requests and route helpers—with React Router and existing typed Rust
+client calls. It may not invent or regroup controls, menus, labels, cards,
+responsive layouts or interaction models to compensate for an unavailable or
+inconvenient backend capability. Keep the source route unavailable until its
+complete Rust contract exists instead.
+
+**Required evidence before commit:** compare the running Rust route directly
+with the recorded source route at desktop and 390px. Verify the component
+hierarchy, visible controls/copy, navigation, selected/empty/loading/error
+states, canvas/graph viewport and narrow-layout overflow. Focused browser
+checks must prove important source controls and graph/map content have usable,
+visible bounds in their owning viewport; DOM presence alone is insufficient.
+
+**Why:** A source-inspired replacement can appear functional while changing the
+authoring workflow and visual language. That is not behavioral continuity and
+cannot be accepted as a migration slice.
+
 ## ADR-001: Initial repository topology
 
 **Status:** Accepted — 1 November 2026

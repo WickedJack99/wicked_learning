@@ -206,14 +206,27 @@ source React/Inertia page and focused tests. Use this evidence to define one
 fresh Rust-owned schema/SQL migration set and a typed Rust contract; do not
 replay Laravel migrations or import legacy identifiers/data.
 
+For every frontend-facing slice, resolve the source baseline from the current
+`main` commit before writing code. Record that commit and the exact
+`resources/js` files/components being lifted in the slice evidence. A copied,
+older or already-adapted component in the replatform branch is not evidence
+that it still matches `main`; compare it with `git show main:<path>` when the
+worktree is not on `main`.
+
 Then lift and adapt the original React component tree and its URL/history,
 loading, error, navigation and accessibility behavior around the typed client.
 Do not replace an original control, navigation structure or visual hierarchy
 with substitute UI merely because its backend is incomplete. A route stays
 unavailable until its complete Rust contract exists. Verify the coherent slice
 with focused Rust/contract coverage, generated-client checks, production build,
-and browser checks at desktop and 390px; record the plan evidence, commit, and
-push the slice to `replatform-discovery` before beginning the next one.
+and browser checks at desktop and 390px. Before committing, directly compare
+the running Rust route with the recorded `main` source route at both viewports:
+its hierarchy, controls, labels, grouping, graph/canvas viewport, empty/loading
+states, navigation and responsive overflow must match unless an explicit
+product decision says otherwise. Browser assertions must prove the important
+source elements are visible and reachable, not merely present in the DOM.
+Record that parity evidence, commit, and push the slice to
+`replatform-discovery` before beginning the next one.
 
 Design versioned JSON resources and commands by user task. Do not mechanically
 rename every current web route under `/api`.
