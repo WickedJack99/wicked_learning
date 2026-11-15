@@ -1388,6 +1388,67 @@ as a Rust-specific browser workflow.
 | `uploadMediaFile`, `ConfigImageInput` and `SoundAssetInput` | Map-scoped visual multipart upload and reusable sound multipart upload. Sound staging is normalized from `/admin/sounds/media/{id}/content` to `/admin/media-assets/{id}/content` before node save. | Source image/sound controls and managed media references. | `POST /maps/{map_id}/visual-media` and `POST /admin/sounds/media`, both CSRF-protected. The fixture proves the MapAsset image-upload `503` fallback plus a successful sound upload, CSRF propagation, managed URL normalization and the subsequent asset/node save payload. |
 | `ContentAuthoringDialog` | Existing full source-adapted typed content-authoring dialog remains mounted from the source toolbar and reloads the selected map on apply. | Existing authoring launch, source-record selection, draft review and activity handoff. | Existing AI/content-plan Rust endpoints; retain its own focused coverage while completing this editor slice. |
 
+### Selected-node Activity Editor exact-source parity audit — 15 November 2026
+
+**Status: parity blocked; audit only.** This records the next incomplete
+source-derived World Builder route family before any frontend implementation
+starts. It is deliberately not an acceptance claim for the current selected
+node editor or its Rust command coverage.
+
+**Pinned source baseline:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+The source destination is
+`resources/js/pages/settings/worlds/edit-node-activities.tsx`, whose complete
+default `EditNodeActivities` route is 3,850 lines. It is mounted by
+`resources/js/pages/settings/index.tsx` within `WorldBuilderMapWorkspace` for
+a selected map/node. It is not the MapAsset editor, the Graph inspector, or a
+generic activity form. The current Rust path is the `ActivityGraph` and its
+related dialogs in `frontend/src/original-world-builder.tsx`; that bespoke
+implementation must not be incrementally restyled or used as a partial source
+replacement.
+
+#### Exact source composition and dependencies
+
+The eventual lift must begin with the whole source route and retain these
+named dependencies as components/modules, not copied field fragments:
+
+| Source role | Exact pinned-source paths / components | Required retained behavior |
+| --- | --- | --- |
+| Route frame and activity graph | `pages/settings/worlds/edit-node-activities.tsx`: `EditNodeActivities`, source header/back link, review banner, empty state, `ReactFlow`, `Background`, `Controls`, `MiniMap`, graph key handling and dirty-state warning | Selected node orientation, **Add activity**, empty-graph guidance, source graph fit/drag/connect/selection and desktop/narrow overflow boundary. |
+| Graph construction | `pages/settings/worlds/activity-graph-elements.tsx`: `activityNodeTypes`, `buildGraphNodes`, `buildGraphEdges`, `routeActivityTitle`; `activity-scene-preview.tsx` | Source Start/End/activity nodes, handles/connectors, route labels, review affordances and graph preview behavior. |
+| Activity create/edit forms | `activity-form-fields.tsx`, `activity-form-state.ts`, `activity-form-payload.ts`, `activity-config-fields.tsx`, `item-activity-fields.tsx`, `tool-grant-activity-fields.tsx`, `obstacle-activity-fields.tsx`, `portal-activity-fields.tsx`, `markdown-activity-fields.tsx`, `message-activity-fields.tsx`, `shared-task-activity-fields.tsx`, `activity-ambient-sound-fields.tsx`, `activity-source-reference-fields.tsx` | The source type chooser, source defaults, type-specific fields, validation placement, draft/reset behavior and source payload construction. A Rust adapter must not collapse them into one generic JSON form. |
+| Activity dialogs and reuse | `features/ai/activity-review-dialog.tsx`, `features/settings/activity-history-dialog.tsx`, `activity-template-context.ts`, `activity-template-media.ts`, `use-node-image-upload.ts` | AI-review handoff, immutable activity history/restore, private/shared template handling, safe media substitutions and scoped image upload. |
+| Shared primitives / seams | `components/{color-input,input-error,pagination-controls,reusable-image-picker,settings-configuration-dialog,settings-configuration-section}.tsx`, `components/ui/{button,dialog,input,label}.tsx`, `hooks/{use-appearance,use-dirty-state,use-platform-translation}.tsx`, `lib/utils.ts` | Existing source classes, focus/dialog semantics, pagination, appearance and translation behavior. Only Inertia `Head`, `Link`, `router`, `usePage`, Laravel paths and form transport may be adapted. |
+
+#### State and contract backlog
+
+| Pinned-source state | Current Rust path / mismatch | Severity | Required complete Rust read or command boundary | Required evidence before closure |
+| --- | --- | --- | --- | --- |
+| Selected-node graph: populated, empty, selection, Start/End and narrow layout | `original-world-builder.tsx` `ActivityGraph` reconstructs the graph/header/cards and owns bespoke layout and selection dialogs rather than using `EditNodeActivities` plus `activity-graph-elements`. | P0 | `GET /api/v1/admin/world-builder/nodes/{node_id}` must map its world/map/node context, activities, transitions, connectors, starts, graph layout, portal candidates, items, sounds, tools, source records and authoring options to the source `ActivityGraphPayload` at one documented adapter boundary. | Pinned-source/Rust browser evidence for populated and empty nodes, selected activity/edge/start, graph fitting and bounds at 1440×900 and 390×844. |
+| Create/edit every currently supported type | The current `ActivityEditor`/type forms are a Rust-specific composition. Their backend writers exist, but this does not prove source form hierarchy, defaults, conditional fields, validation or stale-save behavior. | P0 | Type-specific create/update endpoints for Open Practice, Reflection, Review, Markdown, Portal, NPC dialogue, Question, Message, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base Obstacle; each keeps CSRF, scoped authoring, validation and optimistic concurrency server-owned. | One source-derived browser matrix per type family, including source default, bounded visible fields, a Rust validation/stale failure and a successful reload. Do not use a broad generic fixture as acceptance for all forms. |
+| Connections, ordered learner starts and position/layout saves | Current custom graph makes its own node/edge/route dialogs and graph positioning treatment. | P0 | Existing typed commands for activity graph layout, activity position, starts, start-route update/reorder/delete, transitions and transition update/delete. They must be mapped only through the source `router` seams after source payload identity is verified. | Browser coverage for activity connection, Start route, route visual/update/reorder, transition label/outcome edit/delete, activity drag and Start/End layout save; focused Rust authorization and cross-node rejection tests remain required. |
+| History, AI review, templates, citations and media | Several bespoke Rust dialogs expose related capability, but the source route owns their launch order, loading/empty/error behavior and return-to-edit lifecycle. | P1 blocking parity | Existing activity versions/restore, AI review, template, source-record and scoped upload contracts must be mapped individually; no source dialog may fall back to an untyped Laravel request. | Source-derived browser coverage for history restore conflict/failure, no-review/review-ready state, template/source pagination failure and unavailable media upload, at both required viewports. |
+| Transport unavailable/read denial | The current selected-node load error uses Rust-specific copy outside the source activity route. | P0 | The existing selected-node read returns 401/403/404/503 or network failure. A transport-only adapter may wrap the lifted outer source workspace, but it may not invent authoring controls or a substitute editor without a successful document. | Browser coverage of initial loading, 401, 403, 404, 503 and network failure at 1440×900 and 390×844, distinct from the source empty-activity state. |
+
+#### Required implementation order
+
+1. Record a field-by-field `AdminEditableNode` to source
+   `ActivityGraphPayload` adapter matrix, including all type discriminators and
+   nullable/empty fields, before copying JSX.
+2. Lift the whole `EditNodeActivities` route and the source modules above into
+   the standalone frontend. Replace only the documented Inertia/Laravel seams
+   with React Router and the typed Rust client.
+3. Keep the existing bespoke `ActivityGraph` only as an implementation/contract
+   reference until the direct lift replaces it atomically. Do not combine a
+   lifted header or graph canvas with the existing bespoke forms as a claimed
+   migration.
+4. Close only after the source-state browser matrix and focused Rust
+   authorization/contract tests pass. Direct live Laravel capture remains
+   unavailable in this environment, so evidence must be accurately described
+   as pinned-source-code-to-Rust-browser comparison rather than a screenshot
+   side-by-side claim.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
