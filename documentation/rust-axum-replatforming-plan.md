@@ -1707,6 +1707,17 @@ to the source item lookup: a selected opaque item ID is matched directly rather
 than first coerced to a numeric Laravel ID. The module remains unmounted until
 the full source Activity Editor is mounted.
 
+#### Fifteenth Activity Editor implementation prerequisite: Portal fields and scene — 15 November 2026
+
+The complete pinned-source `resources/js/features/world/portal-scene.tsx` and
+`resources/js/pages/settings/worlds/portal-activity-fields.tsx` are lifted to
+`frontend/src/lifted-portal-scene.tsx` and
+`frontend/src/lifted-world-builder-portal-activity-fields.tsx`. Source layers,
+asset ordering, mirroring, swirl, portal target selection and visual form
+behavior remain whole components; only imports point to the lifted primitives,
+appearance adapter and UUID-safe types. They remain unmounted until the
+complete source Activity Editor replaces the bespoke route.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
