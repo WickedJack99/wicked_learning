@@ -84,6 +84,7 @@ import {
 import { SettingsCornerNavigation } from './extracted-settings-corner-navigation';
 import { usePlatformTranslation } from './original-platform-translation';
 import { LiftedWorldBuilderGraph } from './lifted-world-builder-graph';
+import { LiftedWorldBuilderMapDetails } from './lifted-world-builder-map-details';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
 type MapSummary = components['schemas']['AdminMapSummary'];
@@ -953,12 +954,17 @@ function WorldBuilderContent({
                                 setWorldExportPreflightOpen(true)
                             }
                             renderSelectedMap={(map) => (
-                                <GraphMapDetails
+                                <LiftedWorldBuilderMapDetails
                                     map={map}
-                                    onOpenMap={selectMap}
-                                    onOpenMapConfiguration={
+                                    onConfigureMap={
                                         selectStructuralMapView
                                     }
+                                    onConfigureMapAssets={selectStructuralMap}
+                                    onDuplicated={(mapId) => {
+                                        void loadWorld();
+                                        selectStructuralMap(mapId);
+                                    }}
+                                    onOpenReviewNode={selectStructuralNode}
                                 />
                             )}
                             renderSelectedPortal={(portal) => (

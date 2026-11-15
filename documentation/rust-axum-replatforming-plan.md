@@ -484,6 +484,43 @@ the first graph slice, this is pinned-source-code-to-Rust-browser evidence;
 the unavailable live-Laravel capture is not represented as a side-by-side
 screenshot claim.
 
+#### Third P0 implementation evidence: selected-map Graph inspector — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+This slice directly lifts the pinned `MapDetails` inspector from
+`resources/js/pages/settings/worlds/index.tsx` into
+`frontend/src/lifted-world-builder-map-details.tsx`, along with its complete
+named dependency chain: `Detail`, `LearnerPaginatedItems`,
+`PaginationControls`, `DuplicateMapDialog`, `InputError`, and the source
+`Input`, `Label`, and `Dialog` primitives. The source Radix dialog/label and
+`tw-animate-css` dependencies are installed at their pinned-source-compatible
+ranges. The existing source-derived Button remains shared from the preceding
+Graph slice. No normal Graph card/canvas/routing code, selected-portal
+inspector, Review, Structural, map editor, or MapAsset editor was changed.
+
+| Source `MapDetails` requirement | Rust read or command contract | Deliberate adapter boundary and retained behavior | Evidence |
+| --- | --- | --- | --- |
+| Map heading and metadata: `id`, `title`, nullable `description`, `slug`, `nodeCount`, `reviewCount` | `GET /api/v1/admin/world-builder` → `AdminWorldGraph.maps[]` requires `id`, `title`, `description`, `slug`, `node_count`, `review_count`, `nodes`, plus scoped authoring metadata. Maps are bounded to 500. | `adaptRustMapSummary` changes only snake_case names before the lifted JSX runs. Missing description retains the source “No description yet.” fallback. | Generated `AdminMapSummary` type; no-review browser fixture at both viewports asserts title, description, slug, tile count and current-review state. |
+| Review warning, first-review link and review-node list | Each returned `AdminMapSummary.nodes[]` requires `id`, `title`, `activity_review_count` (and Rust additionally returns slug, description, position, state, visual config and diagnostics). The graph projection bounds nodes to 10,000. | Source filters `activityReviewCount > 0` and performs its own five-item `LearnerPaginatedItems` pagination; this inspector does **not** invent a second server pagination endpoint. | Six-node pending-review fixture asserts wording, queue link, first five items, Next → sixth item, then retained bounded pagination controls at 390×844. |
+| **Configure MapAssets** source graph destination | Source URL: `?panel=admin-world-builder&worldSection=graph&map={mapId}&worldView=nodes`. Rust already has the selected-map read at `GET /api/v1/admin/world-builder/maps/{map_id}` and its existing Structural MapAsset authoring route. | `RustNavigationLink` retains the exact source href/copy, intercepting only the Inertia visit to call the existing `selectStructuralMap(mapId)` adapter. It does not alter the editor. | Browser asserts the source href; callback remains the pre-existing scoped map destination. |
+| **Configure map** source graph destination | Source URL: `?panel=admin-world-builder&worldSection=graph&map={mapId}&worldView=configure`; Rust selected-map reader above supplies that existing configuration editor. | The same navigation adapter retains the source link then calls existing `selectStructuralMapView(mapId)`. No new URL, view, or form is created. | Browser asserts the exact href at both viewports. |
+| **Open review queue** and per-node review destinations | Source destinations nominate map/node IDs. Rust's existing selected-node reader is `GET /api/v1/admin/world-builder/nodes/{node_id}` and requires scoped `world_activities` update permission. | Source graph URLs remain in anchors; the Inertia-only visit seam calls existing `selectStructuralNode(mapId, nodeId)`. Authorization/not-found remain owned by that unchanged Rust reader. | Pending-review fixture exposes the first-node and each paginated-node controls. |
+| **Export map** and **Export map with media** | Existing scoped downloads: `GET /api/v1/admin/world-builder/maps/{map_id}/export` (JSON attachment) and `.../export-package` (bounded ZIP attachment). Both preserve source editor scope; package read also validates declared media availability. | Direct source button hierarchy is retained; Laravel relative endpoints become the documented Rust `/api/v1/...` download hrefs only. | Browser asserts both exact Rust download URLs. |
+| Duplicate form defaults, submit, close/reload behavior and failure state | `POST /api/v1/admin/world-builder/maps/{map_id}/duplicate`, CSRF header, body `title` (1–120) and nullable `slug` (max 140, source slug pattern), response `201 { map_id }`; `400/401/403/404/503` are possible. Rust creates new authoring identities, retains outbound portal destinations, resets copied activity review state, and excludes learner history, review runs, versions and editor assignments. | The lifted source dialog keeps reset/defaults, labels, bounds and submit state. Inertia `router.post` becomes typed `apiClient.POST`; blank slug becomes `null`. Successful `{map_id}` re-fetches the graph and opens the existing Structural MapAsset destination. Rust's documented generic failure responses have no source field-error payload, so the adapter places the source fallback under the title InputError rather than fabricating validation fields. | Pending-review fixture mocks Rust CSRF plus a 400 response and proves the dialog remains open with the bounded source fallback error. |
+
+Focused source-derived Rust-browser evidence is
+`frontend/e2e/world-builder-map-details.spec.ts`. It selects a graph map first
+at desktop and then verifies the same selected source state at **1440×900** and
+**390×844**; retaining selection across resize is necessary because the
+pinned source Graph's narrow row sizing does not guarantee a separately
+clickable canvas. It covers no-pending-review and six-pending-review states,
+visible/bounded map controls, review pagination, both downloads and the Rust
+duplicate failure. This remains a pinned-source-code-to-Rust-browser
+comparison: direct live Laravel screenshot capture is unavailable and is not
+claimed here.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named
