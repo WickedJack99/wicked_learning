@@ -25,6 +25,8 @@ const fixtureType = fixtureSearch.has('reflection')
                 ? 'message_wall'
                 : fixtureSearch.has('shared-task')
                   ? 'shared_task'
+                  : fixtureSearch.has('item-grant')
+                    ? 'item_grant'
             : 'open_practice';
 const reflectionLikeFixture =
     fixtureType === 'reflection' || fixtureType === 'review';
@@ -117,6 +119,20 @@ const activity = {
                   validationMode: 'none',
               }
             : {}),
+        ...(fixtureType === 'item_grant'
+            ? {
+                  backgroundDark: '/media/dark.png',
+                  backgroundLight: '/media/light.png',
+                  backgroundMirrored: true,
+                  items: [
+                      {
+                          itemId: '00000000-0000-4000-8000-000000000719',
+                          quantity: 3,
+                      },
+                  ],
+                  probabilityPercent: 65.5,
+              }
+            : {}),
     },
     connectors: {
         inputs: [{ id: 'in', label: 'Entry' }],
@@ -191,6 +207,8 @@ const activity = {
                         ? 'First message wall'
                         : fixtureType === 'shared_task'
                           ? 'First shared task'
+                          : fixtureType === 'item_grant'
+                            ? 'First item grant'
                     : 'First activity',
     type: fixtureType,
     updatedAt: '2026-11-15T10:00:00Z',
@@ -351,13 +369,23 @@ const graph: ActivityGraphPayload = {
     },
 };
 
+const items = [
+    {
+        id: '00000000-0000-4000-8000-000000000719',
+        imageDark: null,
+        imageLight: null,
+        slug: 'field-notebook',
+        title: 'Field notebook',
+    },
+];
+
 createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
         <OriginalPlatformTranslationProvider>
             <CurrentUserProvider>
                 <EditNodeActivities
                     activityGraph={graph}
-                    items={[]}
+                    items={items}
                     sounds={[]}
                     tools={[]}
                     worldGraph={null}

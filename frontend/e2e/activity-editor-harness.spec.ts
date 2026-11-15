@@ -2023,3 +2023,101 @@ test('reloads after a typed Rust Shared Task update succeeds at narrow width', a
         390,
     );
 });
+
+const defaultItemGrantCreateBody = {
+    background_dark: null,
+    background_light: null,
+    background_mirrored: false,
+    introduction: null,
+    items: [],
+    probability_percent: 100,
+    slug: null,
+    title: 'Offer a useful item',
+};
+
+const defaultItemGrantUpdateBody = {
+    background_dark: '/media/dark.png',
+    background_light: '/media/light.png',
+    background_mirrored: true,
+    introduction: 'Start with this activity.',
+    items: [
+        {
+            item_id: '00000000-0000-4000-8000-000000000719',
+            quantity: 3,
+        },
+    ],
+    probability_percent: 65.5,
+    slug: 'first-activity',
+    title: 'First item grant (edited)',
+    updated_at: '2026-11-15T10:00:00Z',
+};
+
+async function openItemGrantCreateForm(page: Page): Promise<void> {
+    await page.getByRole('button', { name: 'Add activity' }).dispatchEvent('click');
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page.getByRole('option', { name: 'Item grant' }).dispatchEvent('click');
+}
+
+for (const [status, viewport, name] of [
+    [400, { height: 900, width: 1440 }, 'validation failure'],
+    [201, { height: 844, width: 390 }, 'successful create'],
+] as const) {
+    test(`captures source Item Grant defaults for a typed Rust ${name}`, async ({ page }) => {
+        let commandBody: unknown = null;
+        await page.route('**/api/v1/security/csrf', async (route) => route.fulfill({ json: { token: 'test-csrf' } }));
+        await page.route('**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/item-grant-activities', async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill(status === 201 ? { json: { activity_id: '00000000-0000-4000-8000-000000000720' }, status } : { status });
+        });
+        await page.setViewportSize(viewport);
+        await page.goto('/activity-editor-harness.html');
+        await openItemGrantCreateForm(page);
+        await page.getByLabel('Title').fill('Offer a useful item');
+        await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+        await expectBounded(page.getByLabel('Probability'), viewport.width);
+        const reloaded = status === 201 ? page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame()) : null;
+        await page.locator('form').evaluate((form) => form.requestSubmit());
+
+        if (reloaded) {
+            await reloaded;
+        }
+
+        await expect.poll(() => commandBody).not.toBeNull();
+        expect(commandBody).toEqual(defaultItemGrantCreateBody);
+    });
+}
+
+for (const [status, viewport, name] of [
+    [409, { height: 900, width: 1440 }, 'stale update'],
+    [200, { height: 844, width: 390 }, 'successful update'],
+] as const) {
+    test(`captures a typed Rust Item Grant ${name} without losing source fields`, async ({ page }) => {
+        let commandBody: unknown = null;
+        await page.route('**/api/v1/security/csrf', async (route) => route.fulfill({ json: { token: 'test-csrf' } }));
+        await page.route('**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/item-grant', async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill(status === 200 ? { json: { activity_id: '00000000-0000-4000-8000-000000000701', updated_at: '2026-11-15T10:01:00Z' }, status } : { status });
+        });
+        await page.setViewportSize(viewport);
+        await page.goto('/activity-editor-harness.html?item-grant=1');
+        await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+        await page.getByLabel('Title').fill('First item grant (edited)');
+        await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+        await expect(page.getByLabel('Probability')).toHaveValue('65.5');
+        const reloaded = status === 200 ? page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame()) : null;
+        await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+        if (reloaded) {
+            await reloaded;
+        }
+
+        await expect.poll(() => commandBody).not.toBeNull();
+        expect(commandBody).toEqual(defaultItemGrantUpdateBody);
+
+        if (status === 409) {
+            await expect(
+                page.getByRole('heading', { name: 'Edit activity' }),
+            ).toBeVisible();
+        }
+    });
+}

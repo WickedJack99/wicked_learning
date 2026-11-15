@@ -1835,8 +1835,10 @@ not close the P0 Activity Editor matrix or authorize mounting the route.
 Shared Task now captures its complete source default and its selected-record
 project, peer-review, contribution, validation, repeat and cycle controls
 through desktop Rust `400`/`409` failures and narrow Rust `201`/`200` reloads.
-The other remaining type command behavior and all other listed states remain
-unproven.
+Item Grant now captures its empty source default and selected catalog item,
+numeric probability and presentation fields through the same desktop failure
+and narrow successful-reload states. The other remaining type command behavior
+and all other listed states remain unproven.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
