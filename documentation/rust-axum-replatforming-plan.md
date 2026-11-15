@@ -1659,6 +1659,22 @@ is recreated. It remains unmounted until the complete source Activity Editor
 replaces the bespoke route; build evidence is dependency verification, not
 partial-editor browser acceptance.
 
+#### Eleventh Activity Editor implementation prerequisite: Message fields — 15 November 2026
+
+The complete pinned-source
+`resources/js/pages/settings/worlds/message-activity-fields.tsx` is now lifted
+to `frontend/src/lifted-world-builder-message-activity-fields.tsx`. Its import
+seams use existing lifted form primitives, the source configuration fields and
+UUID-safe activity types. `frontend/src/lifted-use-appearance.ts` is a narrow
+platform adapter: the standalone App remains the sole preference owner and the
+adapter observes the document's resolved light/dark class, which is the only
+source appearance contract these fields consume. No form defaults, topic
+selection, message visual behavior or validation is reconstructed.
+
+Both modules remain unmounted until the complete source Activity Editor is
+mounted. The passing build/API/Rust checks establish the dependency boundary;
+they do not replace the required source-derived browser matrix.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
