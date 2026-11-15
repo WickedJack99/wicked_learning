@@ -662,3 +662,198 @@ test('reloads after a typed Rust Reflection update succeeds at narrow width', as
         390,
     );
 });
+
+async function openReviewCreateForm(page: Page): Promise<void> {
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page.getByRole('option', { name: 'Review' }).dispatchEvent('click');
+}
+
+test('surfaces a typed Rust Review validation failure', async ({ page }) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/review-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 400 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+    await openReviewCreateForm(page);
+    await page.getByLabel('Title').fill('Revisit your learning');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await page
+        .getByLabel('Question')
+        .fill('What will you carry into the next route?');
+
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual({
+        introduction: null,
+        note: null,
+        prompt: 'What will you carry into the next route?',
+        slug: null,
+        subtopic: null,
+        title: 'Revisit your learning',
+        topic: null,
+    });
+});
+
+test('reloads after a typed Rust Review create succeeds', async ({ page }) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/review-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: { activity_id: '00000000-0000-4000-8000-000000000709' },
+                status: 201,
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html');
+    await openReviewCreateForm(page);
+    await page.getByLabel('Title').fill('Revisit your learning');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await page
+        .getByLabel('Question')
+        .fill('What will you carry into the next route?');
+
+    const reloaded = page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+    );
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+    await reloaded;
+
+    expect(commandBody).toEqual({
+        introduction: null,
+        note: null,
+        prompt: 'What will you carry into the next route?',
+        slug: null,
+        subtopic: null,
+        title: 'Revisit your learning',
+        topic: null,
+    });
+    await expect(
+        page.getByRole('heading', { name: 'Node activities' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});
+
+test('surfaces a typed Rust stale Review update without overwriting', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/review',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 409 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html?review=1');
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page.getByLabel('Title').fill('First review (edited)');
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual({
+        introduction: 'Start with this activity.',
+        note: 'Take a quiet moment.',
+        prompt: 'How did that go?',
+        slug: 'first-activity',
+        subtopic: 'Experiments',
+        title: 'First review (edited)',
+        topic: 'Learning',
+        updated_at: '2026-11-15T10:00:00Z',
+    });
+    await expect(
+        page.getByRole('heading', { name: 'Edit activity' }),
+    ).toBeVisible();
+});
+
+test('reloads after a typed Rust Review update succeeds at narrow width', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/review',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: {
+                    activity_id: '00000000-0000-4000-8000-000000000701',
+                    updated_at: '2026-11-15T10:01:00Z',
+                },
+                status: 200,
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?review=1');
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page.getByLabel('Title').fill('First review (edited)');
+
+    const reloaded = page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+    );
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+    await reloaded;
+
+    expect(commandBody).toEqual({
+        introduction: 'Start with this activity.',
+        note: 'Take a quiet moment.',
+        prompt: 'How did that go?',
+        slug: 'first-activity',
+        subtopic: 'Experiments',
+        title: 'First review (edited)',
+        topic: 'Learning',
+        updated_at: '2026-11-15T10:00:00Z',
+    });
+    await expect(
+        page.getByRole('heading', { name: 'Node activities' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});

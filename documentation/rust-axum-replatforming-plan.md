@@ -1804,9 +1804,12 @@ including its full source-shaped prompt, note, topic and subtopic command body;
 its selected source record also sends its complete stored fields and original
 `updated_at` to the desktop Rust `409` conflict state, retains the source editor
 and error placement, then reaches the Rust `200` source reload at narrow width.
-The remaining types' command behavior and all other listed states remain
-unproven. It therefore does not close the P0 Activity Editor matrix or
-authorize mounting the route.
+Review / revisit has the equivalent source-form create and selected-record
+update evidence: desktop Rust `400` and `409` source error states, plus narrow
+Rust `201` and `200` source reloads with its complete reflection-shaped body
+and optimistic timestamp. The remaining types' command behavior and all other
+listed states remain unproven. It therefore does not close the P0 Activity
+Editor matrix or authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 

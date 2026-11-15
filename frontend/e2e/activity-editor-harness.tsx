@@ -8,9 +8,14 @@ import type { ActivityGraphPayload } from '../src/lifted-world-builder-edit-node
 import { OriginalPlatformTranslationProvider } from '../src/original-platform-translation';
 import '../src/styles.css';
 
-const reflectionFixture = new URLSearchParams(window.location.search).has(
-    'reflection',
-);
+const fixtureSearch = new URLSearchParams(window.location.search);
+const fixtureType = fixtureSearch.has('reflection')
+    ? 'reflection'
+    : fixtureSearch.has('review')
+      ? 'review'
+      : 'open_practice';
+const reflectionLikeFixture =
+    fixtureType === 'reflection' || fixtureType === 'review';
 
 const activity = {
     aiReview: null,
@@ -19,7 +24,7 @@ const activity = {
     aiReviewStatus: 'reviewed',
     config: {
         graphLayout: { end: { x: 480, y: 0 } },
-        ...(reflectionFixture
+        ...(reflectionLikeFixture
             ? {
                   note: 'Take a quiet moment.',
                   prompt: 'How did that go?',
@@ -39,8 +44,13 @@ const activity = {
     position: { x: 100, y: 80 },
     question: null,
     slug: 'first-activity',
-    title: reflectionFixture ? 'First reflection' : 'First activity',
-    type: reflectionFixture ? 'reflection' : 'open_practice',
+    title:
+        fixtureType === 'reflection'
+            ? 'First reflection'
+            : fixtureType === 'review'
+              ? 'First review'
+              : 'First activity',
+    type: fixtureType,
     updatedAt: '2026-11-15T10:00:00Z',
 };
 
