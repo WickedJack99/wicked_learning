@@ -941,32 +941,34 @@ function WorldBuilderContent({
                         selectedNodeId={selectedNodeId}
                     />
                 ) : (
-                    <LiftedWorldBuilderGraph
-                        appearance={appearance}
-                        graph={worldGraph!}
-                        onCreateMap={() => setCreateMapOpen(true)}
-                        onEditWorld={() => setWorldDetailsOpen(true)}
-                        onImportMap={() => setImportMapOpen(true)}
-                        onImportWorld={() => setImportWorldOpen(true)}
-                        onValidateMapExport={() =>
-                            setWorldExportPreflightOpen(true)
-                        }
-                        renderSelectedMap={(map) => (
-                            <GraphMapDetails
-                                map={map}
-                                onOpenMap={selectMap}
-                                onOpenMapConfiguration={
-                                    selectStructuralMapView
-                                }
-                            />
-                        )}
-                        renderSelectedPortal={(portal) => (
-                            <PortalDetails
-                                onSelectNode={selectNode}
-                                portal={portal}
-                            />
-                        )}
-                    />
+                    <section className="h-full min-h-0 overflow-hidden">
+                        <LiftedWorldBuilderGraph
+                            appearance={appearance}
+                            graph={worldGraph!}
+                            onCreateMap={() => setCreateMapOpen(true)}
+                            onEditWorld={() => setWorldDetailsOpen(true)}
+                            onImportMap={() => setImportMapOpen(true)}
+                            onImportWorld={() => setImportWorldOpen(true)}
+                            onValidateMapExport={() =>
+                                setWorldExportPreflightOpen(true)
+                            }
+                            renderSelectedMap={(map) => (
+                                <GraphMapDetails
+                                    map={map}
+                                    onOpenMap={selectMap}
+                                    onOpenMapConfiguration={
+                                        selectStructuralMapView
+                                    }
+                                />
+                            )}
+                            renderSelectedPortal={(portal) => (
+                                <PortalDetails
+                                    onSelectNode={selectNode}
+                                    portal={portal}
+                                />
+                            )}
+                        />
+                    </section>
                 )}
                         </SettingsNestedWorkspace>
             {createMapOpen ? (

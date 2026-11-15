@@ -457,6 +457,33 @@ live Laravel screenshot capture remains unavailable in this environment, so
 this evidence is a pinned-source-code-to-Rust-browser comparison, not a claim
 that the remaining World Builder states have received full visual acceptance.
 
+#### Second P0 implementation evidence: graph cards, portal routes, fitting and loading — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+`frontend/src/lifted-world-builder-graph.tsx` now remains the direct home for
+the complete pinned-source graph unit: `MapGraphNode`, `MapGraphHandles`,
+`GraphViewportLoadingOverlay`, `graphFitViewOptions`, node/edge construction,
+pair counting, parallel/self-route choice, handle placement, edge labels and
+edge styles. The standalone composition now also restores the source
+`WorldBuilderSectionWorkspace` height boundary around that unit. No selected
+map/portal inspector, Review, Structural, or editor component was changed.
+
+| Source graph read | Rust `GET /api/v1/admin/world-builder` contract | Adapter / server invariant | Regression evidence |
+| --- | --- | --- | --- |
+| `maps[].id` and graph-card fields (`title`, `nodeCount`, `reviewCount`, `nodes`) | `maps[].id`, `title`, `node_count`, `review_count`, `nodes` | `adaptRustWorldGraph` performs only source-name conversion before the direct graph helpers run. Empty `maps` produces no cards and no fitting overlay. | No-map browser fixture at 1440×900 and 390×844. |
+| Edge identity and endpoints (`portalLinks[].id`, `sourceMapId`, `targetMapId`) | `portal_links[].id`, `source_map_id`, `target_map_id` | `id` remains the React Flow edge identity; both endpoint IDs must be members of `maps`. `PostgresAdminWorldGraphRepository` now requires both endpoint maps in its SQL scope and repeats that check before serialization, so Rust cannot emit a dangling or cross-scope edge. | Rust unit `graph_portal_links_require_both_endpoint_maps_in_the_scoped_projection`; browser single/parallel/self fixtures. |
+| Source hover/edge labels (`label`, source/target activity title with node-title fallback) | `portal_links[].label`, `source_activity`, `target_activity`, `source_node`, `target_node` | The adapter renames only `activity_type` to `type`; the lifted `portalActivityLabel` retains source fallback and route display behavior. | Browser fixture supplies every activity/node endpoint, asserts the three source edge labels and distinct parallel SVG paths; the direct lifted helper retains the hover fallback. |
+| Source routing/fitting (`buildGraphNodes`, `chooseEdgeRoute`, `parallelPairRoute`, `graphFitViewOptions`, `GraphViewportLoadingOverlay`) | Complete map/portal endpoint relation above; no new API endpoint | Rust preserves the source radial positions, five-lane handles, parallel offset distribution, self-route branch, 320ms fit settings and overlay lifecycle. No prior custom resize/coordinate helper participates. | Browser verifies a single route, two distinct parallel routes, a self route, loading-overlay attach/clear and card bounds at 1440×900; it repeats the complete route fixture at 390×844. |
+
+Focused source-derived Rust-browser evidence is
+`frontend/e2e/world-builder-graph-routing.spec.ts`. It runs no-map and
+single/parallel/self portal fixtures at **1440×900** and **390×844**. As with
+the first graph slice, this is pinned-source-code-to-Rust-browser evidence;
+the unavailable live-Laravel capture is not represented as a side-by-side
+screenshot claim.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named

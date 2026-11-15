@@ -285,13 +285,31 @@ async fn load_portal_links(
     }
 
     let rows = sqlx::query_as::<_, PortalLinkRow>(
-        "SELECT links.id, links.label, links.description, source_nodes.map_id AS source_map_id, target_nodes.map_id AS target_map_id, source_activities.id AS source_activity_id, source_activities.title AS source_activity_title, source_activities.activity_type AS source_activity_type, target_activities.id AS target_activity_id, target_activities.title AS target_activity_title, target_activities.activity_type AS target_activity_type, source_nodes.id AS source_node_id, source_nodes.slug AS source_node_slug, source_nodes.title AS source_node_title, source_nodes.description AS source_node_description, source_nodes.position_q AS source_node_q, source_nodes.position_r AS source_node_r, source_nodes.state AS source_node_state, source_nodes.visual_config AS source_node_visual_config, target_nodes.id AS target_node_id, target_nodes.slug AS target_node_slug, target_nodes.title AS target_node_title, target_nodes.description AS target_node_description, target_nodes.position_q AS target_node_q, target_nodes.position_r AS target_node_r, target_nodes.state AS target_node_state, target_nodes.visual_config AS target_node_visual_config FROM learning_portal_links AS links LEFT JOIN learning_activities AS source_activities ON source_activities.id = links.source_activity_id INNER JOIN learning_nodes AS source_nodes ON source_nodes.id = links.source_node_id LEFT JOIN learning_activities AS target_activities ON target_activities.id = links.target_activity_id INNER JOIN learning_nodes AS target_nodes ON target_nodes.id = links.target_node_id WHERE source_nodes.map_id = ANY($1) OR target_nodes.map_id = ANY($1) ORDER BY source_nodes.map_id ASC, source_nodes.slug ASC, source_activities.slug ASC NULLS FIRST, links.id ASC",
+        "SELECT links.id, links.label, links.description, source_nodes.map_id AS source_map_id, target_nodes.map_id AS target_map_id, source_activities.id AS source_activity_id, source_activities.title AS source_activity_title, source_activities.activity_type AS source_activity_type, target_activities.id AS target_activity_id, target_activities.title AS target_activity_title, target_activities.activity_type AS target_activity_type, source_nodes.id AS source_node_id, source_nodes.slug AS source_node_slug, source_nodes.title AS source_node_title, source_nodes.description AS source_node_description, source_nodes.position_q AS source_node_q, source_nodes.position_r AS source_node_r, source_nodes.state AS source_node_state, source_nodes.visual_config AS source_node_visual_config, target_nodes.id AS target_node_id, target_nodes.slug AS target_node_slug, target_nodes.title AS target_node_title, target_nodes.description AS target_node_description, target_nodes.position_q AS target_node_q, target_nodes.position_r AS target_node_r, target_nodes.state AS target_node_state, target_nodes.visual_config AS target_node_visual_config FROM learning_portal_links AS links LEFT JOIN learning_activities AS source_activities ON source_activities.id = links.source_activity_id INNER JOIN learning_nodes AS source_nodes ON source_nodes.id = links.source_node_id LEFT JOIN learning_activities AS target_activities ON target_activities.id = links.target_activity_id INNER JOIN learning_nodes AS target_nodes ON target_nodes.id = links.target_node_id WHERE source_nodes.map_id = ANY($1) AND target_nodes.map_id = ANY($1) ORDER BY source_nodes.map_id ASC, source_nodes.slug ASC, source_activities.slug ASC NULLS FIRST, links.id ASC",
     )
     .bind(map_ids)
     .fetch_all(pool)
     .await?;
 
-    Ok(rows.into_iter().map(PortalLinkRow::into_summary).collect())
+    // A graph edge cannot be rendered safely when either endpoint map is not
+    // part of this author's scoped graph. Keep the SQL predicate above and
+    // this projection guard together: a concurrent scope change must not
+    // leave the browser with a dangling edge or another map's node metadata.
+    Ok(rows
+        .into_iter()
+        .filter(|row| {
+            portal_link_endpoints_are_scoped(row.source_map_id, row.target_map_id, map_ids)
+        })
+        .map(PortalLinkRow::into_summary)
+        .collect())
+}
+
+fn portal_link_endpoints_are_scoped(
+    source_map_id: Uuid,
+    target_map_id: Uuid,
+    scoped_map_ids: &[Uuid],
+) -> bool {
+    scoped_map_ids.contains(&source_map_id) && scoped_map_ids.contains(&target_map_id)
 }
 
 impl NodeRow {
@@ -368,5 +386,30 @@ impl PortalLinkRow {
                 unlock_diagnostics: Vec::<AdminUnlockDiagnostic>::new(),
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+
+    use super::portal_link_endpoints_are_scoped;
+
+    #[test]
+    fn graph_portal_links_require_both_endpoint_maps_in_the_scoped_projection() {
+        let source_map_id = Uuid::new_v4();
+        let target_map_id = Uuid::new_v4();
+        let other_map_id = Uuid::new_v4();
+
+        assert!(portal_link_endpoints_are_scoped(
+            source_map_id,
+            target_map_id,
+            &[source_map_id, target_map_id],
+        ));
+        assert!(!portal_link_endpoints_are_scoped(
+            source_map_id,
+            target_map_id,
+            &[source_map_id, other_map_id],
+        ));
     }
 }
