@@ -1757,7 +1757,27 @@ source-derived browser matrix proves populated/empty, selected activity/edge/
 start, all activity type families, templates/citations/media failures, and
 transport-denial states at both 1440×900 and 390×844. The current automated
 evidence proves UUID transport mapping and every supported activity family's
-typed command shape; it is not browser-parity evidence.
+typed command shape; it is not complete browser-parity evidence.
+
+#### Nineteenth Activity Editor implementation prerequisite: isolated source-route browser harness — 15 November 2026
+
+`frontend/e2e/activity-editor-harness.html` and
+`frontend/e2e/activity-editor-harness.tsx` are a test-only Vite entrypoint for
+the complete lifted route. They render the pinned source component beneath its
+translation and React Router providers, using a UUID-shaped source document;
+they are not imported by the Rust frontend application. The dedicated
+`playwright.activity-editor.config.ts` starts that entrypoint only for the
+focused test, so it cannot become a product route or silently replace the
+existing `ActivityGraph`.
+
+`activity-editor-harness.spec.ts` currently browser-proves the populated graph
+at 1440×900 (source card, Start route and completed-to-End connection) and the
+empty state at 390×844 (source empty copy, Start/End nodes and bounded Add
+activity control). This is the first source-component browser evidence for the
+unmounted lift. It does **not** cover selection, graph fitting, all type forms,
+templates, citations, media, commands, denial, unavailable or stale-save
+states, and therefore does not close the P0 Activity Editor matrix or authorize
+mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 

@@ -25,13 +25,21 @@ export function optionalString(value: string): string | null {
 
 export function sourceOpenPracticeRequest(
     form: ActivityForm,
-): components['schemas']['CreateAdminOpenPracticeActivityRequest'] {
+): components['schemas']['CreateAdminOpenPracticeActivityRequest'] &
+    Omit<
+        components['schemas']['UpdateAdminOpenPracticeActivityRequest'],
+        'updated_at'
+    > {
     return { ...sourceCommonActivityRequest(form), next_step: optionalString(form.open_practice_next_step) };
 }
 
 export function sourceReflectionRequest(
     form: ActivityForm,
-): components['schemas']['CreateAdminReflectionActivityRequest'] {
+): components['schemas']['CreateAdminReflectionActivityRequest'] &
+    Omit<
+        components['schemas']['UpdateAdminReflectionActivityRequest'],
+        'updated_at'
+    > {
     return {
         ...sourceCommonActivityRequest(form),
         note: optionalString(form.reflection_note),
@@ -114,7 +122,11 @@ export function sourceSharedTaskRequest(
 
 export function sourceItemGrantRequest(
     form: ActivityForm,
-): components['schemas']['CreateAdminItemGrantActivityRequest'] {
+): components['schemas']['CreateAdminItemGrantActivityRequest'] &
+    Omit<
+        components['schemas']['UpdateAdminItemGrantActivityRequest'],
+        'updated_at'
+    > {
     return {
         ...sourceCommonActivityRequest(form),
         background_dark: optionalString(form.item_grant_background_dark),
@@ -129,7 +141,11 @@ export function sourceItemGrantRequest(
 
 export function sourceMarkdownRequest(
     form: ActivityForm,
-): components['schemas']['CreateAdminMarkdownActivityRequest'] {
+): components['schemas']['CreateAdminMarkdownActivityRequest'] &
+    Omit<
+        components['schemas']['UpdateAdminMarkdownActivityRequest'],
+        'updated_at'
+    > {
     return {
         ...sourceCommonActivityRequest(form),
         markdown_graph_layout: form.markdown_graph_layout,
@@ -200,7 +216,11 @@ export function sourcePortalRequest(
 
 export function sourceToolGrantRequest(
     form: ActivityForm,
-): components['schemas']['CreateAdminToolGrantActivityRequest'] {
+): components['schemas']['CreateAdminToolGrantActivityRequest'] &
+    Omit<
+        components['schemas']['UpdateAdminToolGrantActivityRequest'],
+        'updated_at'
+    > {
     return {
         ...sourceCommonActivityRequest(form),
         background_dark: optionalString(form.tool_grant_background_dark),
@@ -226,7 +246,11 @@ export function sourceToolGrantRequest(
 
 export function sourceItemObstacleRequest(
     form: ActivityForm,
-): components['schemas']['CreateAdminItemObstacleActivityRequest'] {
+): components['schemas']['CreateAdminItemObstacleActivityRequest'] &
+    Omit<
+        components['schemas']['UpdateAdminItemObstacleActivityRequest'],
+        'updated_at'
+    > {
     return {
         ...sourceCommonActivityRequest(form),
         background_dark: optionalString(form.item_obstacle_background_dark),
@@ -260,7 +284,11 @@ export function sourceItemObstacleRequest(
 
 export function sourceObstacleRequest(
     form: ActivityForm,
-): components['schemas']['CreateAdminObstacleActivityRequest'] {
+): components['schemas']['CreateAdminObstacleActivityRequest'] &
+    Omit<
+        components['schemas']['UpdateAdminObstacleActivityRequest'],
+        'updated_at'
+    > {
     return {
         ...sourceCommonActivityRequest(form),
         allowed_tool_ids: form.obstacle_allowed_tool_ids.split(',').map((id) => id.trim()).filter(Boolean),
