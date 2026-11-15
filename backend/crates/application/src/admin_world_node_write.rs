@@ -208,7 +208,7 @@ fn valid_sounds(value: Option<&Value>) -> bool {
                 sound.as_object().is_some_and(|sound| {
                     !sound
                         .keys()
-                        .any(|key| !matches!(key.as_str(), "enabled" | "soundId"))
+                        .any(|key| !matches!(key.as_str(), "enabled" | "soundId" | "url"))
                         && sound.get("enabled").is_some_and(Value::is_boolean)
                         && sound.get("soundId").is_none_or(|value| {
                             value.is_null()
@@ -216,6 +216,13 @@ fn valid_sounds(value: Option<&Value>) -> bool {
                                     .as_str()
                                     .is_some_and(|value| Uuid::parse_str(value).is_ok())
                         })
+                        && sound.get("url").is_none_or(|value| {
+                            value.is_null()
+                                || value
+                                    .as_str()
+                                    .is_some_and(|value| value.chars().count() <= 2048)
+                        })
+                        && !(sound.contains_key("soundId") && sound.contains_key("url"))
                 })
             })
         })
@@ -485,7 +492,7 @@ mod tests {
     }
 
     #[test]
-    fn accepts_only_managed_source_node_interaction_sounds() {
+    fn accepts_source_node_interaction_sound_shapes_for_persistence_validation() {
         assert!(WorldNodeForm::parse(
             "A tile",
             None,
@@ -510,7 +517,16 @@ mod tests {
             None,
             HexPosition { q: 0, r: 0 },
             "available",
-            json!({"sounds":{"click":{"enabled":true,"url":"https://untrusted.example/sound.mp3"}}}),
+            json!({"sounds":{"click":{"enabled":true,"url":"/api/v1/admin/media-assets/00000000-0000-4000-8000-000000000001/content"}}}),
+        )
+        .is_some());
+        assert!(WorldNodeForm::parse(
+            "A tile",
+            None,
+            None,
+            HexPosition { q: 0, r: 0 },
+            "available",
+            json!({"sounds":{"click":{"enabled":true,"url":"https://untrusted.example/sound.mp3","soundId":"00000000-0000-4000-8000-000000000001"}}}),
         )
         .is_none());
     }

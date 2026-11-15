@@ -254,11 +254,17 @@ fn learner_map_asset_visual_config(config: Value, sound_urls: &HashMap<Uuid, Str
         };
         let enabled = sound.get("enabled").and_then(Value::as_bool) == Some(true);
         let url = sound
-            .get("soundId")
+            .get("url")
             .and_then(Value::as_str)
-            .and_then(|sound_id| Uuid::parse_str(sound_id).ok())
-            .and_then(|sound_id| sound_urls.get(&sound_id))
-            .cloned();
+            .map(learner_media_url)
+            .or_else(|| {
+                sound
+                    .get("soundId")
+                    .and_then(Value::as_str)
+                    .and_then(|sound_id| Uuid::parse_str(sound_id).ok())
+                    .and_then(|sound_id| sound_urls.get(&sound_id))
+                    .cloned()
+            });
         sounds.insert(
             trigger.to_owned(),
             json!({ "enabled": enabled, "url": url }),
@@ -342,5 +348,25 @@ mod tests {
             Some(&json!("/api/v1/public/sounds/current/content")),
         );
         assert_eq!(config.pointer("/sounds/click/url"), Some(&json!(null)));
+    }
+
+    #[test]
+    fn projects_a_managed_source_sound_url_through_the_node_media_boundary() {
+        let media = Uuid::new_v4();
+        let config = learner_node_visual_config(
+            json!({
+                "sounds": {
+                    "click": { "enabled": true, "url": format!("/api/v1/admin/media-assets/{media}/content") }
+                }
+            }),
+            &HashMap::new(),
+        );
+
+        assert_eq!(
+            config.pointer("/sounds/click/url"),
+            Some(&json!(format!(
+                "/api/v1/learner/media-assets/{media}/content"
+            ))),
+        );
     }
 }

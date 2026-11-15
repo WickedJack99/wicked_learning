@@ -395,9 +395,10 @@ async fn normalize_form(
     Ok(normalized)
 }
 
-/// Reusable interaction sounds are catalog records, not browser-provided URLs.
-/// The application form has already constrained the shape; this transaction
-/// verifies that any selected sound remains published before the node is saved.
+/// Source Map Configuration persists its direct managed-audio upload as a URL,
+/// while the established Rust sound library persists a published sound ID. The
+/// node contract accepts either representation but never an arbitrary URL:
+/// managed audio is verified here and later synchronized as a node reference.
 async fn normalize_interaction_sounds(
     transaction: &mut Transaction<'_, Postgres>,
     config: &Value,
@@ -411,24 +412,50 @@ async fn normalize_interaction_sounds(
         };
         let enabled = enabled(sound.get("enabled"));
         let sound_id = string_in(sound, "soundId");
-        if enabled && sound_id.is_none() {
+        let sound_url = string_in(sound, "url");
+        if sound_id.is_some() && sound_url.is_some() {
             return Err(WriteFailure::Invalid);
         }
-        let Some(sound_id) = sound_id else {
-            continue;
-        };
-        let sound_id = Uuid::parse_str(&sound_id).map_err(|_| WriteFailure::Invalid)?;
-        let exists: bool = sqlx::query_scalar(
-            "SELECT EXISTS (SELECT 1 FROM learning_sounds WHERE id = $1 AND published_at IS NOT NULL)",
-        )
-        .bind(sound_id)
-        .fetch_one(&mut **transaction)
-        .await?;
-        if !exists {
+        if enabled && sound_id.is_none() && sound_url.is_none() {
             return Err(WriteFailure::Invalid);
+        }
+        if let Some(sound_id) = sound_id {
+            let sound_id = Uuid::parse_str(&sound_id).map_err(|_| WriteFailure::Invalid)?;
+            let exists: bool = sqlx::query_scalar(
+                "SELECT EXISTS (SELECT 1 FROM learning_sounds WHERE id = $1 AND published_at IS NOT NULL)",
+            )
+            .bind(sound_id)
+            .fetch_one(&mut **transaction)
+            .await?;
+            if !exists {
+                return Err(WriteFailure::Invalid);
+            }
+        }
+        if let Some(sound_url) = sound_url {
+            let Some(asset_id) = managed_audio_asset_id(&sound_url) else {
+                return Err(WriteFailure::Invalid);
+            };
+            let exists: bool = sqlx::query_scalar(
+                "SELECT EXISTS (SELECT 1 FROM reusable_media_assets WHERE id = $1 AND content_type LIKE 'audio/%')",
+            )
+            .bind(asset_id)
+            .fetch_one(&mut **transaction)
+            .await?;
+            if !exists {
+                return Err(WriteFailure::Invalid);
+            }
         }
     }
     Ok(())
+}
+
+fn managed_audio_asset_id(url: &str) -> Option<Uuid> {
+    const PREFIX: &str = "/api/v1/admin/media-assets/";
+    let rest = url.strip_prefix(PREFIX)?;
+    let (asset_id, suffix) = rest.split_once('/')?;
+    (suffix == "content")
+        .then(|| Uuid::parse_str(asset_id).ok())
+        .flatten()
 }
 
 #[derive(Clone, Copy)]
@@ -1205,7 +1232,9 @@ mod tests {
     use serde_json::json;
     use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
-    use super::{normalize_schedule, parse_author_timestamp, remove_node_reference};
+    use super::{
+        managed_audio_asset_id, normalize_schedule, parse_author_timestamp, remove_node_reference,
+    };
 
     #[test]
     fn source_datetime_local_values_are_canonicalized_before_they_reach_learners() {
@@ -1249,5 +1278,21 @@ mod tests {
             config["unlock"]["rules"]["rules"],
             json!([{"type": "node_completed", "nodeId": "other"}])
         );
+    }
+
+    #[test]
+    fn accepts_only_an_exact_managed_author_audio_content_url() {
+        let asset_id = uuid::Uuid::new_v4();
+        assert_eq!(
+            managed_audio_asset_id(&format!("/api/v1/admin/media-assets/{asset_id}/content")),
+            Some(asset_id),
+        );
+        assert_eq!(
+            managed_audio_asset_id(&format!(
+                "/api/v1/admin/media-assets/{asset_id}/content?download=1"
+            )),
+            None,
+        );
+        assert!(managed_audio_asset_id("https://example.test/clip.mp3").is_none());
     }
 }
