@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import type { Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 async function expectBounded(locator: Locator, width: number): Promise<void> {
     const bounds = await locator.boundingBox();
@@ -7,6 +7,36 @@ async function expectBounded(locator: Locator, width: number): Promise<void> {
     expect(bounds).not.toBeNull();
     expect(bounds!.x).toBeGreaterThanOrEqual(0);
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+}
+
+async function exerciseSourceGraphDialogs(page: Page): Promise<void> {
+    await page
+        .getByRole('button', { name: 'Delete First activity' })
+        .dispatchEvent('click');
+    await expect(
+        page.getByRole('heading', { name: 'Delete activity?' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel' }).dispatchEvent('click');
+
+    await page
+        .locator('[aria-label="Connection from First activity to End: completed"]')
+        .dispatchEvent('click');
+    await expect(
+        page.getByRole('heading', { name: 'Edit connection' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel' }).dispatchEvent('click');
+
+    await page
+        .locator('[aria-label="Start route to First activity"]')
+        .dispatchEvent('click');
+    await expect(
+        page.getByRole('heading', { name: 'Route visuals' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Name')).toHaveAttribute(
+        'placeholder',
+        'First activity',
+    );
+    await page.getByRole('button', { name: 'Cancel' }).dispatchEvent('click');
 }
 
 test('renders the lifted source activity graph at the desktop contract viewport', async ({
@@ -66,4 +96,22 @@ test('keeps the source empty editor state bounded at the narrow contract viewpor
         page.getByRole('button', { name: 'Add activity' }),
         390,
     );
+});
+
+test('opens the source activity-card, connection, and Start-route dialogs', async ({
+    page,
+}) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+
+    await exerciseSourceGraphDialogs(page);
+});
+
+test('keeps source graph dialogs reachable at the narrow contract viewport', async ({
+    page,
+}) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html');
+
+    await exerciseSourceGraphDialogs(page);
 });

@@ -2,6 +2,7 @@ import '@xyflow/react/dist/style.css';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 
+import { CurrentUserProvider } from '../src/current-user';
 import EditNodeActivities from '../src/lifted-world-builder-edit-node-activities';
 import type { ActivityGraphPayload } from '../src/lifted-world-builder-edit-node-activity-types';
 import { OriginalPlatformTranslationProvider } from '../src/original-platform-translation';
@@ -109,13 +110,15 @@ const graph: ActivityGraphPayload = {
 createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
         <OriginalPlatformTranslationProvider>
-            <EditNodeActivities
-                activityGraph={graph}
-                items={[]}
-                sounds={[]}
-                tools={[]}
-                worldGraph={null}
-            />
+            <CurrentUserProvider>
+                <EditNodeActivities
+                    activityGraph={graph}
+                    items={[]}
+                    sounds={[]}
+                    tools={[]}
+                    worldGraph={null}
+                />
+            </CurrentUserProvider>
         </OriginalPlatformTranslationProvider>
     </BrowserRouter>,
 );

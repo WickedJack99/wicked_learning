@@ -1773,11 +1773,14 @@ existing `ActivityGraph`.
 `activity-editor-harness.spec.ts` currently browser-proves the populated graph
 at 1440×900 (source card, Start route and completed-to-End connection) and the
 empty state at 390×844 (source empty copy, Start/End nodes and bounded Add
-activity control). This is the first source-component browser evidence for the
-unmounted lift. It does **not** cover selection, graph fitting, all type forms,
-templates, citations, media, commands, denial, unavailable or stale-save
-states, and therefore does not close the P0 Activity Editor matrix or authorize
-mounting the route.
+activity control). It also renders the source activity-card delete confirmation,
+transition editor and Start-route visuals dialog at both viewports. The
+test-only shell supplies the same current-user provider that the Start-route
+image controls require. This is source-component browser evidence for the
+unmounted lift; direct graph-node click/selection, graph fitting, all type
+forms, templates, citations, media, commands, denial, unavailable and
+stale-save states remain unproven. It therefore does not close the P0 Activity
+Editor matrix or authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
