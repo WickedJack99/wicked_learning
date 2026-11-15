@@ -1726,6 +1726,15 @@ adapter maps source record/version pagination and nullable fields once, uses
 CSRF for all writers, and retains opaque source/version UUIDs without numeric
 coercion. The UI remains unmounted pending the complete source editor route.
 
+#### Seventeenth Activity Editor implementation prerequisite: parent form — 15 November 2026
+
+The complete pinned-source `activity-form-fields.tsx` is lifted with all named
+source field modules. Inertia links are the sole navigation seam, replaced by
+React Router links; source-reference callback IDs are opaque UUID strings.
+The source configuration shell's content-pane/sidebar helpers were retained in
+the existing extracted shell. The form remains unmounted pending the complete
+source editor route and its browser matrix.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

@@ -449,3 +449,11 @@ function classNames(...values: Array<string | boolean | undefined>): string {
         .filter((value): value is string => typeof value === 'string')
         .join(' ');
 }
+
+export function SettingsSidebar({ children }: { children: ReactNode }) {
+    return <aside className="h-full min-h-0 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-2"><nav className="grid gap-2">{children}</nav></aside>;
+}
+
+export function SettingsContentPane({ children, className }: { children: ReactNode; className?: string }) {
+    return <div className={classNames('h-full min-w-0 overflow-y-auto pr-1', className)}>{children}</div>;
+}
