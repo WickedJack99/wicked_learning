@@ -18,6 +18,7 @@ import type { components } from './api/schema';
 import { LiftedButton } from './lifted-button';
 import { classNames } from './lifted-class-names';
 import { LiftedSpinner } from './lifted-spinner';
+import { LiftedWorldBuilderCreateMapDialog } from './lifted-world-builder-create-map-dialog';
 import { LiftedMapExportValidationDialog } from './lifted-world-builder-map-export-validation';
 import { usePlatformTranslation } from './original-platform-translation';
 import type { OriginalAppearance } from './original-appearance';
@@ -152,7 +153,7 @@ function adaptRustNode(node: RustNodeSummary): SourceNodeSummary {
 type Props = {
     appearance: OriginalAppearance;
     graph: RustWorldGraph;
-    onCreateMap: () => void;
+    onMapCreated: (mapId: string) => void;
     onEditWorld: () => void;
     onImportMap: () => void;
     onImportWorld: () => void;
@@ -169,7 +170,7 @@ type Props = {
 export function LiftedWorldBuilderGraph({
     appearance,
     graph,
-    onCreateMap,
+    onMapCreated,
     onEditWorld,
     onImportMap,
     onImportWorld,
@@ -297,15 +298,9 @@ export function LiftedWorldBuilderGraph({
                         Create a standalone map now and connect it with portal
                         tiles later.
                     </p>
-                    <LiftedButton
-                        className="mt-4 w-full bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_86%,white)]"
-                        data-wl-id="settings.world-builder.map-create.open"
-                        onClick={onCreateMap}
-                        type="button"
-                    >
-                        <MapIcon className="size-4" />
-                        Create world node
-                    </LiftedButton>
+                    <LiftedWorldBuilderCreateMapDialog
+                        onCreated={onMapCreated}
+                    />
                     <LiftedButton asChild className="mt-2 w-full" variant="outline">
                         <a
                             data-wl-id="settings.world-builder.world.export"

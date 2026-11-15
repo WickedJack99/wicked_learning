@@ -564,7 +564,6 @@ function WorldBuilderContent({
     const [mapReload, setMapReload] = useState(0);
     const [nodeReload, setNodeReload] = useState(0);
     const [, setError] = useState<string | null>(null);
-    const [createMapOpen, setCreateMapOpen] = useState(false);
     const [importMapOpen, setImportMapOpen] = useState(false);
     const [importWorldOpen, setImportWorldOpen] = useState(false);
     const [worldDetailsOpen, setWorldDetailsOpen] = useState(false);
@@ -1008,7 +1007,10 @@ function WorldBuilderContent({
                         <LiftedWorldBuilderGraph
                             appearance={appearance}
                             graph={worldGraph!}
-                            onCreateMap={() => setCreateMapOpen(true)}
+                            onMapCreated={(mapId) => {
+                                void loadWorld();
+                                selectMap(mapId);
+                            }}
                             onEditWorld={() => setWorldDetailsOpen(true)}
                             onImportMap={() => setImportMapOpen(true)}
                             onImportWorld={() => setImportWorldOpen(true)}
@@ -1038,16 +1040,6 @@ function WorldBuilderContent({
                     </section>
                 )}
                         </SettingsNestedWorkspace>
-            {createMapOpen ? (
-                <CreateMapDialog
-                    onClose={() => setCreateMapOpen(false)}
-                    onCreated={(mapId) => {
-                        setCreateMapOpen(false);
-                        void loadWorld();
-                        selectMap(mapId);
-                    }}
-                />
-            ) : null}
             {importMapOpen ? (
                 <MapImportDialog
                     onClose={() => setImportMapOpen(false)}

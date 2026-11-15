@@ -698,6 +698,33 @@ and **390×844**, including bounds and the CSRF request seam. It is a
 pinned-source-code-to-Rust-browser comparison; direct live Laravel screenshot
 capture is unavailable and is not claimed.
 
+#### Tenth P0 implementation evidence: Graph create-world-node dialog — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+This slice directly lifts the `createOpen` dialog and its complete form markup
+from `resources/js/pages/settings/worlds/index.tsx` into
+`frontend/src/lifted-world-builder-create-map-dialog.tsx`, using the already
+lifted source Button, Dialog, Input, Label and InputError primitives. It
+replaces only `router.post` and the successful Inertia redirect with the
+existing Rust create command plus the existing graph reload/selected-map URL
+adapter. Import, world details/history, inspectors, Structural and editor
+flows are unchanged.
+
+| Source create-dialog requirement | Rust contract | Deliberate adapter boundary and retained behavior | Evidence |
+| --- | --- | --- | --- |
+| Source trigger, dialog hierarchy and Title/Slug/Description fields | No additional read is needed to open the dialog. The exact pinned source text, field IDs, placeholders, textarea classes, cancel/create actions and `sm:max-w-xl` dialog are retained. | The source `createOpen` state is localized to the lifted component. Its success callback is the only navigation seam. | Browser asserts the complete visible source form at **1440×900**, then bounds the same dialog at **390×844**. |
+| Create command and authorization | `POST /api/v1/admin/world-builder/maps` accepts `{ title, slug: string|null, description: string|null }`, returns `201 { map_id }`, and reports `400/401/403/404/503`. The application command requires `world_maps:ru`; the handler validates the CSRF token/origin and resolves the current authoring World server-side. | Empty optional source inputs become `null`; successful `map_id` triggers the existing graph refetch then Graph selected-map URL. The frontend does not generate IDs, slugs, scope, or redirects. | Browser fixture asserts the Rust CSRF header and the exact successful Graph URL containing the returned map ID. Existing application test proves permission is checked before the create repository runs. |
+| Source validation-field placement | Laravel Inertia supplies named validation errors to the source `InputError` slots. Rust’s current `400` Problem response intentionally exposes no Laravel field bag. | The adapter places the existing bounded source-form fallback under the title `InputError`; it does not add a replacement alert, custom dialog, or client-side validation policy. Network failure uses the same existing form slot. | Browser returns Rust `400` and verifies the visible source-form fallback before retrying a successful create. |
+
+Focused source-derived Rust-browser evidence is
+`frontend/e2e/world-builder-create-map-dialog.spec.ts`. It covers source
+fields/controls, a Rust `400` failure, a Rust `201` create, CSRF propagation,
+and visible dialog bounds at **1440×900** and **390×844**. It is a
+pinned-source-code-to-Rust-browser comparison; direct live Laravel screenshot
+capture is unavailable and is not claimed.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named
