@@ -1790,17 +1790,20 @@ Message Prompt/Wall, Shared Task, Item Grant, Item Obstacle, Obstacle and Tool
 Grant each reach their distinct lifted Flow section at both viewports. This is
 structural type-family evidence only: their per-field defaults, validation,
 stale-save and successful Rust command/reload behavior remain unproven, as do
-templates, citations, media, read denial and unavailable states. The lone
-exception is Open practice: source-derived browser coverage now captures the
-UUID node create command body, a Rust `400` rendered in the source Basics error
+templates, citations, media, read denial and unavailable states. Open practice
+is a limited exception: its source-derived browser coverage captures the UUID
+node create command body, a Rust `400` rendered in the source Basics error
 placement, and a Rust `201` followed by the source route reload at the narrow
 viewport. Its desktop stale-edit case sends the original `updated_at` and the
 source default learner invitation to the typed Rust `409` route, keeps the
 source edit dialog open, and renders that source error placement without
 overwriting the activity. The same update reaches its typed Rust `200` response
-and source reload at the narrow viewport. The remaining types' command behavior
-and all other listed states remain unproven. It therefore does not close the P0
-Activity Editor matrix or authorize mounting the route.
+and source reload at the narrow viewport. Reflection create now has matching
+desktop Rust `400` source-error and narrow Rust `201` source-reload coverage,
+including its full source-shaped prompt, note, topic and subtopic command body;
+Reflection edit and stale-save remain unproven. The remaining types' command
+behavior and all other listed states remain unproven. It therefore does not
+close the P0 Activity Editor matrix or authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
