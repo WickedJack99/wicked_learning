@@ -419,6 +419,44 @@ row, lifting its named current-`main` source components as a whole, and adding
 the stated contract matrix and two-viewport source/Rust evidence. It must not
 repair an adjacent row opportunistically or claim parity from this audit.
 
+#### First P0 implementation evidence: normal Graph workspace and empty inspector — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+This deliberately narrow implementation lifts the normal, unselected Graph
+workspace from `resources/js/pages/settings/worlds/index.tsx` into
+`frontend/src/lifted-world-builder-graph.tsx`, including the source graph node,
+handle, edge-routing, fitting, loading-overlay, empty-inspector, Prepare and
+Travel composition. It also lifts the source Button and Spinner primitives into
+`frontend/src/lifted-button.tsx` and `frontend/src/lifted-spinner.tsx`; their
+Radix/CVA/class-name runtime dependencies and the source `@xyflow/react`
+`^12.11.1` version are now present in `frontend/package.json`.
+
+The existing selected-map and selected-portal renderers are explicitly passed
+as slots. They were not changed and are not accepted by this slice. Review,
+Structural, map/MapAsset editors, and transfer-dialog internals likewise remain
+backlog items. The normal Graph no longer exposes the prior invented Source
+catalog action or narrow-screen `World tools` disclosure, because neither
+exists in the pinned source component.
+
+| Pinned-source `WorldGraph` field | Rust OpenAPI field (`GET /api/v1/admin/world-builder`) | Adapter behavior | Evidence |
+| --- | --- | --- | --- |
+| `world.id`, `slug`, `title`, `description`, `updatedAt` | `world.id`, `slug`, `title`, `description`, `updated_at` | `updated_at` is renamed only at the source-component boundary; the normal graph does not otherwise derive world data. | Generated `AdminWorldGraph` client type; frontend production build. |
+| `maps[].id`, `slug`, `title`, `description`, `updatedAt`, `nodeCount`, `reviewCount` | `maps[].id`, `slug`, `title`, `description`, `updated_at`, `node_count`, `review_count` | `adaptRustWorldGraph` performs the explicit snake_case-to-source-name mapping before the lifted JSX/graph helpers run. | Mocked browser graph uses every required map field. |
+| `maps[].nodes[].id`, `slug`, `title`, `description`, `activityReviewCount` | `maps[].nodes[].id`, `slug`, `title`, `description`, `activity_review_count` | The adapter preserves nodes only for source card review-link selection; it does not invent client review state. | Source-card and empty-inspector Playwright assertions. |
+| `portalLinks[].id`, `label`, `description`, source/target map IDs, nodes and activities | `portal_links[]` with `source_map_id`, `target_map_id`, `source_node`, `target_node`, `source_activity`, `target_activity.activity_type` | The adapter changes names only; source graph geometry continues to use the lifted source helpers. The existing portal renderer is a deferred slot. | TypeScript build and focused graph fixture retain the complete endpoint shape. |
+| Inertia `Link`, appearance hook and source export URLs | React Router `Link`, existing `appearance` prop, `/api/v1/admin/world-builder/world/(export|export-package)` | These are the only framework/transport substitutions in the lifted normal workspace. | Playwright asserts visible source controls, export destination and bounds at 1440×900 and 390×844. |
+
+Focused Rust-browser evidence is
+`frontend/e2e/world-builder-graph-localization.spec.ts`: it runs the rebuilt
+Rust frontend at **1440×900** and **390×844**, verifies the lifted normal and
+empty states, map-card bounds within the graph viewport, source action
+hierarchy/copy, and the absence of the two replaced custom controls. Direct
+live Laravel screenshot capture remains unavailable in this environment, so
+this evidence is a pinned-source-code-to-Rust-browser comparison, not a claim
+that the remaining World Builder states have received full visual acceptance.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named

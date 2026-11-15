@@ -12,16 +12,20 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.3",
     "@simplewebauthn/browser": "14.0.0",
     "@tailwindcss/vite": "^4.3.4",
     "@vitejs/plugin-react": "6.1.2",
-    "@xyflow/react": "^12.9.3",
+    "@xyflow/react": "^12.11.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
     "openapi-fetch": "0.17.0",
     "qrcode": "^1.5.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-router": "^7.18.5",
+    "tailwind-merge": "^3.0.1",
     "tailwindcss": "^4.3.4",
     "vite": "8.3.5"
   },

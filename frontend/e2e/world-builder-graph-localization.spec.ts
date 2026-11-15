@@ -1,81 +1,68 @@
 import { expect, test } from './authenticated';
 
-test('World Builder localizes source-shaped graph map cards without changing their overview data', async ({
+test('World Builder normal Graph workspace retains the pinned-main composition at desktop and narrow viewports', async ({
     page,
 }) => {
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
-            contentType: 'application/json',
             body: JSON.stringify({
                 capabilities: [],
                 email: 'world-builder-admin@example.test',
                 roles: ['administrator'],
-                settings_access: { world_activities: true, world_maps: true, world_nodes: true },
+                settings_access: {
+                    world_activities: true,
+                    world_maps: true,
+                    world_nodes: true,
+                },
                 subject_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9a',
             }),
+            contentType: 'application/json',
         });
     });
     await page.route('**/api/v1/learner/platform-translations', async (route) => {
         await route.fulfill({
-            contentType: 'application/json',
             body: JSON.stringify({
                 locale: 'test',
                 translations: {
-                    'settings.world_builder.graph.tile_count_one': 'Localized :count tile',
-                    'settings.world_builder.graph.tile_count_many': 'Localized :count tiles',
-                    'settings.world_builder.activity_graph.portal': 'Localized portal fallback',
-                    'settings.world_builder.graph_inspector.empty.title': 'Localized graph inspector',
-                    'settings.world_builder.graph_inspector.empty.description': 'Localized graph-inspector guidance.',
-                    'settings.world_builder.graph_inspector.portal.eyebrow': 'Localized portal link',
-                    'settings.world_builder.graph_inspector.portal.unnamed': 'Localized unnamed portal',
-                    'settings.world_builder.graph_inspector.portal.empty_description': 'Localized portal guidance.',
-                    'settings.world_builder.graph_inspector.portal.source': 'Localized source',
-                    'settings.world_builder.graph_inspector.portal.target': 'Localized target',
-                    'settings.world_builder.graph_inspector.portal.open_source_activity_graph': 'Open localized source activity graph',
-                    'settings.world_builder.review.current': 'Localized reviews current',
-                    'settings.world_builder.review.waiting_many': 'Localized :count activities awaiting review',
+                    'settings.world_builder.review.current':
+                        'Localized reviews current',
+                    'settings.world_builder.world.export':
+                        'Localized export world',
                 },
             }),
+            contentType: 'application/json',
         });
     });
     await page.route('**/api/v1/admin/world-builder', async (route) => {
         await route.fulfill({
-            contentType: 'application/json',
             body: JSON.stringify({
                 maps: [
                     {
+                        access_roles: [],
+                        description: 'A map used to check the source graph layout.',
                         id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9b',
-                        node_count: 2,
-                        review_count: 2,
-                        title: 'Mocked reviewed map',
-                    },
-                    {
-                        id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9c',
                         node_count: 1,
+                        nodes: [
+                            {
+                                activity_review_count: 0,
+                                description: 'Mocked MapAsset description',
+                                id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9c',
+                                position: { q: 0, r: 0 },
+                                slug: 'mocked-map-asset',
+                                state: 'available',
+                                title: 'Mocked MapAsset',
+                                unlock_diagnostics: [],
+                                visual_config: {},
+                            },
+                        ],
                         review_count: 0,
+                        slug: 'mocked-world-map',
                         title: 'Mocked current map',
+                        updated_at: '2026-11-14T12:34:00Z',
                     },
                 ],
                 portal_candidates: [],
-                portal_links: [
-                    {
-                        id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9e',
-                        label: null,
-                        description: null,
-                        source_map_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9b',
-                        source_node: {
-                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9f',
-                            title: 'Mocked source node',
-                        },
-                        source_activity: null,
-                        target_map_id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9c',
-                        target_node: {
-                            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4da0',
-                            title: 'Mocked target node',
-                        },
-                        target_activity: null,
-                    },
-                ],
+                portal_links: [],
                 world: {
                     description: 'A mocked authoring world.',
                     id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9d',
@@ -84,82 +71,101 @@ test('World Builder localizes source-shaped graph map cards without changing the
                     updated_at: '2026-11-14T12:34:00Z',
                 },
             }),
+            contentType: 'application/json',
         });
     });
 
+    await page.setViewportSize({ height: 900, width: 1440 });
     await page.goto('/settings?panel=admin-world-builder');
-    await expect(page.getByText('Mocked reviewed map')).toBeVisible();
-    await expect(page.getByText('Localized 2 tiles')).toBeVisible();
-    await expect(
-        page.getByText('Localized 2 activities awaiting review'),
-    ).toBeVisible();
-    await expect(page.getByText('Mocked current map')).toBeVisible();
-    await expect(page.getByText('Localized 1 tile')).toBeVisible();
-    await expect(page.getByText('Localized reviews current')).toBeVisible();
-    await expect(page.getByText('Localized portal fallback')).toBeVisible();
-    await expect(page.getByText('Localized graph inspector')).toBeVisible();
-    await expect(
-        page.getByText('Localized graph-inspector guidance.'),
-    ).toBeVisible();
 
+    const workspace = page.locator(
+        '[data-wl-id="authoring.world-builder.graph-workspace"]',
+    );
     const graph = page.locator('[data-wl-id="authoring.world-builder.graph"]');
-    const mapCards = page.locator(
+    const mapCard = page.locator(
         '[data-wl-id="authoring.world-builder.graph.map-card"]',
     );
-    const reviewedMap = mapCards.filter({ hasText: 'Mocked reviewed map' });
-    const currentMap = mapCards.filter({ hasText: 'Mocked current map' });
-    await expect(reviewedMap).toBeVisible();
-    await expect(currentMap).toBeVisible();
-    await expect(
-        page.getByRole('status', { name: 'Preparing graph view…' }),
-    ).toBeHidden();
-    const graphBounds = await graph.boundingBox();
-    const reviewedMapBounds = await reviewedMap.boundingBox();
-    const currentMapBounds = await currentMap.boundingBox();
-    expect(graphBounds).not.toBeNull();
-    expect(reviewedMapBounds).not.toBeNull();
-    expect(currentMapBounds).not.toBeNull();
-    for (const mapBounds of [reviewedMapBounds!, currentMapBounds!]) {
-        expect(mapBounds.x).toBeGreaterThanOrEqual(graphBounds!.x);
-        expect(mapBounds.x + mapBounds.width).toBeLessThanOrEqual(
-            graphBounds!.x + graphBounds!.width,
-        );
-        expect(mapBounds.y).toBeGreaterThanOrEqual(graphBounds!.y);
-        expect(mapBounds.y + mapBounds.height).toBeLessThanOrEqual(
-            graphBounds!.y + graphBounds!.height,
-        );
-    }
 
-    await page.locator('.react-flow__edge').first().dispatchEvent('click');
-    await expect(page.getByText('Localized portal link')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Localized unnamed portal' })).toBeVisible();
-    await expect(page.getByText('Localized portal guidance.')).toBeVisible();
-    await expect(page.getByText('Localized source', { exact: true })).toBeVisible();
-    await expect(page.getByText('Localized target', { exact: true })).toBeVisible();
+    await expect(workspace).toBeVisible();
+    await expect(graph).toBeVisible();
+    await expect(mapCard).toContainText('Mocked current map');
+    await expect(mapCard).toContainText('Localized reviews current');
     await expect(
-        page.getByRole('button', { name: 'Open localized source activity graph' }),
+        page.getByRole('heading', { name: 'Select a map or portal' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText(
+            'Click a world-map node to edit it, or click a portal edge to see the connected portal activities.',
+        ),
+    ).toBeVisible();
+    await expect(page.getByText('Prepare', { exact: true })).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'New world map' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText(
+            'Create a standalone map now and connect it with portal tiles later.',
+        ),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Create world node' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Localized export world' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Portal routes' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Source catalog', { exact: true }),
+    ).toHaveCount(0);
+    await expect(workspace.locator('summary')).toHaveCount(0);
+    await expect(
+        page.getByRole('status', { name: 'Preparing graph view' }),
+    ).toBeHidden();
+
+    const graphBounds = await graph.boundingBox();
+    const mapBounds = await mapCard.boundingBox();
+    expect(graphBounds).not.toBeNull();
+    expect(mapBounds).not.toBeNull();
+    expect(graphBounds!.width).toBeGreaterThan(360);
+    expect(mapBounds!.x).toBeGreaterThanOrEqual(graphBounds!.x);
+    expect(mapBounds!.x + mapBounds!.width).toBeLessThanOrEqual(
+        graphBounds!.x + graphBounds!.width,
+    );
+    expect(mapBounds!.y).toBeGreaterThanOrEqual(graphBounds!.y);
+    expect(mapBounds!.y + mapBounds!.height).toBeLessThanOrEqual(
+        graphBounds!.y + graphBounds!.height,
+    );
+
+    await page.setViewportSize({ height: 844, width: 390 });
+    await workspace.scrollIntoViewIfNeeded();
+    await expect(workspace).toBeVisible();
+    await expect(graph).toBeVisible();
+    await expect(mapCard).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'New world map' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Portal routes' }),
     ).toBeVisible();
 
-    await page.setViewportSize({ width: 390, height: 844 });
-    await graph.scrollIntoViewIfNeeded();
-    await expect(reviewedMap).toBeVisible();
-    const mobileGraphBounds = await graph.boundingBox();
-    const mobileMapBounds = await reviewedMap.boundingBox();
-    expect(mobileGraphBounds).not.toBeNull();
-    expect(mobileMapBounds).not.toBeNull();
-    expect(mobileMapBounds!.x).toBeGreaterThanOrEqual(0);
-    expect(mobileMapBounds!.x + mobileMapBounds!.width).toBeLessThanOrEqual(390);
-    expect(mobileMapBounds!.y).toBeGreaterThanOrEqual(mobileGraphBounds!.y);
-    expect(mobileMapBounds!.y + mobileMapBounds!.height).toBeLessThanOrEqual(
-        mobileGraphBounds!.y + mobileGraphBounds!.height,
+    const narrowWorkspaceBounds = await workspace.boundingBox();
+    const narrowGraphBounds = await graph.boundingBox();
+    const narrowMapBounds = await mapCard.boundingBox();
+    expect(narrowWorkspaceBounds).not.toBeNull();
+    expect(narrowGraphBounds).not.toBeNull();
+    expect(narrowMapBounds).not.toBeNull();
+    expect(narrowWorkspaceBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(
+        narrowWorkspaceBounds!.x + narrowWorkspaceBounds!.width,
+    ).toBeLessThanOrEqual(390);
+    expect(narrowGraphBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(narrowGraphBounds!.x + narrowGraphBounds!.width).toBeLessThanOrEqual(
+        390,
     );
-    const inspector = page.getByText('Localized portal link').locator('..');
-    await inspector.scrollIntoViewIfNeeded();
-    await expect(inspector).toBeVisible();
-    const bounds = await inspector.boundingBox();
-    expect(bounds).not.toBeNull();
-    expect(bounds!.x).toBeGreaterThanOrEqual(0);
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
-    expect(bounds!.y).toBeGreaterThanOrEqual(0);
-    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
+    expect(narrowMapBounds!.x).toBeGreaterThanOrEqual(narrowGraphBounds!.x);
+    expect(
+        narrowMapBounds!.x + narrowMapBounds!.width,
+    ).toBeLessThanOrEqual(narrowGraphBounds!.x + narrowGraphBounds!.width);
 });

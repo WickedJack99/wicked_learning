@@ -1,5 +1,53 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) - 4px);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-background: var(--background);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-input: var(--input);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-ring: var(--ring);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+}
+
+:root {
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --background: oklch(1 0 0);
+    --border: oklch(0.922 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --input: oklch(0.922 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --radius: 0.625rem;
+    --ring: oklch(0.87 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+}
+
+.dark {
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --background: oklch(0.145 0 0);
+    --border: oklch(0.269 0 0);
+    --destructive: oklch(0.396 0.141 25.723);
+    --input: oklch(0.269 0 0);
+    --primary: oklch(0.985 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --ring: oklch(0.439 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+}
+
 html,
 body,
 #root {
@@ -40,6 +88,14 @@ body:has(.settings-surface) {
     --settings-panel-background: #fff;
     --settings-scrollbar-thumb: rgb(100 116 139 / 54%);
     --settings-sidebar-background: rgb(255 255 255 / 90%);
+    --accent: var(--settings-active-background);
+    --accent-foreground: var(--settings-accent);
+    --background: var(--settings-content-background);
+    --border: var(--settings-border-color);
+    --input: var(--settings-input-border-color);
+    --primary: var(--settings-accent);
+    --primary-foreground: var(--settings-accent-foreground);
+    --ring: var(--settings-accent);
 }
 
 .dark .settings-surface {
@@ -118,6 +174,16 @@ body:has(.settings-surface) {
         .settings-topbar-control
     ):not(.settings-floating-panel):not(.settings-rounded-control) {
     border-radius: 0;
+}
+
+/* The pinned World Builder graph deliberately keeps the source card/control
+ * radii; the legacy Settings flattening rule above predates this direct lift. */
+.settings-surface .settings-world-builder-graph .rounded-xl {
+    border-radius: var(--radius-lg);
+}
+
+.settings-surface .settings-world-builder-graph .rounded-md {
+    border-radius: var(--radius-md);
 }
 
 a,

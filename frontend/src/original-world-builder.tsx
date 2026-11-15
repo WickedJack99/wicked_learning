@@ -68,7 +68,6 @@ import { OriginalActivitySourceReferencesDialog } from './original-activity-sour
 import { OriginalActivityTemplatesDialog } from './original-activity-templates';
 import { ContentAuthoringDialog } from './original-content-authoring-dialog';
 import { OriginalNpcDialogueEditor } from './original-npc-dialogue-editor';
-import { OriginalSourceCatalogDialog } from './original-source-catalog';
 import { PortalScene } from './original-portal-activity';
 import { PublicMapAssetVisual } from './public-map-asset-visual';
 import { type OriginalAppearance } from './original-appearance';
@@ -84,6 +83,7 @@ import {
 } from './extracted-settings-sidebar-navigation';
 import { SettingsCornerNavigation } from './extracted-settings-corner-navigation';
 import { usePlatformTranslation } from './original-platform-translation';
+import { LiftedWorldBuilderGraph } from './lifted-world-builder-graph';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
 type MapSummary = components['schemas']['AdminMapSummary'];
@@ -561,7 +561,8 @@ function WorldBuilderContent({
     const [importWorldOpen, setImportWorldOpen] = useState(false);
     const [worldDetailsOpen, setWorldDetailsOpen] = useState(false);
     const [duplicateMapOpen, setDuplicateMapOpen] = useState(false);
-    const [sourceCatalogOpen, setSourceCatalogOpen] = useState(false);
+    const [worldExportPreflightOpen, setWorldExportPreflightOpen] =
+        useState(false);
     const [reviewQueue, setReviewQueue] = useState<ReviewQueue | null>(null);
     const [reviewQueueError, setReviewQueueError] = useState<string | null>(
         null,
@@ -940,17 +941,31 @@ function WorldBuilderContent({
                         selectedNodeId={selectedNodeId}
                     />
                 ) : (
-                    <WorldBuilderGraphWorkspace
+                    <LiftedWorldBuilderGraph
                         appearance={appearance}
                         graph={worldGraph!}
                         onCreateMap={() => setCreateMapOpen(true)}
                         onEditWorld={() => setWorldDetailsOpen(true)}
                         onImportMap={() => setImportMapOpen(true)}
                         onImportWorld={() => setImportWorldOpen(true)}
-                        onOpenMap={selectMap}
-                        onOpenMapConfiguration={selectStructuralMapView}
-                        onOpenNode={selectNode}
-                        onOpenSourceCatalog={() => setSourceCatalogOpen(true)}
+                        onValidateMapExport={() =>
+                            setWorldExportPreflightOpen(true)
+                        }
+                        renderSelectedMap={(map) => (
+                            <GraphMapDetails
+                                map={map}
+                                onOpenMap={selectMap}
+                                onOpenMapConfiguration={
+                                    selectStructuralMapView
+                                }
+                            />
+                        )}
+                        renderSelectedPortal={(portal) => (
+                            <PortalDetails
+                                onSelectNode={selectNode}
+                                portal={portal}
+                            />
+                        )}
                     />
                 )}
                         </SettingsNestedWorkspace>
@@ -993,9 +1008,9 @@ function WorldBuilderContent({
                     world={worldGraph!.world}
                 />
             ) : null}
-            {sourceCatalogOpen ? (
-                <OriginalSourceCatalogDialog
-                    onClose={() => setSourceCatalogOpen(false)}
+            {worldExportPreflightOpen ? (
+                <MapExportPreflightDialog
+                    onClose={() => setWorldExportPreflightOpen(false)}
                 />
             ) : null}
                         {duplicateMapOpen && editableMap ? (
