@@ -1421,6 +1421,18 @@ named dependencies as components/modules, not copied field fragments:
 | Activity dialogs and reuse | `features/ai/activity-review-dialog.tsx`, `features/settings/activity-history-dialog.tsx`, `activity-template-context.ts`, `activity-template-media.ts`, `use-node-image-upload.ts` | AI-review handoff, immutable activity history/restore, private/shared template handling, safe media substitutions and scoped image upload. |
 | Shared primitives / seams | `components/{color-input,input-error,pagination-controls,reusable-image-picker,settings-configuration-dialog,settings-configuration-section}.tsx`, `components/ui/{button,dialog,input,label}.tsx`, `hooks/{use-appearance,use-dirty-state,use-platform-translation}.tsx`, `lib/utils.ts` | Existing source classes, focus/dialog semantics, pagination, appearance and translation behavior. Only Inertia `Head`, `Link`, `router`, `usePage`, Laravel paths and form transport may be adapted. |
 
+The source route plus the direct activity-form, graph, template, review and
+history dependencies above account for **12,097** source lines before their
+shared primitive dependency trees. This is one atomic route lift, not a
+candidate for a header/canvas/form-by-form migration. The source
+`edit-node-activity-types.ts` declares Laravel numeric identifiers for
+activities, starts, transitions, templates and source records; the generated
+Rust contract deliberately returns opaque UUID strings. The standalone lift
+must generalize those *TypeScript data declarations* once at its adapter
+boundary and preserve the source JSX/component hierarchy. It must never
+coerce UUIDs through `Number`, manufacture numeric aliases, or make a second
+browser lookup only to preserve a Laravel-only identifier type.
+
 #### State and contract backlog
 
 | Pinned-source state | Current Rust path / mismatch | Severity | Required complete Rust read or command boundary | Required evidence before closure |
