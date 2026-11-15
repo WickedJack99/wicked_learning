@@ -15,6 +15,8 @@ const fixtureType = fixtureSearch.has('reflection')
       ? 'review'
       : fixtureSearch.has('markdown')
         ? 'markdown'
+        : fixtureSearch.has('portal')
+          ? 'portal'
       : 'open_practice';
 const reflectionLikeFixture =
     fixtureType === 'reflection' || fixtureType === 'review';
@@ -69,7 +71,25 @@ const activity = {
     graphLayout: { end: { x: 480, y: 0 } },
     id: '00000000-0000-4000-8000-000000000701',
     introduction: 'Start with this activity.',
-    portalLink: null,
+    portalLink:
+        fixtureType === 'portal'
+            ? {
+                  description: null,
+                  id: '00000000-0000-4000-8000-000000000712',
+                  label: null,
+                  targetActivity: {
+                      id: '00000000-0000-4000-8000-000000000713',
+                      mapTitle: 'Map',
+                      nodeTitle: 'Exit node',
+                      title: 'Exit portal',
+                  },
+                  targetNode: {
+                      id: '00000000-0000-4000-8000-000000000714',
+                      mapTitle: 'Map',
+                      title: 'Exit node',
+                  },
+              }
+            : null,
     position: { x: 100, y: 80 },
     question: null,
     slug: 'first-activity',
@@ -80,6 +100,8 @@ const activity = {
               ? 'First review'
               : fixtureType === 'markdown'
                 ? 'First markdown'
+                : fixtureType === 'portal'
+                  ? 'First portal'
               : 'First activity',
     type: fixtureType,
     updatedAt: '2026-11-15T10:00:00Z',
@@ -194,7 +216,19 @@ const graph: ActivityGraphPayload = {
         ],
         title: 'Node',
     },
-    portalCandidates: [],
+    portalCandidates:
+        fixtureType === 'portal'
+            ? [
+                  {
+                      id: '00000000-0000-4000-8000-000000000713',
+                      mapId: '00000000-0000-4000-8000-000000000702',
+                      mapTitle: 'Map',
+                      nodeId: '00000000-0000-4000-8000-000000000714',
+                      nodeTitle: 'Exit node',
+                      title: 'Exit portal',
+                  },
+              ]
+            : [],
     sourceRecords: [],
     sourceRecordsPagination: {
         currentPage: 1,
