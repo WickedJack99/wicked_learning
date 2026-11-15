@@ -567,3 +567,98 @@ test('reloads after a typed Rust Reflection create succeeds', async ({ page }) =
         390,
     );
 });
+
+test('surfaces a typed Rust stale Reflection update without overwriting', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/reflection',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 409 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html?reflection=1');
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page.getByLabel('Title').fill('First reflection (edited)');
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual({
+        introduction: 'Start with this activity.',
+        note: 'Take a quiet moment.',
+        prompt: 'How did that go?',
+        slug: 'first-activity',
+        subtopic: 'Experiments',
+        title: 'First reflection (edited)',
+        topic: 'Learning',
+        updated_at: '2026-11-15T10:00:00Z',
+    });
+    await expect(
+        page.getByRole('heading', { name: 'Edit activity' }),
+    ).toBeVisible();
+});
+
+test('reloads after a typed Rust Reflection update succeeds at narrow width', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/reflection',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: {
+                    activity_id: '00000000-0000-4000-8000-000000000701',
+                    updated_at: '2026-11-15T10:01:00Z',
+                },
+                status: 200,
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?reflection=1');
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page.getByLabel('Title').fill('First reflection (edited)');
+
+    const reloaded = page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+    );
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+    await reloaded;
+
+    expect(commandBody).toEqual({
+        introduction: 'Start with this activity.',
+        note: 'Take a quiet moment.',
+        prompt: 'How did that go?',
+        slug: 'first-activity',
+        subtopic: 'Experiments',
+        title: 'First reflection (edited)',
+        topic: 'Learning',
+        updated_at: '2026-11-15T10:00:00Z',
+    });
+    await expect(
+        page.getByRole('heading', { name: 'Node activities' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});

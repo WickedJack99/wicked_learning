@@ -8,12 +8,26 @@ import type { ActivityGraphPayload } from '../src/lifted-world-builder-edit-node
 import { OriginalPlatformTranslationProvider } from '../src/original-platform-translation';
 import '../src/styles.css';
 
+const reflectionFixture = new URLSearchParams(window.location.search).has(
+    'reflection',
+);
+
 const activity = {
     aiReview: null,
     aiReviewedAt: null,
     aiReviewHistory: [],
     aiReviewStatus: 'reviewed',
-    config: { graphLayout: { end: { x: 480, y: 0 } } },
+    config: {
+        graphLayout: { end: { x: 480, y: 0 } },
+        ...(reflectionFixture
+            ? {
+                  note: 'Take a quiet moment.',
+                  prompt: 'How did that go?',
+                  subtopic: 'Experiments',
+                  topic: 'Learning',
+              }
+            : {}),
+    },
     connectors: {
         inputs: [{ id: 'in', label: 'Entry' }],
         outputs: [{ id: 'completed', label: 'Completed' }],
@@ -25,8 +39,8 @@ const activity = {
     position: { x: 100, y: 80 },
     question: null,
     slug: 'first-activity',
-    title: 'First activity',
-    type: 'open_practice',
+    title: reflectionFixture ? 'First reflection' : 'First activity',
+    type: reflectionFixture ? 'reflection' : 'open_practice',
     updatedAt: '2026-11-15T10:00:00Z',
 };
 

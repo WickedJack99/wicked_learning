@@ -1801,9 +1801,12 @@ overwriting the activity. The same update reaches its typed Rust `200` response
 and source reload at the narrow viewport. Reflection create now has matching
 desktop Rust `400` source-error and narrow Rust `201` source-reload coverage,
 including its full source-shaped prompt, note, topic and subtopic command body;
-Reflection edit and stale-save remain unproven. The remaining types' command
-behavior and all other listed states remain unproven. It therefore does not
-close the P0 Activity Editor matrix or authorize mounting the route.
+its selected source record also sends its complete stored fields and original
+`updated_at` to the desktop Rust `409` conflict state, retains the source editor
+and error placement, then reaches the Rust `200` source reload at narrow width.
+The remaining types' command behavior and all other listed states remain
+unproven. It therefore does not close the P0 Activity Editor matrix or
+authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
