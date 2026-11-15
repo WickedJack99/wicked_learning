@@ -1,11 +1,12 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use serde_json::Value;
 use sqlx::PgPool;
 use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_import::{
-        AdminWorldImportError, AdminWorldImportRepository as Port, ImportedWorld,
+        AdminWorldImportError, AdminWorldImportPreflightRepository as PreflightPort,
+        AdminWorldImportRepository as Port, ImportedWorld, WorldImportPreflightContext,
     },
     admin_world_map_create::CreateWorldMapForm,
 };
@@ -43,6 +44,71 @@ impl Port for PostgresAdminWorldImportRepository<'_> {
                 })
         }
     }
+}
+
+impl PreflightPort for PostgresAdminWorldImportRepository<'_> {
+    fn load_preflight_context(
+        &self,
+        _: &AuthorizedPrincipal,
+        media_urls: &BTreeSet<String>,
+    ) -> impl std::future::Future<
+        Output = Result<Option<WorldImportPreflightContext>, AdminWorldImportError>,
+    > + Send {
+        let media_ids = media_urls
+            .iter()
+            .filter_map(|url| managed_media_id(url))
+            .collect::<Vec<_>>();
+        async move {
+            let Some(current_world_slug) = sqlx::query_scalar::<_, String>(
+                "SELECT slug FROM learning_worlds ORDER BY created_at, slug LIMIT 1",
+            )
+            .fetch_optional(self.pool)
+            .await
+            .map_err(unavailable)?
+            else {
+                return Ok(None);
+            };
+            let available_media_ids = if media_ids.is_empty() {
+                Vec::new()
+            } else {
+                sqlx::query_scalar::<_, Uuid>(
+                    "SELECT id FROM reusable_media_assets WHERE id = ANY($1)",
+                )
+                .bind(&media_ids)
+                .fetch_all(self.pool)
+                .await
+                .map_err(unavailable)?
+            };
+            let available_media_urls = available_media_ids
+                .into_iter()
+                .map(media_content_url)
+                .collect();
+
+            Ok(Some(WorldImportPreflightContext {
+                available_media_urls,
+                current_world_slug,
+            }))
+        }
+    }
+}
+
+fn unavailable(error: sqlx::Error) -> AdminWorldImportError {
+    tracing::error!(%error, "could not load World Builder world import preflight context");
+    AdminWorldImportError::Unavailable
+}
+
+fn managed_media_id(url: &str) -> Option<Uuid> {
+    let identifier = url
+        .strip_prefix("/api/v1/admin/media-assets/")?
+        .strip_suffix("/content")?;
+    if identifier.contains('/') || identifier.is_empty() {
+        return None;
+    }
+    Uuid::parse_str(identifier).ok()
+}
+
+fn media_content_url(id: Uuid) -> String {
+    format!("/api/v1/admin/media-assets/{id}/content")
 }
 
 async fn import_world(

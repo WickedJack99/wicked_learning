@@ -6859,9 +6859,15 @@ function WorldImportDialog({
         const body = new FormData();
         body.append('manifest', file);
         try {
+            const token = await getCsrfToken();
             const response = await fetch(
                 '/api/v1/admin/world-builder/world-exports/preflight',
-                { body, credentials: 'same-origin', method: 'POST' },
+                {
+                    body,
+                    credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': token },
+                    method: 'POST',
+                },
             );
             const payload = (await response.json()) as WorldImportPreflight;
             if (!response.ok) {
@@ -7018,13 +7024,13 @@ function WorldImportDialog({
                         <p className="font-medium">{result.summary}</p>
                         <p className="mt-2 text-slate-600 dark:text-slate-300">
                             {t(
-                                result.maps === 1
+                                result.counts.maps === 1
                                     ? 'settings.world_builder.world_import.map_ready'
                                     : 'settings.world_builder.world_import.maps_ready',
-                                result.maps === 1
+                                result.counts.maps === 1
                                     ? ':maps map ready for transfer.'
                                     : ':maps maps ready for transfer.',
-                                { maps: result.maps },
+                                { maps: result.counts.maps },
                             )}
                         </p>
                         {result.errors.map((message) => <p className="mt-2 text-red-700 dark:text-red-300" key={message}>{message}</p>)}

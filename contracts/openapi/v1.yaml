@@ -2031,7 +2031,9 @@ paths:
     post:
       operationId: preflightAdminWorldBuilderWorldExport
       summary: Check a world export bundle without creating content.
-      description: Requires the source world-map update permission. The check is read-only and validates either a bounded JSON world bundle or its portable ZIP package before import.
+      description: Requires the source world-map update permission and the browser CSRF token. The check is read-only and validates either a bounded JSON world bundle or its portable ZIP package against the current World before import.
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -12987,14 +12989,44 @@ components:
     AdminWorldImportPreflightResult:
       type: object
       additionalProperties: false
-      required: [valid, summary, errors, maps]
+      required: [valid, summary, errors, warnings, counts, mediaReferenceDetails, world]
       properties:
         valid: { type: boolean }
         summary: { type: string }
         errors:
           type: array
           items: { type: string }
-        maps: { type: integer, minimum: 0, maximum: 12 }
+        warnings:
+          type: array
+          items: { type: string }
+        counts:
+          type: object
+          additionalProperties: false
+          required: [maps, nodes, activities, mapAssets, portalTargets, mediaReferences]
+          properties:
+            maps: { type: integer, minimum: 0, maximum: 12 }
+            nodes: { type: integer, minimum: 0 }
+            activities: { type: integer, minimum: 0 }
+            mapAssets: { type: integer, minimum: 0 }
+            portalTargets: { type: integer, minimum: 0 }
+            mediaReferences: { type: integer, minimum: 0 }
+        mediaReferenceDetails:
+          type: array
+          maxItems: 2000
+          items:
+            type: object
+            additionalProperties: false
+            required: [available, url]
+            properties:
+              available: { type: boolean }
+              url: { type: string }
+        world:
+          type: object
+          additionalProperties: false
+          required: [exists, slug]
+          properties:
+            exists: { type: boolean }
+            slug: { type: string, nullable: true }
     CreateAdminWorldMapRequest:
       type: object
       additionalProperties: false

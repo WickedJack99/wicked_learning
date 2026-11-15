@@ -1641,7 +1641,7 @@ export interface paths {
         put?: never;
         /**
          * Check a world export bundle without creating content.
-         * @description Requires the source world-map update permission. The check is read-only and validates either a bounded JSON world bundle or its portable ZIP package before import.
+         * @description Requires the source world-map update permission and the browser CSRF token. The check is read-only and validates either a bounded JSON world bundle or its portable ZIP package against the current World before import.
          */
         post: operations["preflightAdminWorldBuilderWorldExport"];
         delete?: never;
@@ -9538,7 +9538,23 @@ export interface components {
             valid: boolean;
             summary: string;
             errors: string[];
-            maps: number;
+            warnings: string[];
+            counts: {
+                maps: number;
+                nodes: number;
+                activities: number;
+                mapAssets: number;
+                portalTargets: number;
+                mediaReferences: number;
+            };
+            mediaReferenceDetails: {
+                available: boolean;
+                url: string;
+            }[];
+            world: {
+                exists: boolean;
+                slug: string | null;
+            };
         };
         CreateAdminWorldMapRequest: {
             title: string;
@@ -16868,7 +16884,10 @@ export interface operations {
     preflightAdminWorldBuilderWorldExport: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
             path?: never;
             cookie?: never;
         };

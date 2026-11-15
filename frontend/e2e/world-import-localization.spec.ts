@@ -7,6 +7,7 @@ test('World import uses fixed platform catalog copy and accepts a scoped portabl
     const importedMapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d92';
     let imported = false;
     let importCsrfHeader: string | undefined;
+    let preflightCsrfHeader: string | undefined;
 
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
@@ -100,14 +101,25 @@ test('World import uses fixed platform catalog copy and accepts a scoped portabl
     await page.route(
         '**/api/v1/admin/world-builder/world-exports/preflight',
         async (route) => {
+            preflightCsrfHeader = route.request().headers()['x-csrf-token'];
             await route.fulfill({
                 contentType: 'application/json',
                 body: JSON.stringify({
+                    counts: {
+                        activities: 0,
+                        mapAssets: 0,
+                        maps: 2,
+                        mediaReferences: 0,
+                        nodes: 0,
+                        portalTargets: 0,
+                    },
                     errors: [],
-                    maps: 2,
+                    mediaReferenceDetails: [],
                     summary:
                         'The mocked World package is structurally ready for transfer.',
                     valid: true,
+                    warnings: [],
+                    world: { exists: true, slug: 'mocked-world' },
                 }),
             });
         },
@@ -168,7 +180,13 @@ test('World import uses fixed platform catalog copy and accepts a scoped portabl
     expect(bounds!.y).toBeGreaterThanOrEqual(0);
     expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
 
-    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const desktopBounds = await dialog.boundingBox();
+    expect(desktopBounds).not.toBeNull();
+    expect(desktopBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(desktopBounds!.x + desktopBounds!.width).toBeLessThanOrEqual(1440);
+    expect(desktopBounds!.y).toBeGreaterThanOrEqual(0);
+    expect(desktopBounds!.y + desktopBounds!.height).toBeLessThanOrEqual(900);
     const fileInput = dialog.getByLabel('Localized world package');
     await expect(fileInput).toHaveAttribute(
         'accept',
@@ -188,6 +206,7 @@ test('World import uses fixed platform catalog copy and accepts a scoped portabl
         .getByRole('button', { name: 'Check localized world package' })
         .click();
     expect((await preflight).status()).toBe(200);
+    expect(preflightCsrfHeader).toBe('test-csrf-token');
     await expect(dialog.getByRole('status')).toContainText(
         'Localized ready maps: 2',
     );
