@@ -1675,6 +1675,17 @@ Both modules remain unmounted until the complete source Activity Editor is
 mounted. The passing build/API/Rust checks establish the dependency boundary;
 they do not replace the required source-derived browser matrix.
 
+#### Twelfth Activity Editor implementation prerequisite: Tool Grant fields — 15 November 2026
+
+The complete pinned-source
+`resources/js/pages/settings/worlds/tool-grant-activity-fields.tsx` is now
+lifted to `frontend/src/lifted-world-builder-tool-grant-activity-fields.tsx`.
+Only UI imports are redirected to the lifted Select, Label, InputError,
+configuration-field, scene-preview, UUID-type and document-appearance
+adapters. Tool selection, source visual preview, image-upload handoff and
+mirror/color/position behavior remain the source module unchanged. It remains
+unmounted pending the complete Activity Editor source route lift.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
