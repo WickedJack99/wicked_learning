@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import type { components } from '../src/api/schema';
 import { adaptRustActivityEditorDocument } from '../src/lifted-world-builder-activity-editor-adapter';
+import { buildGraphEdges, buildGraphNodes } from '../src/lifted-world-builder-activity-graph-elements';
 
 test('adapts a UUID selected-node document to the pinned-source activity editor shape', () => {
     const document = {
@@ -232,4 +233,39 @@ test('adapts a UUID selected-node document to the pinned-source activity editor 
     expect(adapted.worldGraph?.maps[0]?.nodes[0]?.id).toBe(
         '00000000-0000-4000-8000-000000000202',
     );
+
+    const edges = buildGraphEdges(adapted.activityGraph);
+    const nodes = buildGraphNodes(
+        adapted.activityGraph,
+        () => undefined,
+        () => undefined,
+        () => undefined,
+        () => undefined,
+        () => undefined,
+        () => undefined,
+    );
+
+    expect(nodes.map((node) => node.id)).toEqual([
+        'start',
+        '00000000-0000-4000-8000-000000000101',
+        'end',
+    ]);
+    expect(edges).toMatchObject([
+        {
+            data: {
+                start: true,
+                startRouteId: '00000000-0000-4000-8000-000000000203',
+            },
+            source: 'start',
+            target: '00000000-0000-4000-8000-000000000101',
+        },
+        {
+            data: {
+                fromActivityId: '00000000-0000-4000-8000-000000000101',
+                id: '00000000-0000-4000-8000-000000000205',
+            },
+            source: '00000000-0000-4000-8000-000000000101',
+            target: 'end',
+        },
+    ]);
 });

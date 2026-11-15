@@ -401,7 +401,7 @@ export type ActivityGraphNode =
     | Node<SpecialNodeData, 'special'>;
 
 export type ActivityGraphEdge = Edge<
-    ActivityTransitionSummary | { start: true; startRouteId: number }
+    ActivityTransitionSummary | { start: true; startRouteId: string }
 >;
 
 export type CreateActivityForm = {

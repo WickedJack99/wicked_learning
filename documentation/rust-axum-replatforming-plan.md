@@ -1487,6 +1487,36 @@ wicked-learning-api admin_world_node` (4 passed). This evidence is a contract
 prerequisite only; the route remains parity-blocked until the complete source
 component tree is mounted and receives the browser matrix above.
 
+#### Second Activity Editor implementation prerequisite: graph elements and previews — 15 November 2026
+
+The whole pinned-source `activity-graph-elements.tsx` and
+`activity-scene-preview.tsx` modules are now lifted into
+`frontend/src/lifted-world-builder-activity-graph-elements.tsx` and
+`frontend/src/lifted-world-builder-activity-scene-preview.tsx`. Their source
+React Flow nodes, handles, Start/End fallback graph, source graph edges,
+review badge, activity-card controls and scene-preview presentation remain
+whole modules. The only seams are source Inertia `Link` → React Router `Link`,
+source `cn` → the existing lifted `classNames`, source Button → the already
+lifted source Button, and source media normalization → the existing Rust
+authoring URL representation.
+
+The graph lift changes its source numeric-only type assumptions only where the
+first prerequisite generalized IDs to UUID strings: the legacy fallback start
+route uses the opaque sentinel `legacy-start`, and graph lookup/edge data
+remains string-ID based. It is intentionally **not mounted** while the larger
+source form/dialog dependency tree remains unlifted; therefore its retained
+source navigation hrefs are not presented as a live Rust destination or
+accepted browser behavior yet.
+
+Focused regression coverage extends
+`world-builder-activity-editor-adapter.spec.ts`: a selected-node fixture now
+passes through the adapter and the direct lifted `buildGraphNodes` /
+`buildGraphEdges` helpers, proving source Start/End/activity nodes, start-route
+and terminal transition edges retain their exact UUID identities. `npm run
+build` passes. This is dependency-level evidence only; the complete Activity
+Editor browser matrix remains required before the route can be called
+source-visible or migrated.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
