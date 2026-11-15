@@ -1631,6 +1631,22 @@ and the standalone TypeScript/Vite build verify the dependency boundary. Live
 checkbox interaction remains part of the complete, mounted Activity Editor
 browser matrix rather than evidence of a partial editor migration.
 
+#### Ninth Activity Editor implementation prerequisite: configuration fields — 15 November 2026
+
+The complete pinned-source `resources/js/components/number-field.tsx` and
+`resources/js/pages/settings/worlds/activity-config-fields.tsx` are now lifted
+to `frontend/src/lifted-number-field.tsx` and
+`frontend/src/lifted-world-builder-activity-config-fields.tsx`. Their only
+seams replace source import aliases with the already lifted Input, Label,
+ColorField, ConfigImageInput and Checkbox primitives. Number input IDs,
+string-valued updates, optional suffixes, color configuration and the exact
+boolean-only mirror-image rule remain source-owned behavior.
+
+They are shared prerequisites for the direct source item, obstacle, portal and
+tool activity fields and remain unmounted pending the complete Activity Editor
+lift. Standalone API/type/build verification establishes that this is a
+dependency lift, not browser acceptance for a partial editor.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
