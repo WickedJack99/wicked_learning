@@ -1461,6 +1461,32 @@ browser lookup only to preserve a Laravel-only identifier type.
    as pinned-source-code-to-Rust-browser comparison rather than a screenshot
    side-by-side claim.
 
+#### First Activity Editor implementation prerequisite: UUID contract adapter — 15 November 2026
+
+This narrow prerequisite lifts the whole pinned-source
+`edit-node-activity-types.ts` into
+`frontend/src/lifted-world-builder-edit-node-activity-types.ts` and adds the
+sole selected-node adapter in
+`frontend/src/lifted-world-builder-activity-editor-adapter.ts`. It does **not**
+mount any Activity Editor JSX, replace `ActivityGraph`, or claim a migrated
+selected-node route. Its purpose is to prove the data boundary before the
+atomic source route lift.
+
+| Pinned source value | Rust `AdminEditableNode` projection | Adapter rule | Evidence |
+| --- | --- | --- | --- |
+| Numeric activity, map, node, transition, start-route, template and source-record IDs | Opaque UUID strings in `AdminEditableNode`, `AdminActivityGraph` and all nested records | The lifted type declarations generalize these IDs to `string`; no conversion to `Number` and no alias lookup occurs. | `world-builder-activity-editor-adapter.spec.ts` retains UUIDs through node/start/transition/portal/source/template-target shapes. |
+| Source camel-case graph props | OpenAPI snake-case graph/read projection | `adaptRustActivityEditorDocument` is the one name-only map for graph metadata, activity type/template data, starts, transitions, catalog items/tools/sounds, source-record pagination and optional World graph. | The focused fixture asserts casing, UUID identities and nullable source citation defaults. |
+| Question/configuration graph fields | Authoring `config`/`question` JSON objects from the selected-node read | The adapter validates only the source display form's record/array/string/finite-number shapes; absent optional values resolve to the source empty/null presentation, never client authorization or a fabricated activity. | Fixture retains question options/outcome weights and Start/End/activity layout positions. |
+| Source AI-review helper | `POST /api/v1/admin/world-builder/activities/{activity_id}/ai-review` with typed CSRF request and response | `lifted-activity-review-client.ts` preserves the source client type/function boundary, replacing only Laravel `fetch` and numeric IDs with the generated Rust client and UUID path/body fields. | Frontend typecheck/build and existing focused Rust authoring scope tests. |
+
+Focused verification: `npx playwright test
+e2e/world-builder-activity-editor-adapter.spec.ts --project=chromium` (one
+adapter regression), `npm run build`, `cargo test -p
+wicked-learning-application admin_world_node` (10 passed), and `cargo test -p
+wicked-learning-api admin_world_node` (4 passed). This evidence is a contract
+prerequisite only; the route remains parity-blocked until the complete source
+component tree is mounted and receives the browser matrix above.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

@@ -1,0 +1,590 @@
+import type { Edge, Node } from '@xyflow/react';
+import type { ActivityReview } from './lifted-activity-review-client';
+
+export type Connector = {
+    color?: string;
+    id: string;
+    label: string;
+    symbol?: string;
+};
+
+export type ActivityTypeDefinition = {
+    description: string;
+    key: string;
+    label: string;
+    portalModes?: Array<{ key: string; label: string }>;
+};
+
+export type ActivityReviewTemplate = {
+    id: string;
+    model: string | null;
+    name: string;
+    providerLabel: string | null;
+};
+
+export type ActivitySummary = {
+    config: Record<
+        string,
+        | Array<
+              | MarkdownPageForm
+              | MarkdownTransitionForm
+              | PortalAssetForm
+              | Record<string, unknown>
+              | number
+              | string
+          >
+        | GraphLayout
+        | Record<string, unknown>
+        | string
+        | number
+        | boolean
+        | null
+    >;
+    aiReview: ActivityReview | null;
+    connectors: {
+        inputs: Connector[];
+        outputs: Connector[];
+    };
+    graphLayout?: GraphLayout;
+    id: string;
+    aiReviewStatus: string;
+    aiReviewedAt: string | null;
+    aiReviewHistory: ActivityReviewHistoryEntry[];
+    introduction: string | null;
+    portalLink: PortalActivityLink | null;
+    position: {
+        x: number | null;
+        y: number | null;
+    };
+    question: ActivityQuestion | null;
+    slug: string;
+    title: string;
+    type: string;
+    updatedAt: string | null;
+};
+
+export type ActivityQuestion = {
+    allowMultiple: boolean;
+    explanation: string | null;
+    feedbackCorrect: string | null;
+    feedbackIncorrect: string | null;
+    options: ActivityQuestionOption[];
+    prompt: string;
+};
+
+export type ActivityQuestionOption = {
+    body: string;
+    feedback: string | null;
+    isCorrect: boolean;
+    label: string;
+    outcomeKey: string | null;
+    weights: Record<string, number>;
+};
+
+export type ActivityTemplateSummary = {
+    canManage: boolean;
+    id: string;
+    name: string;
+    organization: {
+        id: string;
+        name: string;
+    } | null;
+    title: string;
+    type: string;
+    updatedAt: string | null;
+};
+
+export type ActivityTemplateDetails = ActivityTemplateSummary & {
+    mediaReferences: Array<{
+        available: boolean;
+        url: string;
+    }>;
+    snapshot: {
+        companionConfig?: Record<string, unknown>;
+        config: ActivitySummary['config'];
+        introduction: string | null;
+        question?: ActivityQuestion | null;
+        title: string;
+        type: string;
+    };
+};
+
+export type ActivityTemplateRevision = {
+    createdAt: string | null;
+    id: string;
+    name: string;
+    title: string;
+    type: string;
+};
+
+export type ActivityTemplateRevisionPage = {
+    items: ActivityTemplateRevision[];
+    pagination: {
+        lastPage: number;
+        page: number;
+        perPage: number;
+        total: number;
+    };
+};
+
+export type ActivityTemplatePage = {
+    items: ActivityTemplateSummary[];
+    pagination: {
+        lastPage: number;
+        page: number;
+        perPage: number;
+        total: number;
+    };
+    shareTargets: Array<{
+        id: string;
+        name: string;
+    }>;
+};
+
+export type ActivityReviewHistoryEntry = {
+    id: string;
+    model: string | null;
+    provider: string;
+    reviewedAt: string | null;
+    summary: string | null;
+};
+
+export type CompetenceTopicForm = {
+    topic: string;
+    weight: string;
+};
+
+export type SourceReferenceForm = {
+    anchor: string;
+    concepts: string[];
+    excerpt: string;
+    publishedAt: string;
+    publisher: string;
+    rights: string;
+    title: string;
+    url: string;
+};
+
+export type EditableSourceRecord = SourceReferenceForm & {
+    id: string;
+};
+
+export type SourceRecordVersion = SourceReferenceForm & {
+    createdAt: string | null;
+    id: string;
+};
+
+export type SourceRecordVersionPage = {
+    items: SourceRecordVersion[];
+    pagination: {
+        lastPage: number;
+        page: number;
+        perPage: number;
+        total: number;
+    };
+};
+
+export type SourceRecordPage = {
+    items: EditableSourceRecord[];
+    pagination: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
+};
+
+export type PortalActivityLink = {
+    description: string | null;
+    id: string;
+    label: string | null;
+    targetActivity: {
+        id: string;
+        mapTitle: string;
+        nodeTitle: string;
+        title: string;
+    } | null;
+    targetNode: {
+        id: string;
+        mapTitle: string;
+        title: string;
+    };
+};
+
+export type PortalCandidate = {
+    id: string;
+    mapId: string;
+    mapTitle: string;
+    nodeId: string;
+    nodeTitle: string;
+    title: string;
+};
+
+export type PortalAssetForm = {
+    id: string;
+    imageDark: string;
+    imageLight: string;
+    label: string;
+    layer: string;
+    mirrored: boolean;
+    opacity: string;
+    width: string;
+    x: string;
+    y: string;
+};
+
+export type ActivityTransitionSummary = {
+    fromActivityId: string;
+    fromConnector: string;
+    id: string;
+    label: string | null;
+    toActivityId: string | null;
+    toConnector: string;
+    trigger: string;
+    triggerValue: string | null;
+};
+
+export type ActivityGraphPayload = {
+    activities: ActivitySummary[];
+    activityTypes: ActivityTypeDefinition[];
+    canManageAiReview: boolean;
+    aiReviewTemplates: ActivityReviewTemplate[];
+    competenceTopicOptions: string[];
+    evidenceConceptOptions: string[];
+    map: {
+        id: string;
+        slug: string;
+        title: string;
+    };
+    messageTopics: MessageTopicOption[];
+    node: {
+        description: string | null;
+        graphLayout: GraphLayout;
+        id: string;
+        slug: string;
+        startActivityId: string | null;
+        startRoutes: ActivityStartRoute[];
+        title: string;
+    };
+    portalCandidates: PortalCandidate[];
+    sourceRecords: EditableSourceRecord[];
+    sourceRecordsPagination: SourceRecordPage['pagination'];
+    transitions: ActivityTransitionSummary[];
+    world: {
+        id: string;
+        slug: string;
+        title: string;
+    };
+};
+
+export type ActivityTemplateTargetGraph = {
+    maps: Array<{
+        id: string;
+        nodes: Array<{
+            id: string;
+            title: string;
+        }>;
+        title: string;
+    }>;
+};
+
+export type MessageTopicOption = {
+    id: string;
+    title: string;
+};
+
+export type GraphLayout = {
+    end?: GraphPosition;
+    start?: GraphPosition;
+};
+
+export type GraphPosition = {
+    x: number;
+    y: number;
+};
+
+export type EditableTool = {
+    id: string;
+    imageDark: string | null;
+    imageLight: string | null;
+    slug: string;
+    title: string;
+};
+
+export type EditableItem = {
+    id: string;
+    imageDark: string | null;
+    imageLight: string | null;
+    quantity?: number;
+    slug: string;
+    title: string;
+};
+
+export type EditableSound = {
+    id: string;
+    name: string;
+    slug: string;
+    url: string;
+};
+
+export type ActivityStartRoute = {
+    activityId: string;
+    buttonBorderColorDark: string | null;
+    buttonBorderColorLight: string | null;
+    buttonColorDark: string | null;
+    buttonColorLight: string | null;
+    customLabel: string | null;
+    description: string | null;
+    id: string;
+    imageDark: string | null;
+    imageLight: string | null;
+    label: string;
+    sortOrder: number;
+};
+
+export type StartRouteForm = {
+    button_border_color_dark: string;
+    button_border_color_light: string;
+    button_color_dark: string;
+    button_color_light: string;
+    description: string;
+    image_dark: string;
+    image_light: string;
+    label: string;
+};
+
+export type MarkdownPageForm = {
+    body: string;
+    id: string;
+    position: {
+        x: number;
+        y: number;
+    };
+    title: string;
+    visual: {
+        borderColorDark: string;
+        borderColorLight: string;
+        headingColorDark: string;
+        headingColorLight: string;
+        pageColorDark: string;
+        pageColorLight: string;
+        textColorDark: string;
+        textColorLight: string;
+    };
+};
+
+export type MarkdownTransitionForm = {
+    from: string;
+    id: string;
+    to: string;
+};
+
+export type ActivityNodeData = {
+    activity: ActivitySummary;
+    canReview: boolean;
+    onDuplicate: (activity: ActivitySummary) => void;
+    onDelete: (activity: ActivitySummary) => void;
+    onEdit: (activity: ActivitySummary) => void;
+    onReview: (activity: ActivitySummary) => void;
+    onSaveTemplate: (activity: ActivitySummary) => void;
+    onUpdateTemplate: (activity: ActivitySummary) => void;
+};
+
+export type SpecialNodeData = {
+    description: string;
+    kind: 'start' | 'end';
+    title: string;
+};
+
+export type ActivityGraphNode =
+    | Node<ActivityNodeData, 'activity'>
+    | Node<SpecialNodeData, 'special'>;
+
+export type ActivityGraphEdge = Edge<
+    ActivityTransitionSummary | { start: true; startRouteId: number }
+>;
+
+export type CreateActivityForm = {
+    activity_sound_enabled: boolean;
+    activity_sound_id: string;
+    competence_topics: CompetenceTopicForm[];
+    completion_choice_prompt: string;
+    evidence_objective: string;
+    evidence_concepts: string;
+    feedback_evidence: string;
+    feedback_independent_check: string;
+    feedback_independent_check_feedback: string;
+    feedback_next_action: string;
+    feedback_purpose: string;
+    feedback_response: string;
+    feedback_rubric: string;
+    introduction: string;
+    time_guide_minutes: string;
+    learning_intent: string;
+    question_allow_multiple: boolean;
+    question_explanation: string;
+    question_feedback_correct: string;
+    question_feedback_incorrect: string;
+    question_options: ActivityQuestionOptionForm[];
+    question_prompt: string;
+    source_references: SourceReferenceForm[];
+    item_grant_background_dark: string;
+    item_grant_background_light: string;
+    item_grant_background_mirrored: boolean;
+    item_grant_items: Array<{
+        itemId: string;
+        quantity: string;
+    }>;
+    item_grant_probability_percent: string;
+    item_obstacle_background_dark: string;
+    item_obstacle_background_light: string;
+    item_obstacle_background_mirrored: boolean;
+    item_obstacle_lock_minutes: string;
+    item_obstacle_met_background_dark: string;
+    item_obstacle_met_background_light: string;
+    item_obstacle_met_background_mirrored: boolean;
+    item_obstacle_overlay_dark: string;
+    item_obstacle_overlay_light: string;
+    item_obstacle_overlay_mirrored: boolean;
+    item_obstacle_overlay_width: string;
+    item_obstacle_overlay_x: string;
+    item_obstacle_overlay_y: string;
+    item_obstacle_slots: Array<{
+        itemId: string;
+        width: string;
+        x: string;
+        y: string;
+    }>;
+    item_obstacle_consume_on_each_entry: boolean;
+    item_obstacle_sound_met_enabled: boolean;
+    item_obstacle_sound_met_id: string;
+    item_obstacle_sound_not_met_enabled: boolean;
+    item_obstacle_sound_not_met_id: string;
+    item_obstacle_sound_transition_enabled: boolean;
+    item_obstacle_sound_transition_id: string;
+    markdown_pages: MarkdownPageForm[];
+    markdown_graph_layout: GraphLayout;
+    markdown_transitions: MarkdownTransitionForm[];
+    open_practice_next_step: string;
+    message_accent_color_dark: string;
+    message_accent_color_light: string;
+    message_card_border_color_dark: string;
+    message_card_border_color_light: string;
+    message_card_color_dark: string;
+    message_card_color_light: string;
+    message_audience: string;
+    message_allow_responses: boolean;
+    message_response_prompt: string;
+    message_input_label: string;
+    message_prompt_text: string;
+    message_surface_color_dark: string;
+    message_surface_color_light: string;
+    message_text_color_dark: string;
+    message_text_color_light: string;
+    message_topic_id: string;
+    message_topic_title: string;
+    obstacle_allowed_tool_ids: string;
+    obstacle_background_dark: string;
+    obstacle_background_light: string;
+    obstacle_background_mirrored: boolean;
+    obstacle_bubble_border_color_dark: string;
+    obstacle_bubble_border_color_light: string;
+    obstacle_bubble_color_dark: string;
+    obstacle_bubble_color_light: string;
+    obstacle_bubble_opacity_dark: string;
+    obstacle_bubble_opacity_light: string;
+    obstacle_image_dark: string;
+    obstacle_image_light: string;
+    obstacle_image_mirrored: boolean;
+    obstacle_persist_after_solved: boolean;
+    obstacle_prompt_text: string;
+    obstacle_width: string;
+    obstacle_x: string;
+    obstacle_y: string;
+    obstacle_revisit_background_dark: string;
+    obstacle_revisit_background_light: string;
+    obstacle_revisit_background_mirrored: boolean;
+    obstacle_revisit_image_dark: string;
+    obstacle_revisit_image_light: string;
+    obstacle_revisit_image_mirrored: boolean;
+    obstacle_revisit_text: string;
+    obstacle_success_animation: string;
+    obstacle_success_text: string;
+    obstacle_typing_speed: string;
+    portal_background_dark: string;
+    portal_background_light: string;
+    portal_background_mirrored: boolean;
+    portal_assets: PortalAssetForm[];
+    portal_duration_seconds: string;
+    portal_foreground_dark: string;
+    portal_foreground_light: string;
+    portal_foreground_mirrored: boolean;
+    portal_foreground_width: string;
+    portal_foreground_x: string;
+    portal_foreground_y: string;
+    portal_mode: 'input' | 'output';
+    portal_show_on_arrival: boolean;
+    portal_swirl_enabled: boolean;
+    portal_bubble_text: string;
+    portal_bubble_typing_speed: string;
+    portal_bubble_color_dark: string;
+    portal_bubble_color_light: string;
+    portal_bubble_border_color_dark: string;
+    portal_bubble_border_color_light: string;
+    portal_bubble_text_color_dark: string;
+    portal_bubble_text_color_light: string;
+    portal_wait_for_enter: boolean;
+    reflection_note: string;
+    reflection_prompt: string;
+    reflection_subtopic: string;
+    reflection_topic: string;
+    shared_task_cycle_mode: string;
+    shared_task_input_label: string;
+    shared_task_instructions: string;
+    shared_task_kind: string;
+    shared_task_project_deliverable: string;
+    shared_task_project_goal: string;
+    shared_task_project_steps: string;
+    shared_task_peer_review_enabled: boolean;
+    shared_task_peer_review_prompt: string;
+    shared_task_show_contributions: boolean;
+    shared_task_minimum_length: string;
+    shared_task_prompt: string;
+    shared_task_repeat_policy: string;
+    shared_task_threshold: string;
+    shared_task_validation_mode: string;
+    slug: string;
+    target_portal_activity_id: string;
+    title: string;
+    tool_grant_background_dark: string;
+    tool_grant_background_light: string;
+    tool_grant_background_mirrored: boolean;
+    tool_grant_bubble_border_color_dark: string;
+    tool_grant_bubble_border_color_light: string;
+    tool_grant_bubble_color_dark: string;
+    tool_grant_bubble_color_light: string;
+    tool_grant_bubble_opacity_dark: string;
+    tool_grant_bubble_opacity_light: string;
+    tool_grant_fade_duration_seconds: string;
+    tool_grant_slide_direction: string;
+    tool_grant_slide_duration_seconds: string;
+    tool_grant_text: string;
+    tool_grant_tool_id: string;
+    tool_grant_tool_mirrored: boolean;
+    tool_grant_tool_x: string;
+    tool_grant_tool_y: string;
+    tool_grant_typing_speed: string;
+    type: string;
+    updated_at: string;
+};
+
+export type ActivityQuestionOptionForm = {
+    body: string;
+    feedback: string;
+    is_correct: boolean;
+    label: string;
+    outcome_key: string;
+    weights: Record<string, number>;
+};
+
+export type ActivityForm = CreateActivityForm;
