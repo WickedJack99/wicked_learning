@@ -1718,6 +1718,14 @@ behavior remain whole components; only imports point to the lifted primitives,
 appearance adapter and UUID-safe types. They remain unmounted until the
 complete source Activity Editor replaces the bespoke route.
 
+#### Sixteenth Activity Editor implementation prerequisite: source references — 15 November 2026
+
+The full pinned-source `activity-source-reference-fields.tsx` is lifted with a
+single Rust adapter for the existing source-record catalog endpoints. The
+adapter maps source record/version pagination and nullable fields once, uses
+CSRF for all writers, and retains opaque source/version UUIDs without numeric
+coercion. The UI remains unmounted pending the complete source editor route.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
