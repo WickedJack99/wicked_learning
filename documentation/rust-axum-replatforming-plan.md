@@ -1647,6 +1647,18 @@ tool activity fields and remain unmounted pending the complete Activity Editor
 lift. Standalone API/type/build verification establishes that this is a
 dependency lift, not browser acceptance for a partial editor.
 
+#### Tenth Activity Editor implementation prerequisite: Shared Task fields — 15 November 2026
+
+The complete pinned-source
+`resources/js/pages/settings/worlds/shared-task-activity-fields.tsx` is now
+lifted to `frontend/src/lifted-world-builder-shared-task-activity-fields.tsx`.
+Only source imports are redirected to the lifted Button, Checkbox, Input,
+Label, Select, InputError, translation hook and UUID-safe activity types; no
+form behavior, task-step limits, configuration fields or validation handling
+is recreated. It remains unmounted until the complete source Activity Editor
+replaces the bespoke route; build evidence is dependency verification, not
+partial-editor browser acceptance.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
