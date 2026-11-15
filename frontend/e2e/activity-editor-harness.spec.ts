@@ -285,3 +285,93 @@ for (const viewport of [
         });
     }
 }
+
+test('surfaces a typed Rust Open-practice validation failure', async ({ page }) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/open-practice-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 400 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+    await page.getByLabel('Title').fill('Practice safely');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await page
+        .getByLabel('Learner invitation')
+        .fill('Try the next step and notice what changes.');
+
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual({
+        introduction: null,
+        next_step: 'Try the next step and notice what changes.',
+        slug: null,
+        title: 'Practice safely',
+    });
+});
+
+test('reloads after a typed Rust Open-practice create succeeds', async ({ page }) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/open-practice-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: { activity_id: '00000000-0000-4000-8000-000000000707' },
+                status: 201,
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html');
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+    await page.getByLabel('Title').fill('Practice safely');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await page
+        .getByLabel('Learner invitation')
+        .fill('Try the next step and notice what changes.');
+
+    const reloaded = page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+    );
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+    await reloaded;
+
+    expect(commandBody).toEqual({
+        introduction: null,
+        next_step: 'Try the next step and notice what changes.',
+        slug: null,
+        title: 'Practice safely',
+    });
+    await expect(
+        page.getByRole('heading', { name: 'Node activities' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});

@@ -1790,8 +1790,13 @@ Message Prompt/Wall, Shared Task, Item Grant, Item Obstacle, Obstacle and Tool
 Grant each reach their distinct lifted Flow section at both viewports. This is
 structural type-family evidence only: their per-field defaults, validation,
 stale-save and successful Rust command/reload behavior remain unproven, as do
-templates, citations, media, read denial and unavailable states. It therefore
-does not close the P0 Activity Editor matrix or authorize mounting the route.
+templates, citations, media, read denial and unavailable states. The lone
+exception is Open practice create: source-derived browser coverage now captures
+the UUID node command body, a Rust `400` rendered in the source Basics error
+placement, and a Rust `201` followed by the source route reload at the narrow
+viewport. Open-practice stale update, the remaining types' command behavior,
+and all other listed states remain unproven. It therefore does not close the
+P0 Activity Editor matrix or authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
