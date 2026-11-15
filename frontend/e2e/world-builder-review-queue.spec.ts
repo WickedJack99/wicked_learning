@@ -79,11 +79,13 @@ test('a local world author can open a pending activity from the source-shaped re
                 ),
             ).toBeVisible();
         }
-        const card = page.locator('article', { hasText: title });
+        const card = page.getByRole('link', { name: `Review ${title}` });
         await expect(card).toBeVisible();
-        await card.getByRole('button', { name: 'Open activity graph' }).click();
+        await card.click();
         await expect(page).toHaveURL(
-            new RegExp(`map=${map.id}.*node=${nodeId}`),
+            new RegExp(
+                `worldSection=structural&map=${map.id}.*node=${nodeId}.*reviewActivity=${created.data?.activity_id}`,
+            ),
         );
         await expect(page.getByText(title, { exact: true })).toBeVisible();
     } finally {

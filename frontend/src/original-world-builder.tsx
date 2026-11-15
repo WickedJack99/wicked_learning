@@ -86,6 +86,10 @@ import { usePlatformTranslation } from './original-platform-translation';
 import { LiftedWorldBuilderGraph } from './lifted-world-builder-graph';
 import { LiftedWorldBuilderMapDetails } from './lifted-world-builder-map-details';
 import { LiftedWorldBuilderPortalDetails } from './lifted-world-builder-portal-details';
+import {
+    LiftedWorldBuilderReviewQueue,
+    LiftedWorldBuilderSectionWorkspace,
+} from './lifted-world-builder-review-queue';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
 type MapSummary = components['schemas']['AdminMapSummary'];
@@ -565,13 +569,6 @@ function WorldBuilderContent({
     const [duplicateMapOpen, setDuplicateMapOpen] = useState(false);
     const [worldExportPreflightOpen, setWorldExportPreflightOpen] =
         useState(false);
-    const [reviewQueue, setReviewQueue] = useState<ReviewQueue | null>(null);
-    const [reviewQueueError, setReviewQueueError] = useState<string | null>(
-        null,
-    );
-    const [reviewQueuePage, setReviewQueuePage] = useState(1);
-    const [reviewQueueRequestVersion, setReviewQueueRequestVersion] =
-        useState(0);
 
     const selectMap = useCallback(
         (mapId: string) => {
@@ -637,13 +634,18 @@ function WorldBuilderContent({
     );
 
     const selectStructuralNode = useCallback(
-        (mapId: string, nodeId: string) => {
+        (mapId: string, nodeId: string, reviewActivityId?: string) => {
             const next = new URLSearchParams(location.search);
             next.set('panel', 'admin-world-builder');
             next.set('worldSection', 'structural');
             next.set('map', mapId);
             next.set('node', nodeId);
             next.set('worldView', 'nodes');
+            if (reviewActivityId) {
+                next.set('reviewActivity', reviewActivityId);
+            } else {
+                next.delete('reviewActivity');
+            }
             navigate(`/settings?${next.toString()}`);
         },
         [location.search, navigate],
@@ -762,52 +764,6 @@ function WorldBuilderContent({
         };
     }, [nodeReload, selectedNodeId, t]);
 
-    useEffect(() => {
-        if (resolvedWorldBuilderSection !== 'review') {
-            return;
-        }
-        let current = true;
-        setReviewQueue(null);
-        setReviewQueueError(null);
-        void apiClient
-            .GET('/admin/world-builder/review-queue', {
-                params: { query: { page: reviewQueuePage, per_page: 4 } },
-            })
-            .then(({ data, response }) => {
-                if (!current) {
-                    return;
-                }
-                if (!response.ok || !data) {
-                    setReviewQueueError(
-                        t(
-                            'settings.world_builder.status.review_queue_load_failed',
-                            'The review queue could not be loaded.',
-                        ),
-                    );
-                    return;
-                }
-                setReviewQueue(data);
-            })
-            .catch(() => {
-                if (current) {
-                    setReviewQueueError(
-                        t(
-                            'settings.world_builder.status.review_queue_load_failed',
-                            'The review queue could not be loaded.',
-                        ),
-                    );
-                }
-            });
-        return () => {
-            current = false;
-        };
-    }, [
-        reviewQueuePage,
-        reviewQueueRequestVersion,
-        resolvedWorldBuilderSection,
-        t,
-    ]);
-
     if (resolvedWorldBuilderSection && error && !worldGraph && resolvedWorldBuilderSection !== 'review') {
         return <WorldBuilderStatus message={error} />;
     }
@@ -859,17 +815,11 @@ function WorldBuilderContent({
                 {!resolvedWorldBuilderSection ? (
                     <UnavailableWorldBuilder />
                 ) : resolvedWorldBuilderSection === 'review' ? (
-                    <WorldBuilderReviewQueueWorkspace
-                        error={reviewQueueError}
-                        onOpenActivity={selectNode}
-                        onPageChange={setReviewQueuePage}
-                        onRetry={() =>
-                            setReviewQueueRequestVersion(
-                                (version) => version + 1,
-                            )
-                        }
-                        page={reviewQueue}
-                    />
+                    <LiftedWorldBuilderSectionWorkspace>
+                        <LiftedWorldBuilderReviewQueue
+                            onOpenActivity={selectStructuralNode}
+                        />
+                    </LiftedWorldBuilderSectionWorkspace>
                 ) : resolvedWorldBuilderSection === 'structural' ? (
                     <WorldMapManagementWorkspace
                         activeView={worldBuilderMapView}
@@ -7823,7 +7773,20 @@ function ActivityGraph({
     const [historyActivity, setHistoryActivity] = useState<Activity | null>(
         null,
     );
-    const [reviewActivity, setReviewActivity] = useState<Activity | null>(null);
+    const [reviewActivity, setReviewActivity] = useState<Activity | null>(() => {
+        if (typeof window === 'undefined') {
+            return null;
+        }
+
+        const reviewActivityId = new URLSearchParams(
+            window.location.search,
+        ).get('reviewActivity');
+
+        return reviewActivityId
+            ? graph.activities.find((activity) => activity.id === reviewActivityId) ??
+                  null
+            : null;
+    });
     const [sourceReferencesActivity, setSourceReferencesActivity] = useState<Activity | null>(null);
     const [learningDesignDraft, setLearningDesignDraft] = useState<{
         activity: Activity;
@@ -7841,6 +7804,22 @@ function ActivityGraph({
     const [startRouteError, setStartRouteError] = useState<string | null>(null);
     const [selectedStartRoute, setSelectedStartRoute] =
         useState<ActivityStartRoute | null>(null);
+
+    useEffect(() => {
+        if (!reviewActivity || typeof window === 'undefined') {
+            return;
+        }
+
+        const url = new URL(window.location.href);
+
+        if (url.searchParams.get('reviewActivity') !== reviewActivity.id) {
+            return;
+        }
+
+        url.searchParams.delete('reviewActivity');
+        window.history.replaceState(window.history.state, '', url);
+    }, [reviewActivity]);
+
     const initialNodes = useMemo<ActivityFlowNode[]>(() => {
         const start: SpecialNode = {
             id: '__start',

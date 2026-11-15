@@ -550,6 +550,41 @@ and unavailable source-activity projections. It is a pinned-source-code-to-Rust
 browser comparison; direct live Laravel screenshot capture remains unavailable
 and is not claimed.
 
+#### Fifth P0 implementation evidence: Review queue — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+This slice directly lifts `WorldBuilderReviewQueue` and
+`WorldBuilderSectionWorkspace` from
+`resources/js/features/settings/world-builder-settings-panel.tsx`, together
+with the named source `PaginationControls` and `readJsonResponse` dependencies.
+The Rust frontend retains the source's four-item default page, card hierarchy,
+loading, empty, error, retry, and pagination behavior. Its only transport
+seams are the Rust endpoint/response adapter and React Router's handoff to the
+already-existing Structural activity review dialog. Normal Graph canvas/routing,
+selected map and portal inspectors, Structural presentation, and every map or
+MapAsset editor flow are unchanged.
+
+| Source review-queue requirement | Rust graph/read contract | Deliberate adapter boundary and retained behavior | Evidence |
+| --- | --- | --- | --- |
+| Queue fetch and page bounds | `GET /api/v1/admin/world-builder/review-queue?page={1…10000}&per_page={1…12}` returns `AdminWorldReviewQueuePage`; Rust defaults omitted values to page `1` and `per_page` `4`, requires `world_activities:ru`, and reports `400`, `401`, `404`, or `503` as applicable. | The lifted effect retains source `fetch`, abort, loading and retry behavior. Only `/settings/worlds/review-queue` becomes `/api/v1/admin/world-builder/review-queue`; the explicit source `per_page=4` stays intact. | OpenAPI operation and application authorization/bounds tests; browser routes assert the exact query shape across source states. |
+| Item identity and source card context | Every item contains activity `id`, `title`, `activity_type`, plus `map { id, title }` and `node { id, title }`. Persistence emits only scoped editable maps, orders map/node/activity deterministically, and selects activities whose AI review status is not reviewed. | `adaptRustReviewQueuePage` changes only flattened Rust activity fields and snake_case pagination into the pinned source's nested `activity` plus camel-case pagination read shape. Source JSX supplies all card copy and layout. | Populated browser fixture supplies five items, distinct activity types, map/node context, then proves the first four and second page. |
+| Pagination | Rust `pagination { current_page, last_page, per_page, total }` reports a bounded page, including `total` and `last_page`. | The source `PaginationControls` is used whole; `current_page` maps only to `page`, and source controls own page validation and disabled states. | Browser test verifies the visible bounded **Next** control and page-two fifth item; shared lifted pagination already covers input boundaries. |
+| Empty and loading states | A successful page may contain zero items with `total: 0`; an in-flight read has no additional backend shape. | No Rust-only placeholder is introduced: the source header remains visible while its centered loading copy and empty-detail state run unchanged. | Browser gate captures loading, then the empty header/detail at **1440×900** and confirms its bounded empty state at **390×844**. |
+| Failure/unavailable state | Rust's unavailable response can be a Problem JSON `503` (and authorization/not-found responses above); it intentionally does not present Laravel's optional `message`/`errors` fields. | Direct source `readJsonResponse` is lifted as `readLiftedJsonResponse`; absent source error fields resolve to the source fallback “The review queue could not be loaded.” rather than inventing a Rust-only error surface. | Browser fixture returns Rust-shaped `503 application/problem+json` and verifies the bounded source error/retry control at both viewports. |
+| **Open** activity destination | The source card supplies map, node, and activity IDs. Rust's existing selected-node read is `GET /api/v1/admin/world-builder/nodes/{node_id}` and retains scoped `world_activities` authorization; the existing `ActivityGraph` owns the review dialog. | Cards preserve the exact pinned source Graph href. The React Router-only navigation seam changes the actual visit to the existing Structural node destination and preserves `reviewActivity={activityId}`. `ActivityGraph` initializes its existing review dialog from that parameter and clears it after opening, matching the pinned source's one-shot URL handoff. | Browser asserts the source anchor href and then the actual Structural URL including map, node, and review activity IDs. |
+
+Focused source-derived Rust-browser evidence is
+`frontend/e2e/world-builder-review-queue-parity.spec.ts`; the credential-gated
+live workflow regression is retained in
+`frontend/e2e/world-builder-review-queue.spec.ts`. The parity fixture compares
+the pinned source's observable queue states—populated/multi-page, loading,
+empty, and Rust failure—at **1440×900** and **390×844**, with visible-control
+bounds and the source destination handoff. It is a pinned-source-code-to-Rust
+browser comparison; direct live Laravel screenshot capture remains unavailable
+and is not claimed.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named
