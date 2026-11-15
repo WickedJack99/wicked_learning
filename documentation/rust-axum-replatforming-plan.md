@@ -1818,8 +1818,11 @@ graph, page visuals, Start/page/End edges and layout through a desktop Rust
 stale-save now likewise preserve that full graph plus its original timestamp
 through desktop Rust `409` and narrow Rust `200` source reload states. The
 dedicated Markdown page-editor route remains a separate unproven parity slice.
-The remaining types' command behavior and all other listed states remain
-unproven. It therefore does not close the P0 Activity Editor matrix or
+Portal create now captures its complete source scene settings and nullable
+same-World target through desktop Rust `400` and narrow Rust `201` source
+reload states; its existing-record update and selected-target behavior remain
+unproven. The remaining types' command behavior and all other listed states
+remain unproven. It therefore does not close the P0 Activity Editor matrix or
 authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026

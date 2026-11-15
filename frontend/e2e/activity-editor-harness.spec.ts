@@ -46,6 +46,36 @@ const defaultMarkdownUpdateBody = {
     updated_at: '2026-11-15T10:00:00Z',
 };
 
+const defaultPortalCreateBody = {
+    introduction: null,
+    portal_assets: [],
+    portal_background_dark: '',
+    portal_background_light: '',
+    portal_background_mirrored: false,
+    portal_bubble_border_color_dark: '#2dd4bf',
+    portal_bubble_border_color_light: '#0891b2',
+    portal_bubble_color_dark: '#0f172a',
+    portal_bubble_color_light: '#ffffff',
+    portal_bubble_text: '',
+    portal_bubble_text_color_dark: '#f8fafc',
+    portal_bubble_text_color_light: '#0f172a',
+    portal_bubble_typing_speed: 24,
+    portal_duration_seconds: 1.5,
+    portal_foreground_dark: '',
+    portal_foreground_light: '',
+    portal_foreground_mirrored: false,
+    portal_foreground_width: 28,
+    portal_foreground_x: 50,
+    portal_foreground_y: 50,
+    portal_mode: 'output',
+    portal_show_on_arrival: true,
+    portal_swirl_enabled: true,
+    portal_wait_for_enter: false,
+    slug: null,
+    target_portal_activity_id: null,
+    title: 'Link to another place',
+};
+
 async function exerciseSourceGraphDialogs(page: Page): Promise<void> {
     await page
         .getByRole('button', { name: 'Delete First activity' })
@@ -1077,6 +1107,82 @@ test('reloads after a typed Rust Markdown update succeeds at narrow width', asyn
     await reloaded;
 
     expect(commandBody).toEqual(defaultMarkdownUpdateBody);
+    await expect(
+        page.getByRole('heading', { name: 'Node activities' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});
+
+async function openPortalCreateForm(page: Page): Promise<void> {
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page.getByRole('option', { name: 'Portal' }).dispatchEvent('click');
+}
+
+test('surfaces a typed Rust Portal validation failure', async ({ page }) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/portal-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 400 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+    await openPortalCreateForm(page);
+    await page.getByLabel('Title').fill('Link to another place');
+
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual(defaultPortalCreateBody);
+});
+
+test('reloads after a typed Rust Portal create succeeds', async ({ page }) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/portal-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: { activity_id: '00000000-0000-4000-8000-000000000711' },
+                status: 201,
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html');
+    await openPortalCreateForm(page);
+    await page.getByLabel('Title').fill('Link to another place');
+
+    const reloaded = page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+    );
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+    await reloaded;
+
+    expect(commandBody).toEqual(defaultPortalCreateBody);
     await expect(
         page.getByRole('heading', { name: 'Node activities' }),
     ).toBeVisible();
