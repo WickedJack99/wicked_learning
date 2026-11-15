@@ -1782,10 +1782,11 @@ Open practice, browser-proven with its blank title default at both viewports
 and a bounded narrow type control. Direct graph-node click/selection, graph
 fitting and all remaining type forms remain unproven. Reflection's source type
 switch and its `What feels clearer now?` default are browser-proven at both
-viewports. Open-practice and Reflection validation/stale-save/success,
-templates, citations, media, commands, denial and unavailable states remain
-unproven. It therefore does not close the P0 Activity Editor matrix or
-authorize mounting the route.
+viewports. Its source Review/Revisit variant, including the same default,
+is browser-proven at both viewports. Open-practice, Reflection and Review
+validation/stale-save/success, the remaining type forms, templates, citations,
+media, commands, denial and unavailable states remain unproven. It therefore
+does not close the P0 Activity Editor matrix or authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 

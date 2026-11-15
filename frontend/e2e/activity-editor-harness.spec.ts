@@ -199,3 +199,35 @@ test('keeps the source Reflection default reachable at the narrow viewport', asy
     );
     await expectBounded(page.getByRole('tab', { name: 'Flow' }), 390);
 });
+
+for (const viewport of [
+    { height: 900, name: 'desktop', width: 1440 },
+    { height: 844, name: 'narrow', width: 390 },
+]) {
+    test(`keeps the source Review default reachable at the ${viewport.name} viewport`, async ({
+        page,
+    }) => {
+        await page.setViewportSize(viewport);
+        await page.goto('/activity-editor-harness.html');
+        await page
+            .getByRole('button', { name: 'Add activity' })
+            .dispatchEvent('click');
+
+        await page
+            .getByRole('combobox', { name: 'Type' })
+            .dispatchEvent('click');
+        await page.getByRole('option', { name: 'Review' }).dispatchEvent('click');
+        await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+
+        await expect(
+            page.getByRole('heading', { name: 'Review / revisit prompt' }),
+        ).toBeVisible();
+        await expect(page.getByLabel('Question')).toHaveValue(
+            'What feels clearer now?',
+        );
+        await expectBounded(
+            page.getByRole('tab', { name: 'Flow' }),
+            viewport.width,
+        );
+    });
+}

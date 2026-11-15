@@ -45,6 +45,11 @@ const graph: ActivityGraphPayload = {
             key: 'reflection',
             label: 'Reflection',
         },
+        {
+            description: 'Revisit an earlier route.',
+            key: 'review',
+            label: 'Review',
+        },
     ],
     aiReviewTemplates: [],
     canManageAiReview: false,
