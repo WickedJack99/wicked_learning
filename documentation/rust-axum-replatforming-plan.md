@@ -329,6 +329,96 @@ The standalone Welcome page is the first fidelity migration: it reuses the
 original layout, content structure, Tailwind utilities and Lucide icons while
 substituting React Router and the existing Rust session state for Inertia.
 
+### World Builder exact-source parity audit — 15 November 2026
+
+**Status: parity blocked.** This is a documentation-only audit; it does not
+accept the existing standalone World Builder as visually migrated. Any earlier
+`Available`, `source-derived`, or `source-shaped` wording for this route family
+describes a separately verified capability/API slice, **not** visual or
+interaction parity. No World Builder state may be marked frontend-complete
+until the blockers below are closed against this baseline.
+
+**Pinned source baseline:** `main` at
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f` (verified locally against
+`origin/main` on 15 November 2026). Re-audit from the current `main` SHA if it
+changes before work starts; do not use a snapshot from `replatform-discovery`
+as the source of truth.
+
+#### Exact source composition and dependencies
+
+The route under audit is the current Laravel Settings composition:
+`/settings?panel=admin-world-builder`, not the historical standalone
+`/settings/worlds` page header. `resources/js/pages/settings/index.tsx` selects
+`WorldBuilderSettingsPanel`, which selects the Graph, Review queue, Structural,
+or selected-map workspace. The shared graph body is `WorldBuilderPanel` from
+`resources/js/pages/settings/worlds/index.tsx`. The following is the complete
+source component/dependency set to trace before a follow-up slice; every item
+must be either directly lifted or deliberately retained behind a documented
+Rust transport adapter.
+
+| Source role | Exact current-`main` source paths / dependency |
+| --- | --- |
+| Route and nested workspace composition | `resources/js/pages/settings/index.tsx`; `resources/js/features/settings/world-builder-settings-panel.tsx`; `resources/js/components/settings-configuration-shell.tsx`; its `SettingsNestedWorkspace`, `SettingsSectionNavigation`, `SettingsSectionButton`, and `SettingsNavigationItem` contracts |
+| Graph, graph inspector and graph-owned dialogs | `resources/js/pages/settings/worlds/index.tsx`: `WorldBuilderPanel`, `MapGraphNode`, `MapGraphHandles`, `MapDetails`, `PortalDetails`, `PortalEndpoint`, `EmptyDetails`, `GraphViewportLoadingOverlay`, graph node/edge/route helpers, create-map dialog and world-details/history dialog |
+| Review queue and its transport/error states | `resources/js/features/settings/world-builder-settings-panel.tsx`: `WorldBuilderReviewQueue`, `WorldBuilderSectionWorkspace`, `UnavailableWorldBuilder`, plus `resources/js/components/pagination-controls.tsx` and `resources/js/lib/json-response.ts` |
+| Structural map/MapAsset workspace | `resources/js/features/settings/world-map-management-panel.tsx`: `WorldMapManagementPanel` and its selected-map, configuration and MapAsset-list states |
+| Graph action dialogs | `resources/js/features/settings/duplicate-map-dialog.tsx`; `resources/js/features/settings/map-export-validation-dialog.tsx`; `resources/js/features/settings/map-import-dialog.tsx` |
+| Source destinations opened from World Builder | `resources/js/pages/settings/worlds/edit-map.tsx`; `resources/js/pages/settings/worlds/configure-map.tsx`; `resources/js/pages/settings/worlds/edit-node-activities.tsx` |
+| Shared UI, theme and translation dependencies | `resources/js/components/input-error.tsx`; `resources/js/components/learner-paginated-items.tsx`; `resources/js/components/ui/button.tsx`; `resources/js/components/ui/dialog.tsx`; `resources/js/components/ui/input.tsx`; `resources/js/components/ui/label.tsx`; `resources/js/components/ui/spinner.tsx`; `resources/js/hooks/use-appearance.tsx`; `resources/js/hooks/use-platform-translation.ts`; `resources/js/lib/utils.ts`; `resources/js/theme/presentation.ts`; source Settings design tokens in `resources/css` |
+| Runtime dependencies to adapt, not reimplement | Source `package.json`: `@inertiajs/react` `^3.0.0` (`Head`, `Link`, `router`); `@xyflow/react` `^12.11.1`; `lucide-react` `^0.475.0`; `@radix-ui/react-dialog` `^1.1.6`; `@radix-ui/react-label` `^2.1.2`; `@radix-ui/react-slot` `^1.2.3`; `class-variance-authority` `^0.7.1`; `clsx` `^2.1.1`; `tailwind-merge` `^3.0.1`; and `tw-animate-css` `^1.4.0`, alongside React. The standalone frontend lacks the Inertia/Radix/CVA/class-merging packages and carries `@xyflow/react` `^12.9.3`; the dependency/adapter decision is therefore a prerequisite, not permission to recreate controls. |
+
+The current Rust entry and replacements are
+`frontend/src/app.tsx` (`admin-world-builder` route) and
+`frontend/src/original-world-builder.tsx` (`WorldBuilderContent`,
+`WorldBuilderGraphWorkspace`, `WorldBuilderReviewQueueWorkspace`,
+`WorldMapManagementWorkspace`, `GraphMapDetails`, `PortalDetails`,
+`WorldBuilderStatus`, and selected-map authoring surfaces). Its server boundary
+is `backend/crates/api/src/main.rs` under `/api/v1/admin/world-builder/*`.
+Those paths are evidence of an existing capability boundary only; they are not
+evidence that the source presentation has been lifted.
+
+#### State comparison and recovery backlog
+
+This comparison is source-code and existing focused-browser-coverage evidence.
+The Rust browser specs exercise isolated Rust states, but there is no recorded
+live Laravel-versus-Rust capture at either required viewport. That missing
+side-by-side proof is itself a P0 closure requirement; do not treat a passing
+Rust-only screenshot or a test labelled “source-shaped” as a source comparison.
+
+| State(s) and exact source path | Current Rust path | Concrete mismatch observed against pinned source | Severity | Required lifted source component(s) | Rust contract / evidence still required |
+| --- | --- | --- | --- | --- | --- |
+| Normal graph and empty inspector — `resources/js/features/settings/world-builder-settings-panel.tsx`; `resources/js/pages/settings/worlds/index.tsx` | `frontend/src/original-world-builder.tsx`: `WorldBuilderContent`, `WorldBuilderGraphWorkspace`, `WorldBuilderGraphActions`, `EmptyDetails` | The source renders a two-column Graph workspace (`minmax(0,1fr)` plus a 360px inspector) inside `SettingsNestedWorkspace`, with the exact **Prepare / New world map** and **Travel / Portal routes** sections. Rust substitutes `World tools`, adds Source catalog and a narrow-screen `<details>` disclosure, and uses a separately composed page shell. Its empty guidance also differs. | P0 blocker | `WorldBuilderSettingsPanel`, `WorldBuilderPanel`, `EmptyDetails`, settings configuration shell/navigation, source action/dialog components | Map the typed graph response to source `WorldGraph` without changing hierarchy or copy. Existing `GET /api/v1/admin/world-builder` appears to cover the read; record a field-by-field response mapping and direct 1440×900 + 390×844 source/Rust screenshots before closure. |
+| Graph cards, portal routing, fit/loading — `resources/js/pages/settings/worlds/index.tsx` (`MapGraphNode`, handles, `buildGraphNodes`, `buildGraphEdges`, `graphFitViewOptions`, `GraphViewportLoadingOverlay`) | `frontend/src/original-world-builder.tsx`: `WorldBuilderGraphWorkspace`, `MapGraphCard`, custom position/resize fitting helpers | Rust recreates the canvas and fitting logic instead of lifting the source helper/component set. In particular, it contains custom coordinate shifting/resize behavior and lacks the source card’s review-queue link; a visually contained card is not proof of matching graph routes, labels, handles, animation, or loading overlay. | P0 blocker | `MapGraphNode`, `MapGraphHandles`, all graph route helpers, `GraphViewportLoadingOverlay`, `useAppearance` seam | Verify that the graph response supplies map descriptions, slugs, nodes, review counts and portal endpoint/activity fields required by `WorldGraph`. Add source-reference interaction coverage for single, parallel and self portal routes, fit/loading, and no-map graph at both viewports. |
+| Selected map inspector — `resources/js/pages/settings/worlds/index.tsx` (`MapDetails`) | `frontend/src/original-world-builder.tsx`: `GraphMapDetails`; separately, the unrelated selected-map editor `MapDetails` | Rust’s graph inspector only offers “Open map authoring” and “Open map configuration.” The source inspector includes authoring-review summary, review-node pagination, Configure MapAssets, Configure map, both exports, and `DuplicateMapDialog`. The Rust editor `MapDetails` is not the source graph inspector and cannot substitute for it. | P0 blocker | Source `MapDetails`, `LearnerPaginatedItems`, `DuplicateMapDialog`, source links/buttons | Confirm one graph projection has every `MapSummary` field and an adapter for source-style review-node destinations. Existing map/export/duplicate APIs exist, but no source-equivalent inspector contract/mapping has been recorded. Browser coverage must select a map with and without pending review at 1440×900 and 390×844. |
+| Selected portal inspector — `resources/js/pages/settings/worlds/index.tsx` (`PortalDetails`, `PortalEndpoint`) | `frontend/src/original-world-builder.tsx`: `PortalDetails`, `PortalEndpoint` | Rust changes the source action from conditional **Edit source activity** to unconditional **Open source activity graph**, changes endpoint content (the source includes node description/slug), and substitutes its own icon/copy/translation behavior. | P0 blocker | `PortalDetails`, `PortalEndpoint`, source `Link` behavior | Map `source_activity`, `target_activity`, both nodes’ title/description/slug and source map/node IDs from the graph response; make the source action conditional. Record portal-with-activity and portal-without-activity browser comparisons at both viewports. |
+| Review queue: loading, populated, pagination, empty and error — `resources/js/features/settings/world-builder-settings-panel.tsx` (`WorldBuilderReviewQueue`) | `frontend/src/original-world-builder.tsx`: `WorldBuilderReviewQueueWorkspace`, `WorldBuilderReviewQueueDialog` | The source owns a 4-item page, source card/link hierarchy, source pagination primitive, centered loading/empty/error states and “Try again” retry. Rust uses a custom queue/card/dialog/navigation implementation; current coverage proves an API flow, not source layout, labels, error treatment, or route semantics. | P0 blocker | `WorldBuilderReviewQueue`, `PaginationControls`, `readJsonResponse`, source Settings nested workspace | Existing `/review-queue` endpoint is a candidate adapter, but normalize its item and pagination shapes to the source contract and document navigation to map/node/activity. Add mocked populated, loading, empty, failure/retry and multi-page tests plus source/Rust captures at both viewports. |
+| Structural: selected map, selected MapAsset, no map — `resources/js/features/settings/world-map-management-panel.tsx` (`WorldMapManagementPanel`) | `frontend/src/original-world-builder.tsx`: `WorldMapManagementWorkspace` and selected editor surfaces | Rust is a bespoke structural workspace. Passing localization assertions do not establish the source’s exact three-column desktop composition, selected-map/map-configuration/MapAsset links, active indicators, empty messages, or narrow stacking. | P1 blocking visual parity | `WorldMapManagementPanel`, source `Button`, `cn`, source map/node links | Reuse the existing graph projection only after its field mapping covers descriptions, slugs, node review counts and detail URLs. Capture no-map, selected-map, selected-MapAsset and configure states at both viewports. |
+| Selected map workspace — `resources/js/features/settings/world-builder-settings-panel.tsx` (`WorldBuilderMapWorkspace`) | `frontend/src/original-world-builder.tsx`: URL selection and custom map/asset editor routing | The source has a dedicated 17rem map-view navigator with exactly **Configure MapAssets** and **Configure map**. Rust routes directly into custom editor surfaces and does not retain that source workspace as the graph-selected-map state. | P1 blocker | `WorldBuilderMapWorkspace`, `SettingsSectionButton`, map-view section definitions | Record how Rust map/node documents populate `detail.content` while preserving the source URL selection. Existing selected map/node reads are candidates; document authorization and not-found/error responses before lifting. |
+| Permission unavailable, initial graph loading and graph-fetch error — `resources/js/features/settings/world-builder-settings-panel.tsx` (`UnavailableWorldBuilder`) | `frontend/src/original-world-builder.tsx`: `WorldBuilderStatus`, `UnavailableWorldBuilder`, graph fetch branching | Source shows the scoped unavailable panel only when no permitted section/graph is available; source Review owns its own loading/error. Rust invents account/permission recovery copy and applies client fetch status semantics that are not the source shell. | P0 blocker | `UnavailableWorldBuilder`, `WorldBuilderReviewQueue` state branches, surrounding source shell | Define an explicit transport-only adapter state for Rust fetch failures, nested in the lifted source surface. Verify 401/403/404/network and empty graph responses; do not introduce new product copy without source or approved transport-state evidence. |
+| Responsive shell at desktop 1440×900 and narrow 390×844 — all three core source files above | `frontend/src/original-world-builder.tsx`; `frontend/e2e/world-builder-graph-localization.spec.ts`; `frontend/e2e/world-map-management-localization.spec.ts`; `frontend/e2e/world-builder-status-localization.spec.ts` | Existing Rust tests check bounds at 390px and some graph content, but do not compare against main. They currently encode Rust-specific substitutions such as the custom graph action area and localized portal action. No recorded 1440×900 visual matrix covers every requested state. | P0 release gate | Entire source composition; no responsive redesign or custom mobile disclosure | Replace/adapt tests so they assert the pinned source hierarchy and controls. Produce an acceptance matrix for normal graph, selected map, selected portal, review (populated/loading/empty/error), structural (map/asset/no-map), unavailable and fetch-error at both exact viewports, with a live source/Rust comparison attached to the follow-up slice. |
+| Source dependencies and transport seams — all source paths listed above | `frontend/package.json`; `frontend/src/original-world-builder.tsx`; typed client/API schemas | The standalone frontend does not carry the source component/runtime dependency boundary. Current code has copied fragments and bespoke controls rather than a documented adapter for Inertia links/router, source primitives, appearance and package behavior. | P0 prerequisite | Source primitive and dialog dependency chain; `@inertiajs/react` seams replaced only at the boundary | Before implementation, make a written import-by-import adapter matrix: source dependency, Rust replacement, behavior retained, API endpoint/payload/error mapping, and test. Do not add a replacement component or a new endpoint until the matrix shows the source seam cannot be retained. |
+
+#### Audit coverage disposition
+
+Existing Rust-only Playwright coverage is retained as regression evidence for
+the current behavior, not parity acceptance:
+
+- `frontend/e2e/world-builder-graph-localization.spec.ts` checks mocked graph
+  data and some 390px bounds, but it also asserts the substituted portal action
+  and never proves the source card/inspector/action hierarchy.
+- `frontend/e2e/world-builder-review-queue.spec.ts` exercises a credentialed
+  Rust authoring flow, but does not cover source loading, empty, error/retry or
+  visual parity.
+- `frontend/e2e/world-builder-status-localization.spec.ts` asserts Rust-only
+  recovery messages that are not a source-equivalent acceptance baseline.
+- `frontend/e2e/world-map-management-localization.spec.ts` proves labels in a
+  mocked structural state, not the exact source three-column/narrow layout.
+
+The next World Builder implementation slice must start by selecting **one** P0
+row, lifting its named current-`main` source components as a whole, and adding
+the stated contract matrix and two-viewport source/Rust evidence. It must not
+repair an adjacent row opportunistically or claim parity from this audit.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named
