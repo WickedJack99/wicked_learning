@@ -13,6 +13,8 @@ const fixtureType = fixtureSearch.has('reflection')
     ? 'reflection'
     : fixtureSearch.has('review')
       ? 'review'
+      : fixtureSearch.has('markdown')
+        ? 'markdown'
       : 'open_practice';
 const reflectionLikeFixture =
     fixtureType === 'reflection' || fixtureType === 'review';
@@ -32,6 +34,33 @@ const activity = {
                   topic: 'Learning',
               }
             : {}),
+        ...(fixtureType === 'markdown'
+            ? {
+                  markdownGraphLayout: {},
+                  markdownPages: [
+                      {
+                          body: '# First page\n\nWrite markdown content here. Use `![Alt text](/path/to/image.svg)` to insert images.',
+                          id: 'page-1',
+                          position: { x: 140, y: 80 },
+                          title: 'First page',
+                          visual: {
+                              borderColorDark: '#2dd4bf',
+                              borderColorLight: '#0891b2',
+                              headingColorDark: '#67e8f9',
+                              headingColorLight: '#0e7490',
+                              pageColorDark: '#0f172a',
+                              pageColorLight: '#ffffff',
+                              textColorDark: '#f8fafc',
+                              textColorLight: '#0f172a',
+                          },
+                      },
+                  ],
+                  markdownTransitions: [
+                      { from: 'start', id: 'start-page-1', to: 'page-1' },
+                      { from: 'page-1', id: 'page-1-end', to: 'end' },
+                  ],
+              }
+            : {}),
     },
     connectors: {
         inputs: [{ id: 'in', label: 'Entry' }],
@@ -49,6 +78,8 @@ const activity = {
             ? 'First reflection'
             : fixtureType === 'review'
               ? 'First review'
+              : fixtureType === 'markdown'
+                ? 'First markdown'
               : 'First activity',
     type: fixtureType,
     updatedAt: '2026-11-15T10:00:00Z',

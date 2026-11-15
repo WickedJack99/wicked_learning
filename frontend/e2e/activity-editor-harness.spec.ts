@@ -38,6 +38,14 @@ const defaultMarkdownCreateBody = {
     title: 'Write the page route',
 };
 
+const defaultMarkdownUpdateBody = {
+    ...defaultMarkdownCreateBody,
+    introduction: 'Start with this activity.',
+    slug: 'first-activity',
+    title: 'First markdown (edited)',
+    updated_at: '2026-11-15T10:00:00Z',
+};
+
 async function exerciseSourceGraphDialogs(page: Page): Promise<void> {
     await page
         .getByRole('button', { name: 'Delete First activity' })
@@ -992,6 +1000,83 @@ test('reloads after a typed Rust Markdown create succeeds', async ({ page }) => 
     await reloaded;
 
     expect(commandBody).toEqual(defaultMarkdownCreateBody);
+    await expect(
+        page.getByRole('heading', { name: 'Node activities' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});
+
+test('surfaces a typed Rust stale Markdown update without overwriting', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/markdown',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 409 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html?markdown=1');
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page.getByLabel('Title').fill('First markdown (edited)');
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual(defaultMarkdownUpdateBody);
+    await expect(
+        page.getByRole('heading', { name: 'Edit activity' }),
+    ).toBeVisible();
+});
+
+test('reloads after a typed Rust Markdown update succeeds at narrow width', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/markdown',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: {
+                    activity_id: '00000000-0000-4000-8000-000000000701',
+                    updated_at: '2026-11-15T10:01:00Z',
+                },
+                status: 200,
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?markdown=1');
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page.getByLabel('Title').fill('First markdown (edited)');
+
+    const reloaded = page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+    );
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+    await reloaded;
+
+    expect(commandBody).toEqual(defaultMarkdownUpdateBody);
     await expect(
         page.getByRole('heading', { name: 'Node activities' }),
     ).toBeVisible();

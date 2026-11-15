@@ -1815,9 +1815,12 @@ evidence: desktop Rust `400` and `409` source error states, plus narrow Rust
 optimistic timestamp. Markdown create now captures its complete default page
 graph, page visuals, Start/page/End edges and layout through a desktop Rust
 `400` source error and narrow Rust `201` source reload; Markdown update and
-stale-save remain unproven. The remaining types' command behavior and all other
-listed states remain unproven. It therefore does not close the P0 Activity
-Editor matrix or authorize mounting the route.
+stale-save now likewise preserve that full graph plus its original timestamp
+through desktop Rust `409` and narrow Rust `200` source reload states. The
+dedicated Markdown page-editor route remains a separate unproven parity slice.
+The remaining types' command behavior and all other listed states remain
+unproven. It therefore does not close the P0 Activity Editor matrix or
+authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
