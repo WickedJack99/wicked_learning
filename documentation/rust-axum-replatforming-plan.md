@@ -1338,6 +1338,34 @@ details, access, history, delete and visual mutation paths against the live
 Rust contracts. The focused source-derived browser fixture is
 `frontend/e2e/world-builder-configure-map.spec.ts` at 1440×900 and 390×844.
 
+#### Source-parity preflight: complete MapAsset editor route — 15 November 2026
+
+**Status: active discovery; no editor UI has been changed by this preflight.**
+The next editor candidate is the entire pinned-main
+`resources/js/pages/settings/worlds/edit-map.tsx` (5,290 lines), whose default
+`EditWorldMap` component is the source destination behind **Configure
+MapAssets**. It must be lifted as one route with its named dependencies; the
+existing `MapAssetSurface`, `MapAssetEditorDialog`, and node-dialog code in
+`frontend/src/original-world-builder.tsx` are an implementation reference for
+Rust contracts only, not a substitute source UI.
+
+| Pinned source component / dependency | Required source behavior | Rust contract or explicit preflight result |
+| --- | --- | --- |
+| `EditWorldMap` with `SettingsConfigurationLayout`, `SettingsContentPane`, `SettingsConfigurationDialog`, `SettingsConfigurationSection`, `SettingsSectionButton` and `ConfigModeSwitch` | Hex-grid surface; node/MapAsset selection; all source sidebar sections; embedded map-workspace sizing; map details/access/visual dialogs; source dialog close/reset behavior. | The existing selected-map document is `GET /api/v1/admin/world-builder/maps/{map_id}`. It supplies map, World, nodes, MapAssets, access groups, role options, items, sounds and tools. The adapter must map only field casing/UUID transport and preserve source hierarchy. |
+| `features/settings/map-asset-editor.tsx`: `MapAssetEditor`, `MapAssetFields`, `assetForm`, `assetPayload` and interaction-state helpers | Whole MapAsset canvas, add/import controls, focusable/decorative/hide-on-hover/toggle modes, two-state images, framing, placement, locking, visual preview and alpha hit area. | Existing commands: `POST /admin/world-builder/maps/{map_id}/assets`, `PATCH`/`DELETE /admin/world-builder/assets/{asset_id}`, asset versions, export and export-package. Rust field names and numeric bounds must be mapped once at the Inertia adapter; do not recreate the fields in a new form. |
+| `features/settings/map-asset-history-dialog.tsx` and `map-layout-history-dialog.tsx` | Source-owned loading, empty/error, pagination, preview/restore confirmation and map-layout history affordances. | Existing scoped asset-version and layout-version/preview/restore routes are candidates. The lift must prove unavailable and stale/restore responses rather than retaining custom dialogs. |
+| `features/admin-worlds/hex-grid-geometry.ts`, `ImageAlphaHitArea`, `MapAssetVisual`, `map-asset-image`, `map-asset-interaction`, `theme` | Exact axial geometry, insertion controls, hit testing, visual state resolution and preview rules. | These must be lifted or directly shared after a source identity check; current bespoke geometry and visual helpers cannot be treated as parity merely because the endpoints exist. |
+| Node lifecycle within `EditWorldMap` | Create, update, insert between, delete, drag/move, adjacent swap, reset learner unlocks and related source error/confirmation flows. | Existing commands: map-node create, node PATCH/DELETE, node insert, position, swap, and reset-unlocks. Their source payload/response/error mapping must be written before replacing `router.post/patch/delete`. |
+| `ConfigImageInput`, `SoundAssetInput`, `uploadMediaFile` | Map-scoped image upload/select/download and sound upload/select/preview with source error states. | The scoped image upload/temporary preview adapter from Map Configuration is reusable only if its final persisted URL remains the map-reference-safe URL. Sound upload has no recorded equivalent map-editor transport proof yet; this is a pre-implementation contract gap, not permission to reuse generic asset authority. |
+| `ContentAuthoringDialog`, templates and activity handoff | The source offers its existing authoring dialog from the MapAsset editor and hands a created result into the selected node/activity graph. | Existing Rust content-authoring and typed activity routes may be adapter candidates, but this must be verified field-by-field. Do not expose a partial launcher or invent a generic activity editor. |
+
+The first implementation commit for this route must include an import-by-import
+adapter matrix and browser evidence at 1440×900 and 390×844 for an empty map,
+one MapAsset, selected MapAsset, selected tile/node, toggle-state preview,
+layout operation, editor loading/error, and map-scoped media failure. It must
+not route around an unavailable source dependency by keeping the bespoke
+surface in its place.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
