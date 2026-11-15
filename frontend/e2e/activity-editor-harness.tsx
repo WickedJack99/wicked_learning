@@ -17,7 +17,9 @@ const fixtureType = fixtureSearch.has('reflection')
         ? 'markdown'
         : fixtureSearch.has('portal')
           ? 'portal'
-      : 'open_practice';
+          : fixtureSearch.has('question')
+            ? 'question'
+            : 'open_practice';
 const reflectionLikeFixture =
     fixtureType === 'reflection' || fixtureType === 'review';
 
@@ -91,7 +93,34 @@ const activity = {
               }
             : null,
     position: { x: 100, y: 80 },
-    question: null,
+    question:
+        fixtureType === 'question'
+            ? {
+                  allowMultiple: true,
+                  explanation: 'Notice why the first answer fits.',
+                  feedbackCorrect: 'That is right.',
+                  feedbackIncorrect: 'Try the other answer.',
+                  options: [
+                      {
+                          body: 'The first answer',
+                          feedback: 'It connects the route.',
+                          isCorrect: true,
+                          label: 'A',
+                          outcomeKey: 'continue',
+                          weights: { recall: 1 },
+                      },
+                      {
+                          body: 'The second answer',
+                          feedback: 'It opens a different route.',
+                          isCorrect: false,
+                          label: 'B',
+                          outcomeKey: null,
+                          weights: {},
+                      },
+                  ],
+                  prompt: 'Which answer connects the route?',
+              }
+            : null,
     slug: 'first-activity',
     title:
         fixtureType === 'reflection'
@@ -102,7 +131,9 @@ const activity = {
                 ? 'First markdown'
                 : fixtureType === 'portal'
                   ? 'First portal'
-              : 'First activity',
+                  : fixtureType === 'question'
+                    ? 'First question'
+                    : 'First activity',
     type: fixtureType,
     updatedAt: '2026-11-15T10:00:00Z',
 };

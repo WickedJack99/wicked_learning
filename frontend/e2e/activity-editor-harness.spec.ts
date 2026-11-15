@@ -85,6 +85,69 @@ const defaultPortalUpdateBody = {
     updated_at: '2026-11-15T10:00:00Z',
 };
 
+const defaultQuestionCreateBody = {
+    allow_multiple: false,
+    explanation: '',
+    feedback_correct: '',
+    feedback_incorrect: '',
+    introduction: null,
+    options: [
+        {
+            body: '',
+            feedback: '',
+            is_correct: false,
+            key: null,
+            label: 'A',
+            outcome_key: '',
+            weights: {},
+        },
+        {
+            body: '',
+            feedback: '',
+            is_correct: false,
+            key: null,
+            label: 'B',
+            outcome_key: '',
+            weights: {},
+        },
+    ],
+    prompt: '',
+    slug: null,
+    title: 'Choose the route',
+};
+
+const defaultQuestionUpdateBody = {
+    allow_multiple: true,
+    explanation: 'Notice why the first answer fits.',
+    feedback_correct: 'That is right.',
+    feedback_incorrect: 'Try the other answer.',
+    introduction: 'Start with this activity.',
+    options: [
+        {
+            body: 'The first answer',
+            feedback: 'It connects the route.',
+            is_correct: true,
+            key: null,
+            label: 'A',
+            outcome_key: 'continue',
+            weights: { recall: 1 },
+        },
+        {
+            body: 'The second answer',
+            feedback: 'It opens a different route.',
+            is_correct: false,
+            key: null,
+            label: 'B',
+            outcome_key: '',
+            weights: {},
+        },
+    ],
+    prompt: 'Which answer connects the route?',
+    slug: 'first-activity',
+    title: 'First question (edited)',
+    updated_at: '2026-11-15T10:00:00Z',
+};
+
 async function exerciseSourceGraphDialogs(page: Page): Promise<void> {
     await page
         .getByRole('button', { name: 'Delete First activity' })
@@ -1273,6 +1336,179 @@ test('reloads after a typed Rust Portal update succeeds at narrow width', async 
     await reloaded;
 
     expect(commandBody).toEqual(defaultPortalUpdateBody);
+    await expect(
+        page.getByRole('heading', { name: 'Node activities' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});
+
+async function openQuestionCreateForm(page: Page): Promise<void> {
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page.getByRole('option', { name: 'Question' }).dispatchEvent('click');
+}
+
+test('surfaces a typed Rust Question validation failure with source defaults', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/question-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 400 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+    await openQuestionCreateForm(page);
+    await page.getByLabel('Title').fill('Choose the route');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await expect(
+        page.getByRole('heading', { name: 'Question and answers' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Question prompt')).toHaveValue('');
+
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual(defaultQuestionCreateBody);
+});
+
+test('reloads after a typed Rust Question create succeeds at narrow width', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/question-activities',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: { activity_id: '00000000-0000-4000-8000-000000000715' },
+                status: 201,
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html');
+    await openQuestionCreateForm(page);
+    await page.getByLabel('Title').fill('Choose the route');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await expectBounded(page.getByLabel('Question prompt'), 390);
+
+    const reloaded = page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+    );
+    await page.locator('form').evaluate((form) => form.requestSubmit());
+    await reloaded;
+
+    expect(commandBody).toEqual(defaultQuestionCreateBody);
+    await expect(
+        page.getByRole('heading', { name: 'Node activities' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});
+
+test('surfaces a typed Rust stale Question update without overwriting', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/question',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 409 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html?question=1');
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page.getByLabel('Title').fill('First question (edited)');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await expect(page.getByLabel('Question prompt')).toHaveValue(
+        'Which answer connects the route?',
+    );
+    await expect(
+        page.getByLabel('Allow selecting more than one answer'),
+    ).toBeChecked();
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual(defaultQuestionUpdateBody);
+    await expect(
+        page.getByRole('heading', { name: 'Edit activity' }),
+    ).toBeVisible();
+});
+
+test('reloads after a typed Rust Question update succeeds at narrow width', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/question',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: {
+                    activity_id: '00000000-0000-4000-8000-000000000701',
+                    updated_at: '2026-11-15T10:01:00Z',
+                },
+                status: 200,
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?question=1');
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page.getByLabel('Title').fill('First question (edited)');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await expectBounded(page.getByLabel('Question prompt'), 390);
+
+    const reloaded = page.waitForEvent(
+        'framenavigated',
+        (frame) => frame === page.mainFrame(),
+    );
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+    await reloaded;
+
+    expect(commandBody).toEqual(defaultQuestionUpdateBody);
     await expect(
         page.getByRole('heading', { name: 'Node activities' }),
     ).toBeVisible();
