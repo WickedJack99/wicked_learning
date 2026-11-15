@@ -484,6 +484,30 @@ the first graph slice, this is pinned-source-code-to-Rust-browser evidence;
 the unavailable live-Laravel capture is not represented as a side-by-side
 screenshot claim.
 
+#### High-cardinality Graph limitation discovered during local parity investigation — 15 November 2026
+
+This is an observed limitation of the pinned source graph algorithm, **not** a
+Rust-only regression or permission/filtering difference. A local authenticated
+desktop read at **1440×900** returned 350 scoped maps across two authors, of
+which 287 contained at least one node. Both Structural and Graph received that
+same `maps` collection. After the source fitting overlay cleared, React Flow
+had mounted all 350 map-card elements but no card was visible in the canvas.
+
+The cause is source `buildGraphNodes`: its radial radius is
+`max(220, maps.length * 86)`. At 350 maps that places every card about
+30,100px from the origin. The pinned source's React Flow and `fitView` options
+also set `minZoom: 0.12`, which prevents the viewport from zooming far enough
+out to contain the resulting graph. Structural remains usable because it is a
+list rather than a fitted spatial surface.
+
+Do **not** lower Rust's zoom floor or replace the source radial layout as a
+parity fix. Any remedy—pagination, search/filtering, clustering, an alternate
+large-graph layout, or a lower source zoom limit—is a deliberate source
+product/design change and must first be decided and implemented in `main`,
+then lifted with a high-cardinality source/Rust browser matrix. The existing
+no-map, single, parallel and self-route fixtures prove source behavior at
+small cardinalities; they are not acceptance evidence for this case.
+
 #### Third P0 implementation evidence: selected-map Graph inspector — 15 November 2026
 
 **Pinned source remains:** `main`
