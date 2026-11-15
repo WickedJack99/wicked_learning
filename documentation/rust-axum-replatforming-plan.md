@@ -1777,10 +1777,13 @@ activity control). It also renders the source activity-card delete confirmation,
 transition editor and Start-route visuals dialog at both viewports. The
 test-only shell supplies the same current-user provider that the Start-route
 image controls require. This is source-component browser evidence for the
-unmounted lift; direct graph-node click/selection, graph fitting, all type
-forms, templates, citations, media, commands, denial, unavailable and
-stale-save states remain unproven. It therefore does not close the P0 Activity
-Editor matrix or authorize mounting the route.
+unmounted lift. The source Add-activity dialog now has its pinned first type,
+Open practice, browser-proven with its blank title default at both viewports
+and a bounded narrow type control. Direct graph-node click/selection, graph
+fitting, all remaining type forms, Open-practice validation/stale-save/success,
+templates, citations, media, commands, denial and unavailable states remain
+unproven. It therefore does not close the P0 Activity Editor matrix or
+authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 

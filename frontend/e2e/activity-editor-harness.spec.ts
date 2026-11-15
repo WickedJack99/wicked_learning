@@ -115,3 +115,43 @@ test('keeps source graph dialogs reachable at the narrow contract viewport', asy
 
     await exerciseSourceGraphDialogs(page);
 });
+
+test('opens the source Add activity form with its first type', async ({ page }) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+
+    await expect(
+        page.getByRole('heading', { name: 'Add activity' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText(
+            'Create an activity in this MapAsset. Choose its type, then configure its content, visuals, sound and learning evidence.',
+        ),
+    ).toBeVisible();
+    await expect(page.getByText('Core activity')).toBeVisible();
+    await expect(page.getByLabel('Title')).toHaveValue('');
+    await expect(page.getByRole('combobox', { name: 'Type' })).toHaveText(
+        'Open practice',
+    );
+});
+
+test('keeps the source Add activity defaults reachable at the narrow viewport', async ({
+    page,
+}) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html');
+
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+
+    await expect(
+        page.getByRole('heading', { name: 'Add activity' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Title')).toHaveValue('');
+    await expectBounded(page.getByRole('combobox', { name: 'Type' }), 390);
+});
