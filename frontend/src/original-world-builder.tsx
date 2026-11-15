@@ -85,6 +85,7 @@ import { SettingsCornerNavigation } from './extracted-settings-corner-navigation
 import { usePlatformTranslation } from './original-platform-translation';
 import { LiftedWorldBuilderGraph } from './lifted-world-builder-graph';
 import { LiftedWorldBuilderMapDetails } from './lifted-world-builder-map-details';
+import { LiftedWorldBuilderMapWorkspace } from './lifted-world-builder-map-workspace';
 import { LiftedWorldBuilderPortalDetails } from './lifted-world-builder-portal-details';
 import {
     LiftedWorldBuilderReviewQueue,
@@ -578,6 +579,7 @@ function WorldBuilderContent({
             next.set('worldSection', 'graph');
             next.set('map', mapId);
             next.delete('node');
+            next.set('worldView', 'nodes');
             navigate(`/settings?${next.toString()}`);
         },
         [location.search, navigate],
@@ -590,6 +592,21 @@ function WorldBuilderContent({
             next.set('worldSection', 'graph');
             next.set('map', mapId);
             next.set('node', nodeId);
+            next.set('worldView', 'nodes');
+            navigate(`/settings?${next.toString()}`);
+        },
+        [location.search, navigate],
+    );
+
+    const selectGraphMapView = useCallback(
+        (mapId: string, view: WorldBuilderMapView) => {
+            const next = new URLSearchParams(location.search);
+            next.set('panel', 'admin-world-builder');
+            next.set('worldSection', 'graph');
+            next.set('map', mapId);
+            next.set('worldView', view);
+            next.delete('node');
+            next.delete('reviewActivity');
             navigate(`/settings?${next.toString()}`);
         },
         [location.search, navigate],
@@ -899,6 +916,95 @@ function WorldBuilderContent({
                         onSelectMapConfiguration={selectStructuralMapView}
                         onSelectNode={selectStructuralNode}
                     />
+                ) : selectedMapId && editableMap ? (
+                    <LiftedWorldBuilderMapWorkspace
+                        detail={
+                            editableNode && selectedNodeId
+                                ? {
+                                      activeView: 'nodes',
+                                      content: (
+                                          <ActivityGraph
+                                              document={editableNode}
+                                              onReload={() =>
+                                                  setNodeReload(
+                                                      (current) => current + 1,
+                                                  )
+                                              }
+                                              onSelectMap={() =>
+                                                  selectGraphMapView(
+                                                      selectedMapId,
+                                                      'nodes',
+                                                  )
+                                              }
+                                              worldGraph={worldGraph!}
+                                          />
+                                      ),
+                                      mapId: selectedMapId,
+                                      mapTitle: editableMap.editable_map.map.title,
+                                      nodeId: selectedNodeId,
+                                      nodeTitle:
+                                          editableNode.activity_graph.node.title,
+                                  }
+                                : {
+                                      activeView: worldBuilderMapView,
+                                      content:
+                                          worldBuilderMapView === 'configure' ? (
+                                              <div className="h-full overflow-y-auto p-5">
+                                                  <MapDetails
+                                                      document={editableMap}
+                                                      onDeleted={() => {
+                                                          setEditableMap(null);
+                                                          setEditableNode(null);
+                                                          navigate(
+                                                              '/settings?panel=admin-world-builder&worldSection=graph',
+                                                          );
+                                                          void loadWorld();
+                                                      }}
+                                                      onDuplicate={() =>
+                                                          setDuplicateMapOpen(
+                                                              true,
+                                                          )
+                                                      }
+                                                      onSelectNode={(nodeId) =>
+                                                          selectNode(
+                                                              selectedMapId,
+                                                              nodeId,
+                                                          )
+                                                      }
+                                                      onUpdated={() => {
+                                                          setMapReload(
+                                                              (current) =>
+                                                                  current + 1,
+                                                          );
+                                                          void loadWorld();
+                                                      }}
+                                                  />
+                                              </div>
+                                          ) : (
+                                              <MapAssetSurface
+                                                  document={editableMap}
+                                                  onOpenNode={(nodeId) =>
+                                                      selectNode(
+                                                          selectedMapId,
+                                                          nodeId,
+                                                      )
+                                                  }
+                                                  onUpdated={() => {
+                                                      setMapReload(
+                                                          (current) => current + 1,
+                                                      );
+                                                      void loadWorld();
+                                                  }}
+                                              />
+                                          ),
+                                      mapId: selectedMapId,
+                                      mapTitle: editableMap.editable_map.map.title,
+                                  }
+                        }
+                        onSelectMapView={(view) =>
+                            selectGraphMapView(selectedMapId, view)
+                        }
+                    />
                 ) : (
                     <section className="h-full min-h-0 overflow-hidden">
                         <LiftedWorldBuilderGraph
@@ -914,10 +1020,12 @@ function WorldBuilderContent({
                             renderSelectedMap={(map) => (
                                 <LiftedWorldBuilderMapDetails
                                     map={map}
-                                    onConfigureMap={
-                                        selectStructuralMapView
+                                    onConfigureMap={(mapId) =>
+                                        selectGraphMapView(mapId, 'configure')
                                     }
-                                    onConfigureMapAssets={selectStructuralMap}
+                                    onConfigureMapAssets={(mapId) =>
+                                        selectGraphMapView(mapId, 'nodes')
+                                    }
                                     onDuplicated={(mapId) => {
                                         void loadWorld();
                                         selectStructuralMap(mapId);

@@ -640,6 +640,36 @@ selected-map, MapAsset/navigation, and no-map states at **1440×900** and
 **390×844**. It is a pinned-source-code-to-Rust-browser comparison; direct
 live Laravel screenshot capture remains unavailable and is not claimed.
 
+#### Eighth parity implementation evidence: selected-map Graph workspace — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+This slice directly lifts `WorldBuilderMapWorkspace` and its named
+`SettingsSectionButton` dependency from
+`resources/js/features/settings/world-builder-settings-panel.tsx` into
+`frontend/src/lifted-world-builder-map-workspace.tsx`. Its two source-owned
+section definitions remain whole: **Configure MapAssets** and **Configure
+map**, with their source descriptions, icons, 17rem desktop navigator and
+narrow stacked layout. The existing Rust `MapAssetSurface`, `MapDetails`, and
+`ActivityGraph` remain deliberately unchanged content slots; this slice does
+not claim source parity for any of those editor surfaces.
+
+| Source workspace requirement | Rust read or destination contract | Deliberate adapter boundary and retained behavior | Evidence |
+| --- | --- | --- | --- |
+| Selected map identity and the two workspace content slots | `GET /api/v1/admin/world-builder/maps/{map_id}` returns `AdminEditableMap`: `editable_map.map` requires `id`, `title`, `slug`, `description`, `node_count`, `review_count`, `nodes`, map assets/configuration and source-world context; its surrounding option collections remain available to the unchanged content slots. | The lifted wrapper receives only `mapId`, `mapTitle`, `activeView` and an existing Rust editor node as its `detail.content`. No editor markup, writer, or response field is recreated in the wrapper. | Mocked selected-map reader supplies the complete typed document and the browser test asserts the source title/navigator and visible MapAsset content slot. |
+| Graph map and node selection | The graph projection supplies selected map/node IDs; map reads require `world_maps:ru` and its all/own/assigned/direct-editor scope. `GET /api/v1/admin/world-builder/nodes/{node_id}` remains the existing scoped activity-graph read. | Source `router.visit` becomes the single `selectGraphMapView(mapId, view)` React Router adapter. It preserves `panel=admin-world-builder`, `worldSection=graph`, `map`, and `worldView`; switching a map view clears `node`/`reviewActivity`, while selecting a node retains source `worldView=nodes`. | Browser starts at the exact source Graph URL, switches both source buttons, and asserts the resulting Graph URLs. |
+| Map read unavailable/failure ownership | The selected-map reader returns `401` without a session, `403` without an application principal/role assignment, `404` for an unknown or out-of-scope map, and `503` for database failure. The application query refuses to load before the `world_maps:ru` check; the persistence query additionally enforces the map's source editor scope. | This wrapper introduces no replacement unavailable copy or retry flow. The existing selected-map fetch seam continues to own failure handling and does not render a partially invented map workspace without `AdminEditableMap`; graph/read unavailable presentation remains the separate sixth P0 shell slice. | Existing selected-map read authorization tests and the typed OpenAPI operation cover the server states; the focused browser fixture proves the wrapper mounts only after the successful Rust map document is available. |
+| Inspector-to-workspace destinations | The pinned graph `MapDetails` links target `?panel=admin-world-builder&worldSection=graph&map={mapId}&worldView=nodes` and `...&worldView=configure`. | The already-lifted graph inspector keeps its source hrefs; its callbacks now use this Graph workspace adapter rather than detouring through Structural. This supersedes the earlier third-slice adapter wording that described those callbacks as Structural destinations. | Browser coverage starts from the `nodes` URL and proves both view transitions preserve the source Graph route family at desktop and narrow widths. |
+
+Focused source-derived Rust-browser evidence is
+`frontend/e2e/world-builder-map-workspace.spec.ts`. It exercises the selected
+map workspace at **1440×900** and **390×844**, verifies both visible/bounded
+source controls and descriptions, confirms the unchanged MapAsset content
+slot, and proves the two source Graph URL transitions. It is a
+pinned-source-code-to-Rust-browser comparison; direct live Laravel screenshot
+capture is unavailable and is not claimed.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named
