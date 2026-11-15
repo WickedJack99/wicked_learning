@@ -20,6 +20,7 @@ import { classNames } from './lifted-class-names';
 import { LiftedSpinner } from './lifted-spinner';
 import { LiftedWorldBuilderCreateMapDialog } from './lifted-world-builder-create-map-dialog';
 import { LiftedMapExportValidationDialog } from './lifted-world-builder-map-export-validation';
+import { LiftedWorldBuilderWorldImportDialog } from './lifted-world-builder-world-import-dialog';
 import { usePlatformTranslation } from './original-platform-translation';
 import type { OriginalAppearance } from './original-appearance';
 
@@ -156,7 +157,7 @@ type Props = {
     onMapCreated: (mapId: string) => void;
     onEditWorld: () => void;
     onImportMap: () => void;
-    onImportWorld: () => void;
+    onWorldImported: (mapIds: string[]) => void;
     renderSelectedMap: (map: RustMapSummary) => ReactNode;
     renderSelectedPortal: (portal: RustPortalLink) => ReactNode;
 };
@@ -173,7 +174,7 @@ export function LiftedWorldBuilderGraph({
     onMapCreated,
     onEditWorld,
     onImportMap,
-    onImportWorld,
+    onWorldImported,
     renderSelectedMap,
     renderSelectedPortal,
 }: Props) {
@@ -348,19 +349,9 @@ export function LiftedWorldBuilderGraph({
                             'Import map export',
                         )}
                     </LiftedButton>
-                    <LiftedButton
-                        className="mt-2 w-full"
-                        data-wl-id="settings.world-builder.world.import"
-                        onClick={onImportWorld}
-                        type="button"
-                        variant="outline"
-                    >
-                        <FileUp className="size-4" />
-                        {t(
-                            'settings.world_builder.import.world_open',
-                            'Import world export',
-                        )}
-                    </LiftedButton>
+                    <LiftedWorldBuilderWorldImportDialog
+                        onCreated={onWorldImported}
+                    />
                 </div>
 
                 <div className="shrink-0 p-5">

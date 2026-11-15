@@ -1,13 +1,14 @@
 import { expect, test } from './authenticated';
 
-test('World import uses fixed platform catalog copy and accepts a scoped portable package', async ({
+test('World import directly lifts the pinned source dialog and uses the Rust contract', async ({
     page,
 }) => {
     const sourceMapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d91';
     const importedMapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d92';
     let imported = false;
     let importCsrfHeader: string | undefined;
-    let preflightCsrfHeader: string | undefined;
+    const preflightCsrfHeaders: string[] = [];
+    let preflightAttempts = 0;
 
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
@@ -35,33 +36,17 @@ test('World import uses fixed platform catalog copy and accepts a scoped portabl
                     translations: {
                         'settings.world_builder.import.world_open':
                             'Open localized world import',
-                        'settings.world_builder.world.export':
-                            'Export localized world',
-                        'settings.world_builder.world.export_package':
-                            'Export localized world package',
-                        'settings.world_builder.world_import.eyebrow':
-                            'Localized World Builder',
-                        'settings.world_builder.world_import.title':
+                        'settings.world_builder.import.world_title':
                             'Localized authored world import',
-                        'settings.world_builder.world_import.description':
+                        'settings.world_builder.import.world_description':
                             'Localized world-import guidance.',
-                        'settings.world_builder.world_import.close_aria':
-                            'Close localized world import',
-                        'settings.world_builder.world_import.file':
+                        'settings.world_builder.import.world_file':
                             'Localized world package',
-                        'settings.world_builder.world_import.no_file':
-                            'No localized world package selected.',
-                        'settings.world_builder.world_import.checking':
-                            'Checking localized world package…',
-                        'settings.world_builder.world_import.check':
-                            'Check localized world package',
-                        'settings.world_builder.world_import.maps_ready':
-                            'Localized ready maps: :maps',
-                        'settings.world_builder.world_import.cancel':
+                        'settings.world_builder.import.cancel':
                             'Cancel localized world import',
-                        'settings.world_builder.world_import.creating':
+                        'settings.world_builder.import.creating':
                             'Importing localized world…',
-                        'settings.world_builder.world_import.submit':
+                        'settings.world_builder.import.world_submit':
                             'Import localized world',
                     },
                 }),
@@ -101,7 +86,19 @@ test('World import uses fixed platform catalog copy and accepts a scoped portabl
     await page.route(
         '**/api/v1/admin/world-builder/world-exports/preflight',
         async (route) => {
-            preflightCsrfHeader = route.request().headers()['x-csrf-token'];
+            preflightAttempts += 1;
+            preflightCsrfHeaders.push(
+                route.request().headers()['x-csrf-token'] ?? '',
+            );
+            if (preflightAttempts === 1) {
+                await route.fulfill({
+                    body: JSON.stringify({ title: 'Unavailable' }),
+                    contentType: 'application/problem+json',
+                    status: 503,
+                });
+
+                return;
+            }
             await route.fulfill({
                 contentType: 'application/json',
                 body: JSON.stringify({
@@ -109,12 +106,17 @@ test('World import uses fixed platform catalog copy and accepts a scoped portabl
                         activities: 0,
                         mapAssets: 0,
                         maps: 2,
-                        mediaReferences: 0,
+                        mediaReferences: 1,
                         nodes: 0,
                         portalTargets: 0,
                     },
                     errors: [],
-                    mediaReferenceDetails: [],
+                    mediaReferenceDetails: [
+                        {
+                            available: true,
+                            url: '/api/v1/admin/media-assets/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d95/content',
+                        },
+                    ],
                     summary:
                         'The mocked World package is structurally ready for transfer.',
                     valid: true,
@@ -149,7 +151,7 @@ test('World import uses fixed platform catalog copy and accepts a scoped portabl
         .click();
 
     const dialog = page.locator(
-        '[data-wl-id="authoring.world-builder.world-import.dialog"]',
+        '[data-wl-id="settings.world-builder.world.import.dialog"]',
     );
     await expect(
         dialog.getByRole('heading', {
@@ -159,18 +161,7 @@ test('World import uses fixed platform catalog copy and accepts a scoped portabl
     await expect(
         dialog.getByText('Localized world-import guidance.'),
     ).toBeVisible();
-    await expect(
-        dialog.getByText('No localized world package selected.'),
-    ).toBeVisible();
-    await expect(
-        page.getByRole('link', {
-            exact: true,
-            name: 'Export localized world',
-        }),
-    ).toBeVisible();
-    await expect(
-        page.getByRole('link', { name: 'Export localized world package' }),
-    ).toBeVisible();
+    await expect(dialog.getByLabel('Map title')).toHaveCount(0);
 
     await page.setViewportSize({ width: 390, height: 844 });
     const bounds = await dialog.boundingBox();
@@ -192,24 +183,36 @@ test('World import uses fixed platform catalog copy and accepts a scoped portabl
         'accept',
         '.json,.zip,application/json,application/zip,text/plain',
     );
+    const unavailablePreflight = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response.url().includes('/world-exports/preflight'),
+    );
     await fileInput.setInputFiles({
         buffer: Buffer.from('portable-world-package'),
         mimeType: 'application/zip',
         name: 'localized-world.zip',
     });
+    expect((await unavailablePreflight).status()).toBe(503);
+    await expect(dialog.getByText('The file could not be checked.')).toBeVisible();
+
     const preflight = page.waitForResponse(
         (response) =>
             response.request().method() === 'POST' &&
             response.url().includes('/world-exports/preflight'),
     );
     await dialog
-        .getByRole('button', { name: 'Check localized world package' })
+        .getByRole('button', { name: 'Check again' })
         .click();
     expect((await preflight).status()).toBe(200);
-    expect(preflightCsrfHeader).toBe('test-csrf-token');
+    expect(preflightCsrfHeaders).toEqual([
+        'test-csrf-token',
+        'test-csrf-token',
+    ]);
     await expect(dialog.getByRole('status')).toContainText(
-        'Localized ready maps: 2',
+        'The mocked World package is structurally ready for transfer.',
     );
+    await expect(dialog.getByRole('status')).toContainText('Referenced media');
 
     const importedResponse = page.waitForResponse(
         (response) =>
