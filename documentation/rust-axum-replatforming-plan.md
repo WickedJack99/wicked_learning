@@ -1530,6 +1530,25 @@ in either helper; only the import of the already UUID-generalized source
 context cases and nested media replacement; `npm run build` passes. These
 helpers are still unmounted until the complete source editor is mounted.
 
+#### Fourth Activity Editor implementation prerequisite: source form state and payload — 15 November 2026
+
+The complete pinned-source `activity-form-state.ts` (1,054 lines) and
+`activity-form-payload.ts` modules are lifted into the standalone frontend.
+They preserve source defaults, form hydration and the source's deliberate
+per-activity payload field sets for Open Practice, Reflection/Review, Markdown,
+Portal, Message, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base
+Obstacle. The only adaptation is their type import, which points at the
+already-lifted UUID-safe source type declarations; no values, defaults, field
+sets or payload policy were reimplemented.
+
+The focused Activity Editor adapter spec now proves Portal defaults and
+type-scoped payload omission, plus source Question hydration including its
+numeric option-weight and outcome-key behavior. It deliberately asserts the
+source result rather than normalizing it into a Rust-specific form model.
+`npm run build`, the three focused Playwright regressions, and the selected-node
+Rust application/API tests pass. The modules remain unmounted until the full
+source component tree replaces the bespoke editor.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

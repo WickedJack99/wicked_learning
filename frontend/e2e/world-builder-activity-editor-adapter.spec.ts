@@ -3,6 +3,11 @@ import { expect, test } from '@playwright/test';
 import type { components } from '../src/api/schema';
 import { adaptRustActivityEditorDocument } from '../src/lifted-world-builder-activity-editor-adapter';
 import { buildGraphEdges, buildGraphNodes } from '../src/lifted-world-builder-activity-graph-elements';
+import { activityFormPayload } from '../src/lifted-world-builder-activity-form-payload';
+import {
+    activityFormFromActivity,
+    emptyCreateForm,
+} from '../src/lifted-world-builder-activity-form-state';
 import { activityTemplateContext } from '../src/lifted-world-builder-activity-template-context';
 import {
     isImageMediaReference,
@@ -309,5 +314,82 @@ test('retains the source template context and recursive media replacement helper
             'managed-image.webp',
             { retained: 'text', visual: 'managed-image.webp' },
         ],
+    });
+});
+
+test('retains source activity defaults, form hydration, and type-scoped payloads', () => {
+    const portal = emptyCreateForm('portal');
+    const portalPayload = activityFormPayload({
+        ...portal,
+        target_portal_activity_id: '00000000-0000-4000-8000-000000000301',
+        title: 'Travel',
+    });
+
+    expect(portal).toMatchObject({
+        portal_duration_seconds: '1.5',
+        portal_mode: 'output',
+        portal_show_on_arrival: true,
+        portal_swirl_enabled: true,
+    });
+    expect(portalPayload).toMatchObject({
+        target_portal_activity_id: '00000000-0000-4000-8000-000000000301',
+        title: 'Travel',
+    });
+    expect(portalPayload).not.toHaveProperty('item_grant_items');
+
+    const hydrated = activityFormFromActivity(
+        {
+            config: {
+                allowMultiple: true,
+                options: [
+                    {
+                        body: 'First option',
+                        feedback: '',
+                        isCorrect: true,
+                        label: 'A',
+                        outcomeKey: 'right',
+                        weights: { recall: 1 },
+                    },
+                ],
+                prompt: 'Which option?',
+            },
+            introduction: 'Think first.',
+            portalLink: null,
+            question: {
+                allowMultiple: true,
+                explanation: null,
+                feedbackCorrect: null,
+                feedbackIncorrect: null,
+                options: [
+                    {
+                        body: 'First option',
+                        feedback: null,
+                        isCorrect: true,
+                        label: 'A',
+                        outcomeKey: 'right',
+                        weights: { recall: 1 },
+                    },
+                ],
+                prompt: 'Which option?',
+            },
+            slug: 'question',
+            title: 'Question',
+            type: 'question',
+            updatedAt: '2026-11-15T10:00:00Z',
+        },
+        'open_practice',
+    );
+
+    expect(hydrated).toMatchObject({
+        introduction: 'Think first.',
+        question_allow_multiple: true,
+        question_options: [
+            {
+                weights: { recall: 1 },
+            },
+        ],
+        question_prompt: 'Which option?',
+        type: 'question',
+        updated_at: '2026-11-15T10:00:00Z',
     });
 });
