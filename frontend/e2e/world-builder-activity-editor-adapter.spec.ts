@@ -2,8 +2,17 @@ import { expect, test } from '@playwright/test';
 
 import type { components } from '../src/api/schema';
 import {
+    sourceItemGrantRequest,
     sourceItemObstacleRequest,
+    sourceMarkdownRequest,
+    sourceMessageRequest,
+    sourceObstacleRequest,
+    sourceOpenPracticeRequest,
     sourcePortalRequest,
+    sourceQuestionRequest,
+    sourceReflectionRequest,
+    sourceSharedTaskRequest,
+    sourceToolGrantRequest,
 } from '../src/lifted-source-activity-command-mapper';
 import { adaptRustActivityEditorDocument } from '../src/lifted-world-builder-activity-editor-adapter';
 import { activityFormPayload } from '../src/lifted-world-builder-activity-form-payload';
@@ -510,5 +519,154 @@ test('maps direct-source portal and item-obstacle forms to typed Rust UUID comma
         ],
         sound_met_enabled: true,
         sound_met_id: '00000000-0000-4000-8000-000000000503',
+    });
+});
+
+test('maps every remaining source activity family to its typed Rust command shape', () => {
+    expect(
+        sourceOpenPracticeRequest({
+            ...emptyCreateForm('open_practice'),
+            open_practice_next_step: 'Try the next step.',
+            title: 'Practice',
+        }),
+    ).toMatchObject({ next_step: 'Try the next step.', title: 'Practice' });
+
+    expect(
+        sourceReflectionRequest({
+            ...emptyCreateForm('reflection'),
+            reflection_note: 'Record it.',
+            reflection_prompt: 'What changed?',
+            title: 'Reflect',
+        }),
+    ).toMatchObject({ note: 'Record it.', prompt: 'What changed?' });
+
+    expect(
+        sourceMarkdownRequest({
+            ...emptyCreateForm('markdown'),
+            markdown_pages: [
+                {
+                    body: 'Read this.',
+                    id: 'page-a',
+                    position: { x: 2, y: 3 },
+                    title: 'Introduction',
+                    visual: {
+                        borderColorDark: '#111111',
+                        borderColorLight: '#eeeeee',
+                        headingColorDark: '#222222',
+                        headingColorLight: '#dddddd',
+                        pageColorDark: '#333333',
+                        pageColorLight: '#cccccc',
+                        textColorDark: '#444444',
+                        textColorLight: '#bbbbbb',
+                    },
+                },
+            ],
+            title: 'Read',
+        }),
+    ).toMatchObject({
+        markdown_pages: [
+            {
+                position: { x: 2, y: 3 },
+                visual: { page_color_dark: '#333333' },
+            },
+        ],
+    });
+
+    expect(
+        sourceQuestionRequest({
+            ...emptyCreateForm('question'),
+            question_options: [
+                {
+                    body: 'Answer',
+                    feedback: 'Yes.',
+                    is_correct: true,
+                    label: 'A',
+                    outcome_key: 'complete',
+                    weights: { recall: 1 },
+                },
+            ],
+            question_prompt: 'Choose.',
+            title: 'Question',
+        }),
+    ).toMatchObject({
+        options: [
+            {
+                is_correct: true,
+                key: null,
+                outcome_key: 'complete',
+                weights: { recall: 1 },
+            },
+        ],
+        prompt: 'Choose.',
+    });
+
+    expect(
+        sourceMessageRequest({
+            ...emptyCreateForm('message_wall'),
+            message_allow_responses: true,
+            message_topic_id: '00000000-0000-4000-8000-000000000601',
+            title: 'Wall',
+        }),
+    ).toMatchObject({
+        activity_type: 'message_wall',
+        allow_responses: true,
+        audience: 'peers',
+        topic_id: '00000000-0000-4000-8000-000000000601',
+    });
+
+    expect(
+        sourceSharedTaskRequest({
+            ...emptyCreateForm('shared_task'),
+            shared_task_project_steps: 'First\n\nSecond ',
+            title: 'Together',
+        }),
+    ).toMatchObject({ project_steps: ['First', 'Second'] });
+
+    expect(
+        sourceItemGrantRequest({
+            ...emptyCreateForm('item_grant'),
+            item_grant_items: [
+                {
+                    itemId: '00000000-0000-4000-8000-000000000603',
+                    quantity: '2',
+                },
+            ],
+            item_grant_probability_percent: '65',
+            title: 'Receive',
+        }),
+    ).toMatchObject({
+        items: [
+            {
+                item_id: '00000000-0000-4000-8000-000000000603',
+                quantity: 2,
+            },
+        ],
+        probability_percent: 65,
+    });
+
+    expect(
+        sourceObstacleRequest({
+            ...emptyCreateForm('obstacle'),
+            obstacle_allowed_tool_ids:
+                '00000000-0000-4000-8000-000000000604, 00000000-0000-4000-8000-000000000605',
+            title: 'Obstacle',
+        }),
+    ).toMatchObject({
+        allowed_tool_ids: [
+            '00000000-0000-4000-8000-000000000604',
+            '00000000-0000-4000-8000-000000000605',
+        ],
+    });
+
+    expect(
+        sourceToolGrantRequest({
+            ...emptyCreateForm('tool_grant'),
+            title: 'Give tool',
+            tool_grant_tool_id: '00000000-0000-4000-8000-000000000602',
+        }),
+    ).toMatchObject({
+        tool_id: '00000000-0000-4000-8000-000000000602',
+        tool_x: 50,
+        tool_y: 50,
     });
 });

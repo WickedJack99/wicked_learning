@@ -1756,8 +1756,8 @@ This lift is intentionally **unmounted**. It must not replace the existing
 source-derived browser matrix proves populated/empty, selected activity/edge/
 start, all activity type families, templates/citations/media failures, and
 transport-denial states at both 1440×900 and 390×844. The current automated
-evidence proves only UUID transport mapping and the Portal/Item Obstacle form
-command shapes; it is not browser-parity evidence.
+evidence proves UUID transport mapping and every supported activity family's
+typed command shape; it is not browser-parity evidence.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
