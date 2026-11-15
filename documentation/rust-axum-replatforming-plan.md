@@ -1784,8 +1784,13 @@ fitting and all remaining type forms remain unproven. Reflection's source type
 switch and its `What feels clearer now?` default are browser-proven at both
 viewports. Its source Review/Revisit variant, including the same default,
 is browser-proven at both viewports. Open-practice, Reflection and Review
-validation/stale-save/success, the remaining type forms, templates, citations,
-media, commands, denial and unavailable states remain unproven. It therefore
+validation/stale-save/success remain unproven. The harness declares every
+remaining source type and browser-proves that Markdown, Portal, Question,
+Message Prompt/Wall, Shared Task, Item Grant, Item Obstacle, Obstacle and Tool
+Grant each reach their distinct lifted Flow section at both viewports. This is
+structural type-family evidence only: their per-field defaults, validation,
+stale-save and successful Rust command/reload behavior remain unproven, as do
+templates, citations, media, read denial and unavailable states. It therefore
 does not close the P0 Activity Editor matrix or authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026

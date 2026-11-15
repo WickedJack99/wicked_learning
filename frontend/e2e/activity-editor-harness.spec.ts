@@ -231,3 +231,57 @@ for (const viewport of [
         );
     });
 }
+
+const remainingActivityTypes = [
+    { label: 'Markdown', section: 'Markdown pages' },
+    { label: 'Portal', section: 'Portal route' },
+    { label: 'Question', section: 'Question and answers' },
+    { label: 'Message prompt', section: 'Learner messages' },
+    { label: 'Message wall', section: 'Learner messages' },
+    { label: 'Shared task', section: 'Shared task' },
+    { label: 'Item grant', section: 'Item grant behavior' },
+    { label: 'Item obstacle', section: 'Item obstacle behavior' },
+    { label: 'Obstacle', section: 'Obstacle behavior' },
+    { label: 'Tool grant', section: 'Tool grant behavior' },
+] as const;
+
+for (const viewport of [
+    { height: 900, name: 'desktop', width: 1440 },
+    { height: 844, name: 'narrow', width: 390 },
+]) {
+    for (const activityType of remainingActivityTypes) {
+        test(`renders source ${activityType.label} flow fields at the ${viewport.name} viewport`, async ({
+            page,
+        }) => {
+            await page.setViewportSize(viewport);
+            await page.goto('/activity-editor-harness.html');
+            await page
+                .getByRole('button', { name: 'Add activity' })
+                .dispatchEvent('click');
+
+            await page
+                .getByRole('combobox', { name: 'Type' })
+                .dispatchEvent('click');
+            await page
+                .getByRole('option', {
+                    exact: true,
+                    name: activityType.label,
+                })
+                .dispatchEvent('click');
+            await page
+                .getByRole('tab', { name: 'Flow' })
+                .dispatchEvent('click');
+
+            await expect(
+                page.getByRole('heading', {
+                    exact: true,
+                    name: activityType.section,
+                }),
+            ).toBeVisible();
+            await expectBounded(
+                page.getByRole('tab', { name: 'Flow' }),
+                viewport.width,
+            );
+        });
+    }
+}

@@ -50,6 +50,60 @@ const graph: ActivityGraphPayload = {
             key: 'review',
             label: 'Review',
         },
+        {
+            description: 'Write a linked page sequence.',
+            key: 'markdown',
+            label: 'Markdown',
+        },
+        {
+            description: 'Travel between map locations.',
+            key: 'portal',
+            label: 'Portal',
+            portalModes: [
+                { key: 'input', label: 'Arrival' },
+                { key: 'output', label: 'Departure' },
+            ],
+        },
+        {
+            description: 'Ask a retrieval question.',
+            key: 'question',
+            label: 'Question',
+        },
+        {
+            description: 'Prompt one learner response.',
+            key: 'message_prompt',
+            label: 'Message prompt',
+        },
+        {
+            description: 'Host learner responses together.',
+            key: 'message_wall',
+            label: 'Message wall',
+        },
+        {
+            description: 'Collect a shared contribution.',
+            key: 'shared_task',
+            label: 'Shared task',
+        },
+        {
+            description: 'Give the learner an item.',
+            key: 'item_grant',
+            label: 'Item grant',
+        },
+        {
+            description: 'Require items to proceed.',
+            key: 'item_obstacle',
+            label: 'Item obstacle',
+        },
+        {
+            description: 'Require a tool to proceed.',
+            key: 'obstacle',
+            label: 'Obstacle',
+        },
+        {
+            description: 'Give the learner a tool.',
+            key: 'tool_grant',
+            label: 'Tool grant',
+        },
     ],
     aiReviewTemplates: [],
     canManageAiReview: false,
