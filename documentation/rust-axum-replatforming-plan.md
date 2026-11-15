@@ -521,6 +521,35 @@ duplicate failure. This remains a pinned-source-code-to-Rust-browser
 comparison: direct live Laravel screenshot capture is unavailable and is not
 claimed here.
 
+#### Fourth P0 implementation evidence: selected-portal Graph inspector — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+This slice directly lifts pinned `PortalDetails` and `PortalEndpoint` from
+`resources/js/pages/settings/worlds/index.tsx` into
+`frontend/src/lifted-world-builder-portal-details.tsx`. It reuses the already
+lifted source Button; `ArrowRight`, `Pencil`, and the source Link are the only
+remaining component dependencies. No normal Graph canvas/routing code,
+selected-map inspector, Review, Structural, map editor, or MapAsset editor was
+changed.
+
+| Source portal-inspector requirement | Rust graph/read contract | Deliberate adapter boundary and retained behavior | Evidence |
+| --- | --- | --- | --- |
+| Link identity, heading and description | `GET /api/v1/admin/world-builder` → required `portal_links[].id`, nullable `label`, nullable `description`, `source_map_id`, and `target_map_id`. The persistence projection emits a portal only when both endpoint maps are in the caller's scoped graph. | The adapter changes only Rust snake_case names. Source fallbacks remain `Unnamed portal` and `No portal description yet.` | Browser fixture verifies populated values and both null fallbacks at 1440×900 and 390×844. |
+| Source and target endpoint title/description/slug | Required `source_node` and `target_node` are complete `AdminNodeSummary` projections: `id`, `title`, nullable `description`, `slug`, plus graph metadata. Their map IDs are supplied separately above. | Direct `PortalEndpoint` lift displays each node title, then exact source `description ?? slug` fallback; no endpoint is reconstructed from map cards or a second request. | Populated fixture proves both descriptions; null-activity fixture proves both slugs remain visible as fallbacks. |
+| Nullable source/target activity context and activity type | `source_activity` and `target_activity` are each nullable `AdminPortalActivity { id, title, activity_type }`. The scoped graph query left-joins each activity and serializes all three fields only when complete. | The direct source component displays an available activity title and intentionally does not invent a type label; the adapter still maps `activity_type` to source `type` so the complete source graph read remains intact. | Populated fixture supplies distinct `portal` and `markdown` activity types and asserts both source titles; null fixture uses both `null`. |
+| Conditional **Edit source activity** destination | The action is valid only when `source_activity` is non-null and uses `source_map_id` plus `source_node.id`. Rust's existing selected-node read is `GET /api/v1/admin/world-builder/nodes/{node_id}` under the existing scoped `world_activities` authorization. | `RustNavigationLink` keeps the pinned source graph href/copy, replacing only the Inertia visit with existing `selectStructuralNode(mapId, nodeId)`. It does not add or change the node editor. Browser navigation proves the existing Structural destination receives the source IDs. | Populated fixture asserts the exact source href and resulting Structural URL; no-source-activity fixture proves the action is absent. |
+| Relevant unavailable state | `source_activity: null` is a valid Rust graph projection and means no editable source activity is available for this portal. There is no inspector-local portal request to fail. | The lifted conditional renders no action for this state—the source behavior—rather than an unconditional Rust-only “Open source activity graph” control. Graph fetch failures remain owned by the separate P0 status/loading/error backlog and were not altered. | Null source/target activity fixture at both viewports verifies source fallbacks, bounded inspector controls and absence of the action. |
+
+Focused source-derived Rust-browser evidence is
+`frontend/e2e/world-builder-portal-details.spec.ts`. It selects the source
+graph edge at desktop, preserves that selected state through **1440×900** and
+**390×844**, asserts inspector bounds and controls, and covers both populated
+and unavailable source-activity projections. It is a pinned-source-code-to-Rust
+browser comparison; direct live Laravel screenshot capture remains unavailable
+and is not claimed.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named

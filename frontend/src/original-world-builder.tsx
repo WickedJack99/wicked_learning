@@ -85,6 +85,7 @@ import { SettingsCornerNavigation } from './extracted-settings-corner-navigation
 import { usePlatformTranslation } from './original-platform-translation';
 import { LiftedWorldBuilderGraph } from './lifted-world-builder-graph';
 import { LiftedWorldBuilderMapDetails } from './lifted-world-builder-map-details';
+import { LiftedWorldBuilderPortalDetails } from './lifted-world-builder-portal-details';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
 type MapSummary = components['schemas']['AdminMapSummary'];
@@ -968,8 +969,8 @@ function WorldBuilderContent({
                                 />
                             )}
                             renderSelectedPortal={(portal) => (
-                                <PortalDetails
-                                    onSelectNode={selectNode}
+                                <LiftedWorldBuilderPortalDetails
+                                    onOpenSourceActivity={selectStructuralNode}
                                     portal={portal}
                                 />
                             )}
