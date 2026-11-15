@@ -1,0 +1,605 @@
+import type { Dispatch, SetStateAction } from 'react';
+import { LiftedInputError as InputError } from './lifted-input-error';
+import { LiftedButton as Button } from './lifted-button';
+import { LiftedLabel as Label } from './lifted-label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from './lifted-select';
+import {
+    ConfigColorField,
+    ConfigImageInput,
+    MirrorImageCheckbox,
+    NumberField,
+} from './lifted-world-builder-activity-config-fields';
+import {
+    ActivityScenePreview,
+    ScenePreviewBubble,
+    ScenePreviewImage,
+    themedPreviewAsset,
+} from './lifted-world-builder-activity-scene-preview';
+import type { ActivityForm, EditableTool } from './lifted-world-builder-edit-node-activity-types';
+import { useLiftedAppearance as useAppearance } from './lifted-use-appearance';
+type ObstacleFieldProps = {
+    errors: Record<string, string>;
+    form: ActivityForm;
+    imageUploadErrors: Record<string, string>;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+    onUpload: (
+        key: string,
+        file: File,
+        onUploaded: (url: string) => void,
+    ) => void;
+    tools: EditableTool[];
+    uploadingImageKey: string | null;
+};
+
+export function ObstacleActivityFields(props: ObstacleFieldProps) {
+    return (
+        <div className="grid gap-5">
+            <ObstacleFlowFields {...props} />
+            <ObstacleVisualFields {...props} />
+        </div>
+    );
+}
+
+export function ObstacleFlowFields({
+    errors,
+    form,
+    onChange,
+    tools,
+}: Pick<ObstacleFieldProps, 'errors' | 'form' | 'onChange' | 'tools'>) {
+    const updateField = (field: keyof ActivityForm, value: string | boolean) =>
+        onChange((current) => ({
+            ...current,
+            [field]: value,
+        }));
+    const updateBooleanField = (field: keyof ActivityForm, value: boolean) =>
+        onChange((current) => ({
+            ...current,
+            [field]: value,
+        }));
+    const selectedToolIds = toolIdsFrom(form.obstacle_allowed_tool_ids);
+    const selectedTools = selectedToolIds
+        .map((toolId) => tools.find((tool) => tool.id === toolId))
+        .filter((tool): tool is EditableTool => Boolean(tool));
+    const unselectedTools = tools.filter(
+        (tool) => !selectedToolIds.includes(tool.id),
+    );
+    const updateToolIds = (toolIds: string[]) =>
+        updateField('obstacle_allowed_tool_ids', toolIds.join(', '));
+    const addTool = (value: string) => {
+        if (!value || selectedToolIds.includes(value)) {
+            return;
+        }
+
+        updateToolIds([...selectedToolIds, value]);
+    };
+    const removeTool = (toolId: string) =>
+        updateToolIds(selectedToolIds.filter((current) => current !== toolId));
+
+    return (
+        <div className="grid gap-3">
+            <div className="grid gap-2">
+                <Label htmlFor="obstacle-tools">Tools that work here</Label>
+                <Select
+                    key={selectedToolIds.join('-') || 'empty'}
+                    onValueChange={addTool}
+                >
+                    <SelectTrigger className="w-full" id="obstacle-tools">
+                        <SelectValue placeholder="Add a tool" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {unselectedTools.length > 0 ? (
+                            unselectedTools.map((tool) => (
+                                <SelectItem
+                                    key={tool.id}
+                                    value={tool.id.toString()}
+                                >
+                                    {tool.title}
+                                </SelectItem>
+                            ))
+                        ) : (
+                            <SelectItem disabled value="all-tools-added">
+                                All tools are already selected
+                            </SelectItem>
+                        )}
+                    </SelectContent>
+                </Select>
+                {selectedTools.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                        {selectedTools.map((tool) => (
+                            <Button
+                                key={tool.id}
+                                onClick={() => removeTool(tool.id)}
+                                size="sm"
+                                type="button"
+                                variant="secondary"
+                            >
+                                {tool.title}
+                                <span aria-hidden="true">x</span>
+                            </Button>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Add at least one tool if this obstacle should be
+                        removable.
+                    </p>
+                )}
+                <InputError message={errors.obstacle_allowed_tool_ids} />
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="obstacle-persist-after-solved">
+                    After the correct tool is used
+                </Label>
+                <Select
+                    onValueChange={(value) =>
+                        updateBooleanField(
+                            'obstacle_persist_after_solved',
+                            value === 'yes',
+                        )
+                    }
+                    value={form.obstacle_persist_after_solved ? 'yes' : 'no'}
+                >
+                    <SelectTrigger
+                        className="w-full"
+                        id="obstacle-persist-after-solved"
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="yes">
+                            Stay cleared for learner
+                        </SelectItem>
+                        <SelectItem value="no">
+                            Reappear on each replay
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    Persistent obstacles remember that each learner solved them
+                    and show the cleared revisit scene next time.
+                </p>
+                <InputError message={errors.obstacle_persist_after_solved} />
+            </div>
+        </div>
+    );
+}
+
+export function ObstacleVisualFields({
+    errors,
+    form,
+    imageUploadErrors,
+    onChange,
+    onUpload,
+    uploadingImageKey,
+}: Omit<ObstacleFieldProps, 'tools'>) {
+    const { resolvedAppearance } = useAppearance();
+    const isLight = resolvedAppearance === 'light';
+    const updateField = (field: keyof ActivityForm, value: string | boolean) =>
+        onChange((current) => ({
+            ...current,
+            [field]: value,
+        }));
+    const backgroundImage = themedPreviewAsset(
+        form.obstacle_background_dark,
+        form.obstacle_background_light,
+        resolvedAppearance,
+    );
+    const obstacleImage = themedPreviewAsset(
+        form.obstacle_image_dark,
+        form.obstacle_image_light,
+        resolvedAppearance,
+    );
+    const explicitClearedBackgroundImage = themedPreviewAsset(
+        form.obstacle_revisit_background_dark,
+        form.obstacle_revisit_background_light,
+        resolvedAppearance,
+    );
+    const clearedBackgroundImage =
+        explicitClearedBackgroundImage || backgroundImage;
+    const clearedBackgroundMirrored = explicitClearedBackgroundImage
+        ? form.obstacle_revisit_background_mirrored
+        : form.obstacle_background_mirrored;
+    const clearedObstacleImage = themedPreviewAsset(
+        form.obstacle_revisit_image_dark,
+        form.obstacle_revisit_image_light,
+        resolvedAppearance,
+    );
+    const bubbleColor = isLight
+        ? form.obstacle_bubble_color_light
+        : form.obstacle_bubble_color_dark;
+    const bubbleBorderColor = isLight
+        ? form.obstacle_bubble_border_color_light
+        : form.obstacle_bubble_border_color_dark;
+    const bubbleOpacity = isLight
+        ? form.obstacle_bubble_opacity_light
+        : form.obstacle_bubble_opacity_dark;
+
+    const imageFields: Array<{
+        description: string;
+        field: keyof ActivityForm;
+        label: string;
+    }> = [
+        {
+            description: 'Displayed behind the obstacle in dark mode.',
+            field: 'obstacle_background_dark',
+            label: 'Dark background image',
+        },
+        {
+            description: 'Optional light-mode override for the background.',
+            field: 'obstacle_background_light',
+            label: 'Light background image',
+        },
+        {
+            description: 'The obstacle image shown in dark mode.',
+            field: 'obstacle_image_dark',
+            label: 'Dark obstacle image',
+        },
+        {
+            description: 'Optional light-mode override for the obstacle image.',
+            field: 'obstacle_image_light',
+            label: 'Light obstacle image',
+        },
+    ];
+    const revisitImageFields: Array<{
+        description: string;
+        field: keyof ActivityForm;
+        label: string;
+    }> = [
+        {
+            description: 'Displayed behind the cleared obstacle in dark mode.',
+            field: 'obstacle_revisit_background_dark',
+            label: 'Dark cleared background',
+        },
+        {
+            description:
+                'Optional light-mode override for the cleared background.',
+            field: 'obstacle_revisit_background_light',
+            label: 'Light cleared background',
+        },
+        {
+            description:
+                'Optional image shown when this learner already cleared the obstacle.',
+            field: 'obstacle_revisit_image_dark',
+            label: 'Dark cleared image',
+        },
+        {
+            description:
+                'Optional light-mode override for the cleared obstacle image.',
+            field: 'obstacle_revisit_image_light',
+            label: 'Light cleared image',
+        },
+    ];
+
+    return (
+        <div className="grid gap-5">
+            <div className="grid gap-4 lg:grid-cols-2">
+                <ActivityScenePreview
+                    backgroundImage={backgroundImage}
+                    backgroundMirrored={form.obstacle_background_mirrored}
+                    description="Uses the currently selected appearance mode."
+                    title="Blocking preview"
+                >
+                    <ScenePreviewImage
+                        imageUrl={obstacleImage}
+                        label="Obstacle image"
+                        mirrored={form.obstacle_image_mirrored}
+                        width={form.obstacle_width}
+                        x={form.obstacle_x}
+                        y={form.obstacle_y}
+                    />
+                    <div className="absolute inset-x-3 bottom-3">
+                        <ScenePreviewBubble
+                            borderColor={bubbleBorderColor}
+                            color={bubbleColor}
+                            label="Prompt"
+                            opacity={bubbleOpacity}
+                            text={form.obstacle_prompt_text}
+                        />
+                    </div>
+                </ActivityScenePreview>
+
+                <ActivityScenePreview
+                    backgroundImage={clearedBackgroundImage}
+                    backgroundMirrored={clearedBackgroundMirrored}
+                    description="Shows the configured cleared image and success text."
+                    title="Cleared preview"
+                >
+                    <ScenePreviewImage
+                        imageUrl={clearedObstacleImage}
+                        label="Cleared image"
+                        mirrored={form.obstacle_revisit_image_mirrored}
+                        width={form.obstacle_width}
+                        x={form.obstacle_x}
+                        y={form.obstacle_y}
+                    />
+                    <div className="absolute inset-x-3 bottom-3">
+                        <ScenePreviewBubble
+                            borderColor={bubbleBorderColor}
+                            color={bubbleColor}
+                            label="Success"
+                            opacity={bubbleOpacity}
+                            text={
+                                form.obstacle_success_text ||
+                                form.obstacle_revisit_text
+                            }
+                        />
+                    </div>
+                </ActivityScenePreview>
+            </div>
+
+            <div className="grid gap-3">
+                <div className="grid gap-2">
+                    <Label htmlFor="obstacle-prompt">Prompt bubble</Label>
+                    <textarea
+                        className="min-h-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                        id="obstacle-prompt"
+                        onChange={(event) =>
+                            updateField(
+                                'obstacle_prompt_text',
+                                event.currentTarget.value,
+                            )
+                        }
+                        value={form.obstacle_prompt_text}
+                    />
+                    <InputError message={errors.obstacle_prompt_text} />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor="obstacle-success">Success bubble</Label>
+                    <textarea
+                        className="min-h-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                        id="obstacle-success"
+                        onChange={(event) =>
+                            updateField(
+                                'obstacle_success_text',
+                                event.currentTarget.value,
+                            )
+                        }
+                        value={form.obstacle_success_text}
+                    />
+                    <InputError message={errors.obstacle_success_text} />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor="obstacle-revisit">
+                        Cleared revisit bubble
+                    </Label>
+                    <textarea
+                        className="min-h-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                        id="obstacle-revisit"
+                        onChange={(event) =>
+                            updateField(
+                                'obstacle_revisit_text',
+                                event.currentTarget.value,
+                            )
+                        }
+                        value={form.obstacle_revisit_text}
+                    />
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Shown when a persistent obstacle was already cleared by
+                        this learner. It uses the same bubble colors and typing
+                        speed.
+                    </p>
+                    <InputError message={errors.obstacle_revisit_text} />
+                </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+                {imageFields.map((imageField) => (
+                    <ConfigImageInput
+                        description={imageField.description}
+                        error={
+                            errors[imageField.field] ??
+                            imageUploadErrors[imageField.field]
+                        }
+                        id={imageField.field}
+                        key={imageField.field}
+                        label={imageField.label}
+                        onChange={(value) =>
+                            updateField(imageField.field, value)
+                        }
+                        onUpload={(file) =>
+                            onUpload(String(imageField.field), file, (url) =>
+                                updateField(imageField.field, url),
+                            )
+                        }
+                        uploading={uploadingImageKey === imageField.field}
+                        value={String(form[imageField.field] ?? '')}
+                    />
+                ))}
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+                <MirrorImageCheckbox
+                    checked={form.obstacle_background_mirrored}
+                    label="Mirror background horizontally"
+                    onChange={(checked) =>
+                        updateField('obstacle_background_mirrored', checked)
+                    }
+                />
+                <MirrorImageCheckbox
+                    checked={form.obstacle_image_mirrored}
+                    label="Mirror obstacle image horizontally"
+                    onChange={(checked) =>
+                        updateField('obstacle_image_mirrored', checked)
+                    }
+                />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+                <NumberField
+                    label="Obstacle X position"
+                    max="100"
+                    min="0"
+                    onChange={(value) => updateField('obstacle_x', value)}
+                    suffix="%"
+                    value={form.obstacle_x}
+                />
+                <NumberField
+                    label="Obstacle Y position"
+                    max="100"
+                    min="0"
+                    onChange={(value) => updateField('obstacle_y', value)}
+                    suffix="%"
+                    value={form.obstacle_y}
+                />
+                <NumberField
+                    label="Obstacle width"
+                    max="100"
+                    min="1"
+                    onChange={(value) => updateField('obstacle_width', value)}
+                    suffix="%"
+                    value={form.obstacle_width}
+                />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+                {revisitImageFields.map((imageField) => (
+                    <ConfigImageInput
+                        description={imageField.description}
+                        error={
+                            errors[imageField.field] ??
+                            imageUploadErrors[imageField.field]
+                        }
+                        id={imageField.field}
+                        key={imageField.field}
+                        label={imageField.label}
+                        onChange={(value) =>
+                            updateField(imageField.field, value)
+                        }
+                        onUpload={(file) =>
+                            onUpload(String(imageField.field), file, (url) =>
+                                updateField(imageField.field, url),
+                            )
+                        }
+                        uploading={uploadingImageKey === imageField.field}
+                        value={String(form[imageField.field] ?? '')}
+                    />
+                ))}
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+                <MirrorImageCheckbox
+                    checked={form.obstacle_revisit_background_mirrored}
+                    label="Mirror cleared background horizontally"
+                    onChange={(checked) =>
+                        updateField(
+                            'obstacle_revisit_background_mirrored',
+                            checked,
+                        )
+                    }
+                />
+                <MirrorImageCheckbox
+                    checked={form.obstacle_revisit_image_mirrored}
+                    label="Mirror cleared image horizontally"
+                    onChange={(checked) =>
+                        updateField('obstacle_revisit_image_mirrored', checked)
+                    }
+                />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+                <ConfigColorField
+                    label="Dark bubble color"
+                    onChange={(value) =>
+                        updateField('obstacle_bubble_color_dark', value)
+                    }
+                    value={form.obstacle_bubble_color_dark}
+                />
+                <ConfigColorField
+                    label="Dark bubble border"
+                    onChange={(value) =>
+                        updateField('obstacle_bubble_border_color_dark', value)
+                    }
+                    value={form.obstacle_bubble_border_color_dark}
+                />
+                <NumberField
+                    label="Dark opacity"
+                    max="100"
+                    min="0"
+                    onChange={(value) =>
+                        updateField('obstacle_bubble_opacity_dark', value)
+                    }
+                    suffix="%"
+                    value={form.obstacle_bubble_opacity_dark}
+                />
+                <ConfigColorField
+                    label="Light bubble color"
+                    onChange={(value) =>
+                        updateField('obstacle_bubble_color_light', value)
+                    }
+                    value={form.obstacle_bubble_color_light}
+                />
+                <ConfigColorField
+                    label="Light bubble border"
+                    onChange={(value) =>
+                        updateField('obstacle_bubble_border_color_light', value)
+                    }
+                    value={form.obstacle_bubble_border_color_light}
+                />
+                <NumberField
+                    label="Light opacity"
+                    max="100"
+                    min="0"
+                    onChange={(value) =>
+                        updateField('obstacle_bubble_opacity_light', value)
+                    }
+                    suffix="%"
+                    value={form.obstacle_bubble_opacity_light}
+                />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+                <NumberField
+                    label="Typing speed"
+                    max="250"
+                    min="1"
+                    onChange={(value) =>
+                        updateField('obstacle_typing_speed', value)
+                    }
+                    suffix="ms"
+                    value={form.obstacle_typing_speed}
+                />
+                <div className="grid gap-2">
+                    <Label htmlFor="obstacle-success-animation">
+                        Success animation
+                    </Label>
+                    <Select
+                        onValueChange={(value) =>
+                            updateField('obstacle_success_animation', value)
+                        }
+                        value={form.obstacle_success_animation}
+                    >
+                        <SelectTrigger
+                            className="w-full"
+                            id="obstacle-success-animation"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="zoom">Zoom</SelectItem>
+                            <SelectItem value="shake">Shake</SelectItem>
+                            <SelectItem value="rotate">Rotate</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <InputError message={errors.obstacle_success_animation} />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function toolIdsFrom(value: string): string[] {
+    return value
+        .split(',')
+        .map((toolId) => toolId.trim())
+        .filter(Boolean);
+}

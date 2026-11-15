@@ -1686,6 +1686,17 @@ adapters. Tool selection, source visual preview, image-upload handoff and
 mirror/color/position behavior remain the source module unchanged. It remains
 unmounted pending the complete Activity Editor source route lift.
 
+#### Thirteenth Activity Editor implementation prerequisite: Base Obstacle fields — 15 November 2026
+
+The complete pinned-source
+`resources/js/pages/settings/worlds/obstacle-activity-fields.tsx` is lifted to
+`frontend/src/lifted-world-builder-obstacle-activity-fields.tsx`, with only
+the established lifted UI/configuration/scene/appearance/type imports changed.
+The one identity seam is explicit: its source comma-separated numeric tool ID
+form value now retains comma-separated opaque Rust UUIDs, with no numeric
+conversion or client aliasing. The module remains unmounted pending the
+complete source Activity Editor lift.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
