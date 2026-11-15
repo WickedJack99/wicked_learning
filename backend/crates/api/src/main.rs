@@ -60,6 +60,7 @@ mod admin_world_map_export;
 mod admin_world_map_export_preflight;
 mod admin_world_map_import;
 mod admin_world_map_layout;
+mod admin_world_map_visual_media;
 mod admin_world_map_visuals;
 mod admin_world_markdown;
 mod admin_world_message;
@@ -908,6 +909,15 @@ fn router(state: AppState) -> Router {
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}/visuals",
             patch(admin_world_map_visuals::update),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/visual-media",
+            post(admin_world_map_visual_media::upload)
+                .layer(DefaultBodyLimit::max(50 * 1024 * 1024 + 16 * 1024)),
+        )
+        .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/visual-media/{asset_id}/content",
+            get(admin_world_map_visual_media::preview),
         )
         .route(
             "/api/v1/admin/world-builder/maps/{map_id}/layout-versions",

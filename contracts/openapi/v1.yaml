@@ -2201,6 +2201,61 @@ paths:
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The map is unknown or unavailable through the source editor scope. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/visual-media:
+    post:
+      operationId: uploadAdminWorldBuilderMapVisual
+      summary: Upload one source Map Configuration visual for a scoped World Builder map.
+      description: Requires the source world-node and world-map update permissions, a same-origin CSRF token, and the map-specific all, own, assigned or direct-editor scope. This is distinct from generic reusable asset-library upload authority.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: The uploaded visual's same-origin content URL.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadAdminWorldBuilderMapVisualResponse' }
+        '400': { description: The upload is not a supported image or exceeds the source 50 MiB limit. }
+        '401': { description: Authentication is required. }
+        '403': { description: The CSRF or origin check failed. }
+        '404': { description: The map is unknown or unavailable through the source editor scope. }
+        '503': { description: The media store or application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/visual-media/{asset_id}/content:
+    get:
+      operationId: getAdminWorldBuilderMapVisualPreview
+      summary: Read one unsaved map-visual upload through its scoped editor preview route.
+      description: Requires the same map-editor scope as upload and the original uploader. It is a transient author-preview seam; saved Map Configuration values are normalized to the established learner-safe reusable-media path.
+      parameters:
+        - name: map_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: asset_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: download
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200': { description: The requested image bytes. }
+        '401': { description: Authentication is required. }
+        '404': { description: The map, upload or scoped editor grant is unavailable. }
+        '503': { description: The media store or application database is unavailable. }
   /admin/world-builder/maps/{map_id}/layout-versions:
     get:
       operationId: listAdminWorldBuilderMapLayoutVersions
@@ -8757,7 +8812,7 @@ components:
     CurrentUser:
       type: object
       additionalProperties: false
-      required: [appearance, avatar_url, capabilities, email, name, settings_access, subject_id, roles, username]
+      required: [appearance, avatar_url, can_view_media_paths, capabilities, email, name, settings_access, subject_id, roles, username]
       properties:
         appearance:
           type: string
@@ -8767,6 +8822,9 @@ components:
           type: [string, 'null']
           pattern: '^/api/v1/profile-images/[0-9a-f-]{36}$'
           description: The current subject's optional owner-scoped profile image route.
+        can_view_media_paths:
+          type: boolean
+          description: Whether source configuration controls may disclose raw media paths to this authenticated subject. It does not authorize media reads or writes.
         email:
           type: string
           format: email
@@ -13141,6 +13199,13 @@ components:
         background_config:
           type: object
           additionalProperties: true
+    UploadAdminWorldBuilderMapVisualResponse:
+      type: object
+      additionalProperties: false
+      required: [url, preview_url]
+      properties:
+        url: { type: string, maxLength: 2048 }
+        preview_url: { type: string, maxLength: 2048 }
     AdminWorldMapVisualTheme:
       type: object
       additionalProperties: true

@@ -16,6 +16,7 @@ use crate::{AppState, error::ApiError, identity::IdentityBackend};
 pub struct CurrentUserResponse {
     pub appearance: LearnerAppearance,
     pub avatar_url: Option<String>,
+    pub can_view_media_paths: bool,
     pub capabilities: Vec<String>,
     pub email: String,
     pub name: String,
@@ -66,6 +67,7 @@ fn current_user_response(
         avatar_url: profile
             .profile_image_id
             .map(|id| format!("/api/v1/profile-images/{id}")),
+        can_view_media_paths: current_user.principal.has_permission("media_paths", "ro"),
         capabilities: current_user
             .principal
             .capabilities
@@ -179,5 +181,6 @@ mod tests {
         );
         assert_eq!(response.subject_id, subject_id);
         assert_eq!(response.email, "learner@example.test");
+        assert!(!response.can_view_media_paths);
     }
 }

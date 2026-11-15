@@ -1750,6 +1750,46 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderMapVisuals"];
         trace?: never;
     };
+    "/admin/world-builder/maps/{map_id}/visual-media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload one source Map Configuration visual for a scoped World Builder map.
+         * @description Requires the source world-node and world-map update permissions, a same-origin CSRF token, and the map-specific all, own, assigned or direct-editor scope. This is distinct from generic reusable asset-library upload authority.
+         */
+        post: operations["uploadAdminWorldBuilderMapVisual"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/maps/{map_id}/visual-media/{asset_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one unsaved map-visual upload through its scoped editor preview route.
+         * @description Requires the same map-editor scope as upload and the original uploader. It is a transient author-preview seam; saved Map Configuration values are normalized to the established learner-safe reusable-media path.
+         */
+        get: operations["getAdminWorldBuilderMapVisualPreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/world-builder/maps/{map_id}/layout-versions": {
         parameters: {
             query?: never;
@@ -6838,6 +6878,8 @@ export interface components {
             appearance: "dark" | "light";
             /** @description The current subject's optional owner-scoped profile image route. */
             avatar_url: string | null;
+            /** @description Whether source configuration controls may disclose raw media paths to this authenticated subject. It does not authorize media reads or writes. */
+            can_view_media_paths: boolean;
             /**
              * Format: email
              * @description The authenticated subject's normalized sign-in address. It is never returned for another subject.
@@ -9625,6 +9667,10 @@ export interface components {
             background_config: {
                 [key: string]: unknown;
             };
+        };
+        UploadAdminWorldBuilderMapVisualResponse: {
+            url: string;
+            preview_url: string;
         };
         AdminWorldMapVisualTheme: {
             accentColor?: string | null;
@@ -17268,6 +17314,117 @@ export interface operations {
                 content?: never;
             };
             /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    uploadAdminWorldBuilderMapVisual: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The uploaded visual's same-origin content URL. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadAdminWorldBuilderMapVisualResponse"];
+                };
+            };
+            /** @description The upload is not a supported image or exceeds the source 50 MiB limit. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF or origin check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map is unknown or unavailable through the source editor scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The media store or application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAdminWorldBuilderMapVisualPreview: {
+        parameters: {
+            query?: {
+                download?: boolean;
+            };
+            header?: never;
+            path: {
+                map_id: string;
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The requested image bytes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The map */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The media store or application database is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

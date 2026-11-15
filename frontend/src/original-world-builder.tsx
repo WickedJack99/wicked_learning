@@ -85,6 +85,7 @@ import { SettingsCornerNavigation } from './extracted-settings-corner-navigation
 import { usePlatformTranslation } from './original-platform-translation';
 import { LiftedWorldBuilderGraph } from './lifted-world-builder-graph';
 import { LiftedWorldBuilderMapDetails } from './lifted-world-builder-map-details';
+import { LiftedWorldBuilderConfigureMapDocument } from './lifted-world-builder-configure-map';
 import { LiftedWorldBuilderMapWorkspace } from './lifted-world-builder-map-workspace';
 import { LiftedWorldBuilderPortalDetails } from './lifted-world-builder-portal-details';
 import { LiftedWorldBuilderWorldDetailsDialog } from './lifted-world-builder-world-details-dialog';
@@ -861,37 +862,19 @@ function WorldBuilderContent({
                                   ? {
                                         activeView: 'configure',
                                         content: (
-                                            <div className="h-full overflow-y-auto p-5">
-                                                <MapDetails
-                                                    document={editableMap}
-                                                    onDeleted={() => {
-                                                        setEditableMap(null);
-                                                        setEditableNode(null);
-                                                        navigate(
-                                                            '/settings?panel=admin-world-builder&worldSection=structural',
-                                                        );
-                                                        void loadWorld();
-                                                    }}
-                                                    onDuplicate={() =>
-                                                        setDuplicateMapOpen(
-                                                            true,
-                                                        )
-                                                    }
-                                                    onSelectNode={(nodeId) =>
-                                                        selectStructuralNode(
-                                                            selectedMapId,
-                                                            nodeId,
-                                                        )
-                                                    }
-                                                    onUpdated={() => {
-                                                        setMapReload(
-                                                            (current) =>
-                                                                current + 1,
-                                                        );
-                                                        void loadWorld();
-                                                    }}
-                                                />
-                                            </div>
+                                            <LiftedWorldBuilderConfigureMapDocument
+                                                document={editableMap}
+                                                onDeleted={() => {
+                                                    setEditableMap(null);
+                                                    setEditableNode(null);
+                                                    navigate('/settings?panel=admin-world-builder&worldSection=structural');
+                                                    void loadWorld();
+                                                }}
+                                                onUpdated={() => {
+                                                    setMapReload((current) => current + 1);
+                                                    void loadWorld();
+                                                }}
+                                            />
                                         ),
                                         mapId: selectedMapId,
                                         mapTitle:
@@ -940,37 +923,19 @@ function WorldBuilderContent({
                                       activeView: worldBuilderMapView,
                                       content:
                                           worldBuilderMapView === 'configure' ? (
-                                              <div className="h-full overflow-y-auto p-5">
-                                                  <MapDetails
-                                                      document={editableMap}
-                                                      onDeleted={() => {
-                                                          setEditableMap(null);
-                                                          setEditableNode(null);
-                                                          navigate(
-                                                              '/settings?panel=admin-world-builder&worldSection=graph',
-                                                          );
-                                                          void loadWorld();
-                                                      }}
-                                                      onDuplicate={() =>
-                                                          setDuplicateMapOpen(
-                                                              true,
-                                                          )
-                                                      }
-                                                      onSelectNode={(nodeId) =>
-                                                          selectNode(
-                                                              selectedMapId,
-                                                              nodeId,
-                                                          )
-                                                      }
-                                                      onUpdated={() => {
-                                                          setMapReload(
-                                                              (current) =>
-                                                                  current + 1,
-                                                          );
-                                                          void loadWorld();
-                                                      }}
-                                                  />
-                                              </div>
+                                              <LiftedWorldBuilderConfigureMapDocument
+                                                  document={editableMap}
+                                                  onDeleted={() => {
+                                                      setEditableMap(null);
+                                                      setEditableNode(null);
+                                                      navigate('/settings?panel=admin-world-builder&worldSection=graph');
+                                                      void loadWorld();
+                                                  }}
+                                                  onUpdated={() => {
+                                                      setMapReload((current) => current + 1);
+                                                      void loadWorld();
+                                                  }}
+                                              />
                                           ) : (
                                               <MapAssetSurface
                                                   document={editableMap}

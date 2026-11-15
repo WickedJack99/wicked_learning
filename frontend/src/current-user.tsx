@@ -19,6 +19,7 @@ export type CurrentUserState =
           kind: 'loaded';
           appearance: OriginalAppearance;
           avatarUrl: string | null;
+          canViewMediaPaths: boolean;
           capabilities: string[];
           email: string;
           name: string;
@@ -83,6 +84,7 @@ async function loadCurrentUser(): Promise<CurrentUserState> {
             // live API responses always carry the documented preference.
             appearance: data.appearance === 'dark' ? 'dark' : 'light',
             avatarUrl: data.avatar_url ?? null,
+            canViewMediaPaths: data.can_view_media_paths,
             capabilities: data.capabilities,
             email: data.email,
             name: data.name ?? data.email,

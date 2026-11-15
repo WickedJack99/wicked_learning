@@ -4475,6 +4475,17 @@ tests, OpenAPI generation, full Rust suite, frontend build and a local browser
 save/read/cleanup proof cover this slice. It does not migrate map-layout editing,
 visual-history restore or non-map activity forms.
 
+**Parity correction — 15 November 2026:** This decision records the safe
+writer, not closure of the full current-source Map Configuration route. The
+map-scoped upload now returns an editor-authorized temporary preview URL in
+addition to the stable reusable-media URL. The lifted form displays the former
+only while the image is unsaved, then persists the latter so existing learner
+map-reference media authorization remains in force. This resolves the former
+`assets.ro` preview gap without granting generic asset-library read access; it
+does not make the preview endpoint a learner-media delivery path. The
+replatforming plan still requires live mutation/browser evidence for the whole
+source route before it can be counted as complete.
+
 ## ADR-111: Map layout history is a reversible hex-grid-only mutation
 
 **Status:** Accepted — 8 November 2026

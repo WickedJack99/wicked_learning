@@ -19,6 +19,40 @@ impl<'pool> PostgresAdminWorldMapVisualsRepository<'pool> {
     }
 }
 
+/// Reuses the exact scoped map-editor predicate for the source-derived visual
+/// upload seam. Upload must never become an implicit global asset-library
+/// capability merely because its selected URL is later saved in a map visual.
+pub async fn can_edit_map_visuals(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    map_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    if !principal.has_permission("world_maps", "ru") {
+        return Ok(false);
+    }
+    let mut transaction = pool.begin().await?;
+    let Some(principal_id) = principal_id(&mut transaction, principal).await? else {
+        return Ok(false);
+    };
+    let creator_id = sqlx::query_scalar::<_, Option<Uuid>>(
+        "SELECT created_by_principal_id FROM learning_maps WHERE id = $1",
+    )
+    .bind(map_id)
+    .fetch_optional(&mut *transaction)
+    .await?;
+    let Some(creator_id) = creator_id else {
+        return Ok(false);
+    };
+    editable(
+        &mut transaction,
+        principal,
+        principal_id,
+        map_id,
+        creator_id,
+    )
+    .await
+}
+
 impl Port for PostgresAdminWorldMapVisualsRepository<'_> {
     fn update_map_visuals(
         &self,

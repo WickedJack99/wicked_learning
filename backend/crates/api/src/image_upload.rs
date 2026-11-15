@@ -5,6 +5,18 @@ use crate::error::ApiError;
 pub const MAX_IMAGE_BYTES: usize = 5 * 1024 * 1024;
 
 pub async fn single_image_upload(multipart: &mut Multipart) -> Result<Vec<u8>, ApiError> {
+    single_named_image_upload(multipart, "file", MAX_IMAGE_BYTES).await
+}
+
+/// Parses a single browser multipart image with the field and bounded size
+/// required by the owning workflow. Source World Builder map visuals use a
+/// distinct, map-scoped upload endpoint whose source field is adapted to the
+/// Rust endpoint's `file` transport field.
+pub async fn single_named_image_upload(
+    multipart: &mut Multipart,
+    field_name: &str,
+    maximum_bytes: usize,
+) -> Result<Vec<u8>, ApiError> {
     let Some(field) = multipart
         .next_field()
         .await
@@ -12,14 +24,14 @@ pub async fn single_image_upload(multipart: &mut Multipart) -> Result<Vec<u8>, A
     else {
         return Err(ApiError::profile_image_rejected());
     };
-    if field.name() != Some("file") {
+    if field.name() != Some(field_name) {
         return Err(ApiError::profile_image_rejected());
     }
     let bytes = field
         .bytes()
         .await
         .map_err(|_| ApiError::profile_image_rejected())?;
-    if bytes.is_empty() || bytes.len() > MAX_IMAGE_BYTES {
+    if bytes.is_empty() || bytes.len() > maximum_bytes {
         return Err(ApiError::profile_image_rejected());
     }
     if multipart

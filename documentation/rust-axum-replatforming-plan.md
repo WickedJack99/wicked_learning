@@ -1303,6 +1303,41 @@ deleted, and delivered to learners only for a published role-visible map. The
 local browser proof saves a background and layer from the media library, reads
 the persisted configuration, then proves map deletion releases both references.
 
+#### Source-parity correction: complete Map Configuration route — 15 November 2026
+
+**Status: active; do not count this route as parity-complete yet.** Earlier
+map-visual evidence proved the bounded Rust writer and a bespoke editor, not
+the full current-`main` destination. The active lift starts from pinned
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f` source
+`resources/js/pages/settings/worlds/configure-map.tsx` and retains its Details,
+Visuals, Access and Delete sections, history dialog, dark/light mode, visual
+subnavigation and responsive nested workspace. Named source dependencies are
+lifted as whole components in `frontend/src/lifted-color-input.tsx` and
+`frontend/src/lifted-reusable-image-picker.tsx`; the matching source
+`ConfigImageInput` is retained in
+`frontend/src/lifted-world-builder-configure-map.tsx` with only its page-prop,
+download-route and request seams replaced.
+
+| Source contract | Rust adapter / evidence | Current parity status |
+| --- | --- | --- |
+| `PATCH settings/worlds/maps/{map}/details`, map-history list/restore and delete | Existing typed map details/version/delete endpoints, CSRF and UUID-only path adapter | Contract present; source UI browser coverage pending save/history/delete interaction proof. |
+| `PATCH settings/worlds/maps/{map}/visuals` | Existing scoped `background_config` writer and map-reference synchronizer | Contract present; source color/mode/image/layer controls mount in the direct lift. |
+| `POST settings/worlds/node-images` with `map_id`, source `world_nodes.ru` plus map-editor policy, 50 MiB limit | `POST /admin/world-builder/maps/{map_id}/visual-media`, CSRF, `world_nodes.ru`, `world_maps.ru` and the exact all/own/assigned/direct-editor predicate; OpenAPI declares its multipart `file` seam | Write authorization and source size bound are covered. It deliberately does **not** grant generic asset-library upload authority. |
+| `auth.canViewMediaPaths` | Explicit `/me.can_view_media_paths` projection, consumed by the direct source image control | Raw URL disclosure is now role-projected, not hard-coded for administrators. |
+| `GET settings/assets/reusable-images` and source `ConfigImageInput` picker | Typed `GET /admin/media-assets` maps Rust `items/pagination` to the lifted source gallery's search, tag, responsive page size, loading, selection and error states | Browser fixtures cover populated selection and bounded `503` state at source controls. |
+
+The scoped upload returns both the stable reusable-media URL that is persisted
+on save and a map-editor-authorized preview URL for the unsaved source control.
+The preview URL is intentionally not a learner delivery path: the form adapter
+converts only that exact temporary URL back to the stable media URL when it
+writes the map, so the existing learner map-reference authorization remains
+the sole persisted-media boundary. This removes the prior `assets.ro` preview
+gap without granting generic asset-library access. Do not mark Map
+Configuration complete until the direct lift has browser evidence for its
+details, access, history, delete and visual mutation paths against the live
+Rust contracts. The focused source-derived browser fixture is
+`frontend/e2e/world-builder-configure-map.spec.ts` at 1440×900 and 390×844.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
