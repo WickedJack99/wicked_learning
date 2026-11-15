@@ -90,6 +90,7 @@ import {
     LiftedWorldBuilderReviewQueue,
     LiftedWorldBuilderSectionWorkspace,
 } from './lifted-world-builder-review-queue';
+import { LiftedWorldMapManagementPanel } from './lifted-world-map-management';
 
 type WorldGraph = components['schemas']['AdminWorldGraph'];
 type MapSummary = components['schemas']['AdminMapSummary'];
@@ -808,8 +809,7 @@ function WorldBuilderContent({
                         />
                     </LiftedWorldBuilderSectionWorkspace>
                 ) : resolvedWorldBuilderSection === 'structural' ? (
-                    <WorldMapManagementWorkspace
-                        activeView={worldBuilderMapView}
+                    <LiftedWorldMapManagementPanel
                         detail={
                             editableNode && selectedMapId
                                 ? {
@@ -830,6 +830,22 @@ function WorldBuilderContent({
                                               worldGraph={worldGraph!}
                                           />
                                       ),
+                                      mapId: selectedMapId,
+                                      mapTitle:
+                                          worldGraph!.maps.find(
+                                              (map) => map.id === selectedMapId,
+                                          )?.title ?? '',
+                                      nodeId: selectedNodeId ?? undefined,
+                                      nodeTitle:
+                                          worldGraph!.maps
+                                              .find(
+                                                  (map) =>
+                                                      map.id === selectedMapId,
+                                              )
+                                              ?.nodes.find(
+                                                  (node) =>
+                                                      node.id === selectedNodeId,
+                                              )?.title ?? undefined,
                                   }
                                 : editableMap &&
                                     selectedMapId &&
@@ -869,6 +885,12 @@ function WorldBuilderContent({
                                                 />
                                             </div>
                                         ),
+                                        mapId: selectedMapId,
+                                        mapTitle:
+                                            worldGraph!.maps.find(
+                                                (map) =>
+                                                    map.id === selectedMapId,
+                                            )?.title ?? '',
                                     }
                                   : null
                         }
@@ -876,8 +898,6 @@ function WorldBuilderContent({
                         onSelectMap={selectStructuralMap}
                         onSelectMapConfiguration={selectStructuralMapView}
                         onSelectNode={selectStructuralNode}
-                        selectedMapId={selectedMapId}
-                        selectedNodeId={selectedNodeId}
                     />
                 ) : (
                     <section className="h-full min-h-0 overflow-hidden">

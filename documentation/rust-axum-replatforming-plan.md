@@ -612,6 +612,34 @@ graph read, and bounded presentation at **1440×900** and **390×844**. It is a
 pinned-source-code-to-Rust-browser comparison; direct live Laravel screenshot
 capture remains unavailable and is not claimed.
 
+#### Seventh parity implementation evidence: Structural map/MapAsset navigator — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+This slice directly lifts `WorldMapManagementPanel` from
+`resources/js/features/settings/world-map-management-panel.tsx` into
+`frontend/src/lifted-world-map-management.tsx`, including its source Button,
+class-name helper, map list, selected-map navigator, MapAsset list, guidance,
+and no-map branches. The existing Rust map configuration and activity-graph
+editors remain content slots; no editor form, map/MapAsset writer, Graph
+canvas, or Review UI changed. React Router and the field-name adapter are the
+only seams.
+
+| Source Structural requirement | Rust read or destination contract | Deliberate adapter boundary and retained behavior | Evidence |
+| --- | --- | --- | --- |
+| Map list and selected-map summary | `GET /api/v1/admin/world-builder` → bounded `maps[]` (`id`, `title`, nullable `description`, `slug`, `node_count`, `review_count`, `nodes[]`); maps remain caller-scoped editable projections. | `adaptRustMap` renames only `node_count`, `review_count`, and each node's `activity_review_count`. The lifted source component retains its source default selection, tile/review singulars, source description fallback, and 18rem/18rem/remaining desktop grid. | Browser fixture uses two maps, selects the second through the source link, and asserts source map summary/copy and bounded workspace at 1440×900 and 390×844. |
+| Map configuration destination | Existing scoped `GET /api/v1/admin/world-builder/maps/{map_id}` supplies the established Rust configuration editor; its authorization/not-found state is unchanged. | Pinned source links retain their original href. The Inertia visit alone becomes `selectStructuralMapView(mapId)`, which opens the unchanged editor content slot. | Browser asserts both source configuration links’ href, then the adapter’s actual Structural URL. |
+| MapAsset list and activity-editor destination | Every graph node is an `AdminNodeSummary` with `id`, `title`, nullable `description`, `slug`, and `activity_review_count`; the existing scoped reader is `GET /api/v1/admin/world-builder/nodes/{node_id}`. | The direct source MapAsset links retain node description/slug fallback and review count. React Router calls the existing `selectStructuralNode(mapId, nodeId)` seam; it does not recreate or alter `ActivityGraph`. | Browser asserts source node link/copy/review state and the actual Structural map/node URL. |
+| Selected-map guidance and no-map states | A successful graph may contain a selected map without a loaded detail slot, or zero editable maps. Neither requires a new endpoint. | The lifted source shows its exact **Configure map** guidance when no editor slot is active and the original duplicated no-map message in its two source columns when `maps=[]`. | Browser asserts guidance and configure action for a selected map plus both no-map panels at desktop and narrow sizes. |
+
+Focused source-derived Rust-browser evidence is
+`frontend/e2e/world-map-management-localization.spec.ts` (the retained
+filename now tests pinned source hierarchy/copy, not localization). It verifies
+selected-map, MapAsset/navigation, and no-map states at **1440×900** and
+**390×844**. It is a pinned-source-code-to-Rust-browser comparison; direct
+live Laravel screenshot capture remains unavailable and is not claimed.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named

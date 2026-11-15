@@ -1,8 +1,52 @@
+import type { Page } from '@playwright/test';
+
 import { expect, test } from './authenticated';
 
-test('World Builder localizes the source-shaped structural map management workspace', async ({
-    page,
-}) => {
+const ids = {
+    firstMap: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9b',
+    node: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9c',
+    secondMap: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9d',
+};
+
+function map({
+    description = null,
+    id,
+    nodes = [],
+    reviewCount = 0,
+    title,
+}: {
+    description?: string | null;
+    id: string;
+    nodes?: object[];
+    reviewCount?: number;
+    title: string;
+}) {
+    return {
+        access_roles: [],
+        description,
+        id,
+        node_count: nodes.length,
+        nodes,
+        review_count: reviewCount,
+        slug: title.toLowerCase().replaceAll(' ', '-'),
+        title,
+        updated_at: '2026-11-15T12:34:00Z',
+    };
+}
+
+const node = {
+    activity_review_count: 1,
+    description: 'Mocked MapAsset description',
+    id: ids.node,
+    position: { q: 0, r: 0 },
+    slug: 'mocked-map-asset',
+    state: 'available',
+    title: 'Mocked MapAsset',
+    unlock_diagnostics: [],
+    visual_config: {},
+};
+
+async function installWorldBuilderRoutes(page: Page, maps: object[]) {
     await page.route('**/api/v1/me', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
@@ -18,45 +62,14 @@ test('World Builder localizes the source-shaped structural map management worksp
     await page.route('**/api/v1/learner/platform-translations', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
-            body: JSON.stringify({
-                locale: 'test',
-                translations: {
-                    'settings.world_builder.graph.tile_count_one': 'Localized :count tile',
-                    'settings.world_builder.map_management.title': 'Localized world maps',
-                    'settings.world_builder.map_management.review_one': 'Localized :count activity needs review',
-                    'settings.world_builder.map_management.selected_map': 'Localized selected map',
-                    'settings.world_builder.map_management.no_description': 'Localized no map description.',
-                    'settings.world_builder.map_management.configuration': 'Localized map configuration',
-                    'settings.world_builder.map_management.configuration_description': 'Localized map configuration guidance.',
-                    'settings.world_builder.map_management.map_assets': 'Localized MapAssets',
-                    'settings.world_builder.map_management.selection_guidance': 'Localized MapAsset selection guidance.',
-                    'settings.world_builder.map_management.configure': 'Configure localized map',
-                },
-            }),
+            body: JSON.stringify({ locale: 'test', translations: {} }),
         });
     });
     await page.route('**/api/v1/admin/world-builder', async (route) => {
         await route.fulfill({
             contentType: 'application/json',
             body: JSON.stringify({
-                maps: [
-                    {
-                        description: null,
-                        id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9b',
-                        node_count: 1,
-                        nodes: [
-                            {
-                                activity_review_count: 1,
-                                description: 'Mocked MapAsset description',
-                                id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9c',
-                                slug: 'mocked-map-asset',
-                                title: 'Mocked MapAsset',
-                            },
-                        ],
-                        review_count: 1,
-                        title: 'Mocked structural map',
-                    },
-                ],
+                maps,
                 portal_candidates: [],
                 portal_links: [],
                 world: {
@@ -69,30 +82,131 @@ test('World Builder localizes the source-shaped structural map management worksp
             }),
         });
     });
+}
 
-    await page.goto('/settings?panel=admin-world-builder&worldSection=structural');
-    await expect(page.getByText('Localized world maps')).toBeVisible();
-    await expect(page.getByText('Localized 1 tile')).toBeVisible();
-    await expect(page.getByText('Localized 1 activity needs review')).toHaveCount(2);
-    await expect(page.getByText('Localized selected map')).toBeVisible();
-    await expect(page.getByText('Localized no map description.')).toBeVisible();
-    await expect(
-        page.getByText('Localized map configuration', { exact: true }),
-    ).toBeVisible();
-    await expect(page.getByText('Localized map configuration guidance.')).toBeVisible();
-    await expect(page.getByText('Localized MapAssets')).toBeVisible();
-    await expect(page.getByText('Mocked MapAsset', { exact: true })).toBeVisible();
-    await expect(page.getByText('Localized MapAsset selection guidance.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Configure localized map' })).toBeVisible();
-
-    await page.setViewportSize({ width: 390, height: 844 });
-    const guidance = page.getByText('Localized MapAsset selection guidance.');
-    await guidance.scrollIntoViewIfNeeded();
-    await expect(guidance).toBeVisible();
-    const bounds = await guidance.boundingBox();
+async function expectBoundedWorkspace(
+    page: Page,
+    viewport: { height: number; width: number },
+) {
+    const workspace = page.locator(
+        '[data-wl-id="authoring.world-builder.structural-workspace"]',
+    );
+    await workspace.scrollIntoViewIfNeeded();
+    await expect(workspace).toBeVisible();
+    const bounds = await workspace.boundingBox();
     expect(bounds).not.toBeNull();
     expect(bounds!.x).toBeGreaterThanOrEqual(0);
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
-    expect(bounds!.y).toBeGreaterThanOrEqual(0);
-    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
+
+    return workspace;
+}
+
+test('World Builder lifts the pinned-source Structural map and MapAsset navigator at desktop and narrow viewports', async ({
+    page,
+}) => {
+    await installWorldBuilderRoutes(page, [
+        map({
+            id: ids.firstMap,
+            nodes: [node],
+            reviewCount: 1,
+            title: 'Mocked structural map',
+        }),
+        map({ id: ids.secondMap, title: 'Second source map' }),
+    ]);
+
+    await page.goto('/settings?panel=admin-world-builder&worldSection=structural');
+    const workspace = await expectBoundedWorkspace(page, {
+        height: 900,
+        width: 1440,
+    });
+
+    await expect(workspace.getByText('World maps', { exact: true })).toBeVisible();
+    await expect(workspace.getByText('1 tile', { exact: true })).toBeVisible();
+    await expect(
+        workspace.getByText('1 activity needs review', { exact: true }),
+    ).toHaveCount(2);
+    await expect(workspace.getByText('Selected map', { exact: true })).toBeVisible();
+    await expect(workspace.getByText('No map description yet.')).toBeVisible();
+    await expect(
+        workspace.getByText('Map configuration', { exact: true }),
+    ).toBeVisible();
+    await expect(
+        workspace.getByText('Details, visuals and access.').first(),
+    ).toBeVisible();
+    await expect(workspace.getByText('MapAssets', { exact: true })).toBeVisible();
+    await expect(
+        workspace.getByText('Mocked MapAsset', { exact: true }),
+    ).toBeVisible();
+    await expect(
+        workspace.getByText('Mocked MapAsset description'),
+    ).toBeVisible();
+    await expect(
+        workspace.getByText(
+            'Select a MapAsset to edit its activities, or open the map configuration for details, visuals and access.',
+        ),
+    ).toBeVisible();
+
+    const configureMap = workspace.getByRole('link', {
+        name: 'Configure map',
+    });
+    await expect(configureMap).toHaveAttribute(
+        'href',
+        `/settings?panel=admin-world-builder&worldSection=structural&map=${ids.firstMap}&worldView=configure`,
+    );
+    await expect(
+        workspace.getByRole('link', { name: /Map configuration/ }),
+    ).toHaveAttribute(
+        'href',
+        `/settings?panel=admin-world-builder&worldSection=structural&map=${ids.firstMap}&worldView=configure`,
+    );
+    await expect(
+        workspace.getByRole('link', { name: /Mocked MapAsset/ }),
+    ).toHaveAttribute(
+        'href',
+        `/settings?panel=admin-world-builder&worldSection=structural&map=${ids.firstMap}&node=${ids.node}&worldView=nodes`,
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectBoundedWorkspace(page, { height: 844, width: 390 });
+    await expect(configureMap).toBeVisible();
+
+    await workspace.getByRole('link', { name: /Second source map/ }).click();
+    await expect(page).toHaveURL(
+        new RegExp(`worldSection=structural&map=${ids.secondMap}`),
+    );
+
+    await page.goto('/settings?panel=admin-world-builder&worldSection=structural');
+    await configureMap.click();
+    await expect(page).toHaveURL(
+        new RegExp(
+            `worldSection=structural&map=${ids.firstMap}&worldView=configure`,
+        ),
+    );
+    await page.goto('/settings?panel=admin-world-builder&worldSection=structural');
+    await workspace.getByRole('link', { name: /Mocked MapAsset/ }).click();
+    await expect(page).toHaveURL(
+        new RegExp(
+            `worldSection=structural&map=${ids.firstMap}&node=${ids.node}&worldView=nodes`,
+        ),
+    );
+});
+
+test('World Builder lifts the pinned-source Structural no-map state at desktop and narrow viewports', async ({
+    page,
+}) => {
+    await installWorldBuilderRoutes(page, []);
+    await page.goto('/settings?panel=admin-world-builder&worldSection=structural');
+
+    for (const viewport of [
+        { height: 900, width: 1440 },
+        { height: 844, width: 390 },
+    ]) {
+        await page.setViewportSize(viewport);
+        const workspace = await expectBoundedWorkspace(page, viewport);
+        await expect(
+            workspace.getByText(
+                'Create a map before configuring map or MapAsset access.',
+            ),
+        ).toHaveCount(2);
+    }
 });
