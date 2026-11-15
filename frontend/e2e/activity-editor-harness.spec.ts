@@ -98,6 +98,44 @@ test('keeps the source empty editor state bounded at the narrow contract viewpor
     );
 });
 
+test('keeps the populated source graph primary card usable at narrow width', async ({
+    page,
+}) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html');
+
+    await expect(page.locator('.react-flow__renderer')).toHaveCSS(
+        'width',
+        /[1-9]/,
+    );
+    await expect(
+        page.getByRole('heading', { name: 'First activity' }),
+    ).toBeVisible();
+    await expectBounded(
+        page.getByRole('heading', { name: 'First activity' }),
+        390,
+    );
+    await expectBounded(
+        page.locator('[aria-label="Start route to First activity"]'),
+        390,
+    );
+});
+
+test('selects a source graph card before opening its keyboard delete action', async ({
+    page,
+}) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+
+    await page
+        .locator('[aria-label="open_practice: First activity"]')
+        .dispatchEvent('click');
+    await page.keyboard.press('Delete');
+    await expect(
+        page.getByRole('heading', { name: 'Delete activity?' }),
+    ).toBeVisible();
+});
+
 test('opens the source activity-card, connection, and Start-route dialogs', async ({
     page,
 }) => {

@@ -1779,24 +1779,29 @@ test-only shell supplies the same current-user provider that the Start-route
 image controls require. This is source-component browser evidence for the
 unmounted lift. The source Add-activity dialog now has its pinned first type,
 Open practice, browser-proven with its blank title default at both viewports
-and a bounded narrow type control. Direct graph-node click/selection, graph
-fitting and all remaining type forms remain unproven. Reflection's source type
-switch and its `What feels clearer now?` default are browser-proven at both
-viewports. Its source Review/Revisit variant, including the same default,
-is browser-proven at both viewports. Open-practice, Reflection and Review
-validation/stale-save/success remain unproven. The harness declares every
-remaining source type and browser-proves that Markdown, Portal, Question,
-Message Prompt/Wall, Shared Task, Item Grant, Item Obstacle, Obstacle and Tool
-Grant each reach their distinct lifted Flow section at both viewports. This is
-structural type-family evidence only: their per-field defaults, validation,
-stale-save and successful Rust command/reload behavior remain unproven, as do
-templates, citations, media, read denial and unavailable states. Open practice
-is a limited exception: its source-derived browser coverage captures the UUID
-node create command body, a Rust `400` rendered in the source Basics error
-placement, and a Rust `201` followed by the source route reload at the narrow
-viewport. Its desktop stale-edit case sends the original `updated_at` and the
-source default learner invitation to the typed Rust `409` route, keeps the
-source edit dialog open, and renders that source error placement without
+and a bounded narrow type control. The populated narrow graph now proves a
+nonzero source React Flow renderer and bounded primary activity/Start-route
+control. A desktop source activity-node click is also proven to select the card
+before its source keyboard-delete action opens the confirmation dialog. The
+pinned source uses the same default React Flow minimum-zoom configuration, so
+the complete three-card fixture cannot fit inside 390px without source-divergent
+zoom behavior; all-node narrow fitting is deliberately still unproven.
+Reflection's source type switch and its `What feels clearer now?` default are
+browser-proven at both viewports. Its source Review/Revisit variant, including
+the same default, is browser-proven at both viewports. The harness declares every
+remaining source type and browser-proves that Markdown, Portal, Question, Message
+Prompt/Wall, Shared Task, Item Grant, Item Obstacle, Obstacle and Tool Grant each
+reach their distinct lifted Flow section at both viewports. This is structural
+type-family evidence only: their per-field defaults, validation, stale-save and
+successful Rust command/reload behavior remain unproven, as do templates,
+citations, media, read denial and unavailable states.
+
+Open practice is a limited exception: its source-derived browser coverage
+captures the UUID node create command body, a Rust `400` rendered in the source
+Basics error placement, and a Rust `201` followed by the source route reload at
+the narrow viewport. Its desktop stale-edit case sends the original `updated_at`
+and the source default learner invitation to the typed Rust `409` route, keeps
+the source edit dialog open, and renders that source error placement without
 overwriting the activity. The same update reaches its typed Rust `200` response
 and source reload at the narrow viewport. Reflection create now has matching
 desktop Rust `400` source-error and narrow Rust `201` source-reload coverage,
@@ -1804,12 +1809,12 @@ including its full source-shaped prompt, note, topic and subtopic command body;
 its selected source record also sends its complete stored fields and original
 `updated_at` to the desktop Rust `409` conflict state, retains the source editor
 and error placement, then reaches the Rust `200` source reload at narrow width.
-Review / revisit has the equivalent source-form create and selected-record
-update evidence: desktop Rust `400` and `409` source error states, plus narrow
-Rust `201` and `200` source reloads with its complete reflection-shaped body
-and optimistic timestamp. The remaining types' command behavior and all other
-listed states remain unproven. It therefore does not close the P0 Activity
-Editor matrix or authorize mounting the route.
+Review / revisit has the equivalent source-form create and selected-record update
+evidence: desktop Rust `400` and `409` source error states, plus narrow Rust
+`201` and `200` source reloads with its complete reflection-shaped body and
+optimistic timestamp. The remaining types' command behavior and all other listed
+states remain unproven. It therefore does not close the P0 Activity Editor
+matrix or authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
