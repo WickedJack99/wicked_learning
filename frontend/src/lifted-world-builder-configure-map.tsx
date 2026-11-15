@@ -37,7 +37,11 @@ import { LiftedInput as Input } from './lifted-input';
 import { LiftedLabel as Label } from './lifted-label';
 import { LiftedPaginationControls as PaginationControls } from './lifted-pagination-controls';
 import { useCurrentUser } from './current-user';
-import { SettingsSectionButton } from './extracted-settings-configuration-shell';
+import {
+    SettingsConfigurationShell,
+    SettingsNestedWorkspace,
+    SettingsSectionButton,
+} from './extracted-settings-configuration-shell';
 import { LiftedReusableImagePicker } from './lifted-reusable-image-picker';
 import { usePlatformTranslation } from './original-platform-translation';
 
@@ -178,14 +182,6 @@ function ConfigImageInput({
             {isPickerOpen ? <LiftedReusableImagePicker currentValue={value} onClear={() => { onChange(''); setIsPickerOpen(false); }} onClose={() => setIsPickerOpen(false)} onSelect={(url) => { onChange(normalizeMediaUrl(url)); setIsPickerOpen(false); }} /> : null}
         </div>
     );
-}
-
-function SettingsNestedWorkspace({ children, contentClassName, sidebar }: { children: ReactNode; contentClassName?: string; sidebar: ReactNode; collapseSidebarBelowWide?: boolean; description?: ReactNode; eyebrow?: ReactNode; headerContentClassName?: string; icon?: typeof SlidersHorizontal; title?: ReactNode }) {
-    return <section className="grid h-full min-h-0 gap-0 overflow-hidden 2xl:grid-cols-[16rem_minmax(0,1fr)]"><aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-3 2xl:border-r 2xl:border-b-0"><nav className="flex flex-wrap gap-2 2xl:grid">{sidebar}</nav></aside><div className="min-h-0 min-w-0 overflow-hidden bg-[var(--settings-content-background)]"><div className={contentClassName ?? 'min-h-0 flex-1 overflow-y-auto p-4 sm:p-5'}>{children}</div></div></section>;
-}
-
-function SettingsConfigurationShell({ children, eyebrow, sidebar, title }: { children: ReactNode; eyebrow: string; sidebar: ReactNode; title: string; backHref?: string; backLabel?: string }) {
-    return <main className="settings-surface fixed inset-0 overflow-hidden bg-[var(--settings-content-background)] p-4 text-foreground"><div className="mx-auto flex h-full min-h-0 w-full max-w-[92rem] flex-col overflow-hidden"><header className="shrink-0 pb-5"><p className="text-xs font-medium tracking-[0.18em] uppercase text-[var(--settings-accent)]">{eyebrow}</p><h1 className="mt-2 text-3xl font-semibold tracking-normal">{title}</h1></header><section className="grid min-h-0 flex-1 gap-4 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4 md:grid-cols-[16rem_minmax(0,1fr)]">{sidebar}<div className="min-h-0 overflow-hidden">{children}</div></section></div></main>;
 }
 
 type EditableWorld = {

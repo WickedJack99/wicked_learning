@@ -1,10 +1,14 @@
-import type { LucideIcon } from 'lucide-react';
+import { ArrowLeft, type LucideIcon } from 'lucide-react';
 import { useRef } from 'react';
 import type {
     KeyboardEvent as ReactKeyboardEvent,
     ReactNode,
     Ref,
 } from 'react';
+import { Link } from 'react-router';
+
+import { LiftedButton as Button } from './lifted-button';
+import { usePlatformTranslation } from './original-platform-translation';
 
 /**
  * Extracted from resources/js/components/settings-configuration-shell.tsx.
@@ -20,6 +24,17 @@ export type SettingsNavigationItem<T extends string> = {
     label: string;
 };
 
+type SettingsConfigurationShellProps = {
+    action?: ReactNode;
+    backHref?: string;
+    backLabel?: string;
+    children: ReactNode;
+    eyebrow: string;
+    footerAction?: ReactNode;
+    sidebar: ReactNode;
+    title: string;
+};
+
 type SettingsConfigurationLayoutProps = {
     children: ReactNode;
     className?: string;
@@ -33,8 +48,14 @@ type SettingsNestedWorkspaceProps = {
     children: ReactNode;
     collapseSidebarBelowWide?: boolean;
     contentClassName?: string;
+    description?: ReactNode;
+    eyebrow?: ReactNode;
     footerAction?: ReactNode;
+    headerContentClassName?: string;
+    icon?: LucideIcon;
+    item?: SettingsNavigationItem<string>;
     sidebar: ReactNode;
+    title?: ReactNode;
 };
 
 type SettingsSectionButtonProps<T extends string> = {
@@ -81,6 +102,67 @@ type SettingsSectionWorkspaceProps<T extends string> = {
     items: SettingsNavigationItem<T>[];
     onChange: (section: T) => void;
 };
+
+/**
+ * Direct lift of the source Settings configuration shell. The source Inertia
+ * Link and usePage presentation lookup are framework seams: this configuration
+ * page is mounted inside the existing Rust Settings presentation surface, and
+ * React Router keeps the exact destination and browser history behavior.
+ */
+export function SettingsConfigurationShell({
+    action,
+    backHref = '/settings',
+    backLabel,
+    children,
+    eyebrow,
+    footerAction,
+    sidebar,
+    title,
+}: SettingsConfigurationShellProps) {
+    const t = usePlatformTranslation();
+    const resolvedBackLabel = backLabel ?? t('common.settings', 'Settings');
+
+    return (
+        <main className="settings-surface fixed inset-0 overflow-hidden bg-[var(--settings-content-background)] px-4 py-5 text-foreground">
+            <div className="mx-auto flex h-full min-h-0 w-full max-w-[92rem] flex-col overflow-hidden">
+                <header className="flex shrink-0 items-start justify-between gap-4 pb-5">
+                    <div>
+                        <Button asChild className="mb-4" variant="ghost">
+                            <Link to={backHref}>
+                                <ArrowLeft className="size-4" />
+                                {resolvedBackLabel}
+                            </Link>
+                        </Button>
+                        <p
+                            className="text-xs font-medium tracking-[0.18em] uppercase"
+                            style={{ color: 'var(--settings-accent)' }}
+                        >
+                            {eyebrow}
+                        </p>
+                        <h1 className="mt-2 text-3xl font-semibold tracking-normal">
+                            {title}
+                        </h1>
+                    </div>
+                    {action}
+                </header>
+
+                <section className="grid min-h-0 flex-1 gap-4 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4 md:grid-cols-[16rem_minmax(0,1fr)]">
+                    {sidebar}
+                    <div className="flex min-h-0 flex-col overflow-hidden">
+                        <div className="min-h-0 flex-1 overflow-hidden">
+                            {children}
+                        </div>
+                        {footerAction ? (
+                            <footer className="shrink-0 border-t border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4">
+                                {footerAction}
+                            </footer>
+                        ) : null}
+                    </div>
+                </section>
+            </div>
+        </main>
+    );
+}
 
 export function SettingsSectionButton<T extends string>({
     ariaControls,
