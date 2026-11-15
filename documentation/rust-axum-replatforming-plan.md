@@ -1615,6 +1615,22 @@ JSON shape and reject unexpected stored fields; the API and frontend builds
 pass. These components remain unmounted until the complete Activity Editor
 replaces the bespoke route.
 
+#### Eighth Activity Editor implementation prerequisite: checkbox primitive — 15 November 2026
+
+The complete pinned-source `resources/js/components/ui/checkbox.tsx` is now
+lifted to `frontend/src/lifted-checkbox.tsx`. The user approved adding the
+source lockfile's resolved `@radix-ui/react-checkbox` `1.3.4` dependency to
+the standalone frontend. Apart from the standalone class-name utility import
+and the exported `LiftedCheckbox` name, its Radix root, indicator, slot and
+classes are unchanged from pinned `main`.
+
+It is a shared dependency prerequisite for the source `activity-config-fields`
+module and the item, message, obstacle, portal and shared-task field modules;
+it is deliberately not mounted independently. `npm ls`, generated API check
+and the standalone TypeScript/Vite build verify the dependency boundary. Live
+checkbox interaction remains part of the complete, mounted Activity Editor
+browser matrix rather than evidence of a partial editor migration.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
