@@ -1797,9 +1797,10 @@ placement, and a Rust `201` followed by the source route reload at the narrow
 viewport. Its desktop stale-edit case sends the original `updated_at` and the
 source default learner invitation to the typed Rust `409` route, keeps the
 source edit dialog open, and renders that source error placement without
-overwriting the activity. The remaining types' command behavior and all other
-listed states remain unproven. It therefore does not close the P0 Activity
-Editor matrix or authorize mounting the route.
+overwriting the activity. The same update reaches its typed Rust `200` response
+and source reload at the narrow viewport. The remaining types' command behavior
+and all other listed states remain unproven. It therefore does not close the P0
+Activity Editor matrix or authorize mounting the route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
