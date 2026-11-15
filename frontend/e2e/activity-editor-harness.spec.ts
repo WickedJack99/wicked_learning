@@ -375,3 +375,46 @@ test('reloads after a typed Rust Open-practice create succeeds', async ({ page }
         390,
     );
 });
+
+test('surfaces a typed Rust stale Open-practice update without overwriting', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/open-practice',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 409 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await expect(
+        page.getByRole('heading', { name: 'Edit activity' }),
+    ).toBeVisible();
+    await page.getByLabel('Title').fill('Practice safely (edited)');
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+    await expect(
+        page.getByText(
+            'The activity could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    expect(commandBody).toEqual({
+        introduction: 'Start with this activity.',
+        next_step: 'Choose a useful next step, then continue when you are ready.',
+        slug: 'first-activity',
+        title: 'Practice safely (edited)',
+        updated_at: '2026-11-15T10:00:00Z',
+    });
+    await expect(
+        page.getByRole('heading', { name: 'Edit activity' }),
+    ).toBeVisible();
+});
