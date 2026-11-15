@@ -1338,9 +1338,14 @@ details, access, history, delete and visual mutation paths against the live
 Rust contracts. The focused source-derived browser fixture is
 `frontend/e2e/world-builder-configure-map.spec.ts` at 1440×900 and 390×844.
 
-#### Source-parity preflight: complete MapAsset editor route — 15 November 2026
+#### P0 implementation: complete MapAsset editor route — 15 November 2026
 
-**Status: active discovery; no editor UI has been changed by this preflight.**
+**Status: active implementation; not yet a completed migration slice.** The
+Graph workspace now mounts the whole pinned-source route through
+`LiftedWorldBuilderEditMapDocument`, rather than the bespoke
+`MapAssetSurface`. The direct lift remains deliberately uncommitted until the
+remaining source-state coverage below is verified; do not substitute the old
+surface to make an incomplete route look finished.
 The next editor candidate is the entire pinned-main
 `resources/js/pages/settings/worlds/edit-map.tsx` (5,290 lines), whose default
 `EditWorldMap` component is the source destination behind **Configure
@@ -1365,6 +1370,16 @@ one MapAsset, selected MapAsset, selected tile/node, toggle-state preview,
 layout operation, editor loading/error, and map-scoped media failure. It must
 not route around an unavailable source dependency by keeping the bespoke
 surface in its place.
+
+| Pinned import / source seam | Rust adapter | Retained source behavior | Contract and current evidence |
+| --- | --- | --- | --- |
+| `@inertiajs/react`: `Head`, `Link`, `router` and `usePage` | `LiftedWorldBuilderEditMapDocument` maps `AdminEditableMap` wire fields to the source prop shape; `Link` uses React Router and `LiftedWorldMapTransport` owns the only request boundary. | The 5,290-line `EditWorldMap` route hierarchy, embedded dialog sizing, source URLs and lifecycle callbacks remain intact. | `GET /admin/world-builder/maps/{map_id}`; mutating source-shaped URLs are exhaustively dispatched only to typed Rust endpoints. Browser fixture proves the mounted route at 1440×900 and 390×844. |
+| `features/settings/map-asset-editor.tsx` and `MapAssetFields` | Whole copied source component, UUID type adapter, and direct callbacks for add/import/image upload. The missing source toast runtime is replaced only at this transport boundary by its bounded inline error announcement. | Canvas, empty state, selectable MapAssets, field sections and source interaction-state UI. | `POST /maps/{map_id}/assets`, `PATCH /assets/{asset_id}`, multipart `asset-exports/import`, and scoped visual media. Fixture proves empty/selected MapAsset+node, toggle-state preview, 201 add, 503 add failure and 503 image-upload failure. |
+| `features/admin-worlds/hex-grid-geometry`, `features/world/{image-alpha-mask,map-asset-image,map-asset-interaction,map-asset-visual,theme}` | Direct lifted modules with import-only substitutions. | Source axial placement, hit area, state resolution, visual composition and themes. | The fixture proves a selected source node/tile, toggle preview and bounded layout-history loading, empty and unavailable states. Browser proof of drag/move, adjacent swap and history restore remains required before completion. |
+| Node `router.post/patch/delete` paths | `useRustTransport` resolves source paths to node create/update/insert/delete/reset/swap endpoints with CSRF, UUID paths and a document reload. | Source dialogs, confirmations, form reset and source payload construction. | `POST /maps/{map_id}/nodes`, `PATCH`/`DELETE /nodes/{node_id}`, node insert/reset/swap. Rust application/API unit suites pass; browser node lifecycle coverage remains required. |
+| Map, MapAsset and history writer paths | `useRustTransport`; lifted source history dialogs use their typed list/preview/restore endpoints. | Source map visual/details/access saves, MapAsset saves, history/list/restore affordances and exports. | Map visuals/details/access, `PATCH /assets/{asset_id}`, asset and layout version endpoints. Export links use `/api/v1/admin/world-builder/assets/{asset_id}/{export,export-package}`. Asset-history empty/list/restore plus layout-history loading, empty and 503 UI are browser-proven. |
+| `uploadMediaFile`, `ConfigImageInput` and `SoundAssetInput` | Map-scoped visual multipart upload and reusable sound multipart upload. Sound staging is normalized from `/admin/sounds/media/{id}/content` to `/admin/media-assets/{id}/content` before node save. | Source image/sound controls and managed media references. | `POST /maps/{map_id}/visual-media` and `POST /admin/sounds/media`, both CSRF-protected. The MapAsset image-upload 503 fallback is browser-proven; sound upload and successful managed-reference evidence remains required. |
+| `ContentAuthoringDialog` | Existing full source-adapted typed content-authoring dialog remains mounted from the source toolbar and reloads the selected map on apply. | Existing authoring launch, source-record selection, draft review and activity handoff. | Existing AI/content-plan Rust endpoints; retain its own focused coverage while completing this editor slice. |
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 

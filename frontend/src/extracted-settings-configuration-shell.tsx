@@ -38,11 +38,13 @@ type SettingsNestedWorkspaceProps = {
 };
 
 type SettingsSectionButtonProps<T extends string> = {
+    ariaControls?: string;
     active: boolean;
     buttonRef?: Ref<HTMLButtonElement>;
     compact?: boolean;
     danger?: boolean;
     description?: string;
+    elementId?: string;
     icon: LucideIcon;
     id: T;
     label: string;
@@ -81,11 +83,13 @@ type SettingsSectionWorkspaceProps<T extends string> = {
 };
 
 export function SettingsSectionButton<T extends string>({
+    ariaControls,
     active,
     buttonRef,
     compact = false,
     danger = false,
     description,
+    elementId,
     icon: Icon,
     id,
     label,
@@ -96,6 +100,7 @@ export function SettingsSectionButton<T extends string>({
 }: SettingsSectionButtonProps<T>) {
     return (
         <button
+            aria-controls={role === 'tab' ? ariaControls : undefined}
             aria-selected={role === 'tab' ? active : undefined}
             className={classNames(
                 'relative flex items-start gap-3 overflow-hidden rounded-lg px-3 py-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
@@ -109,6 +114,7 @@ export function SettingsSectionButton<T extends string>({
                         ? 'text-red-600 hover:bg-red-50 dark:text-red-200 dark:hover:bg-red-400/10'
                         : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]'),
             )}
+            id={elementId}
             onClick={() => onSelect(id)}
             onKeyDown={onKeyDown}
             ref={buttonRef}

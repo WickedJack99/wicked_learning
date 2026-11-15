@@ -86,6 +86,7 @@ import { usePlatformTranslation } from './original-platform-translation';
 import { LiftedWorldBuilderGraph } from './lifted-world-builder-graph';
 import { LiftedWorldBuilderMapDetails } from './lifted-world-builder-map-details';
 import { LiftedWorldBuilderConfigureMapDocument } from './lifted-world-builder-configure-map';
+import { LiftedWorldBuilderEditMapDocument } from './lifted-world-builder-edit-map-adapter';
 import { LiftedWorldBuilderMapWorkspace } from './lifted-world-builder-map-workspace';
 import { LiftedWorldBuilderPortalDetails } from './lifted-world-builder-portal-details';
 import { LiftedWorldBuilderWorldDetailsDialog } from './lifted-world-builder-world-details-dialog';
@@ -937,14 +938,8 @@ function WorldBuilderContent({
                                                   }}
                                               />
                                           ) : (
-                                              <MapAssetSurface
+                                              <LiftedWorldBuilderEditMapDocument
                                                   document={editableMap}
-                                                  onOpenNode={(nodeId) =>
-                                                      selectNode(
-                                                          selectedMapId,
-                                                          nodeId,
-                                                      )
-                                                  }
                                                   onUpdated={() => {
                                                       setMapReload(
                                                           (current) => current + 1,
