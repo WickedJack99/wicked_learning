@@ -1697,6 +1697,16 @@ form value now retains comma-separated opaque Rust UUIDs, with no numeric
 conversion or client aliasing. The module remains unmounted pending the
 complete source Activity Editor lift.
 
+#### Fourteenth Activity Editor implementation prerequisite: Item Grant and Item Obstacle fields — 15 November 2026
+
+The complete pinned-source
+`resources/js/pages/settings/worlds/item-activity-fields.tsx` is lifted to
+`frontend/src/lifted-world-builder-item-activity-fields.tsx`, retaining the
+source grant/obstacle forms and visual previews. Its one UUID seam is localized
+to the source item lookup: a selected opaque item ID is matched directly rather
+than first coerced to a numeric Laravel ID. The module remains unmounted until
+the full source Activity Editor is mounted.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect
