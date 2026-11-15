@@ -155,3 +155,47 @@ test('keeps the source Add activity defaults reachable at the narrow viewport', 
     await expect(page.getByLabel('Title')).toHaveValue('');
     await expectBounded(page.getByRole('combobox', { name: 'Type' }), 390);
 });
+
+test('switches the source Add activity form to Reflection', async ({ page }) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page.getByRole('option', { name: 'Reflection' }).dispatchEvent('click');
+    await expect(page.getByRole('combobox', { name: 'Type' })).toHaveText(
+        'Reflection',
+    );
+
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+    await expect(
+        page.getByRole('heading', { name: 'Reflection prompt' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Question')).toHaveValue(
+        'What feels clearer now?',
+    );
+});
+
+test('keeps the source Reflection default reachable at the narrow viewport', async ({
+    page,
+}) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html');
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page.getByRole('option', { name: 'Reflection' }).dispatchEvent('click');
+    await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+
+    await expect(
+        page.getByRole('heading', { name: 'Reflection prompt' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Question')).toHaveValue(
+        'What feels clearer now?',
+    );
+    await expectBounded(page.getByRole('tab', { name: 'Flow' }), 390);
+});

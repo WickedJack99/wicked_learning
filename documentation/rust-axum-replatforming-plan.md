@@ -1780,7 +1780,9 @@ image controls require. This is source-component browser evidence for the
 unmounted lift. The source Add-activity dialog now has its pinned first type,
 Open practice, browser-proven with its blank title default at both viewports
 and a bounded narrow type control. Direct graph-node click/selection, graph
-fitting, all remaining type forms, Open-practice validation/stale-save/success,
+fitting and all remaining type forms remain unproven. Reflection's source type
+switch and its `What feels clearer now?` default are browser-proven at both
+viewports. Open-practice and Reflection validation/stale-save/success,
 templates, citations, media, commands, denial and unavailable states remain
 unproven. It therefore does not close the P0 Activity Editor matrix or
 authorize mounting the route.
