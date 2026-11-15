@@ -747,8 +747,8 @@ same endpoint.
 | `features/settings/world-builder-settings-panel.tsx` → `WorldBuilderMapWorkspace`; `SettingsSectionButton`; `features/settings/world-map-management-panel.tsx` → `WorldMapManagementPanel` | `lifted-world-builder-map-workspace.tsx` and `lifted-world-map-management.tsx`. React Router callbacks are limited to source Graph/Structural selection URLs; current Rust editor surfaces remain content slots, not replacement source markup. | The two source map-workspace sections, source descriptions/icons and map-management layout that have been lifted. No map/MapAsset editor flow is implied by this mapping. | Typed map/node reads above supply selected content only after authorization. The wrapper has no invented unavailable state. | `world-builder-map-workspace.spec.ts` and `world-map-management-localization.spec.ts` preserve current source-derived regression coverage; Structural visual closure remains separately backlogged. |
 | `pages/settings/worlds/index.tsx` create dialog; `components/ui/button.tsx`, `dialog.tsx`, `input.tsx`, `label.tsx`, `input-error.tsx`; `lib/utils.ts` | `lifted-world-builder-create-map-dialog.tsx`, `lifted-button.tsx`, `lifted-dialog.tsx`, `lifted-input.tsx`, `lifted-label.tsx`, `lifted-input-error.tsx`, and `lifted-class-names.ts`. Source `router.post` becomes one typed command; Radix/CVA/clsx/tailwind-merge remain source-compatible runtime dependencies. | The source trigger, dialog/form hierarchy, field constraints and success selection. Laravel's named validation bag is not fabricated. | `POST /admin/world-builder/maps` sends `{ title, slug: string|null, description: string|null }` with CSRF, returns `201 { map_id }`; `400/401/403/404/503` are bounded source-form adapter states. | `world-builder-create-map-dialog.spec.ts` proves form, Rust `400`, `201`, CSRF and bounds at both viewports. |
 | `features/settings/map-export-validation-dialog.tsx` → `ValidationSummary`, `MediaReferenceDetails`, `ValidationCount`, `ValidationMessages` | `lifted-world-builder-map-export-validation.tsx`; source `fetch` CSRF-meta seam becomes `getCsrfToken` and typed `apiClient`. | Source dialog, file input, loading/failure/success structure and validation presentation, including real media rows rather than the former omitted-details fallback. | `POST /admin/world-builder/map-exports/preflight`, multipart `manifest` plus CSRF, now returns the complete source-compatible `valid/summary/errors/warnings/counts/mediaReferenceDetails/world/map` read model; `400/401/403/404/503` use the source failure state. | `world-builder-map-export-validation.spec.ts` asserts success/media details, `503`, CSRF and two viewport bounds. |
-| `features/settings/map-import-dialog.tsx` (map scope) and its reuse of `ValidationSummary` | **Contract ready; source component not lifted yet.** `original-world-builder.tsx`'s `MapImportDialog` remains a legacy bespoke Rust dialog and must not be treated as source parity. The next UI slice must lift the pinned source component whole, replacing only its Laravel/Inertia seams. | The pinned source requires file-change preflight, sequence cancellation, check-again, validation summary, and map title/optional slug fields before source import. | Map preflight now supplies the source's complete identity/media/detail model, including current-workspace world, source-map conflict facts, topics and external portal endpoint checks. `POST /admin/world-builder/map-exports/import` remains the future source seam (`201 { map_id }`, `400/401/403/404/503`); no Laravel field errors are invented. | The contract's application and validator browser evidence is recorded below. Map-dialog parity evidence remains pending the direct source lift. |
-| `features/settings/map-import-dialog.tsx` (world scope) and its `ValidationSummary` dependency | **Lifted for world scope only.** `lifted-world-builder-world-import-dialog.tsx` carries the complete pinned `MapImportDialog`; the legacy bespoke `WorldImportDialog` is removed. Map scope remains explicitly unavailable. | Source trigger, Dialog/field hierarchy, file-change preflight, sequence cancellation, check-again, validation summary, and world-only import gate remain source-owned. | `POST /admin/world-builder/world-exports/preflight` supplies the full validation result with CSRF. `POST /world-exports/import` accepts multipart `manifest` plus CSRF and returns `201 { map_ids }`; its Rust Problem failures use the source `InputError` manifest slot rather than a replacement dialog. | `world-import-localization.spec.ts` proves the source hierarchy, Rust `503` retry, successful preflight/import, CSRF and visible/bounded controls at 1440×900 and 390×844. |
+| `features/settings/map-import-dialog.tsx` (map scope) and its reuse of `ValidationSummary` | **Lifted.** `lifted-world-builder-world-import-dialog.tsx` contains the complete pinned source component for both scopes; Graph mounts its map-scope wrapper where the bespoke trigger/dialog previously lived. The legacy bespoke `MapImportDialog` is removed. | Pinned file-change preflight, sequence cancellation, check-again, validation summary, map title/optional slug fields, responsive dialog and submit gate are source-owned. | `POST /admin/world-builder/map-exports/preflight` and `POST /admin/world-builder/map-exports/import` replace only Laravel/Inertia transport with multipart + CSRF; `201 { map_id }` invokes the existing Graph reload/selection callback, while Rust Problem failures use the source `InputError` manifest slot. | `map-import-localization.spec.ts` covers source controls, a Rust `503` retry, success, CSRF, summary/media facts and visible bounds at both required viewports. |
+| `features/settings/map-import-dialog.tsx` (world scope) and its `ValidationSummary` dependency | **Lifted.** `lifted-world-builder-world-import-dialog.tsx` carries the complete pinned `MapImportDialog`; the legacy bespoke `WorldImportDialog` is removed. Its map scope is now recorded separately in the Fifteenth slice below. | Source trigger, Dialog/field hierarchy, file-change preflight, sequence cancellation, check-again, validation summary, and world-only import gate remain source-owned. | `POST /admin/world-builder/world-exports/preflight` supplies the full validation result with CSRF. `POST /world-exports/import` accepts multipart `manifest` plus CSRF and returns `201 { map_ids }`; its Rust Problem failures use the source `InputError` manifest slot rather than a replacement dialog. | `world-import-localization.spec.ts` proves the source hierarchy, Rust `503` retry, successful preflight/import, CSRF and visible/bounded controls at 1440×900 and 390×844. |
 | `hooks/use-platform-translation.ts`, source settings CSS/tokens, `theme/presentation.ts`, Lucide imports | `original-platform-translation.ts`, existing Settings CSS tokens, `original-appearance.ts`, and direct `lucide-react` imports. | Source fallback copy, active appearance, icons and source utilities remain inside each direct lift. Translation loading never changes graph or authoring payload semantics. | Translation/appearance are read adapters only; no World Builder endpoint is altered. A missing catalog entry falls back to the pinned source literal already in the lifted component. | The focused specs above retain source fallback text assertions; visual acceptance is scoped per completed slice. |
 
 The import rows are deliberately a blocking result, not a request to normalize
@@ -810,11 +810,10 @@ point; the following prerequisite closes that contract only.
 **Pinned source remains:** `main`
 `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
 
-This backend/read-contract slice closes the map-scope blocker without lifting
-or redesigning `MapImportDialog`. The legacy bespoke map-import UI remains
-untouched and is not a parity claim. The follow-up may lift only the complete
-pinned `features/settings/map-import-dialog.tsx` map scope with its explicit
-Rust transport adapters.
+This backend/read-contract slice closed the map-scope blocker without lifting
+or redesigning `MapImportDialog` at that point. The subsequent Fifteenth slice
+lifts only the complete pinned `features/settings/map-import-dialog.tsx` map
+scope with its explicit Rust transport adapters.
 
 | Pinned source validator requirement | Rust preflight contract | Evidence |
 | --- | --- | --- |
@@ -826,8 +825,29 @@ The Rust greenfield platform has exactly one active workspace rather than
 Laravel's global World lookup. Therefore `world.exists` means “the submitted
 slug is the current writable Rust workspace”; this is the same condition the
 Rust writer enforces and is not a fabricated compatibility value. The source
-map-scope dialog is still pending its own direct-lift implementation and
-browser parity slice.
+map-scope dialog's direct lift is recorded immediately below.
+
+#### Fifteenth P0 implementation evidence: source map-import dialog — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+This slice directly lifts the map scope of
+`resources/js/features/settings/map-import-dialog.tsx` into the shared
+`frontend/src/lifted-world-builder-world-import-dialog.tsx` source component.
+The source component already owns both `scope="map"` and `scope="world"`
+branches; retaining it as one direct lift prevents divergent dialogs. The
+world wrapper is unchanged, while Graph now mounts the map wrapper in place of
+the bespoke trigger and dialog. No graph canvas/routing, selected inspector,
+Review, Structural, map editor or MapAsset editor was changed.
+
+| Source map-scope requirement | Rust adapter boundary | Evidence |
+| --- | --- | --- |
+| Source trigger, `sm:max-w-lg` Dialog, file-change validation, sequence cancellation and **Check again** | The source meta-CSRF lookup/validation endpoint becomes `getCsrfToken` plus `POST /api/v1/admin/world-builder/map-exports/preflight`. Rust accepts only `manifest`, so the Laravel-only `scope` multipart field is intentionally omitted. Its full preflight result adapts field-for-field to `MapExportValidationResult`. | `map-import-localization.spec.ts` forces a Rust `503`, verifies the source `InputError`/retry branch, then validates the full result and controls at **390×844** and **1440×900**. |
+| Source map title and optional slug fields, valid-preflight import gate and source submit copy | The only write seam is multipart `POST /api/v1/admin/world-builder/map-exports/import` with `manifest`, title, optional slug and CSRF. `201 { map_id }` maps to the existing Graph reload and selection callback; Rust Problem payloads stay in the source manifest error slot because Rust has no Laravel named validation bag. | Browser evidence asserts the title/slug controls, import request, CSRF headers, successful close and source validation media summary. |
+
+This is a pinned-source-code-to-Rust-browser comparison; direct live Laravel
+screenshot capture remains unavailable and is not claimed.
 
 ### Active frontend provenance audit — 5 November 2026
 

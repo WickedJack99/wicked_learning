@@ -1,12 +1,13 @@
 import { expect, test } from './authenticated';
 
-test('map import uses fixed platform catalog copy while preserving the preflight gate and import command', async ({
+test('the lifted source map-import dialog retains map fields, preflight retry, and Rust import seams at desktop and narrow viewports', async ({
     page,
 }) => {
     const sourceMapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d71';
     const importedMapId = '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d72';
     const importedTitle = 'Localized imported map';
     let imported = false;
+    let preflightAttempts = 0;
     let csrfHeaders: string[] = [];
 
     await page.route('**/api/v1/me', async (route) => {
@@ -35,22 +36,12 @@ test('map import uses fixed platform catalog copy while preserving the preflight
                     translations: {
                         'settings.world_builder.import.open':
                             'Open localized map import',
-                        'settings.world_builder.import.eyebrow':
-                            'Localized World Builder',
                         'settings.world_builder.import.title':
                             'Localized authored map import',
-                        'settings.world_builder.import.description':
+                        'settings.world_builder.import.package_description':
                             'Localized map-import guidance.',
-                        'settings.world_builder.import.close_aria':
-                            'Close localized map import',
-                        'settings.world_builder.import.file':
+                        'settings.world_builder.import.package_file':
                             'Localized map export file',
-                        'settings.world_builder.import.no_file':
-                            'No localized import file selected.',
-                        'settings.world_builder.import.map_checking':
-                            'Checking localized map import…',
-                        'settings.world_builder.import.check':
-                            'Check localized map export',
                         'settings.world_builder.import.name':
                             'Localized imported map title',
                         'settings.world_builder.import.slug':
@@ -61,6 +52,8 @@ test('map import uses fixed platform catalog copy while preserving the preflight
                             'Importing localized map…',
                         'settings.world_builder.import.submit':
                             'Import localized map',
+                        'settings.world_builder.import.recheck':
+                            'Check localized map export again',
                     },
                 }),
             });
@@ -106,6 +99,15 @@ test('map import uses fixed platform catalog copy while preserving the preflight
         '**/api/v1/admin/world-builder/map-exports/preflight',
         async (route) => {
             csrfHeaders.push(route.request().headers()['x-csrf-token'] ?? '');
+            preflightAttempts += 1;
+            if (preflightAttempts === 1) {
+                await route.fulfill({
+                    body: JSON.stringify({ title: 'Unavailable' }),
+                    contentType: 'application/problem+json',
+                    status: 503,
+                });
+                return;
+            }
             await route.fulfill({
                 contentType: 'application/json',
                 body: JSON.stringify(preflightResult()),
@@ -137,14 +139,17 @@ test('map import uses fixed platform catalog copy while preserving the preflight
         .click();
 
     const dialog = page.locator(
-        '[data-wl-id="authoring.world-builder.map-import.dialog"]',
+        '[data-wl-id="settings.world-builder.map.import.dialog"]',
     );
     await expect(
         dialog.getByRole('heading', { name: 'Localized authored map import' }),
     ).toBeVisible();
     await expect(dialog.getByText('Localized map-import guidance.')).toBeVisible();
     await expect(
-        dialog.getByText('No localized import file selected.'),
+        dialog.getByLabel('Localized imported map title'),
+    ).toBeVisible();
+    await expect(
+        dialog.getByLabel('Localized imported map slug'),
     ).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -155,24 +160,43 @@ test('map import uses fixed platform catalog copy while preserving the preflight
     expect(bounds!.y).toBeGreaterThanOrEqual(0);
     expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
 
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await dialog.getByLabel('Localized map export file').setInputFiles({
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const desktopBounds = await dialog.boundingBox();
+    expect(desktopBounds).not.toBeNull();
+    expect(desktopBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(desktopBounds!.x + desktopBounds!.width).toBeLessThanOrEqual(1440);
+    expect(desktopBounds!.y).toBeGreaterThanOrEqual(0);
+    expect(desktopBounds!.y + desktopBounds!.height).toBeLessThanOrEqual(900);
+    const fileInput = dialog.getByLabel('Localized map export file');
+    await expect(fileInput).toHaveAttribute(
+        'accept',
+        '.json,.zip,application/json,application/zip,text/plain',
+    );
+    const unavailablePreflight = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response.url().includes('/map-exports/preflight'),
+    );
+    await fileInput.setInputFiles({
         buffer: Buffer.from('{"format":"wicked-learning-map"}'),
         mimeType: 'application/json',
         name: 'localized-map-export.json',
     });
+    expect((await unavailablePreflight).status()).toBe(503);
+    await expect(dialog.getByText('The file could not be checked.')).toBeVisible();
     const preflight = page.waitForResponse(
         (response) =>
             response.request().method() === 'POST' &&
             response.url().includes('/map-exports/preflight'),
     );
     await dialog
-        .getByRole('button', { name: 'Check localized map export' })
+        .getByRole('button', { name: 'Check localized map export again' })
         .click();
     expect((await preflight).status()).toBe(200);
     await expect(dialog.getByRole('status')).toContainText(
         'The mocked export is structurally ready.',
     );
+    await expect(dialog.getByRole('status')).toContainText('Referenced media');
 
     await dialog
         .getByLabel('Localized imported map title')
@@ -186,8 +210,12 @@ test('map import uses fixed platform catalog copy while preserving the preflight
         .getByRole('button', { name: 'Import localized map' })
         .click();
     expect((await importedResponse).status()).toBe(201);
-    expect(csrfHeaders).toEqual(['test-csrf-token', 'test-csrf-token']);
-    await expect(page.getByRole('heading', { name: importedTitle })).toBeVisible();
+    expect(csrfHeaders).toEqual([
+        'test-csrf-token',
+        'test-csrf-token',
+        'test-csrf-token',
+    ]);
+    await expect(dialog).toBeHidden();
 });
 
 test('map creation uses fixed platform catalog copy and the scoped CSRF command', async ({
@@ -391,13 +419,21 @@ function preflightResult() {
         counts: {
             activities: 0,
             mapAssets: 0,
-            mediaReferences: 0,
+            mediaReferences: 1,
             nodes: 0,
             portalTargets: 0,
         },
         errors: [],
+        map: { exists: false, slug: 'source-map' },
+        mediaReferenceDetails: [
+            {
+                available: true,
+                url: '/api/v1/admin/media-assets/018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d79/content',
+            },
+        ],
         summary: 'The mocked export is structurally ready.',
         valid: true,
         warnings: [],
+        world: { exists: true, slug: 'mocked-world' },
     };
 }

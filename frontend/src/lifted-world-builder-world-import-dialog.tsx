@@ -25,9 +25,12 @@ import { usePlatformTranslation } from './original-platform-translation';
 type ImportMapErrors = Record<string, string>;
 type RustWorldImportPreflight =
     components['schemas']['AdminWorldImportPreflightResult'];
+type RustMapImportPreflight =
+    components['schemas']['AdminWorldMapExportPreflightResult'];
+type RustImportPreflight = RustWorldImportPreflight | RustMapImportPreflight;
 
-function adaptRustWorldImportPreflight(
-    result: RustWorldImportPreflight,
+function adaptRustImportPreflight(
+    result: RustImportPreflight,
 ): MapExportValidationResult {
     return {
         counts: result.counts,
@@ -42,16 +45,18 @@ function adaptRustWorldImportPreflight(
 
 /**
  * Direct lift of main:resources/js/features/settings/map-import-dialog.tsx
- * `MapImportDialog` in its pinned world scope. Laravel validation/form
- * transport and Inertia navigation are the only replaced seams.
+ * `MapImportDialog`. Laravel validation/form transport and Inertia navigation
+ * are the only replaced seams; the pinned component's map/world branches stay
+ * intact rather than being recreated as separate dialog designs.
  */
-export function LiftedWorldBuilderWorldImportDialog({
+export function LiftedWorldBuilderImportDialog({
+    scope,
     onCreated,
 }: {
+    scope: 'map' | 'world';
     onCreated: (mapIds: string[]) => void;
 }) {
     const t = usePlatformTranslation();
-    const scope = 'world' as const;
     const isWorldImport = scope === 'world';
     const [open, setOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -92,7 +97,9 @@ export function LiftedWorldBuilderWorldImportDialog({
         try {
             const csrfToken = await getCsrfToken();
             const response = await fetch(
-                '/api/v1/admin/world-builder/world-exports/preflight',
+                isWorldImport
+                    ? '/api/v1/admin/world-builder/world-exports/preflight'
+                    : '/api/v1/admin/world-builder/map-exports/preflight',
                 {
                     body: formData,
                     credentials: 'same-origin',
@@ -104,7 +111,7 @@ export function LiftedWorldBuilderWorldImportDialog({
                 },
             );
             const payload = (await response.json()) as
-                | RustWorldImportPreflight
+                | RustImportPreflight
                 | { message?: string };
 
             if (sequence !== validationSequence.current) {
@@ -123,7 +130,7 @@ export function LiftedWorldBuilderWorldImportDialog({
             }
 
             setValidation(
-                adaptRustWorldImportPreflight(payload as RustWorldImportPreflight),
+                adaptRustImportPreflight(payload as RustImportPreflight),
             );
         } catch (validationError) {
             if (sequence !== validationSequence.current) {
@@ -165,11 +172,17 @@ export function LiftedWorldBuilderWorldImportDialog({
 
         const formData = new FormData();
         formData.append('manifest', form.file);
+        if (!isWorldImport) {
+            formData.append('slug', form.slug);
+            formData.append('title', form.title);
+        }
 
         try {
             const csrfToken = await getCsrfToken();
             const response = await fetch(
-                '/api/v1/admin/world-builder/world-exports/import',
+                isWorldImport
+                    ? '/api/v1/admin/world-builder/world-exports/import'
+                    : '/api/v1/admin/world-builder/map-exports/import',
                 {
                     body: formData,
                     credentials: 'same-origin',
@@ -181,11 +194,17 @@ export function LiftedWorldBuilderWorldImportDialog({
                 },
             );
             const payload = (await response.json()) as {
+                map_id?: string;
                 map_ids?: string[];
                 message?: string;
             };
 
-            if (!response.ok || !payload.map_ids?.length) {
+            const mapIds = isWorldImport
+                ? payload.map_ids
+                : payload.map_id
+                  ? [payload.map_id]
+                  : undefined;
+            if (!response.ok || !mapIds?.length) {
                 setErrors({
                     manifest:
                         payload.message ??
@@ -199,7 +218,7 @@ export function LiftedWorldBuilderWorldImportDialog({
             }
 
             setOpen(false);
-            onCreated(payload.map_ids);
+            onCreated(mapIds);
         } catch {
             setErrors({
                 manifest: t(
@@ -427,5 +446,30 @@ export function LiftedWorldBuilderWorldImportDialog({
                 </LiftedDialogContent>
             </LiftedDialog>
         </>
+    );
+}
+
+export function LiftedWorldBuilderWorldImportDialog({
+    onCreated,
+}: {
+    onCreated: (mapIds: string[]) => void;
+}) {
+    return <LiftedWorldBuilderImportDialog onCreated={onCreated} scope="world" />;
+}
+
+export function LiftedWorldBuilderMapImportDialog({
+    onCreated,
+}: {
+    onCreated: (mapId: string) => void;
+}) {
+    return (
+        <LiftedWorldBuilderImportDialog
+            onCreated={(mapIds) => {
+                if (mapIds[0]) {
+                    onCreated(mapIds[0]);
+                }
+            }}
+            scope="map"
+        />
     );
 }

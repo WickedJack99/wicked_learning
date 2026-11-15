@@ -9,7 +9,7 @@ import {
     useNodesState,
 } from '@xyflow/react';
 import type { Edge, FitViewOptions, Node, ReactFlowInstance } from '@xyflow/react';
-import { Download, FileUp, GitBranch, History, Map as MapIcon } from 'lucide-react';
+import { Download, GitBranch, History, Map as MapIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -20,7 +20,10 @@ import { classNames } from './lifted-class-names';
 import { LiftedSpinner } from './lifted-spinner';
 import { LiftedWorldBuilderCreateMapDialog } from './lifted-world-builder-create-map-dialog';
 import { LiftedMapExportValidationDialog } from './lifted-world-builder-map-export-validation';
-import { LiftedWorldBuilderWorldImportDialog } from './lifted-world-builder-world-import-dialog';
+import {
+    LiftedWorldBuilderMapImportDialog,
+    LiftedWorldBuilderWorldImportDialog,
+} from './lifted-world-builder-world-import-dialog';
 import { usePlatformTranslation } from './original-platform-translation';
 import type { OriginalAppearance } from './original-appearance';
 
@@ -156,7 +159,7 @@ type Props = {
     graph: RustWorldGraph;
     onMapCreated: (mapId: string) => void;
     onEditWorld: () => void;
-    onImportMap: () => void;
+    onMapImported: (mapId: string) => void;
     onWorldImported: (mapIds: string[]) => void;
     renderSelectedMap: (map: RustMapSummary) => ReactNode;
     renderSelectedPortal: (portal: RustPortalLink) => ReactNode;
@@ -173,7 +176,7 @@ export function LiftedWorldBuilderGraph({
     graph,
     onMapCreated,
     onEditWorld,
-    onImportMap,
+    onMapImported,
     onWorldImported,
     renderSelectedMap,
     renderSelectedPortal,
@@ -336,19 +339,9 @@ export function LiftedWorldBuilderGraph({
                         Edit world details
                     </LiftedButton>
                     <LiftedMapExportValidationDialog />
-                    <LiftedButton
-                        className="mt-2 w-full"
-                        data-wl-id="settings.world-builder.map.import"
-                        onClick={onImportMap}
-                        type="button"
-                        variant="outline"
-                    >
-                        <FileUp className="size-4" />
-                        {t(
-                            'settings.world_builder.import.open',
-                            'Import map export',
-                        )}
-                    </LiftedButton>
+                    <LiftedWorldBuilderMapImportDialog
+                        onCreated={onMapImported}
+                    />
                     <LiftedWorldBuilderWorldImportDialog
                         onCreated={onWorldImported}
                     />
