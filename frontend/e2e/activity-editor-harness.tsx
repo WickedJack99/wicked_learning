@@ -19,9 +19,15 @@ const fixtureType = fixtureSearch.has('reflection')
           ? 'portal'
           : fixtureSearch.has('question')
             ? 'question'
+            : fixtureSearch.has('message-prompt')
+              ? 'message_prompt'
+              : fixtureSearch.has('message-wall')
+                ? 'message_wall'
             : 'open_practice';
 const reflectionLikeFixture =
     fixtureType === 'reflection' || fixtureType === 'review';
+const messageFixture =
+    fixtureType === 'message_prompt' || fixtureType === 'message_wall';
 
 const activity = {
     aiReview: null,
@@ -63,6 +69,30 @@ const activity = {
                       { from: 'start', id: 'start-page-1', to: 'page-1' },
                       { from: 'page-1', id: 'page-1-end', to: 'end' },
                   ],
+              }
+            : {}),
+        ...(messageFixture
+            ? {
+                  messageAllowResponses: fixtureType === 'message_wall',
+                  messageAudience:
+                      fixtureType === 'message_prompt' ? 'support' : 'peers',
+                  messageInputLabel: 'Share one useful detail',
+                  messagePrompt: 'What should another learner notice?',
+                  messageResponsePrompt:
+                      'Reply with a helpful explanation or example.',
+                  messageTopicId: '00000000-0000-4000-8000-000000000716',
+                  messageUi: {
+                      accentColorDark: '#4ade80',
+                      accentColorLight: '#15803d',
+                      cardBorderColorDark: '#22c55e',
+                      cardBorderColorLight: '#166534',
+                      cardColorDark: '#10261a',
+                      cardColorLight: '#f0fdf4',
+                      surfaceColorDark: '#07140d',
+                      surfaceColorLight: '#dcfce7',
+                      textColorDark: '#f0fdf4',
+                      textColorLight: '#14532d',
+                  },
               }
             : {}),
     },
@@ -133,6 +163,10 @@ const activity = {
                   ? 'First portal'
                   : fixtureType === 'question'
                     ? 'First question'
+                    : fixtureType === 'message_prompt'
+                      ? 'First message prompt'
+                      : fixtureType === 'message_wall'
+                        ? 'First message wall'
                     : 'First activity',
     type: fixtureType,
     updatedAt: '2026-11-15T10:00:00Z',
@@ -222,7 +256,14 @@ const graph: ActivityGraphPayload = {
         slug: 'map',
         title: 'Map',
     },
-    messageTopics: [],
+    messageTopics: messageFixture
+        ? [
+              {
+                  id: '00000000-0000-4000-8000-000000000716',
+                  title: 'Useful details',
+              },
+          ]
+        : [],
     node: {
         description: 'A selected node.',
         graphLayout: { start: { x: -180, y: 0 } },

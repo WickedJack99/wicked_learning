@@ -1826,9 +1826,14 @@ complete scene body and optimistic timestamp. Question create now captures its
 complete two-answer source default through desktop Rust `400` and narrow Rust
 `201` source reload states; its selected existing Question preserves both
 option outcomes, feedback, weights and the multiple-answer flag through desktop
-Rust `409` and narrow Rust `200` source reload states. The remaining types'
-command behavior and all other listed states remain unproven. It therefore does
-not close the P0 Activity Editor matrix or authorize mounting the route.
+Rust `409` and narrow Rust `200` source reload states. Message Prompt
+and Message Wall each now prove their distinct source defaults and complete
+existing-topic forms through desktop Rust `400`/`409` failures and narrow Rust
+`201`/`200` reloads: Prompt retains its support audience and prompt fields,
+while Wall retains its peer-only optional-response setting. It therefore does
+not close the P0 Activity Editor matrix or authorize mounting the route; the
+other remaining type command behavior and all other listed states remain
+unproven.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 

@@ -148,6 +148,82 @@ const defaultQuestionUpdateBody = {
     updated_at: '2026-11-15T10:00:00Z',
 };
 
+const defaultMessageFields = {
+    accent_color_dark: '#5eead4',
+    accent_color_light: '#0f766e',
+    allow_responses: false,
+    audience: 'peers',
+    card_border_color_dark: '#2dd4bf',
+    card_border_color_light: '#0f766e',
+    card_color_dark: '#13262d',
+    card_color_light: '#ffffff',
+    input_label: 'Your message',
+    prompt: 'Leave a helpful note or an encouraging thought for the next learner.',
+    response_prompt: '',
+    surface_color_dark: '#071018',
+    surface_color_light: '#e6f5f2',
+    text_color_dark: '#f1f5f9',
+    text_color_light: '#0f172a',
+    topic_id: null,
+    topic_title: '',
+};
+
+const defaultMessagePromptCreateBody = {
+    ...defaultMessageFields,
+    activity_type: 'message_prompt',
+    introduction: null,
+    slug: null,
+    title: 'Share a useful detail',
+};
+
+const defaultMessageWallCreateBody = {
+    ...defaultMessageFields,
+    activity_type: 'message_wall',
+    introduction: null,
+    slug: null,
+    title: 'Read useful details',
+};
+
+const selectedMessageFields = {
+    accent_color_dark: '#4ade80',
+    accent_color_light: '#15803d',
+    card_border_color_dark: '#22c55e',
+    card_border_color_light: '#166534',
+    card_color_dark: '#10261a',
+    card_color_light: '#f0fdf4',
+    input_label: 'Share one useful detail',
+    prompt: 'What should another learner notice?',
+    response_prompt: 'Reply with a helpful explanation or example.',
+    surface_color_dark: '#07140d',
+    surface_color_light: '#dcfce7',
+    text_color_dark: '#f0fdf4',
+    text_color_light: '#14532d',
+    topic_id: '00000000-0000-4000-8000-000000000716',
+    topic_title: '',
+};
+
+const defaultMessagePromptUpdateBody = {
+    ...selectedMessageFields,
+    activity_type: 'message_prompt',
+    allow_responses: false,
+    audience: 'support',
+    introduction: 'Start with this activity.',
+    slug: 'first-activity',
+    title: 'First message prompt (edited)',
+    updated_at: '2026-11-15T10:00:00Z',
+};
+
+const defaultMessageWallUpdateBody = {
+    ...selectedMessageFields,
+    activity_type: 'message_wall',
+    allow_responses: true,
+    audience: 'peers',
+    introduction: 'Start with this activity.',
+    slug: 'first-activity',
+    title: 'First message wall (edited)',
+    updated_at: '2026-11-15T10:00:00Z',
+};
+
 async function exerciseSourceGraphDialogs(page: Page): Promise<void> {
     await page
         .getByRole('button', { name: 'Delete First activity' })
@@ -1517,3 +1593,214 @@ test('reloads after a typed Rust Question update succeeds at narrow width', asyn
         390,
     );
 });
+
+const messageVariants = [
+    {
+        createBody: defaultMessagePromptCreateBody,
+        editTitle: 'First message prompt (edited)',
+        fixture: 'message-prompt',
+        label: 'Message prompt',
+        title: 'Share a useful detail',
+        updateBody: defaultMessagePromptUpdateBody,
+    },
+    {
+        createBody: defaultMessageWallCreateBody,
+        editTitle: 'First message wall (edited)',
+        fixture: 'message-wall',
+        label: 'Message wall',
+        title: 'Read useful details',
+        updateBody: defaultMessageWallUpdateBody,
+    },
+] as const;
+
+async function openMessageCreateForm(
+    page: Page,
+    label: (typeof messageVariants)[number]['label'],
+): Promise<void> {
+    await page
+        .getByRole('button', { name: 'Add activity' })
+        .dispatchEvent('click');
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page.getByRole('option', { name: label }).dispatchEvent('click');
+}
+
+for (const variant of messageVariants) {
+    test(`surfaces a typed Rust ${variant.label} validation failure with source defaults`, async ({
+        page,
+    }) => {
+        let commandBody: unknown = null;
+
+        await page.route('**/api/v1/security/csrf', async (route) => {
+            await route.fulfill({ json: { token: 'test-csrf' } });
+        });
+        await page.route(
+            '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/message-activities',
+            async (route) => {
+                commandBody = route.request().postDataJSON();
+                await route.fulfill({ status: 400 });
+            },
+        );
+        await page.setViewportSize({ height: 900, width: 1440 });
+        await page.goto('/activity-editor-harness.html');
+        await openMessageCreateForm(page, variant.label);
+        await page.getByLabel('Title').fill(variant.title);
+        await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+        await expect(
+            page.getByRole('heading', { name: 'Learner messages' }),
+        ).toBeVisible();
+        await expect(page.getByLabel('New topic name')).toHaveValue('');
+
+        await page.locator('form').evaluate((form) => form.requestSubmit());
+
+        await expect.poll(() => commandBody).not.toBeNull();
+        await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+        await expect(
+            page.getByText(
+                'The activity could not be saved. Check the field values and try again.',
+            ),
+        ).toBeVisible();
+        expect(commandBody).toEqual(variant.createBody);
+    });
+
+    test(`reloads after a typed Rust ${variant.label} create succeeds at narrow width`, async ({
+        page,
+    }) => {
+        let commandBody: unknown = null;
+
+        await page.route('**/api/v1/security/csrf', async (route) => {
+            await route.fulfill({ json: { token: 'test-csrf' } });
+        });
+        await page.route(
+            '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/message-activities',
+            async (route) => {
+                commandBody = route.request().postDataJSON();
+                await route.fulfill({
+                    json: {
+                        activity_id:
+                            '00000000-0000-4000-8000-000000000717',
+                    },
+                    status: 201,
+                });
+            },
+        );
+        await page.setViewportSize({ height: 844, width: 390 });
+        await page.goto('/activity-editor-harness.html');
+        await openMessageCreateForm(page, variant.label);
+        await page.getByLabel('Title').fill(variant.title);
+        await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+        await expectBounded(page.getByLabel('Message topic'), 390);
+
+        const reloaded = page.waitForEvent(
+            'framenavigated',
+            (frame) => frame === page.mainFrame(),
+        );
+        await page.locator('form').evaluate((form) => form.requestSubmit());
+        await reloaded;
+
+        expect(commandBody).toEqual(variant.createBody);
+        await expect(
+            page.getByRole('heading', { name: 'Node activities' }),
+        ).toBeVisible();
+        await expectBounded(
+            page.getByRole('button', { name: 'Add activity' }),
+            390,
+        );
+    });
+
+    test(`surfaces a typed Rust stale ${variant.label} update without overwriting`, async ({
+        page,
+    }) => {
+        let commandBody: unknown = null;
+
+        await page.route('**/api/v1/security/csrf', async (route) => {
+            await route.fulfill({ json: { token: 'test-csrf' } });
+        });
+        await page.route(
+            '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/message',
+            async (route) => {
+                commandBody = route.request().postDataJSON();
+                await route.fulfill({ status: 409 });
+            },
+        );
+        await page.setViewportSize({ height: 900, width: 1440 });
+        await page.goto(`/activity-editor-harness.html?${variant.fixture}=1`);
+        await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+        await page.getByLabel('Title').fill(variant.editTitle);
+        await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+        await expect(page.getByLabel('Message topic')).toHaveText(
+            'Useful details',
+        );
+
+        if (variant.fixture === 'message-wall') {
+            await expect(
+                page.getByLabel('Invite optional peer responses'),
+            ).toBeChecked();
+        } else {
+            await expect(
+                page.getByRole('textbox', { name: 'Prompt' }),
+            ).toHaveValue(
+                'What should another learner notice?',
+            );
+        }
+
+        await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+        await expect.poll(() => commandBody).not.toBeNull();
+        await page.getByRole('tab', { name: 'Basics' }).dispatchEvent('click');
+        await expect(
+            page.getByText(
+                'The activity could not be saved. Check the field values and try again.',
+            ),
+        ).toBeVisible();
+        expect(commandBody).toEqual(variant.updateBody);
+        await expect(
+            page.getByRole('heading', { name: 'Edit activity' }),
+        ).toBeVisible();
+    });
+
+    test(`reloads after a typed Rust ${variant.label} update succeeds at narrow width`, async ({
+        page,
+    }) => {
+        let commandBody: unknown = null;
+
+        await page.route('**/api/v1/security/csrf', async (route) => {
+            await route.fulfill({ json: { token: 'test-csrf' } });
+        });
+        await page.route(
+            '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/message',
+            async (route) => {
+                commandBody = route.request().postDataJSON();
+                await route.fulfill({
+                    json: {
+                        activity_id:
+                            '00000000-0000-4000-8000-000000000701',
+                        updated_at: '2026-11-15T10:01:00Z',
+                    },
+                    status: 200,
+                });
+            },
+        );
+        await page.setViewportSize({ height: 844, width: 390 });
+        await page.goto(`/activity-editor-harness.html?${variant.fixture}=1`);
+        await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+        await page.getByLabel('Title').fill(variant.editTitle);
+        await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+        await expectBounded(page.getByLabel('Message topic'), 390);
+
+        const reloaded = page.waitForEvent(
+            'framenavigated',
+            (frame) => frame === page.mainFrame(),
+        );
+        await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+        await reloaded;
+
+        expect(commandBody).toEqual(variant.updateBody);
+        await expect(
+            page.getByRole('heading', { name: 'Node activities' }),
+        ).toBeVisible();
+        await expectBounded(
+            page.getByRole('button', { name: 'Add activity' }),
+            390,
+        );
+    });
+}
