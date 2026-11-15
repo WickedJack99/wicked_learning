@@ -9,7 +9,7 @@ import {
     useNodesState,
 } from '@xyflow/react';
 import type { Edge, FitViewOptions, Node, ReactFlowInstance } from '@xyflow/react';
-import { Download, GitBranch, History, Map as MapIcon } from 'lucide-react';
+import { Download, GitBranch, Map as MapIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -24,6 +24,7 @@ import {
     LiftedWorldBuilderMapImportDialog,
     LiftedWorldBuilderWorldImportDialog,
 } from './lifted-world-builder-world-import-dialog';
+import { LiftedWorldBuilderWorldDetailsDialog } from './lifted-world-builder-world-details-dialog';
 import { usePlatformTranslation } from './original-platform-translation';
 import type { OriginalAppearance } from './original-appearance';
 
@@ -158,8 +159,8 @@ type Props = {
     appearance: OriginalAppearance;
     graph: RustWorldGraph;
     onMapCreated: (mapId: string) => void;
-    onEditWorld: () => void;
     onMapImported: (mapId: string) => void;
+    onWorldUpdated: () => void;
     onWorldImported: (mapIds: string[]) => void;
     renderSelectedMap: (map: RustMapSummary) => ReactNode;
     renderSelectedPortal: (portal: RustPortalLink) => ReactNode;
@@ -175,8 +176,8 @@ export function LiftedWorldBuilderGraph({
     appearance,
     graph,
     onMapCreated,
-    onEditWorld,
     onMapImported,
+    onWorldUpdated,
     onWorldImported,
     renderSelectedMap,
     renderSelectedPortal,
@@ -328,16 +329,10 @@ export function LiftedWorldBuilderGraph({
                             )}
                         </a>
                     </LiftedButton>
-                    <LiftedButton
-                        className="mt-2 w-full"
-                        data-wl-id="settings.world-builder.world-details.open"
-                        onClick={onEditWorld}
-                        type="button"
-                        variant="outline"
-                    >
-                        <History className="size-4" />
-                        Edit world details
-                    </LiftedButton>
+                    <LiftedWorldBuilderWorldDetailsDialog
+                        onUpdated={onWorldUpdated}
+                        world={graph.world}
+                    />
                     <LiftedMapExportValidationDialog />
                     <LiftedWorldBuilderMapImportDialog
                         onCreated={onMapImported}

@@ -27,7 +27,7 @@ test('a local author can edit and restore current World details', async ({
     await page.goto('/settings?panel=admin-world-builder');
     await page.getByRole('button', { name: 'Edit world details' }).click();
     const dialog = page.locator(
-        '[data-wl-id="authoring.world-builder.world-details.dialog"]',
+        '[data-wl-id="settings.world-builder.world-details-dialog"]',
     );
     await expect(dialog.getByRole('heading', { name: 'Edit world details' })).toBeVisible();
     await dialog.getByLabel('Title').fill(updatedTitle);
@@ -39,7 +39,7 @@ test('a local author can edit and restore current World details', async ({
     );
     await dialog.getByRole('button', { name: 'Save details' }).click();
     expect((await saved).status()).toBe(200);
-    await expect(page.getByRole('heading', { name: updatedTitle })).toBeVisible();
+    await expect(dialog).toBeHidden();
 
     const historyResponse = await page.request.get(
         '/api/v1/admin/world-builder/world/versions?page=1&per_page=24',
@@ -57,7 +57,7 @@ test('a local author can edit and restore current World details', async ({
 
     await page.getByRole('button', { name: 'Edit world details' }).click();
     const restoreDialog = page.locator(
-        '[data-wl-id="authoring.world-builder.world-details.dialog"]',
+        '[data-wl-id="settings.world-builder.world-details-dialog"]',
     );
     await expect(restoreDialog.getByText(original.title, { exact: true })).toBeVisible();
     page.once('dialog', (confirm) => confirm.accept());
@@ -77,5 +77,5 @@ test('a local author can edit and restore current World details', async ({
         original.description,
     );
     await restoreDialog.getByRole('button', { name: 'Cancel' }).click();
-    await expect(page.getByRole('heading', { name: original.title })).toBeVisible();
+    await expect(restoreDialog).toBeHidden();
 });

@@ -849,6 +849,29 @@ Review, Structural, map editor or MapAsset editor was changed.
 This is a pinned-source-code-to-Rust-browser comparison; direct live Laravel
 screenshot capture remains unavailable and is not claimed.
 
+#### Sixteenth P0 implementation evidence: source World details/history dialog — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+This slice directly lifts the `WorldDetails` trigger and dialog portion of
+`resources/js/pages/settings/worlds/index.tsx` into
+`frontend/src/lifted-world-builder-world-details-dialog.tsx`. It reuses the
+pinned Button, Dialog, Input, Label and InputError primitives as complete
+components. The legacy bespoke `EditWorldDetailsDialog` is removed. Graph
+canvas/routing, selected-map and selected-portal inspectors, Review,
+Structural, map editor and MapAsset editor remain unchanged.
+
+| Source requirement | Rust adapter boundary | Evidence |
+| --- | --- | --- |
+| Source trigger, Dialog hierarchy, title/description form, current-version reset and close behavior | The source's local open/reset state remains in the lifted component. Laravel `router.patch('/settings/worlds/details')` becomes typed `PATCH /api/v1/admin/world-builder/world/details` with source `title`, nullable blank `description`, `updated_at`, and the existing CSRF token adapter. The successful source close invokes only the existing graph reload callback. | `world-details-localization.spec.ts` asserts the pinned headings/copy/controls and bounded visible dialog at **1440×900** and **390×844**. |
+| Paged immutable history | Laravel's source `fetch('/settings/worlds/versions?page=&per_page=1')` becomes typed `GET /api/v1/admin/world-builder/world/versions?page=&per_page=1`. `AdminWorldDetailsVersionPage` changes only snake_case fields and its flat pagination envelope into the source component's `createdAt` and nested `pagination` names. | Browser coverage asserts the exact page-one query, source history/empty-description/pagination controls, and visible bounds. Rust application tests retain the distinct global `world_map_access:ru` authorization and history bounds. |
+| Source restore confirmation, form replacement and refresh | Laravel's restore `POST /settings/worlds/versions/{id}/restore` becomes typed CSRF `POST /api/v1/admin/world-builder/world/versions/{version_id}`. The Rust response is the source `world` payload flattened one level, so the adapter maps only `title`, `description`, and `updated_at` before rerunning source history and graph reload behavior. | Browser coverage accepts the exact source confirmation, asserts the CSRF header and `200` restore, then verifies the source form receives the restored title and blank description. |
+| Relevant Rust unavailable state | The source has one history-error presentation, so `401/404/503` or transport failure of the Rust history read select that unchanged branch. Rust's typed update failures occupy the source `updated_at` InputError slot because the source's Inertia named validation bag has no Rust equivalent; no new error panel is invented. | The focused browser spec forces Rust `503` and proves the exact source history-error copy remains visible and bounded at **390×844**. |
+
+This is a pinned-source-code-to-Rust-browser comparison; direct live Laravel
+screenshot capture remains unavailable and is not claimed.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named
