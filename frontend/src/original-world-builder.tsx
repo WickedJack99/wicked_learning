@@ -569,8 +569,6 @@ function WorldBuilderContent({
     const [importWorldOpen, setImportWorldOpen] = useState(false);
     const [worldDetailsOpen, setWorldDetailsOpen] = useState(false);
     const [duplicateMapOpen, setDuplicateMapOpen] = useState(false);
-    const [worldExportPreflightOpen, setWorldExportPreflightOpen] =
-        useState(false);
 
     const selectMap = useCallback(
         (mapId: string) => {
@@ -1014,9 +1012,6 @@ function WorldBuilderContent({
                             onEditWorld={() => setWorldDetailsOpen(true)}
                             onImportMap={() => setImportMapOpen(true)}
                             onImportWorld={() => setImportWorldOpen(true)}
-                            onValidateMapExport={() =>
-                                setWorldExportPreflightOpen(true)
-                            }
                             renderSelectedMap={(map) => (
                                 <LiftedWorldBuilderMapDetails
                                     map={map}
@@ -1080,11 +1075,6 @@ function WorldBuilderContent({
                     onClose={() => setWorldDetailsOpen(false)}
                     onUpdated={() => void loadWorld()}
                     world={worldGraph!.world}
-                />
-            ) : null}
-            {worldExportPreflightOpen ? (
-                <MapExportPreflightDialog
-                    onClose={() => setWorldExportPreflightOpen(false)}
                 />
             ) : null}
                         {duplicateMapOpen && editableMap ? (

@@ -670,6 +670,34 @@ slot, and proves the two source Graph URL transitions. It is a
 pinned-source-code-to-Rust-browser comparison; direct live Laravel screenshot
 capture is unavailable and is not claimed.
 
+#### Ninth P0 implementation evidence: Graph map-export validation dialog — 15 November 2026
+
+**Pinned source remains:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+This slice directly lifts `MapExportValidationDialog`, `ValidationSummary`,
+`MediaReferenceDetails`, `ValidationCount`, and `ValidationMessages` from
+`resources/js/features/settings/map-export-validation-dialog.tsx` into
+`frontend/src/lifted-world-builder-map-export-validation.tsx`. It reuses the
+already-lifted source Button, Dialog, Input, Label, class-name helper, Lucide
+icons, and platform-translation hook. The source dialog now mounts directly in
+the lifted Graph action area; create-map, world-details, map/world import,
+inspectors, Structural, and every editor remain outside this slice.
+
+| Source validation requirement | Rust contract | Deliberate adapter boundary and retained behavior | Evidence |
+| --- | --- | --- | --- |
+| Open/reset/close dialog, JSON file chooser, source loading state and fixed copy | No server state is needed before submission. The source form accepts `.json`, `application/json`, and `text/plain`; Rust independently enforces a non-empty `manifest` at most 5 MiB. | The source component and its local reset/loading/error state remain whole. Laravel's endpoint prop becomes the fixed typed Rust endpoint; Laravel's CSRF meta lookup becomes the existing Rust CSRF-token reader. | Browser opens the exact source controls and verifies bounded dialog content at desktop and narrow viewports. |
+| Preflight command and authorization | `POST /api/v1/admin/world-builder/map-exports/preflight`, multipart `manifest`; `200` result or `400/401/403/404/503`. It requires the source `world_maps:ru` permission. The handler now verifies the same-origin `Origin` and `X-CSRF-Token` before parsing the upload, matching the recorded OpenAPI parameter and the source's Laravel CSRF-protected POST. | `getCsrfToken()` supplies the header to the Rust adapter. No form field, endpoint, validation copy, or client-side manifest decision is invented. | Browser fixture asserts the supplied Rust CSRF header; focused Rust API/session checks retain the authenticated route boundary. |
+| Source validation presentation | Rust `AdminWorldMapExportPreflightResult` returns `valid`, `summary`, bounded `errors`/`warnings`, and counts for nodes, activities, MapAssets, portal targets, and media references. | Field names already match the source result. Rust deliberately does not expose source `mediaReferenceDetails`, map slug, or world slug; the adapter supplies an empty details list, taking the direct source component's existing omitted-details branch rather than fabricating media URLs or workspace identifiers. | Successful fixture asserts the source status, count headings, bounded correction list and notes. |
+| Rust unavailable state | A `503` is a Problem response with no Laravel `message` payload. | The lifted source fallback remains “The manifest could not be checked.”; no Rust-only recovery panel or product copy is introduced. | Browser fixture returns a Rust-shaped `503` after a valid desktop check and verifies the source alert at **390×844**. |
+
+Focused source-derived Rust-browser evidence is
+`frontend/e2e/world-builder-map-export-validation.spec.ts`. It proves the
+source dialog’s visible success and Rust-unavailable branches at **1440×900**
+and **390×844**, including bounds and the CSRF request seam. It is a
+pinned-source-code-to-Rust-browser comparison; direct live Laravel screenshot
+capture is unavailable and is not claimed.
+
 ### Active frontend provenance audit — 5 November 2026
 
 The active Rust frontend was checked component-by-component against the named

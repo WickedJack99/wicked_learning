@@ -9,7 +9,7 @@ import {
     useNodesState,
 } from '@xyflow/react';
 import type { Edge, FitViewOptions, Node, ReactFlowInstance } from '@xyflow/react';
-import { Download, FileUp, GitBranch, History, Map as MapIcon, Upload } from 'lucide-react';
+import { Download, FileUp, GitBranch, History, Map as MapIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -18,6 +18,7 @@ import type { components } from './api/schema';
 import { LiftedButton } from './lifted-button';
 import { classNames } from './lifted-class-names';
 import { LiftedSpinner } from './lifted-spinner';
+import { LiftedMapExportValidationDialog } from './lifted-world-builder-map-export-validation';
 import { usePlatformTranslation } from './original-platform-translation';
 import type { OriginalAppearance } from './original-appearance';
 
@@ -155,7 +156,6 @@ type Props = {
     onEditWorld: () => void;
     onImportMap: () => void;
     onImportWorld: () => void;
-    onValidateMapExport: () => void;
     renderSelectedMap: (map: RustMapSummary) => ReactNode;
     renderSelectedPortal: (portal: RustPortalLink) => ReactNode;
 };
@@ -173,7 +173,6 @@ export function LiftedWorldBuilderGraph({
     onEditWorld,
     onImportMap,
     onImportWorld,
-    onValidateMapExport,
     renderSelectedMap,
     renderSelectedPortal,
 }: Props) {
@@ -340,19 +339,7 @@ export function LiftedWorldBuilderGraph({
                         <History className="size-4" />
                         Edit world details
                     </LiftedButton>
-                    <LiftedButton
-                        className="mt-3 w-full"
-                        data-wl-id="settings.world-builder.map-export-validation.open"
-                        onClick={onValidateMapExport}
-                        type="button"
-                        variant="outline"
-                    >
-                        <Upload className="size-4" />
-                        {t(
-                            'settings.world_builder.export_validation.open',
-                            'Validate map export',
-                        )}
-                    </LiftedButton>
+                    <LiftedMapExportValidationDialog />
                     <LiftedButton
                         className="mt-2 w-full"
                         data-wl-id="settings.world-builder.map.import"
