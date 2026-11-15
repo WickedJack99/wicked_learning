@@ -2,7 +2,10 @@ use serde_json::{Value, json};
 use sqlx::{FromRow, PgPool, Postgres, Transaction, types::Json};
 use uuid::Uuid;
 use wicked_learning_application::admin_activity_ai_review::activity_review_schema;
-use wicked_learning_domain::identity_access::{AuthorizedPrincipal, permission_scope_allows};
+use wicked_learning_domain::{
+    identity_access::{AuthorizedPrincipal, permission_scope_allows},
+    world_content::{AdminActivityReview, AdminActivityReviewUsage},
+};
 
 const REVIEW_CONTRACT_VERSION: &str = "1.2";
 
@@ -36,7 +39,7 @@ pub struct SavedActivityReview {
     pub activity_id: Uuid,
     pub ai_review_status: String,
     pub ai_reviewed_at: String,
-    pub ai_review: Value,
+    pub ai_review: AdminActivityReview,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -226,17 +229,33 @@ async fn save(
     {
         return Ok(None);
     }
-    let review_record = json!({"contractVersion": REVIEW_CONTRACT_VERSION, "review": review, "provider": provider, "model": model, "reviewedByPrincipalId": principal_id, "usage": {"inputTokens": usage.input_tokens, "outputTokens": usage.output_tokens, "totalTokens": usage.total_tokens}});
+    let review_body = serde_json::from_value(review)
+        .expect("the application-validated activity review has the stored shape");
+    let review_record = AdminActivityReview {
+        contract_version: REVIEW_CONTRACT_VERSION.to_owned(),
+        review: review_body,
+        provider: provider.to_owned(),
+        model: model.to_owned(),
+        reviewed_by_principal_id: principal_id,
+        usage: AdminActivityReviewUsage {
+            input_tokens: usage.input_tokens,
+            output_tokens: usage.output_tokens,
+            total_tokens: usage.total_tokens,
+        },
+    };
+    let stored_review =
+        serde_json::to_value(&review_record).expect("the typed activity review record serializes");
     let saved = sqlx::query_as::<_, SavedRow>("UPDATE learning_activities SET ai_review_status = 'reviewed', ai_reviewed_at = NOW(), ai_review = $2, updated_at = NOW() WHERE id = $1 RETURNING id, ai_review_status AS status, to_char(ai_reviewed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS reviewed_at, ai_review")
-        .bind(activity.id).bind(Json(&review_record)).fetch_one(&mut *transaction).await?;
+        .bind(activity.id).bind(Json(&stored_review)).fetch_one(&mut *transaction).await?;
     sqlx::query("INSERT INTO learning_activity_review_runs (activity_id, agent_template_id, reviewed_by_principal_id, contract_version, provider, model, review, input_tokens, output_tokens, total_tokens) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)")
-        .bind(activity.id).bind(template_id).bind(principal_id).bind(REVIEW_CONTRACT_VERSION).bind(provider).bind(model).bind(Json(&review_record)).bind(usage.input_tokens).bind(usage.output_tokens).bind(usage.total_tokens).execute(&mut *transaction).await?;
+        .bind(activity.id).bind(template_id).bind(principal_id).bind(REVIEW_CONTRACT_VERSION).bind(provider).bind(model).bind(Json(&stored_review)).bind(usage.input_tokens).bind(usage.output_tokens).bind(usage.total_tokens).execute(&mut *transaction).await?;
     transaction.commit().await?;
     Ok(Some(SavedActivityReview {
         activity_id: saved.id,
         ai_review_status: saved.status,
         ai_reviewed_at: saved.reviewed_at,
-        ai_review: saved.review,
+        ai_review: serde_json::from_value(saved.review)
+            .expect("the just-saved activity review has the typed shape"),
     }))
 }
 
@@ -380,6 +399,7 @@ fn review_prompt(context: Value) -> String {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+    use wicked_learning_domain::world_content::AdminActivityReview;
 
     use super::review_prompt;
 
@@ -396,5 +416,52 @@ mod tests {
         assert!(prompt.contains("Next reflection"));
         assert!(prompt.contains("Systems Thinking"));
         assert!(!prompt.contains("Unrelated private draft"));
+    }
+
+    #[test]
+    fn accepts_only_the_typed_activity_review_record_exposed_to_authors() {
+        let review = serde_json::from_value::<AdminActivityReview>(json!({
+            "contractVersion": "1.2",
+            "model": "gpt-test",
+            "provider": "openai",
+            "reviewedByPrincipalId": "00000000-0000-4000-8000-000000000001",
+            "review": {
+                "summary": "A bounded review.",
+                "strengths": ["One strength."],
+                "suggestions": ["One suggestion."],
+                "sdt": {
+                    "autonomy": {"signal": "supported", "note": "Choice is clear."},
+                    "competence": {"signal": "unclear", "note": "Practice needs detail."},
+                    "relatedness": {"signal": "risk", "note": "No social context."}
+                },
+                "learningDesign": {
+                    "purpose": {"signal": "aligned", "note": "Purpose matches."},
+                    "topics": {"signal": "unclear", "note": "Topics need clarity."},
+                    "suggestedLearningIntent": null,
+                    "suggestedCompetenceTopics": []
+                },
+                "feedbackGuidance": {
+                    "purpose": {"signal": "supported", "note": "Purpose is concrete."},
+                    "evidence": {"signal": "unclear", "note": "Evidence needs detail."},
+                    "nextAction": {"signal": "supported", "note": "Next action is clear."}
+                }
+            },
+            "usage": {"inputTokens": 12, "outputTokens": 34, "totalTokens": 46}
+        }))
+        .expect("validated stored review");
+
+        assert_eq!(review.review.summary, "A bounded review.");
+        assert_eq!(review.usage.total_tokens, Some(46));
+        assert_eq!(
+            serde_json::to_value(&review).expect("typed review serializes")["reviewedByPrincipalId"],
+            json!("00000000-0000-4000-8000-000000000001")
+        );
+        assert!(
+            serde_json::from_value::<AdminActivityReview>(json!({
+                "contractVersion": "1.2",
+                "unexpected": true
+            }))
+            .is_err()
+        );
     }
 }

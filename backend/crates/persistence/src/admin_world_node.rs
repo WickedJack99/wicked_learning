@@ -10,7 +10,7 @@ use wicked_learning_domain::{
         AdminActivityConnector, AdminActivityConnectors, AdminActivityGraph, AdminActivityGraphMap,
         AdminActivityGraphNode, AdminActivityGraphPosition, AdminActivityGraphWorld,
         AdminActivityPortalCandidate, AdminActivityPortalLink, AdminActivityPortalTargetActivity,
-        AdminActivityPortalTargetNode, AdminActivityReviewHistoryEntry,
+        AdminActivityPortalTargetNode, AdminActivityReview, AdminActivityReviewHistoryEntry,
         AdminActivityReviewTemplate, AdminActivityStartRoute, AdminActivityTransition,
         AdminActivityTypeDefinition, AdminEditableActivity, AdminEditableItem, AdminEditableNode,
         AdminEditableSound, AdminEditableTool, AdminMessageTopicOption, AdminPortalMode,
@@ -280,7 +280,9 @@ async fn load_editable_node(
             updated_at: activity.updated_at,
             ai_review_status: activity.ai_review_status,
             ai_reviewed_at: activity.ai_reviewed_at,
-            ai_review: activity.ai_review,
+            ai_review: activity
+                .ai_review
+                .and_then(|review| serde_json::from_value::<AdminActivityReview>(review).ok()),
             ai_review_history: review_history.remove(&activity.id).unwrap_or_default(),
             portal_link,
             position: AdminActivityGraphPosition {

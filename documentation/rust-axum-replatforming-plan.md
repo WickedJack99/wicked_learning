@@ -1591,6 +1591,24 @@ The component deliberately remains unmounted until the whole pinned Activity
 Editor replaces the bespoke editor; this is dependency/contract evidence, not
 live source-dialog browser acceptance.
 
+#### Seventh Activity Editor implementation prerequisite: typed AI Review result — 15 November 2026
+
+The guarded Rust Activity Review response and selected-node document now expose
+one strict, source-shaped review record rather than arbitrary stored JSON. It
+contains the reviewed body, SDT and learning-design dimensions, feedback
+guidance, provider/model, contract version and bounded token usage. The stored
+reviewer is deliberately `reviewedByPrincipalId` as an opaque UUID: the pinned
+Laravel source's numeric `reviewedByUserId` has no equivalent Rust identity,
+so a future direct source-dialog adapter must make that one identity seam
+explicit rather than inventing a numeric alias. Malformed legacy stored review
+records are omitted from the selected-node projection.
+
+The already-lifted source review client now consumes the generated type without
+a broad assertion. Persistence tests prove the typed record's UUID JSON shape
+and reject unexpected stored fields; the API and frontend builds pass. This is
+contract evidence only; the direct source `ActivityReviewDialog` remains
+unmounted until the complete Activity Editor replaces the bespoke route.
+
 ### Item-obstacle sound-effect slice — 6 November 2026
 
 The lifted item-obstacle scene now restores the original three source effect

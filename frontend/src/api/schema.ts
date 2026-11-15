@@ -11091,9 +11091,56 @@ export interface components {
             ai_review_status: "reviewed";
             /** Format: date-time */
             ai_reviewed_at: string;
-            ai_review: {
-                [key: string]: unknown;
-            };
+            ai_review: components["schemas"]["AdminActivityReview"];
+        };
+        AdminActivityReview: {
+            contractVersion: string;
+            model: string;
+            provider: string;
+            /** Format: uuid */
+            reviewedByPrincipalId: string;
+            review: components["schemas"]["AdminActivityReviewBody"];
+            usage: components["schemas"]["AdminActivityReviewUsage"];
+        };
+        AdminActivityReviewBody: {
+            summary: string;
+            strengths: string[];
+            suggestions: string[];
+            sdt: components["schemas"]["AdminActivityReviewSdt"];
+            learningDesign: components["schemas"]["AdminActivityReviewLearningDesign"];
+            feedbackGuidance: components["schemas"]["AdminActivityReviewFeedbackGuidance"];
+        };
+        AdminActivityReviewSdt: {
+            autonomy: components["schemas"]["AdminActivityReviewDimension"];
+            competence: components["schemas"]["AdminActivityReviewDimension"];
+            relatedness: components["schemas"]["AdminActivityReviewDimension"];
+        };
+        AdminActivityReviewLearningDesign: {
+            purpose: components["schemas"]["AdminActivityReviewAlignment"];
+            topics: components["schemas"]["AdminActivityReviewAlignment"];
+            /** @enum {string|null} */
+            suggestedLearningIntent: "apply" | "explain" | "participate" | "reflect" | "retrieve" | "review" | "transfer" | null;
+            suggestedCompetenceTopics: string[];
+        };
+        AdminActivityReviewFeedbackGuidance: {
+            purpose: components["schemas"]["AdminActivityReviewDimension"];
+            evidence: components["schemas"]["AdminActivityReviewDimension"];
+            nextAction: components["schemas"]["AdminActivityReviewDimension"];
+        };
+        AdminActivityReviewDimension: {
+            /** @enum {string} */
+            signal: "supported" | "unclear" | "risk";
+            note: string;
+        };
+        AdminActivityReviewAlignment: {
+            /** @enum {string} */
+            signal: "aligned" | "unclear" | "mismatch";
+            note: string;
+        };
+        AdminActivityReviewUsage: {
+            inputTokens: number | null;
+            outputTokens: number | null;
+            totalTokens: number | null;
         };
         UpdateAdminActivityLearningDesignRequest: {
             /** @enum {string|null} */
@@ -11478,9 +11525,7 @@ export interface components {
             ai_review_status: "needs_review" | "reviewed";
             /** Format: date-time */
             ai_reviewed_at: string | null;
-            ai_review: {
-                [key: string]: unknown;
-            } | null;
+            ai_review: null | components["schemas"]["AdminActivityReview"];
             ai_review_history: components["schemas"]["AdminActivityReviewHistoryEntry"][];
             portal_link: components["schemas"]["AdminActivityPortalLink"] | null;
             position: components["schemas"]["AdminActivityGraphPosition"];

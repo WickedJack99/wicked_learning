@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use uuid::Uuid;
 
@@ -333,6 +333,78 @@ pub struct AdminActivityReviewTemplate {
     pub provider_label: Option<String>,
 }
 
+/// The validated, author-visible result of one requested Activity Review.
+/// The reviewer remains an opaque application-principal UUID; it is never a
+/// Laravel user ID or learner identity.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AdminActivityReview {
+    pub contract_version: String,
+    pub model: String,
+    pub provider: String,
+    pub reviewed_by_principal_id: Uuid,
+    pub review: AdminActivityReviewBody,
+    pub usage: AdminActivityReviewUsage,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AdminActivityReviewBody {
+    pub summary: String,
+    pub strengths: Vec<String>,
+    pub suggestions: Vec<String>,
+    pub sdt: AdminActivityReviewSdt,
+    pub learning_design: AdminActivityReviewLearningDesign,
+    pub feedback_guidance: AdminActivityReviewFeedbackGuidance,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AdminActivityReviewSdt {
+    pub autonomy: AdminActivityReviewDimension,
+    pub competence: AdminActivityReviewDimension,
+    pub relatedness: AdminActivityReviewDimension,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AdminActivityReviewLearningDesign {
+    pub purpose: AdminActivityReviewAlignment,
+    pub topics: AdminActivityReviewAlignment,
+    pub suggested_learning_intent: Option<String>,
+    pub suggested_competence_topics: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AdminActivityReviewFeedbackGuidance {
+    pub purpose: AdminActivityReviewDimension,
+    pub evidence: AdminActivityReviewDimension,
+    pub next_action: AdminActivityReviewDimension,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AdminActivityReviewDimension {
+    pub signal: String,
+    pub note: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AdminActivityReviewAlignment {
+    pub signal: String,
+    pub note: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AdminActivityReviewUsage {
+    pub input_tokens: Option<i64>,
+    pub output_tokens: Option<i64>,
+    pub total_tokens: Option<i64>,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct AdminActivityPortalCandidate {
     pub id: Uuid,
@@ -496,7 +568,7 @@ pub struct AdminEditableActivity {
     pub updated_at: String,
     pub ai_review_status: String,
     pub ai_reviewed_at: Option<String>,
-    pub ai_review: Option<Value>,
+    pub ai_review: Option<AdminActivityReview>,
     pub ai_review_history: Vec<AdminActivityReviewHistoryEntry>,
     pub portal_link: Option<AdminActivityPortalLink>,
     pub position: AdminActivityGraphPosition,

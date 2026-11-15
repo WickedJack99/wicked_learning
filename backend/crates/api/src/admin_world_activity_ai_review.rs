@@ -5,9 +5,9 @@ use axum::{
 };
 use axum_login::AuthSession;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use uuid::Uuid;
 use wicked_learning_application::admin_activity_ai_review::validate_activity_review;
+use wicked_learning_domain::world_content::AdminActivityReview;
 use wicked_learning_persistence::admin_activity_ai_review::PostgresAdminActivityAiReviewRepository;
 
 use crate::{
@@ -25,7 +25,7 @@ pub struct ReviewActivityResponse {
     pub activity_id: Uuid,
     pub ai_review_status: String,
     pub ai_reviewed_at: String,
-    pub ai_review: Value,
+    pub ai_review: AdminActivityReview,
 }
 
 /// Executes one explicitly requested, source-scoped authoring review. The

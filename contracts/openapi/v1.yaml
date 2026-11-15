@@ -14958,7 +14958,87 @@ components:
         activity_id: { type: string, format: uuid }
         ai_review_status: { type: string, enum: [reviewed] }
         ai_reviewed_at: { type: string, format: date-time }
-        ai_review: { type: object, additionalProperties: true }
+        ai_review: { $ref: '#/components/schemas/AdminActivityReview' }
+    AdminActivityReview:
+      type: object
+      additionalProperties: false
+      required: [contractVersion, model, provider, reviewedByPrincipalId, review, usage]
+      properties:
+        contractVersion: { type: string }
+        model: { type: string }
+        provider: { type: string }
+        reviewedByPrincipalId: { type: string, format: uuid }
+        review: { $ref: '#/components/schemas/AdminActivityReviewBody' }
+        usage: { $ref: '#/components/schemas/AdminActivityReviewUsage' }
+    AdminActivityReviewBody:
+      type: object
+      additionalProperties: false
+      required: [summary, strengths, suggestions, sdt, learningDesign, feedbackGuidance]
+      properties:
+        summary: { type: string, maxLength: 1200 }
+        strengths:
+          type: array
+          maxItems: 4
+          items: { type: string, maxLength: 400 }
+        suggestions:
+          type: array
+          maxItems: 5
+          items: { type: string, maxLength: 500 }
+        sdt: { $ref: '#/components/schemas/AdminActivityReviewSdt' }
+        learningDesign: { $ref: '#/components/schemas/AdminActivityReviewLearningDesign' }
+        feedbackGuidance: { $ref: '#/components/schemas/AdminActivityReviewFeedbackGuidance' }
+    AdminActivityReviewSdt:
+      type: object
+      additionalProperties: false
+      required: [autonomy, competence, relatedness]
+      properties:
+        autonomy: { $ref: '#/components/schemas/AdminActivityReviewDimension' }
+        competence: { $ref: '#/components/schemas/AdminActivityReviewDimension' }
+        relatedness: { $ref: '#/components/schemas/AdminActivityReviewDimension' }
+    AdminActivityReviewLearningDesign:
+      type: object
+      additionalProperties: false
+      required: [purpose, topics, suggestedLearningIntent, suggestedCompetenceTopics]
+      properties:
+        purpose: { $ref: '#/components/schemas/AdminActivityReviewAlignment' }
+        topics: { $ref: '#/components/schemas/AdminActivityReviewAlignment' }
+        suggestedLearningIntent:
+          type: [string, 'null']
+          enum: [apply, explain, participate, reflect, retrieve, review, transfer, null]
+        suggestedCompetenceTopics:
+          type: array
+          maxItems: 3
+          items: { type: string, maxLength: 120 }
+    AdminActivityReviewFeedbackGuidance:
+      type: object
+      additionalProperties: false
+      required: [purpose, evidence, nextAction]
+      properties:
+        purpose: { $ref: '#/components/schemas/AdminActivityReviewDimension' }
+        evidence: { $ref: '#/components/schemas/AdminActivityReviewDimension' }
+        nextAction: { $ref: '#/components/schemas/AdminActivityReviewDimension' }
+    AdminActivityReviewDimension:
+      type: object
+      additionalProperties: false
+      required: [signal, note]
+      properties:
+        signal: { type: string, enum: [supported, unclear, risk] }
+        note: { type: string, maxLength: 600 }
+    AdminActivityReviewAlignment:
+      type: object
+      additionalProperties: false
+      required: [signal, note]
+      properties:
+        signal: { type: string, enum: [aligned, unclear, mismatch] }
+        note: { type: string, maxLength: 600 }
+    AdminActivityReviewUsage:
+      type: object
+      additionalProperties: false
+      required: [inputTokens, outputTokens, totalTokens]
+      properties:
+        inputTokens: { type: [integer, 'null'], minimum: 0 }
+        outputTokens: { type: [integer, 'null'], minimum: 0 }
+        totalTokens: { type: [integer, 'null'], minimum: 0 }
     UpdateAdminActivityLearningDesignRequest:
       type: object
       additionalProperties: false
@@ -15467,7 +15547,10 @@ components:
         updated_at: { type: string, format: date-time }
         ai_review_status: { type: string, enum: [needs_review, reviewed] }
         ai_reviewed_at: { type: [string, 'null'], format: date-time }
-        ai_review: { type: [object, 'null'], additionalProperties: true }
+        ai_review:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/AdminActivityReview'
         ai_review_history: { type: array, maxItems: 5, items: { $ref: '#/components/schemas/AdminActivityReviewHistoryEntry' } }
         portal_link:
           oneOf:

@@ -11,7 +11,7 @@ export type ActivityReview = {
     contractVersion: string;
     model: string;
     provider: string;
-    reviewedByUserId: string;
+    reviewedByPrincipalId: string;
     review: {
         learningDesign?: {
             purpose: ActivityReviewAlignment;
@@ -84,7 +84,7 @@ export async function reviewActivity(
 
     return {
         activityId: data.activity_id,
-        aiReview: data.ai_review as ActivityReview,
+        aiReview: data.ai_review,
         aiReviewedAt: data.ai_reviewed_at,
         aiReviewStatus: data.ai_review_status,
     };
