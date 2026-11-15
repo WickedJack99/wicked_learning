@@ -1604,10 +1604,16 @@ explicit rather than inventing a numeric alias. Malformed legacy stored review
 records are omitted from the selected-node projection.
 
 The already-lifted source review client now consumes the generated type without
-a broad assertion. Persistence tests prove the typed record's UUID JSON shape
-and reject unexpected stored fields; the API and frontend builds pass. This is
-contract evidence only; the direct source `ActivityReviewDialog` remains
-unmounted until the complete Activity Editor replaces the bespoke route.
+a broad assertion. The complete pinned-source
+`resources/js/features/ai/activity-review-dialog.tsx` is lifted beside it,
+along with the exact source Radix Select primitive it requires. The user
+approved adding the source project's existing `@radix-ui/react-select`
+dependency to the standalone frontend; the Select lift changes only the shared
+class-name import. The dialog changes only Inertia Link, UUID identity and
+typed Rust transport seams. Persistence tests prove the typed record's UUID
+JSON shape and reject unexpected stored fields; the API and frontend builds
+pass. These components remain unmounted until the complete Activity Editor
+replaces the bespoke route.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
