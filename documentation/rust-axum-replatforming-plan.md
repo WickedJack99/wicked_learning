@@ -1340,13 +1340,13 @@ Rust contracts. The focused source-derived browser fixture is
 
 #### P0 implementation: complete MapAsset editor route — 15 November 2026
 
-**Status: active implementation; not yet a completed migration slice.** The
-Graph workspace now mounts the whole pinned-source route through
+**Status: source-visible route complete — 15 November 2026.** The Graph
+workspace now mounts the whole pinned-source route through
 `LiftedWorldBuilderEditMapDocument`, rather than the bespoke
-`MapAssetSurface`. The direct lift remains deliberately uncommitted until the
-remaining source-state coverage below is verified; do not substitute the old
-surface to make an incomplete route look finished.
-The next editor candidate is the entire pinned-main
+`MapAssetSurface`. The verified direct lift is committed as
+`b7269b30 feat: lift source mapasset editor`; no old surface is used as a
+fallback.
+The lifted editor is the entire pinned-main
 `resources/js/pages/settings/worlds/edit-map.tsx` (5,290 lines), whose default
 `EditWorldMap` component is the source destination behind **Configure
 MapAssets**. It must be lifted as one route with its named dependencies; the
@@ -1364,21 +1364,23 @@ Rust contracts only, not a substitute source UI.
 | `ConfigImageInput`, `SoundAssetInput`, `uploadMediaFile` | Map-scoped image upload/select/download and sound upload/select/preview with source error states. Source node sound fields are `{ enabled, url }`, not a select-only sound UUID. | The scoped image upload/temporary preview adapter from Map Configuration is reusable only if its final persisted URL remains the map-reference-safe URL. Pinned Laravel requires `sounds.ru` for sound upload; Rust's existing `POST /admin/sounds/media` has the same grant and the map document already returns eligible sounds. Rust now accepts an exact managed-audio URL in node sound fields, verifies audio content, synchronizes it as a node media reference and projects its learner-safe URL; the legacy published sound-ID representation remains accepted. The lift must adapt the temporary sound-preview URL to that persisted URL and prove unavailable uploads without broadening map-editor authority. |
 | `ContentAuthoringDialog`, templates and activity handoff | The source offers its existing authoring dialog from the MapAsset editor and hands a created result into the selected node/activity graph. | Existing Rust content-authoring and typed activity routes may be adapter candidates, but this must be verified field-by-field. Do not expose a partial launcher or invent a generic activity editor. |
 
-The first implementation commit for this route must include an import-by-import
-adapter matrix and browser evidence at 1440×900 and 390×844 for an empty map,
-one MapAsset, selected MapAsset, selected tile/node, toggle-state preview,
-layout operation, editor loading/error, and map-scoped media failure. It must
-not route around an unavailable source dependency by keeping the bespoke
-surface in its place.
+The committed implementation includes the import-by-import adapter matrix and
+browser evidence at 1440×900 and 390×844 for an empty map, one MapAsset,
+selected MapAsset, selected tile/node, toggle-state preview, layout-history
+loading/empty/error, editor error and map-scoped media failure. It does not
+route around an unavailable source dependency by keeping the bespoke surface in
+its place. The only original layout-operation controls are inside the pinned
+source's `hidden` legacy hex-grid section, so they are deliberately not exposed
+as a Rust-specific browser workflow.
 
 | Pinned import / source seam | Rust adapter | Retained source behavior | Contract and current evidence |
 | --- | --- | --- | --- |
 | `@inertiajs/react`: `Head`, `Link`, `router` and `usePage` | `LiftedWorldBuilderEditMapDocument` maps `AdminEditableMap` wire fields to the source prop shape; `Link` uses React Router and `LiftedWorldMapTransport` owns the only request boundary. | The 5,290-line `EditWorldMap` route hierarchy, embedded dialog sizing, source URLs and lifecycle callbacks remain intact. | `GET /admin/world-builder/maps/{map_id}`; mutating source-shaped URLs are exhaustively dispatched only to typed Rust endpoints. Browser fixture proves the mounted route at 1440×900 and 390×844. |
 | `features/settings/map-asset-editor.tsx` and `MapAssetFields` | Whole copied source component, UUID type adapter, and direct callbacks for add/import/image upload. The missing source toast runtime is replaced only at this transport boundary by its bounded inline error announcement. | Canvas, empty state, selectable MapAssets, field sections and source interaction-state UI. | `POST /maps/{map_id}/assets`, `PATCH /assets/{asset_id}`, multipart `asset-exports/import`, and scoped visual media. Fixture proves empty/selected MapAsset+node, toggle-state preview, 201 add, 503 add failure and 503 image-upload failure. |
-| `features/admin-worlds/hex-grid-geometry`, `features/world/{image-alpha-mask,map-asset-image,map-asset-interaction,map-asset-visual,theme}` | Direct lifted modules with import-only substitutions. | Source axial placement, hit area, state resolution, visual composition and themes. | The fixture proves a selected source node/tile, toggle preview and bounded layout-history loading, empty and unavailable states. Browser proof of drag/move, adjacent swap and history restore remains required before completion. |
-| Node `router.post/patch/delete` paths | `useRustTransport` resolves source paths to node create/update/insert/delete/reset/swap endpoints with CSRF, UUID paths and a document reload. | Source dialogs, confirmations, form reset and source payload construction. | `POST /maps/{map_id}/nodes`, `PATCH`/`DELETE /nodes/{node_id}`, node insert/reset/swap. Rust application/API unit suites pass; browser node lifecycle coverage remains required. |
+| `features/admin-worlds/hex-grid-geometry`, `features/world/{image-alpha-mask,map-asset-image,map-asset-interaction,map-asset-visual,theme}` | Direct lifted modules with import-only substitutions. | Source axial placement, hit area, state resolution, visual composition and themes. | The fixture proves a selected source node/tile, toggle preview and bounded layout-history loading, empty and unavailable states. Pinned `edit-map.tsx` itself marks the legacy hex-grid `<section>` `hidden`, so drag/move and adjacent-swap controls have no source-visible browser path to compare. They remain bound only through the typed adapter and focused Rust command tests; the standalone UI must not unhide or redesign them. MapAsset history empty/list/restore is browser-proven against the typed restore response. |
+| Node `router.post/patch/delete` paths | `useRustTransport` resolves source paths to node create/update/insert/delete/reset/swap endpoints with CSRF, UUID paths and a document reload. | Source dialogs, confirmations, form reset and source payload construction. | `POST /maps/{map_id}/nodes`, `PATCH`/`DELETE /nodes/{node_id}`, node insert/reset/swap. The visible selected-node save is browser-proven; the hidden source hex-grid-only lifecycle commands retain focused Rust application/API coverage rather than fabricated browser controls. |
 | Map, MapAsset and history writer paths | `useRustTransport`; lifted source history dialogs use their typed list/preview/restore endpoints. | Source map visual/details/access saves, MapAsset saves, history/list/restore affordances and exports. | Map visuals/details/access, `PATCH /assets/{asset_id}`, asset and layout version endpoints. Export links use `/api/v1/admin/world-builder/assets/{asset_id}/{export,export-package}`. Asset-history empty/list/restore plus layout-history loading, empty and 503 UI are browser-proven. |
-| `uploadMediaFile`, `ConfigImageInput` and `SoundAssetInput` | Map-scoped visual multipart upload and reusable sound multipart upload. Sound staging is normalized from `/admin/sounds/media/{id}/content` to `/admin/media-assets/{id}/content` before node save. | Source image/sound controls and managed media references. | `POST /maps/{map_id}/visual-media` and `POST /admin/sounds/media`, both CSRF-protected. The MapAsset image-upload 503 fallback is browser-proven; sound upload and successful managed-reference evidence remains required. |
+| `uploadMediaFile`, `ConfigImageInput` and `SoundAssetInput` | Map-scoped visual multipart upload and reusable sound multipart upload. Sound staging is normalized from `/admin/sounds/media/{id}/content` to `/admin/media-assets/{id}/content` before node save. | Source image/sound controls and managed media references. | `POST /maps/{map_id}/visual-media` and `POST /admin/sounds/media`, both CSRF-protected. The fixture proves the MapAsset image-upload `503` fallback plus a successful sound upload, CSRF propagation, managed URL normalization and the subsequent asset/node save payload. |
 | `ContentAuthoringDialog` | Existing full source-adapted typed content-authoring dialog remains mounted from the source toolbar and reloads the selected map on apply. | Existing authoring launch, source-record selection, draft review and activity handoff. | Existing AI/content-plan Rust endpoints; retain its own focused coverage while completing this editor slice. |
 
 ### Item-obstacle sound-effect slice — 6 November 2026

@@ -224,7 +224,11 @@ function sourceAsset(asset: {
     return {
         createdAt: asset.created_at ?? null,
         focusable: asset.interaction_mode === 'focusable',
-        id: asset.id ?? asset.asset_id ?? '',
+        // Version rows identify the immutable snapshot as `id`; the restore
+        // response identifies the mutable asset as `asset_id`. Prefer the
+        // latter whenever it is present so a restored configuration continues
+        // to save against the MapAsset, never a historical snapshot.
+        id: asset.asset_id ?? asset.id ?? '',
         imageUrl: asset.image_url,
         interactionConfig: asset.interaction_config,
         interactionMode: asset.interaction_mode,

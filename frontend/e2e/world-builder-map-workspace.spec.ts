@@ -303,8 +303,10 @@ test('the lifted source Graph map workspace retains its two-view navigator and R
     await page.route(
         `**/api/v1/admin/world-builder/assets/${ids.asset}/versions/${ids.version}`,
         async (route) => {
+            const { created_at: _createdAt, id: _versionId, ...restoredForm } =
+                restoredAsset;
             await route.fulfill({
-                body: JSON.stringify({ ...restoredAsset, asset_id: ids.asset }),
+                body: JSON.stringify({ ...restoredForm, asset_id: ids.asset }),
                 contentType: 'application/json',
             });
         },
@@ -438,6 +440,98 @@ test('the lifted source Graph map workspace retains its two-view navigator and R
     await workspace.getByRole('button', { name: /Configure MapAssets/ }).click();
     await expect(page).toHaveURL(
         new RegExp(`worldSection=graph&map=${ids.map}&worldView=nodes`),
+    );
+});
+
+test('the lifted source MapAsset sound upload keeps the managed Rust media URL when its node is saved', async ({
+    page,
+}) => {
+    await installWorldBuilderRoutes(page);
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto(
+        `/settings?panel=admin-world-builder&worldSection=graph&map=${ids.map}&worldView=nodes`,
+    );
+
+    await page
+        .getByRole('button', { name: 'Select Source node to edit' })
+        .click();
+    await page.locator('#map-asset-settings-tab-sounds').click();
+    await expect(
+        page.getByRole('heading', { name: 'MapAsset sounds' }),
+    ).toBeVisible();
+    await page.route('**/api/v1/admin/sounds/media', async (route) => {
+        expect(route.request().headers()['x-csrf-token']).toBe(
+            'source-map-editor-csrf',
+        );
+        await route.fulfill({
+            body: JSON.stringify({
+                asset_id: '00000000-0000-4000-8000-000000000050',
+            }),
+            contentType: 'application/json',
+        });
+    });
+    const uploadedSound = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith('/api/v1/admin/sounds/media'),
+    );
+    await page.locator('#node-sound-click-upload').setInputFiles({
+        buffer: Buffer.from('RIFF....WAVEfmt '),
+        mimeType: 'audio/wav',
+        name: 'source-click.wav',
+    });
+    expect((await uploadedSound).status()).toBe(200);
+    await expect(page.locator('#node-sound-click')).toHaveValue(
+        '/api/v1/admin/media-assets/00000000-0000-4000-8000-000000000050/content',
+    );
+    await page.locator('#node-sound-click-enabled').check();
+
+    let savedAsset: Record<string, unknown> | null = null;
+    let savedNode: Record<string, unknown> | null = null;
+    await page.route(
+        `**/api/v1/admin/world-builder/assets/${ids.asset}`,
+        async (route) => {
+            savedAsset = route.request().postDataJSON() as Record<
+                string,
+                unknown
+            >;
+            await route.fulfill({ status: 204 });
+        },
+    );
+    await page.route(
+        `**/api/v1/admin/world-builder/nodes/${ids.node}`,
+        async (route) => {
+            savedNode = route.request().postDataJSON() as Record<
+                string,
+                unknown
+            >;
+            await route.fulfill({ status: 204 });
+        },
+    );
+    const assetSaved = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'PATCH' &&
+            response.url().endsWith(
+                `/api/v1/admin/world-builder/assets/${ids.asset}`,
+            ),
+    );
+    const nodeSaved = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'PATCH' &&
+            response.url().endsWith(
+                `/api/v1/admin/world-builder/nodes/${ids.node}`,
+            ),
+    );
+    await page.getByRole('button', { name: 'Save MapAsset' }).click();
+    expect((await assetSaved).status()).toBe(204);
+    expect((await nodeSaved).status()).toBe(204);
+    expect(savedAsset).not.toBeNull();
+    expect(savedNode).not.toBeNull();
+    expect(
+        (savedNode!.visual_config as { sounds: { click: { url: string } } })
+            .sounds.click.url,
+    ).toBe(
+        '/api/v1/admin/media-assets/00000000-0000-4000-8000-000000000050/content',
     );
 });
 
