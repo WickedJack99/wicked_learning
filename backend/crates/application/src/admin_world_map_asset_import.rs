@@ -128,6 +128,15 @@ fn invalid_asset(error: &str) -> MapExportPreflightResult {
             portal_targets: 0,
             media_references: 0,
         },
+        media_reference_details: Vec::new(),
+        world: crate::admin_world_map_export_preflight::MapExportPreflightWorld {
+            exists: false,
+            slug: None,
+        },
+        map: crate::admin_world_map_export_preflight::MapExportPreflightMap {
+            exists: false,
+            slug: None,
+        },
     }
 }
 

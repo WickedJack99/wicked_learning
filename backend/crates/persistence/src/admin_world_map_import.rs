@@ -1,10 +1,14 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use serde_json::{Map, Value, json};
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_map_create::{CreateWorldMapForm, generated_map_slug},
+    admin_world_map_export_preflight::{
+        AdminWorldMapExportPreflightError, AdminWorldMapExportPreflightRepository as PreflightPort,
+        MapExportPreflightContext, MapExportPreflightRequirements,
+    },
     admin_world_map_import::{AdminWorldMapImportError, AdminWorldMapImportRepository as Port},
 };
 use wicked_learning_domain::identity_access::AuthorizedPrincipal;
@@ -40,6 +44,130 @@ impl Port for PostgresAdminWorldMapImportRepository<'_> {
                 })
         }
     }
+}
+
+impl PreflightPort for PostgresAdminWorldMapImportRepository<'_> {
+    fn load_preflight_context(
+        &self,
+        _: &AuthorizedPrincipal,
+        requirements: &MapExportPreflightRequirements,
+    ) -> impl std::future::Future<
+        Output = Result<Option<MapExportPreflightContext>, AdminWorldMapExportPreflightError>,
+    > + Send {
+        let media_ids = requirements
+            .media_urls
+            .iter()
+            .filter_map(|url| managed_media_id(url))
+            .collect::<Vec<_>>();
+        let map_slugs = requirements.map_slugs.iter().cloned().collect::<Vec<_>>();
+        let topic_slugs = requirements.topic_slugs.iter().cloned().collect::<Vec<_>>();
+        async move {
+            let Some((world_id, current_world_slug)) = sqlx::query_as::<_, (Uuid, String)>(
+                "SELECT id, slug FROM learning_worlds ORDER BY created_at, slug LIMIT 1",
+            )
+            .fetch_optional(self.pool)
+            .await
+            .map_err(|error| unavailable_preflight(&error))?
+            else {
+                return Ok(None);
+            };
+            let existing_map_slugs = if map_slugs.is_empty() {
+                BTreeSet::new()
+            } else {
+                sqlx::query_scalar::<_, String>(
+                    "SELECT slug FROM learning_maps WHERE world_id = $1 AND slug = ANY($2)",
+                )
+                .bind(world_id)
+                .bind(&map_slugs)
+                .fetch_all(self.pool)
+                .await
+                .map_err(|error| unavailable_preflight(&error))?
+                .into_iter()
+                .collect()
+            };
+            let available_topic_slugs = if topic_slugs.is_empty() {
+                BTreeSet::new()
+            } else {
+                sqlx::query_scalar::<_, String>(
+                    "SELECT slug FROM learning_topics WHERE slug = ANY($1)",
+                )
+                .bind(&topic_slugs)
+                .fetch_all(self.pool)
+                .await
+                .map_err(|error| unavailable_preflight(&error))?
+                .into_iter()
+                .collect()
+            };
+            let available_media_urls = if media_ids.is_empty() {
+                BTreeSet::new()
+            } else {
+                sqlx::query_scalar::<_, Uuid>(
+                    "SELECT id FROM reusable_media_assets WHERE id = ANY($1)",
+                )
+                .bind(&media_ids)
+                .fetch_all(self.pool)
+                .await
+                .map_err(|error| unavailable_preflight(&error))?
+                .into_iter()
+                .map(media_content_url)
+                .collect()
+            };
+            let rows = if map_slugs.is_empty() {
+                Vec::new()
+            } else {
+                sqlx::query_as::<_, (String, String, Option<String>)>(
+                    "SELECT maps.slug, nodes.slug, activities.slug \
+                     FROM learning_maps maps \
+                     JOIN learning_nodes nodes ON nodes.map_id = maps.id \
+                     LEFT JOIN learning_routes routes ON routes.map_asset_id = nodes.map_asset_id \
+                     LEFT JOIN learning_activities activities ON activities.route_id = routes.id \
+                     WHERE maps.world_id = $1 AND maps.slug = ANY($2)",
+                )
+                .bind(world_id)
+                .bind(&map_slugs)
+                .fetch_all(self.pool)
+                .await
+                .map_err(|error| unavailable_preflight(&error))?
+            };
+            let mut map_nodes = BTreeMap::<String, BTreeMap<String, BTreeSet<String>>>::new();
+            for (map_slug, node_slug, activity_slug) in rows {
+                let activities = map_nodes
+                    .entry(map_slug)
+                    .or_default()
+                    .entry(node_slug)
+                    .or_default();
+                if let Some(activity_slug) = activity_slug {
+                    activities.insert(activity_slug);
+                }
+            }
+            Ok(Some(MapExportPreflightContext {
+                available_media_urls,
+                current_world_slug,
+                existing_map_slugs,
+                available_topic_slugs,
+                map_nodes,
+            }))
+        }
+    }
+}
+
+fn unavailable_preflight(error: &sqlx::Error) -> AdminWorldMapExportPreflightError {
+    tracing::error!(%error, "could not load World Builder map import preflight context");
+    AdminWorldMapExportPreflightError::Unavailable
+}
+
+fn managed_media_id(url: &str) -> Option<Uuid> {
+    let identifier = url
+        .strip_prefix("/api/v1/admin/media-assets/")?
+        .strip_suffix("/content")?;
+    if identifier.contains('/') || identifier.is_empty() {
+        return None;
+    }
+    Uuid::parse_str(identifier).ok()
+}
+
+fn media_content_url(id: Uuid) -> String {
+    format!("/api/v1/admin/media-assets/{id}/content")
 }
 
 async fn import_map(

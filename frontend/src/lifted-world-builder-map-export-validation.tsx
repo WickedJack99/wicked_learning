@@ -41,22 +41,18 @@ export type MapExportValidationResult = {
 type RustMapExportPreflight =
     components['schemas']['AdminWorldMapExportPreflightResult'];
 
-/**
- * The Rust preflight is intentionally a bounded readiness projection. The
- * pinned source component already omits its optional media-detail panel when
- * no details are supplied, so no synthetic media references are introduced.
- */
 function adaptRustMapExportPreflight(
     result: RustMapExportPreflight,
 ): MapExportValidationResult {
     return {
         counts: result.counts,
         errors: result.errors,
-        mediaReferenceDetails: [],
+        mediaReferenceDetails: result.mediaReferenceDetails,
+        map: result.map,
         summary: result.summary,
         valid: result.valid,
         warnings: result.warnings,
-        world: { exists: true, slug: null },
+        world: result.world,
     };
 }
 

@@ -69,10 +69,18 @@ test('the lifted source map-export validator retains its bounded success and Rus
                             nodes: 4,
                             portalTargets: 5,
                         },
+                        map: { exists: true, slug: 'mocked-map' },
+                        mediaReferenceDetails: [
+                            {
+                                available: true,
+                                url: '/api/v1/admin/media-assets/00000000-0000-4000-8000-000000000001/content',
+                            },
+                        ],
                         errors: ['One optional source reference needs review.'],
                         summary: 'The mocked export is structurally ready.',
                         valid: true,
                         warnings: ['The transfer will recheck media.'],
+                        world: { exists: true, slug: 'mocked-world' },
                     }),
                     contentType: 'application/json',
                 });
@@ -120,6 +128,10 @@ test('the lifted source map-export validator retains its bounded success and Rus
     );
     await expect(dialog.getByRole('status')).toContainText(
         'The transfer will recheck media.',
+    );
+    await expect(dialog.getByRole('status')).toContainText('Referenced media');
+    await expect(dialog.getByRole('status')).toContainText(
+        '1 of 1 referenced media files are available in this workspace.',
     );
 
     await page.setViewportSize({ height: 844, width: 390 });

@@ -1681,7 +1681,7 @@ export interface paths {
         put?: never;
         /**
          * Check a map export manifest without creating content.
-         * @description Requires the source world-map update permission. The check is read-only and validates either a bounded JSON manifest or its portable ZIP package before a later import, rejecting any present map, node or activity Learning Companion configuration that is not an object or null.
+         * @description Requires the source world-map update permission. The read-only check validates a bounded JSON manifest or portable ZIP package before import, including current-workspace identity, source-map conflict facts, referenced topic and portal targets, and declared managed-media availability. ZIP-declared media is archive-verified but is not materialized until import.
          */
         post: operations["preflightAdminWorldBuilderMapExport"];
         delete?: never;
@@ -9533,6 +9533,18 @@ export interface components {
                 portalTargets: number;
                 mediaReferences: number;
             };
+            mediaReferenceDetails: {
+                available: boolean;
+                url: string;
+            }[];
+            world: {
+                exists: boolean;
+                slug: string | null;
+            };
+            map: {
+                exists: boolean;
+                slug: string | null;
+            };
         };
         AdminWorldImportPreflightResult: {
             valid: boolean;
@@ -17023,7 +17035,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description A bounded structural readiness report. */
+            /** @description A bounded source-compatible import readiness report. */
             200: {
                 headers: {
                     [name: string]: unknown;
