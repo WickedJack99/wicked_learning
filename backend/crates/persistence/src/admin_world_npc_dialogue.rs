@@ -12,9 +12,10 @@ use wicked_learning_application::{
 use wicked_learning_domain::{
     identity_access::{AuthorizedPrincipal, permission_scope_allows},
     world_content::{
-        AdminActivityGraphPosition, AdminNpcDialogueActivity, AdminNpcDialogueGraph,
-        AdminNpcDialogueNode, AdminNpcDialogueTransition, AdminNpcDialogueTypingSoundSet,
-        AdminNpcDialogueWorldNode,
+        AdminActivityGraphPosition, AdminNpcDialogueActivity, AdminNpcDialogueConnector,
+        AdminNpcDialogueGraph, AdminNpcDialogueMap, AdminNpcDialogueNode,
+        AdminNpcDialogueSourceNode, AdminNpcDialogueTransition, AdminNpcDialogueTypingSoundSet,
+        AdminNpcDialogueWorld, AdminNpcDialogueWorldNode,
     },
 };
 
@@ -160,6 +161,18 @@ struct GraphActivityRow {
     config: Value,
 }
 #[derive(FromRow)]
+struct GraphContextRow {
+    world_id: Uuid,
+    world_slug: String,
+    world_title: String,
+    map_id: Uuid,
+    map_slug: String,
+    map_title: String,
+    node_id: Uuid,
+    node_slug: String,
+    node_title: String,
+}
+#[derive(FromRow)]
 struct GraphNodeRow {
     id: Uuid,
     node_type: String,
@@ -223,6 +236,8 @@ async fn load(
     };
     let row: GraphActivityRow = sqlx::query_as("SELECT id, slug, title, introduction, activity_config AS config FROM learning_activities WHERE id = $1 AND activity_type = 'npc_dialogue'")
         .bind(activity_id).fetch_optional(&mut *transaction).await?.ok_or(MutationError::Invalid)?;
+    let context: GraphContextRow = sqlx::query_as("SELECT worlds.id AS world_id, worlds.slug AS world_slug, worlds.title AS world_title, maps.id AS map_id, maps.slug AS map_slug, maps.title AS map_title, nodes.id AS node_id, nodes.slug AS node_slug, nodes.title AS node_title FROM learning_nodes AS nodes INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id INNER JOIN learning_worlds AS worlds ON worlds.id = maps.world_id WHERE nodes.map_asset_id = $1 ORDER BY nodes.id ASC LIMIT 1")
+        .bind(activity.map_asset_id).fetch_optional(&mut *transaction).await?.ok_or(MutationError::Invalid)?;
     let node_rows: Vec<GraphNodeRow> = sqlx::query_as("SELECT id, node_type, title, body, node_config AS config, graph_position_x AS x, graph_position_y AS y FROM learning_npc_dialogue_nodes WHERE activity_id = $1 ORDER BY sort_order ASC, id ASC")
         .bind(activity_id).fetch_all(&mut *transaction).await?;
     let transition_rows: Vec<GraphTransitionRow> = sqlx::query_as("SELECT id, from_node_id, to_node_id, from_connector, to_connector FROM learning_npc_dialogue_transitions WHERE activity_id = $1 ORDER BY created_at ASC, id ASC")
@@ -233,6 +248,21 @@ async fn load(
         .fetch_all(&mut *transaction).await?;
     transaction.commit().await?;
     Ok(Some(AdminNpcDialogueGraph {
+        world: AdminNpcDialogueWorld {
+            id: context.world_id,
+            slug: context.world_slug,
+            title: context.world_title,
+        },
+        map: AdminNpcDialogueMap {
+            id: context.map_id,
+            slug: context.map_slug,
+            title: context.map_title,
+        },
+        node: AdminNpcDialogueSourceNode {
+            id: context.node_id,
+            slug: context.node_slug,
+            title: context.node_title,
+        },
         activity: AdminNpcDialogueActivity {
             id: row.id,
             slug: row.slug,
@@ -245,20 +275,34 @@ async fn load(
                 .cloned()
                 .unwrap_or_else(|| json!({})),
         },
-        dialogue_nodes: node_rows
-            .into_iter()
-            .map(|node| AdminNpcDialogueNode {
-                id: node.id,
-                node_type: node.node_type,
-                title: node.title,
-                body: node.body,
-                config: node.config,
-                position: AdminActivityGraphPosition {
-                    x: node.x,
-                    y: node.y,
-                },
-            })
-            .collect(),
+        dialogue_nodes: {
+            let mut end_index = 0;
+
+            node_rows
+                .into_iter()
+                .map(|node| {
+                    let connector = (node.node_type == "end").then(|| {
+                        let connector =
+                            dialogue_end_connector(node.id, &node.title, &node.config, end_index);
+                        end_index += 1;
+                        connector
+                    });
+
+                    AdminNpcDialogueNode {
+                        id: node.id,
+                        node_type: node.node_type,
+                        title: node.title,
+                        body: node.body,
+                        config: node.config,
+                        connector,
+                        position: AdminActivityGraphPosition {
+                            x: node.x,
+                            y: node.y,
+                        },
+                    }
+                })
+                .collect()
+        },
         transitions: transition_rows
             .into_iter()
             .map(|transition| AdminNpcDialogueTransition {
@@ -286,6 +330,43 @@ async fn load(
             })
             .collect(),
     }))
+}
+
+fn dialogue_end_connector(
+    id: Uuid,
+    title: &str,
+    config: &Value,
+    index: usize,
+) -> AdminNpcDialogueConnector {
+    const COLORS: [&str; 6] = [
+        "#0ea5e9", "#22c55e", "#f97316", "#a855f7", "#ef4444", "#14b8a6",
+    ];
+    let fallback_symbol = char::from_u32(65 + (index % 26) as u32)
+        .unwrap_or('A')
+        .to_string();
+    let symbol = config
+        .get("connectorSymbol")
+        .and_then(Value::as_str)
+        .unwrap_or(&fallback_symbol)
+        .to_owned();
+    let color = config
+        .get("connectorColor")
+        .and_then(Value::as_str)
+        .unwrap_or(COLORS[index % COLORS.len()])
+        .to_owned();
+
+    AdminNpcDialogueConnector {
+        id: format!("dialogue-end-{id}"),
+        label: format!(
+            "{} {}",
+            symbol,
+            if title.is_empty() { "End" } else { title }
+        )
+        .trim()
+        .to_owned(),
+        color,
+        symbol,
+    }
 }
 
 async fn create(
@@ -562,6 +643,25 @@ async fn can_edit(
         || (permission_scope_allows(scope, "own") && creator == Some(principal_id))
         || (permission_scope_allows(scope, "assigned") && direct_editor)
         || direct_editor)
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use uuid::Uuid;
+
+    use super::dialogue_end_connector;
+
+    #[test]
+    fn end_connector_matches_the_pinned_source_identifier_and_defaults() {
+        let node_id = Uuid::from_u128(42);
+        let connector = dialogue_end_connector(node_id, "", &json!({}), 1);
+
+        assert_eq!(connector.id, format!("dialogue-end-{node_id}"));
+        assert_eq!(connector.label, "B End");
+        assert_eq!(connector.symbol, "B");
+        assert_eq!(connector.color, "#22c55e");
+    }
 }
 
 async fn application_principal_id(

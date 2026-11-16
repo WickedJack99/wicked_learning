@@ -14127,13 +14127,40 @@ components:
     AdminNpcDialogueGraph:
       type: object
       additionalProperties: false
-      required: [activity, dialogue_nodes, transitions, world_nodes, typing_sound_sets]
+      required: [world, map, node, activity, dialogue_nodes, transitions, world_nodes, typing_sound_sets]
       properties:
+        world: { $ref: '#/components/schemas/AdminNpcDialogueWorld' }
+        map: { $ref: '#/components/schemas/AdminNpcDialogueMap' }
+        node: { $ref: '#/components/schemas/AdminNpcDialogueSourceNode' }
         activity: { $ref: '#/components/schemas/AdminNpcDialogueActivity' }
         dialogue_nodes: { type: array, maxItems: 80, items: { $ref: '#/components/schemas/AdminNpcDialogueNode' } }
         transitions: { type: array, maxItems: 240, items: { $ref: '#/components/schemas/AdminNpcDialogueTransition' } }
         world_nodes: { type: array, maxItems: 10000, items: { $ref: '#/components/schemas/AdminNpcDialogueWorldNode' } }
         typing_sound_sets: { type: array, maxItems: 8, items: { $ref: '#/components/schemas/AdminNpcDialogueTypingSoundSet' } }
+    AdminNpcDialogueWorld:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, minLength: 1, maxLength: 140 }
+        title: { type: string, minLength: 1, maxLength: 120 }
+    AdminNpcDialogueMap:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, minLength: 1, maxLength: 140 }
+        title: { type: string, minLength: 1, maxLength: 120 }
+    AdminNpcDialogueSourceNode:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, minLength: 1, maxLength: 140 }
+        title: { type: string, minLength: 1, maxLength: 120 }
     AdminNpcDialogueActivity:
       type: object
       additionalProperties: false
@@ -14147,13 +14174,17 @@ components:
     AdminNpcDialogueNode:
       type: object
       additionalProperties: false
-      required: [id, node_type, title, body, config, position]
+      required: [id, node_type, title, body, config, connector, position]
       properties:
         id: { type: string, format: uuid }
         node_type: { type: string, enum: [npc_monologue, npc_question, reflection, answer, end] }
         title: { type: string }
         body: { type: [string, 'null'] }
         config: { type: object, additionalProperties: true }
+        connector:
+          oneOf:
+            - $ref: '#/components/schemas/AdminNpcDialogueConnector'
+            - type: 'null'
         position:
           type: object
           additionalProperties: false
@@ -14161,6 +14192,15 @@ components:
           properties:
             x: { type: [number, 'null'] }
             y: { type: [number, 'null'] }
+    AdminNpcDialogueConnector:
+      type: object
+      additionalProperties: false
+      required: [id, label, color, symbol]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 160 }
+        label: { type: string, minLength: 1, maxLength: 240 }
+        color: { type: string, minLength: 1, maxLength: 64 }
+        symbol: { type: string, minLength: 1, maxLength: 80 }
     AdminNpcDialogueTransition:
       type: object
       additionalProperties: false

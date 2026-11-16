@@ -10377,11 +10377,32 @@ export interface components {
             to_connector: string;
         };
         AdminNpcDialogueGraph: {
+            world: components["schemas"]["AdminNpcDialogueWorld"];
+            map: components["schemas"]["AdminNpcDialogueMap"];
+            node: components["schemas"]["AdminNpcDialogueSourceNode"];
             activity: components["schemas"]["AdminNpcDialogueActivity"];
             dialogue_nodes: components["schemas"]["AdminNpcDialogueNode"][];
             transitions: components["schemas"]["AdminNpcDialogueTransition"][];
             world_nodes: components["schemas"]["AdminNpcDialogueWorldNode"][];
             typing_sound_sets: components["schemas"]["AdminNpcDialogueTypingSoundSet"][];
+        };
+        AdminNpcDialogueWorld: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+        };
+        AdminNpcDialogueMap: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+        };
+        AdminNpcDialogueSourceNode: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
         };
         AdminNpcDialogueActivity: {
             /** Format: uuid */
@@ -10403,10 +10424,17 @@ export interface components {
             config: {
                 [key: string]: unknown;
             };
+            connector: components["schemas"]["AdminNpcDialogueConnector"] | null;
             position: {
                 x: number | null;
                 y: number | null;
             };
+        };
+        AdminNpcDialogueConnector: {
+            id: string;
+            label: string;
+            color: string;
+            symbol: string;
         };
         AdminNpcDialogueTransition: {
             /** Format: uuid */

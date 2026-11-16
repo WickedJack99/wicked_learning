@@ -2927,6 +2927,62 @@ scope configuration. A disposable authenticated browser check updates the
 platform setting, saves a graph, assigns a target and deletes the graph at
 desktop and narrow viewport sizes.
 
+### Dedicated NPC dialogue editor parity audit and source-contract prerequisite — 16 November 2026
+
+**Status: dedicated route remains parity-blocked.** This is not an acceptance
+claim for `frontend/src/original-npc-dialogue-editor.tsx`. That file is a
+Rust-specific reconstruction and is not a direct lift of the source page.
+
+**Pinned source baseline:** `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+The exact source route is the 2,547-line
+`resources/js/pages/settings/worlds/edit-npc-dialogue.tsx`, reached from
+`activity-graph-elements.tsx` through
+`/settings/worlds/activities/{activity}/npc-dialogue`. It owns the header and
+back destination, React Flow canvas with Background/Controls/MiniMap, source
+Start and dialogue-node cards, create/edit/delete dialogs, the four-section
+Basics/Content/Flow/Visuals configuration dialog, end connector presentation,
+scene preview/layer editor, scoped media upload, and desktop/narrow overflow.
+It is not an activity-card form in `edit-node-activities.tsx` and must not be
+added to that route's type registry as a substitute.
+
+The complete direct-lift dependency set is:
+
+| Source dependency | Required use in the future Rust route |
+| --- | --- |
+| `edit-npc-dialogue.tsx` (`EditNpcDialogue`, `DialogueNodeCard`, `StartNode`, `DialogueNodeDialog`, the four configuration sections, graph builders and scene helpers) | Lift as one route tree; retain JSX hierarchy, controls, labels, layout and source responsive behavior. |
+| `activity-config-fields.tsx`, `activity-scene-preview.tsx`, `color-input.tsx`, `number-field.tsx`, `input-error.tsx` | Reuse the already lifted source primitives/modules; do not substitute field or preview controls. |
+| `settings-configuration-{dialog,shell,section}.tsx`, source `Button`/Dialog/Input/Label/Select primitives and `useAppearance` | Retain source focus, dialog, section-navigation and appearance behavior. |
+| Inertia `Head`, `Link`, `router`; `uploadMediaFile` | Replace only with the existing document title/React Router navigation, typed Rust command client and scoped Rust media upload adapter. |
+
+The source page's Laravel `AdminNpcDialogueGraphSerializer` requires `world`,
+`map`, `node`, activity graph layout, dialogue nodes (including nullable end
+connector metadata), transitions and same-world target nodes. The existing
+Rust graph read previously omitted the first three context objects and the
+connector; that made an exact lift impossible without client invention.
+
+| Source requirement | Rust contract now required | Adapter rule |
+| --- | --- | --- |
+| Header/back context and map-scoped upload context: world/map/node `id`, `slug`, `title` | `GET /api/v1/admin/world-builder/activities/{activity_id}/npc-dialogue` now returns bounded `world`, `map` and `node` objects alongside the graph. | Rename snake-case wire names once at the route boundary; do not infer context from URL or make a second lookup. |
+| End-card connector `id`, `label`, `color`, `symbol` | Each dialogue node now returns nullable `connector`; the persistence projection creates it only for `end` nodes using the source connector ID/default/order policy. | Retain the source card and graph-handle code; do not recompute connector metadata in JSX. |
+| Same-world answer-event targets and typing-sound choices | Existing bounded `world_nodes` and `typing_sound_sets` remain in the graph response. The parent selected-node document remains the existing typed source for editable tools until the direct route adapter is lifted. | Preserve UUID identities and map only field casing. |
+| Graph/node/transition/layout commands | Existing typed create, update, delete, transition and layout endpoints remain the sole mutation seam, with CSRF and server-side scope checks. | Map source `router` calls only after the direct page is present; do not add bespoke canvas controls. |
+
+Focused regression evidence is the domain serialization test
+`npc_dialogue_graph_serializes_the_source_editor_context`, which asserts the
+three source context objects and end connector are present in the JSON shape.
+The OpenAPI contract and generated TypeScript client include the same required
+fields. This is a backend prerequisite only: it does not make the existing
+reconstructed editor source-parity, mount a new route, or provide the required
+1440×900/390×844 source-derived browser proof.
+
+The next implementation slice for this route must directly lift the complete
+pinned page and named dependency tree, introduce one UUID-safe document adapter
+and source-router transport adapter, then prove populated/empty/loading/error,
+create/edit/delete/connect/drag, each dialog section, media failure, and both
+viewports. No partial page/header/dialog port is allowed.
+
 ### Content API map foundation slice — 12 November 2026
 
 Rust now exposes the first source-compatible `/api/content/v1` namespace. Its

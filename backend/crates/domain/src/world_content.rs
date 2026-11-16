@@ -580,11 +580,35 @@ pub struct AdminEditableActivity {
 /// transitions, layout and presentation configuration.
 #[derive(Clone, Debug, Serialize)]
 pub struct AdminNpcDialogueGraph {
+    pub world: AdminNpcDialogueWorld,
+    pub map: AdminNpcDialogueMap,
+    pub node: AdminNpcDialogueSourceNode,
     pub activity: AdminNpcDialogueActivity,
     pub dialogue_nodes: Vec<AdminNpcDialogueNode>,
     pub transitions: Vec<AdminNpcDialogueTransition>,
     pub world_nodes: Vec<AdminNpcDialogueWorldNode>,
     pub typing_sound_sets: Vec<AdminNpcDialogueTypingSoundSet>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNpcDialogueWorld {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNpcDialogueMap {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNpcDialogueSourceNode {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -603,7 +627,16 @@ pub struct AdminNpcDialogueNode {
     pub title: String,
     pub body: Option<String>,
     pub config: Value,
+    pub connector: Option<AdminNpcDialogueConnector>,
     pub position: AdminActivityGraphPosition,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AdminNpcDialogueConnector {
+    pub id: String,
+    pub label: String,
+    pub color: String,
+    pub symbol: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -949,7 +982,12 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    use super::PublicNode;
+    use super::{
+        AdminActivityGraphPosition, AdminNpcDialogueActivity, AdminNpcDialogueConnector,
+        AdminNpcDialogueGraph, AdminNpcDialogueMap, AdminNpcDialogueNode,
+        AdminNpcDialogueSourceNode, AdminNpcDialogueTypingSoundSet, AdminNpcDialogueWorld,
+        PublicNode,
+    };
 
     #[test]
     fn internal_node_identity_is_not_part_of_the_public_graph() {
@@ -969,5 +1007,67 @@ mod tests {
 
         assert!(serialized.get("id").is_none());
         assert_eq!(serialized["slug"], "first-node");
+    }
+
+    #[test]
+    fn npc_dialogue_graph_serializes_the_source_editor_context() {
+        let serialized = serde_json::to_value(AdminNpcDialogueGraph {
+            world: AdminNpcDialogueWorld {
+                id: Uuid::from_u128(1),
+                slug: "archive-world".to_owned(),
+                title: "Archive world".to_owned(),
+            },
+            map: AdminNpcDialogueMap {
+                id: Uuid::from_u128(2),
+                slug: "reading-room".to_owned(),
+                title: "Reading room".to_owned(),
+            },
+            node: AdminNpcDialogueSourceNode {
+                id: Uuid::from_u128(3),
+                slug: "archivist".to_owned(),
+                title: "Archivist".to_owned(),
+            },
+            activity: AdminNpcDialogueActivity {
+                id: Uuid::from_u128(4),
+                slug: "welcome".to_owned(),
+                title: "Welcome".to_owned(),
+                introduction: None,
+                graph_layout: json!({}),
+            },
+            dialogue_nodes: vec![AdminNpcDialogueNode {
+                id: Uuid::from_u128(6),
+                node_type: "end".to_owned(),
+                title: "End A".to_owned(),
+                body: None,
+                config: json!({"connectorSymbol": "A"}),
+                connector: Some(AdminNpcDialogueConnector {
+                    id: "dialogue-end-00000000-0000-0000-0000-000000000006".to_owned(),
+                    label: "A End A".to_owned(),
+                    color: "#0ea5e9".to_owned(),
+                    symbol: "A".to_owned(),
+                }),
+                position: AdminActivityGraphPosition {
+                    x: Some(520.0),
+                    y: Some(80.0),
+                },
+            }],
+            transitions: vec![],
+            world_nodes: vec![],
+            typing_sound_sets: vec![AdminNpcDialogueTypingSoundSet {
+                id: Uuid::from_u128(5),
+                name: "Quiet keys".to_owned(),
+                is_default: true,
+            }],
+        })
+        .expect("NPC dialogue graph serializes");
+
+        assert_eq!(serialized["world"]["slug"], "archive-world");
+        assert_eq!(serialized["map"]["slug"], "reading-room");
+        assert_eq!(serialized["node"]["slug"], "archivist");
+        assert_eq!(serialized["activity"]["slug"], "welcome");
+        assert_eq!(
+            serialized["dialogue_nodes"][0]["connector"]["id"],
+            "dialogue-end-00000000-0000-0000-0000-000000000006"
+        );
     }
 }
