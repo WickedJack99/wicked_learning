@@ -87,6 +87,7 @@ import { LiftedWorldBuilderGraph } from './lifted-world-builder-graph';
 import { LiftedWorldBuilderMapDetails } from './lifted-world-builder-map-details';
 import { LiftedWorldBuilderConfigureMapDocument } from './lifted-world-builder-configure-map';
 import { LiftedWorldBuilderEditMapDocument } from './lifted-world-builder-edit-map-adapter';
+import { LiftedNpcDialogueDocument } from './lifted-world-builder-edit-npc-dialogue-adapter';
 import { LiftedWorldBuilderMapWorkspace } from './lifted-world-builder-map-workspace';
 import { LiftedWorldBuilderPortalDetails } from './lifted-world-builder-portal-details';
 import { LiftedWorldBuilderWorldDetailsDialog } from './lifted-world-builder-world-details-dialog';
@@ -7092,7 +7093,7 @@ function ActivityGraph({
         type: SupportedActivityType;
     } | null>(null);
     const [npcDialogueActivity, setNpcDialogueActivity] = useState<
-        Activity | 'create' | null
+        string | 'create' | null
     >(null);
     const [selectedTransition, setSelectedTransition] =
         useState<ActivityTransition | null>(null);
@@ -7332,19 +7333,29 @@ function ActivityGraph({
         [graph.node.id, onReload],
     );
 
-    if (npcDialogueActivity) {
+    if (npcDialogueActivity && npcDialogueActivity !== 'create') {
+        return (
+            <LiftedNpcDialogueDocument
+                activityId={npcDialogueActivity}
+                onBack={() => {
+                    setNpcDialogueActivity(null);
+                    onReload();
+                }}
+                onUpdated={onReload}
+                tools={document.tools}
+            />
+        );
+    }
+
+    if (npcDialogueActivity === 'create') {
         return (
             <OriginalNpcDialogueEditor
-                activityId={
-                    npcDialogueActivity === 'create'
-                        ? undefined
-                        : npcDialogueActivity.id
-                }
                 nodeId={graph.node.id}
                 onClose={() => {
                     setNpcDialogueActivity(null);
                     onReload();
                 }}
+                onCreated={(activityId) => setNpcDialogueActivity(activityId)}
                 tools={document.tools}
             />
         );
@@ -7579,7 +7590,7 @@ function ActivityGraph({
                             node.type === 'activity' &&
                             node.data.activity.activity_type === 'npc_dialogue'
                         ) {
-                            setNpcDialogueActivity(node.data.activity);
+                            setNpcDialogueActivity(node.data.activity.id);
                             return;
                         }
                         if (

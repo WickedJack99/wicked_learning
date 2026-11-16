@@ -2929,9 +2929,13 @@ desktop and narrow viewport sizes.
 
 ### Dedicated NPC dialogue editor parity audit and source-contract prerequisite — 16 November 2026
 
-**Status: dedicated route remains parity-blocked.** This is not an acceptance
-claim for `frontend/src/original-npc-dialogue-editor.tsx`. That file is a
-Rust-specific reconstruction and is not a direct lift of the source page.
+**Status: direct editor page lifted; route-family parity remains incomplete.**
+`frontend/src/original-npc-dialogue-editor.tsx` remains only the temporary
+create-activity prompt because the source puts that creation flow in its
+separate node-activity route. Once an NPC dialogue activity exists, including
+when that prompt creates one, the World Builder mounts the direct pinned-source
+page through `LiftedNpcDialogueDocument`; it no longer opens the reconstructed
+canvas/editor.
 
 **Pinned source baseline:** `main`
 `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
@@ -2969,19 +2973,34 @@ connector; that made an exact lift impossible without client invention.
 | Same-world answer-event targets and typing-sound choices | Existing bounded `world_nodes` and `typing_sound_sets` remain in the graph response. The parent selected-node document remains the existing typed source for editable tools until the direct route adapter is lifted. | Preserve UUID identities and map only field casing. |
 | Graph/node/transition/layout commands | Existing typed create, update, delete, transition and layout endpoints remain the sole mutation seam, with CSRF and server-side scope checks. | Map source `router` calls only after the direct page is present; do not add bespoke canvas controls. |
 
-Focused regression evidence is the domain serialization test
+Focused contract evidence is the domain serialization test
 `npc_dialogue_graph_serializes_the_source_editor_context`, which asserts the
 three source context objects and end connector are present in the JSON shape.
 The OpenAPI contract and generated TypeScript client include the same required
-fields. This is a backend prerequisite only: it does not make the existing
-reconstructed editor source-parity, mount a new route, or provide the required
-1440×900/390×844 source-derived browser proof.
+fields. `frontend/src/lifted-world-builder-edit-npc-dialogue.tsx` is the
+complete pinned 2,547-line page and named dependency tree; its only changes are
+the document-title/back-navigation and typed transport seams.
+`frontend/src/lifted-world-builder-edit-npc-dialogue-adapter.tsx` maps the
+single graph read and every source route-shaped write to the Rust contract,
+preserves UUID identity, turns a source partial drag patch into the Rust
+contract's required full-node replacement using the current graph document,
+and reuses the scoped map visual-media upload endpoint. It does not add editor
+policy or replacement controls. The back control returns to the existing
+selected-node activity graph state, which is the React application's equivalent
+of the source Inertia destination.
 
-The next implementation slice for this route must directly lift the complete
-pinned page and named dependency tree, introduce one UUID-safe document adapter
-and source-router transport adapter, then prove populated/empty/loading/error,
-create/edit/delete/connect/drag, each dialog section, media failure, and both
-viewports. No partial page/header/dialog port is allowed.
+The focused browser journey specifies that creating an NPC dialogue enters the
+lifted heading and source back control, retains the source default end card,
+and keeps the Add node control visible and bounded at 390×844 before continuing
+the graph authoring flow at 1440×900. Its current local execution requires the
+disposable administrator credentials; a credential-less run is intentionally
+skipped rather than treated as browser evidence. Remaining closure evidence is
+deliberately separate: populated and empty graph fitting, every
+dialog/configuration section, edit/delete/connect/drag, image upload failure,
+and first-load 401/403/404/503 and network failure each need source-vs-Rust
+browser captures. The generic source node-activity route that owns NPC dialogue
+creation also remains a P0 direct-lift dependency; do not treat the retained
+temporary prompt as its parity replacement.
 
 ### Content API map foundation slice — 12 November 2026
 

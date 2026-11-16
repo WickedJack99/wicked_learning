@@ -34,11 +34,13 @@ const nodeTypes = { dialogue: DialogueCard, start: StartCard };
 export function OriginalNpcDialogueEditor({
     activityId,
     nodeId,
+    onCreated,
     tools,
     onClose,
 }: {
     activityId?: string;
     nodeId: string;
+    onCreated?: (activityId: string) => void;
     tools: EditableTool[];
     onClose: () => void;
 }) {
@@ -96,7 +98,11 @@ export function OriginalNpcDialogueEditor({
                 },
             );
             if (!response.ok || !data) throw new Error('create dialogue');
-            setCreatedActivityId(data.activity_id);
+            if (onCreated) {
+                onCreated(data.activity_id);
+            } else {
+                setCreatedActivityId(data.activity_id);
+            }
         } catch {
             setError(
                 t(

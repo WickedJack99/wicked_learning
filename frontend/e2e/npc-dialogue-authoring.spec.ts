@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test';
+
 import { expect, test } from './authenticated';
 
 test('a local world author can build an NPC dialogue graph', async ({ page }) => {
@@ -20,7 +22,10 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
         map.nodes.map((node) => ({ mapId: map.id, nodeId: node.id })),
     )[0];
     expect(target).toBeDefined();
-    if (!target) throw new Error('the local World Builder needs one node');
+
+    if (!target) {
+        throw new Error('the local World Builder needs one node');
+    }
 
     const title = `NPC dialogue ${Date.now()}`;
     await page.goto(`/settings?panel=admin-world-builder&map=${target.mapId}&node=${target.nodeId}`);
@@ -33,7 +38,24 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
     ]);
     expect(created.status()).toBe(201);
     const { activity_id: activityId } = (await created.json()) as { activity_id: string };
+    await expect(
+        page.getByRole('heading', { name: `${title} dialogue` }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Activity graph', exact: true }),
+    ).toBeVisible();
     await expect(page.getByText('End A', { exact: true })).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const narrowAddNode = page.getByRole('button', {
+        name: 'Add node',
+        exact: true,
+    });
+    await expect(narrowAddNode).toBeVisible();
+    const addNodeBox = await narrowAddNode.boundingBox();
+    expect(addNodeBox).not.toBeNull();
+    expect((addNodeBox?.x ?? 0) + (addNodeBox?.width ?? 0)).toBeLessThanOrEqual(390);
+    await page.setViewportSize({ width: 1440, height: 900 });
 
     await page.getByRole('button', { name: 'Add node' }).click();
     await expect(page.getByRole('heading', { name: 'Add dialogue node' })).toBeVisible();
@@ -68,7 +90,10 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
     expect(greeting).toBeDefined();
     expect(end).toBeDefined();
     expect(answer?.config.events).toEqual({ hideNodeIds: [target.nodeId], unlockNodeIds: [target.nodeId] });
-    if (!greeting || !end || !answer) throw new Error('the saved graph is incomplete');
+
+    if (!greeting || !end || !answer) {
+        throw new Error('the saved graph is incomplete');
+    }
 
     const connect = await browserJsonRequest(page, `/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue/transitions`, 'POST', { from_node_id: null, to_node_id: greeting.id, from_connector: 'out', to_connector: 'in' });
     expect(connect).toBe(201);
@@ -102,7 +127,7 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
 });
 
 async function browserJsonRequest(
-    page: import('@playwright/test').Page,
+    page: Page,
     url: string,
     method: 'DELETE' | 'POST',
     body?: Record<string, unknown>,
@@ -118,6 +143,7 @@ async function browserJsonRequest(
             },
             method,
         });
+
         return response.status;
     }, { body, method, url });
 }
