@@ -5,6 +5,7 @@ import type { components } from './api/schema';
 import EditNpcDialogue, {
 } from './lifted-world-builder-edit-npc-dialogue';
 import type { LiftedNpcDialogueTransport } from './lifted-world-builder-edit-npc-dialogue';
+import { UnavailableWorldBuilder } from './lifted-world-builder-unavailable';
 
 type DialogueGraph = components['schemas']['AdminNpcDialogueGraph'];
 type EditableTool = components['schemas']['AdminEditableTool'];
@@ -353,24 +354,8 @@ export function LiftedNpcDialogueDocument({
         [tools],
     );
 
-    if (unavailable) {
-        return (
-            <section className="grid h-full place-items-center p-6 text-center">
-                <div>
-                    <h2 className="text-lg font-semibold">Dialogue graph unavailable</h2>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                        The dialogue graph could not be loaded. Return to the activity graph and try again.
-                    </p>
-                    <button className="mt-4 text-sm font-medium text-[var(--settings-accent)]" onClick={onBack} type="button">
-                        Activity graph
-                    </button>
-                </div>
-            </section>
-        );
-    }
-
-    if (!graph) {
-        return <div aria-live="polite" className="grid h-full place-items-center text-sm text-slate-500">Loading dialogue graph…</div>;
+    if (unavailable || !graph) {
+        return <UnavailableWorldBuilder />;
     }
 
     return (

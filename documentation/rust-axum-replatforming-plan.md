@@ -3021,14 +3021,18 @@ lifted heading and source back control, retains the source default end card,
 and keeps the Add node control visible and bounded at 390×844 before continuing
 the graph authoring flow at 1440×900. Its current local execution requires the
 disposable administrator credentials; a credential-less run is intentionally
-skipped rather than treated as browser evidence. Remaining closure evidence is
-deliberately separate: populated and empty graph fitting, every
-dialog/configuration section, edit/delete/connect/drag, image upload failure,
-and first-load 401/403/404/503 and network failure each need source-vs-Rust
-browser captures. The generic source node-activity route that owns NPC dialogue
-creation is now mounted through `LiftedNodeActivityEditorDocument`; its source
-card delegates to the direct NPC page. The retained temporary prompt is not a
-parity replacement and must not regain routing ownership.
+skipped rather than treated as browser evidence. The direct Rust read's
+pending, 401, 403, 404, 503 and network-failure states now render the exact
+pinned-source `UnavailableWorldBuilder` panel at both 1440×900 and 390×844;
+`npc-dialogue-direct-editor-unavailable.spec.ts` proves its copy and bounds and
+the pending case transitions into the lifted document after a successful
+response. Remaining closure evidence is deliberately separate: populated and
+empty graph fitting, every dialog/configuration section,
+edit/delete/connect/drag, and image-upload failure. The generic source
+node-activity route that owns NPC dialogue creation is now mounted through
+`LiftedNodeActivityEditorDocument`; its source card delegates to the direct NPC
+page. The retained temporary prompt is not a parity replacement and must not
+regain routing ownership.
 
 ### Markdown special-graph layout contract prerequisite — 16 November 2026
 

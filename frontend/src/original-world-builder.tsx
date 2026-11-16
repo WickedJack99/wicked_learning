@@ -90,6 +90,7 @@ import { LiftedWorldBuilderEditMapDocument } from './lifted-world-builder-edit-m
 import { LiftedMarkdownActivityDocument } from './lifted-world-builder-edit-markdown-activity-adapter';
 import { LiftedNodeActivityEditorDocument } from './lifted-world-builder-edit-node-activities-adapter';
 import { LiftedNpcDialogueDocument } from './lifted-world-builder-edit-npc-dialogue-adapter';
+import { UnavailableWorldBuilder } from './lifted-world-builder-unavailable';
 import { LiftedWorldBuilderMapWorkspace } from './lifted-world-builder-map-workspace';
 import { LiftedWorldBuilderPortalDetails } from './lifted-world-builder-portal-details';
 import { LiftedWorldBuilderWorldDetailsDialog } from './lifted-world-builder-world-details-dialog';
@@ -2203,18 +2204,6 @@ function DuplicateMapDialog({
                 </div>
             </form>
         </div>
-    );
-}
-
-/** Direct lift of main WorldBuilderSettingsPanel's unavailable state. */
-function UnavailableWorldBuilder() {
-    return (
-        <section className="grid h-full place-items-center p-6 text-center">
-            <p className="max-w-lg text-sm leading-6 text-[var(--settings-muted-text)]">
-                World builder settings are not available with the current
-                permissions.
-            </p>
-        </section>
     );
 }
 
