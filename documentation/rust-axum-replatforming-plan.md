@@ -1790,7 +1790,7 @@ Reflection's source type switch and its `What feels clearer now?` default are
 browser-proven at both viewports. Its source Review/Revisit variant, including
 the same default, is browser-proven at both viewports. The harness declares every
 remaining source type and browser-proves that Markdown, Portal, Question, Message
-Prompt/Wall, Shared Task, Item Grant and Obstacle each
+Prompt/Wall, Shared Task and Item Grant each
 reach their distinct lifted Flow section at both viewports. This is structural
 type-family evidence only: their per-field defaults, validation, stale-save and
 successful Rust command/reload behavior remain unproven, as do templates,
@@ -1850,6 +1850,10 @@ command behavior and all other listed states remain unproven. Item Obstacle
 now captures its default slot, lockout, completed-scene and sound fields plus
 the selected existing item's UUID and all three configured catalog-sound UUIDs
 through desktop Rust `400`/`409` failures and narrow Rust `201`/`200` reloads.
+Base Obstacle now captures its no-tool default plus the selected tool UUID,
+blocking and cleared scenes, bubbles, colors, placement, persistence and
+animation fields through the same desktop failure and narrow successful-reload
+states. All other listed states remain unproven.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 

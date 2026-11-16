@@ -29,6 +29,8 @@ const fixtureType = fixtureSearch.has('reflection')
                     ? 'item_grant'
                     : fixtureSearch.has('item-obstacle')
                       ? 'item_obstacle'
+                      : fixtureSearch.has('obstacle')
+                        ? 'obstacle'
                     : fixtureSearch.has('tool-grant')
                       ? 'tool_grant'
             : 'open_practice';
@@ -177,6 +179,40 @@ const activity = {
                   },
               }
             : {}),
+        ...(fixtureType === 'obstacle'
+            ? {
+                  allowedToolIds: [
+                      '00000000-0000-4000-8000-000000000721',
+                  ],
+                  backgroundDark: '/media/base-obstacle-dark.png',
+                  backgroundLight: '/media/base-obstacle-light.png',
+                  backgroundMirrored: true,
+                  bubbleBorderColorDark: '#4ade80',
+                  bubbleBorderColorLight: '#15803d',
+                  bubbleColorDark: '#10261a',
+                  bubbleColorLight: '#f0fdf4',
+                  bubbleOpacityDark: 88,
+                  bubbleOpacityLight: 91,
+                  obstacleImageDark: '/media/base-obstacle-image-dark.png',
+                  obstacleImageLight: '/media/base-obstacle-image-light.png',
+                  obstacleImageMirrored: true,
+                  obstacleWidth: 34,
+                  obstacleX: 42,
+                  obstacleY: 58,
+                  persistAfterSolved: false,
+                  promptText: 'Use the lens to inspect this signal.',
+                  revisitBackgroundDark: '/media/base-obstacle-revisit-dark.png',
+                  revisitBackgroundLight: '/media/base-obstacle-revisit-light.png',
+                  revisitBackgroundMirrored: true,
+                  revisitImageDark: '/media/base-obstacle-revisit-image-dark.png',
+                  revisitImageLight: '/media/base-obstacle-revisit-image-light.png',
+                  revisitImageMirrored: true,
+                  revisitText: 'The signal is ready to inspect again.',
+                  successAnimation: 'shake',
+                  successText: 'You found the useful detail.',
+                  typingSpeed: 30,
+              }
+            : {}),
         ...(fixtureType === 'tool_grant'
             ? {
                   backgroundDark: '/media/tool-dark.png',
@@ -277,6 +313,8 @@ const activity = {
                             ? 'First item grant'
                             : fixtureType === 'item_obstacle'
                               ? 'First item obstacle'
+                              : fixtureType === 'obstacle'
+                                ? 'First obstacle'
                             : fixtureType === 'tool_grant'
                               ? 'First tool grant'
                     : 'First activity',

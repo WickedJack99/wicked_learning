@@ -2337,6 +2337,147 @@ for (const [status, viewport, name] of [
     });
 }
 
+const defaultObstacleCreateBody = {
+    allowed_tool_ids: [],
+    background_dark: null,
+    background_light: null,
+    background_mirrored: false,
+    bubble_border_color_dark: '#2dd4bf',
+    bubble_border_color_light: '#0891b2',
+    bubble_color_dark: '#0f172a',
+    bubble_color_light: '#ffffff',
+    bubble_opacity_dark: 92,
+    bubble_opacity_light: 94,
+    introduction: null,
+    obstacle_image_dark: null,
+    obstacle_image_light: null,
+    obstacle_image_mirrored: false,
+    obstacle_width: 28,
+    obstacle_x: 50,
+    obstacle_y: 50,
+    persist_after_solved: true,
+    prompt_text: null,
+    revisit_background_dark: null,
+    revisit_background_light: null,
+    revisit_background_mirrored: false,
+    revisit_image_dark: null,
+    revisit_image_light: null,
+    revisit_image_mirrored: false,
+    revisit_text: null,
+    slug: null,
+    success_animation: 'zoom',
+    success_text: null,
+    title: 'Open the signal case',
+    typing_speed: 24,
+};
+
+const defaultObstacleUpdateBody = {
+    allowed_tool_ids: ['00000000-0000-4000-8000-000000000721'],
+    background_dark: '/media/base-obstacle-dark.png',
+    background_light: '/media/base-obstacle-light.png',
+    background_mirrored: true,
+    bubble_border_color_dark: '#4ade80',
+    bubble_border_color_light: '#15803d',
+    bubble_color_dark: '#10261a',
+    bubble_color_light: '#f0fdf4',
+    bubble_opacity_dark: 88,
+    bubble_opacity_light: 91,
+    introduction: 'Start with this activity.',
+    obstacle_image_dark: '/media/base-obstacle-image-dark.png',
+    obstacle_image_light: '/media/base-obstacle-image-light.png',
+    obstacle_image_mirrored: true,
+    obstacle_width: 34,
+    obstacle_x: 42,
+    obstacle_y: 58,
+    persist_after_solved: false,
+    prompt_text: 'Use the lens to inspect this signal.',
+    revisit_background_dark: '/media/base-obstacle-revisit-dark.png',
+    revisit_background_light: '/media/base-obstacle-revisit-light.png',
+    revisit_background_mirrored: true,
+    revisit_image_dark: '/media/base-obstacle-revisit-image-dark.png',
+    revisit_image_light: '/media/base-obstacle-revisit-image-light.png',
+    revisit_image_mirrored: true,
+    revisit_text: 'The signal is ready to inspect again.',
+    slug: 'first-activity',
+    success_animation: 'shake',
+    success_text: 'You found the useful detail.',
+    title: 'First obstacle (edited)',
+    typing_speed: 30,
+    updated_at: '2026-11-15T10:00:00Z',
+};
+
+async function openObstacleCreateForm(page: Page): Promise<void> {
+    await page.getByRole('button', { name: 'Add activity' }).dispatchEvent('click');
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page
+        .getByRole('option', { exact: true, name: 'Obstacle' })
+        .dispatchEvent('click');
+}
+
+for (const [status, viewport, name] of [
+    [400, { height: 900, width: 1440 }, 'validation failure'],
+    [201, { height: 844, width: 390 }, 'successful create'],
+] as const) {
+    test(`captures source Base Obstacle defaults for a typed Rust ${name}`, async ({ page }) => {
+        let commandBody: unknown = null;
+        await page.route('**/api/v1/security/csrf', async (route) => route.fulfill({ json: { token: 'test-csrf' } }));
+        await page.route('**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/obstacle-activities', async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill(status === 201 ? { json: { activity_id: '00000000-0000-4000-8000-000000000724' }, status } : { status });
+        });
+        await page.setViewportSize(viewport);
+        await page.goto('/activity-editor-harness.html');
+        await openObstacleCreateForm(page);
+        await page.getByLabel('Title').fill('Open the signal case');
+        await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+        await expectBounded(page.getByRole('combobox', { name: 'Tools that work here' }), viewport.width);
+        const reloaded = status === 201 ? page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame()) : null;
+        await page.locator('form').evaluate((form) => form.requestSubmit());
+
+        if (reloaded) {
+            await reloaded;
+        }
+
+        await expect.poll(() => commandBody).not.toBeNull();
+        expect(commandBody).toEqual(defaultObstacleCreateBody);
+    });
+}
+
+for (const [status, viewport, name] of [
+    [409, { height: 900, width: 1440 }, 'stale update'],
+    [200, { height: 844, width: 390 }, 'successful update'],
+] as const) {
+    test(`captures a typed Rust Base Obstacle ${name} without losing source fields`, async ({ page }) => {
+        let commandBody: unknown = null;
+        await page.route('**/api/v1/security/csrf', async (route) => route.fulfill({ json: { token: 'test-csrf' } }));
+        await page.route('**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/obstacle', async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill(status === 200 ? { json: { activity_id: '00000000-0000-4000-8000-000000000701', updated_at: '2026-11-15T10:01:00Z' }, status } : { status });
+        });
+        await page.setViewportSize(viewport);
+        await page.goto('/activity-editor-harness.html?obstacle=1');
+        await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+        await page.getByLabel('Title').fill('First obstacle (edited)');
+        await page.getByRole('tab', { name: 'Visuals' }).dispatchEvent('click');
+        await expectBounded(page.getByLabel('Typing speed'), viewport.width);
+        const reloaded = status === 200 ? page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame()) : null;
+        await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+        if (reloaded) {
+            await reloaded;
+        }
+
+        await expect.poll(() => commandBody).not.toBeNull();
+        expect(commandBody).toEqual(defaultObstacleUpdateBody);
+
+        if (status === 409) {
+            await expect(
+                page.getByRole('heading', { name: 'Edit activity' }),
+            ).toBeVisible();
+        }
+    });
+}
+
 for (const [status, viewport, name] of [
     [409, { height: 900, width: 1440 }, 'stale update'],
     [200, { height: 844, width: 390 }, 'successful update'],
