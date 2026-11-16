@@ -1,6 +1,20 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { expect, test } from './authenticated';
+
+async function expectBounded(
+    locator: Locator,
+    viewport: { height: number; width: number },
+): Promise<void> {
+    await expect(locator).toBeVisible();
+    const bounds = await locator.boundingBox();
+
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
+    expect(bounds!.y).toBeGreaterThanOrEqual(0);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height);
+}
 
 test('a local world author can build an NPC dialogue graph', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;
@@ -45,6 +59,18 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
         page.getByRole('button', { name: 'Activity graph', exact: true }),
     ).toBeVisible();
     await expect(page.getByText('End A', { exact: true })).toBeVisible();
+    await expectBounded(page.locator('.react-flow__renderer'), {
+        height: 900,
+        width: 1440,
+    });
+    await expectBounded(page.getByText('Start', { exact: true }), {
+        height: 900,
+        width: 1440,
+    });
+    await expectBounded(page.getByText('End A', { exact: true }), {
+        height: 900,
+        width: 1440,
+    });
 
     await page.setViewportSize({ width: 390, height: 844 });
     const narrowAddNode = page.getByRole('button', {
@@ -55,6 +81,18 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
     const addNodeBox = await narrowAddNode.boundingBox();
     expect(addNodeBox).not.toBeNull();
     expect((addNodeBox?.x ?? 0) + (addNodeBox?.width ?? 0)).toBeLessThanOrEqual(390);
+    await expectBounded(page.locator('.react-flow__renderer'), {
+        height: 844,
+        width: 390,
+    });
+    await expectBounded(page.getByText('Start', { exact: true }), {
+        height: 844,
+        width: 390,
+    });
+    await expectBounded(page.getByText('End A', { exact: true }), {
+        height: 844,
+        width: 390,
+    });
     await page.setViewportSize({ width: 1440, height: 900 });
 
     await page.getByRole('button', { name: 'Add node' }).click();
@@ -83,6 +121,7 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
     expect(graph.ok()).toBeTruthy();
     const saved = (await graph.json()) as {
         dialogue_nodes: Array<{ id: string; node_type: string; title: string }>;
+        [key: string]: unknown;
     };
     const greeting = saved.dialogue_nodes.find((node) => node.title === 'Archivist greeting');
     const end = saved.dialogue_nodes.find((node) => node.node_type === 'end');
@@ -122,6 +161,45 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
         activity_graph: { activities: Array<{ id: string; connectors: { outputs: Array<{ id: string }> } }> };
     };
     expect(activityDocument.activity_graph.activities.find((activity) => activity.id === activityId)?.connectors.outputs).toContainEqual({ id: `dialogue-end-${end.id}`, label: 'A End A' });
+
+    await page.route(
+        `**/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue`,
+        async (route) => {
+            await route.fulfill({
+                json: {
+                    ...saved,
+                    dialogue_nodes: [],
+                    transitions: [],
+                },
+            });
+        },
+    );
+    await activityCard.getByRole('button', { name: 'Edit dialogue' }).click();
+    await expect(
+        page.getByRole('heading', { name: `${title} dialogue` }),
+    ).toBeVisible();
+    await expectBounded(page.locator('.react-flow__renderer'), {
+        height: 900,
+        width: 1440,
+    });
+    await expectBounded(page.getByText('Start', { exact: true }), {
+        height: 900,
+        width: 1440,
+    });
+    await expect(page.getByText('End A', { exact: true })).toHaveCount(0);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectBounded(page.locator('.react-flow__renderer'), {
+        height: 844,
+        width: 390,
+    });
+    await expectBounded(page.getByText('Start', { exact: true }), {
+        height: 844,
+        width: 390,
+    });
+    await expectBounded(page.getByRole('button', { name: 'Add node' }), {
+        height: 844,
+        width: 390,
+    });
 
     expect(await browserJsonRequest(page, `/api/v1/admin/world-builder/activities/${activityId}`, 'DELETE')).toBe(204);
 });

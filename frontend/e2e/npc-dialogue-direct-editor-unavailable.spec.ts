@@ -9,52 +9,6 @@ const viewports = [
     { height: 844, width: 390 },
 ];
 
-function graphResponse() {
-    return {
-        activity: {
-            graph_layout: {},
-            id: activityId,
-            introduction: null,
-            slug: 'archivist-dialogue',
-            title: 'Archivist',
-        },
-        dialogue_nodes: [
-            {
-                body: null,
-                config: {},
-                connector: {
-                    color: '#0ea5e9',
-                    id: 'dialogue-end-00000000-0000-4000-8000-000000000710',
-                    label: 'A',
-                    symbol: 'A',
-                },
-                id: '00000000-0000-4000-8000-000000000710',
-                node_type: 'end',
-                position: { x: 140, y: 80 },
-                title: 'End A',
-            },
-        ],
-        map: {
-            id: '00000000-0000-4000-8000-000000000702',
-            slug: 'archive',
-            title: 'Archive',
-        },
-        node: {
-            id: '00000000-0000-4000-8000-000000000703',
-            slug: 'reading-room',
-            title: 'Reading room',
-        },
-        transitions: [],
-        typing_sound_sets: [],
-        world: {
-            id: '00000000-0000-4000-8000-000000000704',
-            slug: 'library',
-            title: 'Library',
-        },
-        world_nodes: [],
-    };
-}
-
 async function expectBounded(
     locator: Locator,
     viewport: { height: number; width: number },
@@ -89,16 +43,14 @@ test('the direct NPC dialogue document keeps the pinned-source unavailable panel
         `**/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue`,
         async (route) => {
             await pending;
-            await route.fulfill({ json: graphResponse() });
+            await route.fulfill({ status: 503 });
         },
     );
 
     await page.goto('/npc-dialogue-direct-editor-harness.html');
     await expectUnavailableAtBothViewports(page);
     release?.();
-    await expect(
-        page.getByRole('heading', { name: 'Archivist dialogue' }),
-    ).toBeVisible();
+    await expectUnavailableAtBothViewports(page);
 });
 
 for (const response of [

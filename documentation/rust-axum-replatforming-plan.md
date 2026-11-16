@@ -3024,15 +3024,19 @@ disposable administrator credentials; a credential-less run is intentionally
 skipped rather than treated as browser evidence. The direct Rust read's
 pending, 401, 403, 404, 503 and network-failure states now render the exact
 pinned-source `UnavailableWorldBuilder` panel at both 1440×900 and 390×844;
-`npc-dialogue-direct-editor-unavailable.spec.ts` proves its copy and bounds and
-the pending case transitions into the lifted document after a successful
-response. Remaining closure evidence is deliberately separate: populated and
-empty graph fitting, every dialog/configuration section,
-edit/delete/connect/drag, and image-upload failure. The generic source
-node-activity route that owns NPC dialogue creation is now mounted through
-`LiftedNodeActivityEditorDocument`; its source card delegates to the direct NPC
-page. The retained temporary prompt is not a parity replacement and must not
-regain routing ownership.
+`npc-dialogue-direct-editor-unavailable.spec.ts` proves its copy and bounds.
+`npc-dialogue-authoring.spec.ts` now enters that direct document in
+the real local-Compose World Builder workspace, proves the persisted default
+Start/end graph and bounded React Flow renderer at 1440×900 and 390×844, then
+reopens it with the same source-shaped Rust response with no dialogue nodes and
+proves its minimal Start graph and Add-node control at both viewports. This is
+Rust browser/source-component evidence, not an unavailable Laravel-runtime
+side-by-side capture. Remaining closure evidence is deliberately separate:
+every dialog/configuration section, edit/delete/connect/drag, and image-upload
+failure. The generic source node-activity route that owns NPC dialogue creation
+is now mounted through `LiftedNodeActivityEditorDocument`; its source card
+delegates to the direct NPC page. The retained temporary prompt is not a parity
+replacement and must not regain routing ownership.
 
 ### Markdown special-graph layout contract prerequisite — 16 November 2026
 
