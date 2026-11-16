@@ -18,23 +18,33 @@ test('a local world author can save a source Markdown page graph', async ({ page
     if (!map) throw new Error('the local World Builder graph has no readable node');
 
     await page.goto(`/settings?panel=admin-world-builder&map=${map.id}&node=${map.nodes[0].id}`);
-    await page.getByRole('button', { name: 'Markdown', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Add Markdown' })).toBeVisible();
-    await expect(page.getByText('Markdown page graph', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Add activity', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Type' }).click();
+    await page.getByRole('option', { name: 'Markdown', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Add activity' })).toBeVisible();
     const title = `Markdown authoring ${Date.now()}`;
     await page.getByLabel('Title').fill(title);
-    await page.getByRole('textbox', { name: 'Markdown', exact: true }).fill('# A useful briefing\n\nObserve the available directions.');
     const [created] = await Promise.all([
         page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/markdown-activities')),
-        page.getByRole('button', { name: 'Create activity' }).click(),
+        page.getByRole('button', { name: 'Create', exact: true }).click(),
     ]);
     expect(created.status()).toBe(201);
+    const markdownActivity = page.getByRole('group', {
+        name: `markdown: ${title}`,
+    });
+    await expect(markdownActivity).toBeVisible();
     await page.getByRole('button', { name: 'Fit View' }).click();
-    await page.getByText(title, { exact: true }).dispatchEvent('click');
+    await markdownActivity.getByRole('button', { name: 'Edit pages' }).dispatchEvent('click');
+    await expect(page).toHaveURL(
+        new RegExp(
+            `/settings/worlds/activities/[^/]+/markdown\\?map=${map.id}&node=${map.nodes[0].id}`,
+        ),
+    );
     await expect(
         page.getByRole('heading', { name: `${title} pages` }),
     ).toBeVisible();
     await expect(page.getByText('Markdown page graph', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await page.getByRole('textbox', { name: 'Markdown', exact: true }).fill('# Updated briefing\n\nKeep the next useful direction visible.');
     const [updated] = await Promise.all([
         page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().includes('/markdown')),

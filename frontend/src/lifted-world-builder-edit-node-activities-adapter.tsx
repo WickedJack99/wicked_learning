@@ -17,11 +17,13 @@ type RustWorldGraph = components['schemas']['AdminWorldGraph'];
  */
 export function LiftedNodeActivityEditorDocument({
     document,
+    onOpenMarkdown,
     onOpenNpcDialogue,
     onReload,
     worldGraph,
 }: {
     document: RustNodeDocument;
+    onOpenMarkdown?: (activityId: string) => void;
     onOpenNpcDialogue?: (activityId: string) => void;
     onReload: () => void;
     worldGraph: RustWorldGraph | null;
@@ -66,6 +68,12 @@ export function LiftedNodeActivityEditorDocument({
             embedded
             items={adapted.items}
             onOpenDedicatedActivity={(activity) => {
+                if (activity.type === 'markdown' && onOpenMarkdown) {
+                    onOpenMarkdown(activity.id);
+
+                    return;
+                }
+
                 if (activity.type === 'npc_dialogue' && onOpenNpcDialogue) {
                     onOpenNpcDialogue(activity.id);
 

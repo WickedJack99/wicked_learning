@@ -33,6 +33,7 @@ import { OriginalPathsPage } from './original-paths';
 import { OriginalTopicsPage } from './original-topics';
 import { OriginalWelcomePage } from './original-welcome';
 import {
+    OriginalMarkdownActivityPage,
     OriginalNpcDialoguePage,
     OriginalWorldBuilderPage,
 } from './original-world-builder';
@@ -647,6 +648,25 @@ export function App() {
         return (
             <OriginalNpcDialoguePage
                 activityId={decodeURIComponent(npcDialogueMatch[1])}
+                isAuthenticated={currentUser.kind === 'loaded'}
+            />
+        );
+    }
+
+    const markdownActivityMatch = location.pathname.match(
+        /^\/settings\/worlds\/activities\/([^/]+)\/markdown$/,
+    );
+    if (markdownActivityMatch) {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
+            return null;
+        }
+
+        return (
+            <OriginalMarkdownActivityPage
+                activityId={decodeURIComponent(markdownActivityMatch[1])}
                 isAuthenticated={currentUser.kind === 'loaded'}
             />
         );

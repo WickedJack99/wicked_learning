@@ -3130,16 +3130,27 @@ source footer's `updated_at` error slot; no substitute control or error layout
 is introduced. The adapter rejects a missing/non-Markdown selected activity as
 unavailable rather than inventing a document.
 
+The document now owns the source-shaped
+`/settings/worlds/activities/{activity_id}/markdown` route rather than being
+mounted in the selected-node inspector. The Rust navigation adapter preserves
+the selected `map`/`node` UUIDs as query state solely to read the already
+scoped `AdminEditableNode` graph the source page requires, verifies the
+requested activity is Markdown, and returns the source Back control to that
+selected activity graph. The page is outside the World Builder React Flow
+provider, matching the source route's independent canvas ownership.
+
 Focused browser evidence is
 `frontend/e2e/markdown-direct-editor-harness.spec.ts`: it proves the scoped
 contract mapping, source controls/page card and bounded controls at 1440×900
 and 390×844, and the Rust save-unavailable footer state. The authenticated
 `markdown-authoring.spec.ts` now enters the direct page after source-shaped
 creation, saves through its source `Save pages` control, and returns through
-the source back control; it still requires the disposable administrator
-credentials for local execution. A direct side-by-side running-current-main
-capture and the remaining template/citation/media and read-error evidence are
-still required before declaring the route family fully parity-complete.
+the source back control. It asserts the dedicated source URL, opens the source
+page drawer before editing its Markdown field, and still requires the
+disposable administrator credentials for local execution. A direct
+side-by-side running-current-main capture and the remaining
+template/citation/media and read-error evidence are still required before
+declaring the route family fully parity-complete.
 
 ### Content API map foundation slice — 12 November 2026
 
