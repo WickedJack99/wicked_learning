@@ -7,7 +7,7 @@ import { CurrentUserProvider } from '../src/current-user';
 import EditNodeActivities from '../src/lifted-world-builder-edit-node-activities';
 import type { ActivityGraphPayload } from '../src/lifted-world-builder-edit-node-activity-types';
 import { OriginalPlatformTranslationProvider } from '../src/original-platform-translation';
-import '../src/styles.css';
+import './activity-editor-harness.css';
 
 const fixtureSearch = new URLSearchParams(window.location.search);
 const multiStartFixture = fixtureSearch.has('multi-start');

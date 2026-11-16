@@ -276,6 +276,50 @@ async function installCsrf(page: Page): Promise<void> {
     });
 }
 
+async function dragBetween(
+    page: Page,
+    source: Locator,
+    target: Locator,
+): Promise<void> {
+    const sourceBox = await source.boundingBox();
+    const targetBox = await target.boundingBox();
+
+    expect(sourceBox).not.toBeNull();
+    expect(targetBox).not.toBeNull();
+
+    await page.mouse.move(
+        sourceBox!.x + sourceBox!.width / 2,
+        sourceBox!.y + sourceBox!.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+        targetBox!.x + targetBox!.width / 2,
+        targetBox!.y + targetBox!.height / 2,
+        { steps: 12 },
+    );
+    await page.mouse.up();
+}
+
+async function dragNodeBy(
+    page: Page,
+    node: Locator,
+    xDistance: number,
+    yDistance: number,
+): Promise<void> {
+    const nodeBox = await node.boundingBox();
+
+    expect(nodeBox).not.toBeNull();
+
+    await page.mouse.move(nodeBox!.x + 96, nodeBox!.y + 24);
+    await page.mouse.down();
+    await page.mouse.move(
+        nodeBox!.x + 96 + xDistance,
+        nodeBox!.y + 24 + yDistance,
+        { steps: 12 },
+    );
+    await page.mouse.up();
+}
+
 test('renders the lifted source activity graph at the desktop contract viewport', async ({
     page,
 }) => {
@@ -389,6 +433,104 @@ test('keeps source graph dialogs reachable at the narrow contract viewport', asy
     await page.goto('/activity-editor-harness.html');
 
     await exerciseSourceGraphDialogs(page);
+});
+
+test('creates a connection through the lifted source React Flow handles and typed Rust command', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await installCsrf(page);
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/activity-transitions',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ json: { transitions: [] }, status: 200 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto(
+        '/activity-editor-harness.html?source-mutations=1&multi-start=1',
+    );
+
+    const source = page.locator(
+        '.react-flow__handle.source[data-nodeid="00000000-0000-4000-8000-000000000701"][data-handleid="completed"]',
+    );
+    const target = page.locator(
+        '.react-flow__handle.target[data-nodeid="00000000-0000-4000-8000-000000000722"][data-handleid="in"]',
+    );
+    await expect(source).toBeVisible();
+    await expect(target).toBeVisible();
+
+    await dragBetween(page, source, target);
+
+    await expect.poll(() => commandBody).toEqual({
+        from_activity_id: '00000000-0000-4000-8000-000000000701',
+        from_connector: 'completed',
+        to_activity_id: '00000000-0000-4000-8000-000000000722',
+        to_connector: 'in',
+    });
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('1');
+});
+
+test('saves source activity, Start, and End drag positions through their typed Rust commands', async ({
+    page,
+}) => {
+    let activityPosition: unknown = null;
+    const graphPositions: unknown[] = [];
+
+    await installCsrf(page);
+    await page.route(
+        '**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/graph-position',
+        async (route) => {
+            activityPosition = route.request().postDataJSON();
+            await route.fulfill({ json: { position: { x: 72, y: 48 } }, status: 200 });
+        },
+    );
+    await page.route(
+        '**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/activity-graph-layout',
+        async (route) => {
+            graphPositions.push(route.request().postDataJSON());
+            await route.fulfill({ json: { graph_layout: {} }, status: 200 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html?source-mutations=1');
+
+    await dragNodeBy(
+        page,
+        page.locator(
+            '.react-flow__node[data-id="00000000-0000-4000-8000-000000000701"]',
+        ),
+        72,
+        48,
+    );
+    await dragNodeBy(page, page.locator('.react-flow__node[data-id="start"]'), 48, 36);
+    await dragNodeBy(page, page.locator('.react-flow__node[data-id="end"]'), -48, 36);
+
+    await expect.poll(() => activityPosition).toEqual({
+        position: expect.objectContaining({
+            x: expect.any(Number),
+            y: expect.any(Number),
+        }),
+    });
+    await expect.poll(() => graphPositions).toHaveLength(2);
+    expect(graphPositions).toEqual([
+        {
+            node: 'start',
+            position: expect.objectContaining({
+                x: expect.any(Number),
+                y: expect.any(Number),
+            }),
+        },
+        {
+            node: 'end',
+            position: expect.objectContaining({
+                x: expect.any(Number),
+                y: expect.any(Number),
+            }),
+        },
+    ]);
 });
 
 test('keeps the source Start-route validation failure in the source dialog at desktop width', async ({

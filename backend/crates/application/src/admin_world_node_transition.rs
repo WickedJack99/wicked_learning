@@ -180,11 +180,64 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        future::Future,
+        sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        },
+    };
+
     use super::{
-        CreateActivityTransition, UpdateActivityTransition, fallback_output_label,
-        trigger_for_connector,
+        AdminWorldNodeTransitionCommand, AdminWorldNodeTransitionError,
+        AdminWorldNodeTransitionRepository, CreateActivityTransition, UpdateActivityTransition,
+        fallback_output_label, trigger_for_connector,
     };
     use uuid::Uuid;
+    use wicked_learning_domain::{
+        identity_access::AuthorizedPrincipal, world_content::AdminActivityTransition,
+    };
+
+    struct RecordingRepository {
+        called: Arc<AtomicBool>,
+    }
+
+    impl AdminWorldNodeTransitionRepository for RecordingRepository {
+        fn create(
+            &self,
+            _principal: &AuthorizedPrincipal,
+            _node_id: Uuid,
+            _transition: &CreateActivityTransition,
+        ) -> impl Future<
+            Output = Result<Option<Vec<AdminActivityTransition>>, AdminWorldNodeTransitionError>,
+        > + Send {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+
+        fn update(
+            &self,
+            _principal: &AuthorizedPrincipal,
+            _transition_id: Uuid,
+            _transition: &UpdateActivityTransition,
+        ) -> impl Future<
+            Output = Result<Option<Vec<AdminActivityTransition>>, AdminWorldNodeTransitionError>,
+        > + Send {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+
+        fn delete(
+            &self,
+            _principal: &AuthorizedPrincipal,
+            _transition_id: Uuid,
+        ) -> impl Future<
+            Output = Result<Option<Vec<AdminActivityTransition>>, AdminWorldNodeTransitionError>,
+        > + Send {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+    }
 
     #[test]
     fn keeps_source_connector_triggers_and_labels() {
@@ -208,5 +261,33 @@ mod tests {
         );
         assert!(CreateActivityTransition::parse(Uuid::new_v4(), None, "", "in", None).is_none());
         assert!(UpdateActivityTransition::parse(Some(&"x".repeat(121)), None).is_none());
+    }
+
+    #[tokio::test]
+    async fn requires_activity_update_before_creating_a_source_connection() {
+        let repository = RecordingRepository {
+            called: Arc::new(AtomicBool::new(false)),
+        };
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:world_nodes:rud:all".to_owned()],
+        };
+        let transition = CreateActivityTransition::parse(
+            Uuid::new_v4(),
+            Some(Uuid::new_v4()),
+            "completed",
+            "in",
+            None,
+        )
+        .expect("valid source connection");
+
+        let result = AdminWorldNodeTransitionCommand::new(&repository)
+            .create(&principal, Uuid::new_v4(), &transition)
+            .await
+            .expect("authorization check succeeds");
+
+        assert!(result.is_none());
+        assert!(!repository.called.load(Ordering::SeqCst));
     }
 }

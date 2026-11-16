@@ -55,3 +55,66 @@ where
             .await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        future::Future,
+        sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        },
+    };
+
+    use uuid::Uuid;
+    use wicked_learning_domain::{
+        identity_access::AuthorizedPrincipal, world_content::AdminActivityGraphPosition,
+    };
+
+    use super::{
+        ActivityGraphPosition, AdminWorldActivityPositionCommand, AdminWorldActivityPositionError,
+        AdminWorldActivityPositionRepository,
+    };
+
+    struct RecordingRepository {
+        called: Arc<AtomicBool>,
+    }
+
+    impl AdminWorldActivityPositionRepository for RecordingRepository {
+        fn update_position(
+            &self,
+            _principal: &AuthorizedPrincipal,
+            _activity_id: Uuid,
+            _position: ActivityGraphPosition,
+        ) -> impl Future<
+            Output = Result<Option<AdminActivityGraphPosition>, AdminWorldActivityPositionError>,
+        > + Send {
+            self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+    }
+
+    #[tokio::test]
+    async fn requires_activity_update_before_dragging_a_source_activity_card() {
+        let repository = RecordingRepository {
+            called: Arc::new(AtomicBool::new(false)),
+        };
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:world_nodes:rud:all".to_owned()],
+        };
+
+        let result = AdminWorldActivityPositionCommand::new(&repository)
+            .execute(
+                &principal,
+                Uuid::new_v4(),
+                ActivityGraphPosition { x: 120, y: 80 },
+            )
+            .await
+            .expect("authorization check succeeds");
+
+        assert!(result.is_none());
+        assert!(!repository.called.load(Ordering::SeqCst));
+    }
+}
