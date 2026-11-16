@@ -165,6 +165,38 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
         throw new Error('the saved graph is incomplete');
     }
 
+    const greetingCard = page.locator(`[data-id="${greeting.id}"]`);
+    await greetingCard.getByRole('button', { name: 'Edit', exact: true }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Edit dialogue node' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Title')).toHaveValue('Archivist greeting');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectBounded(page.getByLabel('Title'), {
+        height: 844,
+        width: 390,
+    });
+    await expectBounded(page.getByRole('button', { name: 'Save', exact: true }), {
+        height: 844,
+        width: 390,
+    });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.getByLabel('Title').fill('Archivist welcome');
+    const [nodeUpdated] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'PATCH' &&
+            response.url().endsWith(`/npc-dialogue/nodes/${greeting.id}`),
+        ),
+        page.getByRole('button', { name: 'Save', exact: true }).click(),
+    ]);
+    expect(nodeUpdated.status()).toBe(200);
+    await expect(
+        page.getByRole('heading', { name: 'Edit dialogue node' }),
+    ).toHaveCount(0);
+    await expect(
+        greetingCard.getByRole('heading', { name: 'Archivist welcome' }),
+    ).toBeVisible();
+
     const connect = await browserJsonRequest(page, `/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue/transitions`, 'POST', { from_node_id: null, to_node_id: greeting.id, from_connector: 'out', to_connector: 'in' });
     expect(connect).toBe(201);
     const complete = await browserJsonRequest(page, `/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue/transitions`, 'POST', { from_node_id: greeting.id, to_node_id: end.id, from_connector: 'out', to_connector: 'in' });
