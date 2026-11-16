@@ -54,6 +54,48 @@ async function selectDialogueSection(
     await expect(sectionButton).toHaveAttribute('aria-selected', 'true');
 }
 
+async function dragBetween(
+    page: Page,
+    source: Locator,
+    target: Locator,
+): Promise<void> {
+    const sourceBounds = await source.boundingBox();
+    const targetBounds = await target.boundingBox();
+
+    expect(sourceBounds).not.toBeNull();
+    expect(targetBounds).not.toBeNull();
+
+    const sourcePoint = {
+        x: sourceBounds!.x + sourceBounds!.width / 2,
+        y: sourceBounds!.y + sourceBounds!.height / 2,
+    };
+    const targetPoint = {
+        x: targetBounds!.x + targetBounds!.width / 2,
+        y: targetBounds!.y + targetBounds!.height / 2,
+    };
+    await page.mouse.move(sourcePoint.x, sourcePoint.y);
+    await page.mouse.down();
+    await page.mouse.move(
+        targetPoint.x,
+        targetPoint.y,
+        { steps: 12 },
+    );
+    await page.mouse.up();
+}
+
+async function dragDialogueCard(page: Page, card: Locator): Promise<void> {
+    const bounds = await card.boundingBox();
+
+    expect(bounds).not.toBeNull();
+
+    const startX = bounds!.x + bounds!.width / 2;
+    const startY = bounds!.y + 24;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + 96, startY + 48, { steps: 12 });
+    await page.mouse.up();
+}
+
 test('a local world author can build an NPC dialogue graph', async ({ page }) => {
     test.setTimeout(180_000);
     const email = process.env.E2E_LOGIN_EMAIL;
@@ -165,6 +207,9 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
         page.getByRole('button', { name: 'Save', exact: true }).click(),
     ]);
     expect(answerCreated.status()).toBe(201);
+    await expect(
+        page.getByRole('heading', { name: 'Add dialogue node' }),
+    ).toHaveCount(0);
 
     const graph = await page.request.get(`/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue`);
     expect(graph.ok()).toBeTruthy();
@@ -174,14 +219,85 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
     };
     const greeting = saved.dialogue_nodes.find((node) => node.title === 'Archivist greeting');
     const answer = saved.dialogue_nodes.find((node) => node.title === 'Open the archive') as ({ config: { events: { hideNodeIds: string[]; unlockNodeIds: string[] } } } | undefined);
+    const end = saved.dialogue_nodes.find((node) => node.node_type === 'end');
     expect(greeting).toBeDefined();
     expect(answer?.config.events).toEqual({ hideNodeIds: [], unlockNodeIds: [] });
 
-    if (!greeting || !answer) {
+    if (!greeting || !answer || !end) {
         throw new Error('the saved graph is incomplete');
     }
 
     const greetingCard = page.locator(`[data-id="${greeting.id}"]`);
+    const startHandle = page.locator(
+        '.react-flow__handle.source[data-nodeid="start"][data-handleid="start"]',
+    );
+    const greetingTarget = page.locator(
+        `.react-flow__handle.target[data-nodeid="${greeting.id}"][data-handleid="in"]`,
+    );
+    const [startConnected] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith('/npc-dialogue/transitions'),
+        ),
+        dragBetween(page, startHandle, greetingTarget),
+    ]);
+    expect(startConnected.status()).toBe(201);
+    expect(startConnected.request().postDataJSON()).toEqual({
+        from_connector: 'out',
+        from_node_id: null,
+        to_connector: 'in',
+        to_node_id: greeting.id,
+    });
+
+    const connectedGraph = await page.request.get(
+        `/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue`,
+    );
+    expect(connectedGraph.ok()).toBeTruthy();
+    const connected = (await connectedGraph.json()) as {
+        transitions: Array<{ id: string }>;
+    };
+    expect(connected.transitions).toHaveLength(1);
+    const startTransition = connected.transitions[0];
+    const startEdge = page.locator(
+        `[data-id="dialogue-transition:${startTransition.id}"]`,
+    );
+    await expect(startEdge).toBeVisible();
+    const [startRemoved] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'DELETE' &&
+            response.url().endsWith(
+                `/npc-dialogue/transitions/${startTransition.id}`,
+            ),
+        ),
+        startEdge.click({ position: { x: 8, y: 8 } }),
+    ]);
+    expect(startRemoved.status()).toBe(204);
+    await expect(startEdge).toHaveCount(0);
+
+    const greetingOutput = page.locator(
+        `.react-flow__handle.source[data-nodeid="${greeting.id}"]`,
+    );
+    const endTarget = page.locator(
+        `.react-flow__handle.target[data-nodeid="${end.id}"][data-handleid="in"]`,
+    );
+    const [endConnected] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith('/npc-dialogue/transitions'),
+        ),
+        dragBetween(page, greetingOutput, endTarget),
+    ]);
+    expect(endConnected.status()).toBe(201);
+
+    const [greetingMoved] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'PATCH' &&
+            response.url().endsWith(`/npc-dialogue/nodes/${greeting.id}`),
+        ),
+        dragDialogueCard(page, greetingCard),
+    ]);
+    expect(greetingMoved.status()).toBe(204);
+
     await greetingCard.getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(
         page.getByRole('heading', { name: 'Edit dialogue node' }),

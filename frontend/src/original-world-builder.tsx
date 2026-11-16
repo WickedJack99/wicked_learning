@@ -465,6 +465,107 @@ export function OriginalWorldBuilderPage({
     );
 }
 
+/**
+ * The pinned source owns NPC dialogue as a dedicated settings/worlds route,
+ * not as a MapAsset inspector. The Rust-only node query provides the existing
+ * scoped tool list required by that direct source document.
+ */
+export function OriginalNpcDialoguePage({
+    activityId,
+    isAuthenticated,
+}: {
+    activityId: string;
+    isAuthenticated: boolean;
+}) {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const query = useMemo(
+        () => new URLSearchParams(location.search),
+        [location.search],
+    );
+    const mapId = query.get('map');
+    const nodeId = query.get('node');
+    const [document, setDocument] = useState<EditableNode | null>(null);
+    const [readState, setReadState] = useState<'loading' | 'ready' | 'unavailable'>(
+        nodeId ? 'loading' : 'unavailable',
+    );
+
+    useEffect(() => {
+        if (!isAuthenticated || !nodeId) {
+            setDocument(null);
+            setReadState('unavailable');
+
+            return;
+        }
+
+        let current = true;
+        setDocument(null);
+        setReadState('loading');
+        void apiClient
+            .GET('/admin/world-builder/nodes/{node_id}', {
+                params: { path: { node_id: nodeId } },
+            })
+            .then(({ data, response }) => {
+                if (!current) {
+                    return;
+                }
+
+                if (!response.ok || !data) {
+                    setReadState('unavailable');
+
+                    return;
+                }
+
+                setDocument(data);
+                setReadState('ready');
+            })
+            .catch(() => current && setReadState('unavailable'));
+
+        return () => {
+            current = false;
+        };
+    }, [isAuthenticated, nodeId]);
+
+    if (!isAuthenticated) {
+        return <Navigate replace to="/login" />;
+    }
+
+    const activity = document?.activity_graph.activities.find(
+        (candidate) =>
+            candidate.id === activityId &&
+            candidate.activity_type === 'npc_dialogue',
+    );
+    const backToActivityGraph = () => {
+        const next = new URLSearchParams();
+        next.set('panel', 'admin-world-builder');
+        next.set('worldSection', 'graph');
+        next.set('worldView', 'nodes');
+        if (mapId) {
+            next.set('map', mapId);
+        }
+        if (nodeId) {
+            next.set('node', nodeId);
+        }
+        navigate(`/settings?${next.toString()}`);
+    };
+
+    return (
+        <div className="h-svh overflow-hidden">
+            {readState === 'ready' && activity && document ? (
+                <LiftedNpcDialogueDocument
+                    activityId={activity.id}
+                    onBack={backToActivityGraph}
+                    onUpdated={() => undefined}
+                    tools={document.tools}
+                />
+            ) : readState === 'unavailable' ||
+              (readState === 'ready' && !activity) ? (
+                <UnavailableWorldBuilder />
+            ) : null}
+        </div>
+    );
+}
+
 function WorldBuilderContent({
     appearance,
     onSignedOut,
@@ -669,6 +770,22 @@ function WorldBuilderContent({
         [location.search, navigate],
     );
 
+    const openNpcDialogue = useCallback(
+        (activityId: string) => {
+            if (!selectedMapId || !selectedNodeId) {
+                return;
+            }
+
+            const next = new URLSearchParams();
+            next.set('map', selectedMapId);
+            next.set('node', selectedNodeId);
+            navigate(
+                `/settings/worlds/activities/${activityId}/npc-dialogue?${next.toString()}`,
+            );
+        },
+        [navigate, selectedMapId, selectedNodeId],
+    );
+
     const loadWorld = useCallback(async () => {
         if (!resolvedWorldBuilderSection) {
             setWorldGraph(null);
@@ -832,6 +949,7 @@ function WorldBuilderContent({
                                                       (current) => current + 1,
                                                   )
                                               }
+                                              onOpenNpcDialogue={openNpcDialogue}
                                               worldGraph={worldGraph!}
                                           />
                                       ),
@@ -900,6 +1018,7 @@ function WorldBuilderContent({
                                                       (current) => current + 1,
                                                   )
                                               }
+                                              onOpenNpcDialogue={openNpcDialogue}
                                               worldGraph={worldGraph!}
                                           />
                                       ),

@@ -96,7 +96,7 @@ test('the direct NPC dialogue adapter maps the pinned Start handle to Rust out',
             await route.fulfill({ status: 201 });
         },
     );
-    await page.setViewportSize({ width: 568, height: 796 });
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/npc-dialogue-direct-editor-harness.html');
 
     const source = page.locator(

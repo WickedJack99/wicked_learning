@@ -32,7 +32,10 @@ import { OriginalPlatformFeedbackPage } from './original-platform-feedback';
 import { OriginalPathsPage } from './original-paths';
 import { OriginalTopicsPage } from './original-topics';
 import { OriginalWelcomePage } from './original-welcome';
-import { OriginalWorldBuilderPage } from './original-world-builder';
+import {
+    OriginalNpcDialoguePage,
+    OriginalWorldBuilderPage,
+} from './original-world-builder';
 import { OriginalLearningCompanionLauncher } from './original-learning-companion';
 import {
     PublicInformationPage,
@@ -627,6 +630,25 @@ export function App() {
                     />
                 ) : null}
             </>
+        );
+    }
+
+    const npcDialogueMatch = location.pathname.match(
+        /^\/settings\/worlds\/activities\/([^/]+)\/npc-dialogue$/,
+    );
+    if (npcDialogueMatch) {
+        if (
+            currentUser.kind === 'loading' ||
+            currentUser.kind === 'unavailable'
+        ) {
+            return null;
+        }
+
+        return (
+            <OriginalNpcDialoguePage
+                activityId={decodeURIComponent(npcDialogueMatch[1])}
+                isAuthenticated={currentUser.kind === 'loaded'}
+            />
         );
     }
 

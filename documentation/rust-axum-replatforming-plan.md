@@ -3052,23 +3052,31 @@ evidence; it remains Rust browser/source-component evidence, not an unavailable
 Laravel-runtime side-by-side capture or a claim that the broader route family
 is complete. The source Start handle retains its pinned visual `start`
 identifier, while the adapter alone maps that Laravel-facing value to the Rust
-contract's persisted `out` connector. Direct-editor Start-to-monologue and
-monologue-to-end pointer interactions, rendered-edge deletion, and dialogue
-card dragging remain a P0 browser-evidence gap: the generic activity-editor
-harness proves the shared source command adapter, but it is not a substitute
-for this direct route's graph behavior. `source-npc-dialogue-parity.spec.ts`
-mounts the exact pinned source page beneath its real Inertia router and proves
-that the physical Start-to-monologue drag emits the original transition visit.
-The equivalent isolated Rust document proves the adapter maps the source
-`start` connector to Rust `out`. The authenticated mounted Rust route still
-embeds that full-page source editor in a 568px MapAsset detail pane, where the
-same gesture emits no request. This is a route-mounting parity defect, not an
-authorization to change the source graph component or invent a canvas control:
-the next direct-editor slice must mount the source document as its own full
-route and then prove the complete pointer/edge/drag matrix. The generic source
-node-activity route
-that owns NPC dialogue creation is now mounted
-through `LiftedNodeActivityEditorDocument`; its source card delegates to the
+contract's persisted `out` connector. The Rust route now mounts the unchanged
+source document at the source-shaped
+`/settings/worlds/activities/{activity_id}/npc-dialogue` URL rather than inside
+the World Builder inspector. Its only additional navigation seam is the
+selected `map`/`node` query pair: Rust reads that already-scoped node document
+to supply the source page's typed tool list, verifies that the requested
+activity is its NPC dialogue activity, and returns the Back control to that
+source-equivalent activity graph. It does not retain the World Builder React
+Flow provider across the route boundary.
+
+`source-npc-dialogue-parity.spec.ts` mounts the exact pinned source page below
+its real Inertia router and proves a physical Start-to-monologue drag emits the
+original transition visit. The equivalent isolated Rust document proves the
+adapter maps the source `start` connector to Rust `out` at 1440×900.
+`npc-dialogue-authoring.spec.ts` then enters the dedicated URL through the
+real lifted source activity card and, at 1440×900, proves physical
+Start-to-monologue and monologue-to-End connections emit the typed Rust
+creation commands, clicking the rendered Start edge emits the typed delete,
+and dragging the dialogue card emits its required full-node Rust PATCH. The
+same journey retains the source document's narrow 390×844 controls, dialogs,
+form sections and scoped upload-failure state. This closes the direct-route
+pointer/edge/drag evidence gap without changing a source graph component or
+adding a substitute canvas control. The generic source node-activity route
+that owns NPC dialogue creation remains mounted through
+`LiftedNodeActivityEditorDocument`; its source card delegates only to this
 direct NPC page. No temporary prompt is a parity replacement or may regain
 routing ownership.
 
