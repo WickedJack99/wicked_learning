@@ -2240,6 +2240,138 @@ for (const [status, viewport, name] of [
     });
 }
 
+const defaultItemObstacleCreateBody = {
+    background_dark: null,
+    background_light: null,
+    background_mirrored: false,
+    consume_on_each_entry: false,
+    introduction: null,
+    lock_minutes: 0,
+    met_background_dark: null,
+    met_background_light: null,
+    met_background_mirrored: false,
+    overlay_dark: null,
+    overlay_light: null,
+    overlay_mirrored: false,
+    overlay_width: 30,
+    overlay_x: 50,
+    overlay_y: 50,
+    slug: null,
+    slots: [{ item_id: null, width: 10, x: 50, y: 50 }],
+    sound_met_enabled: false,
+    sound_met_id: null,
+    sound_not_met_enabled: false,
+    sound_not_met_id: null,
+    sound_transition_enabled: false,
+    sound_transition_id: null,
+    title: 'Open the field case',
+};
+
+const defaultItemObstacleUpdateBody = {
+    background_dark: '/media/obstacle-dark.png',
+    background_light: '/media/obstacle-light.png',
+    background_mirrored: true,
+    consume_on_each_entry: true,
+    introduction: 'Start with this activity.',
+    lock_minutes: 7,
+    met_background_dark: '/media/obstacle-met-dark.png',
+    met_background_light: '/media/obstacle-met-light.png',
+    met_background_mirrored: true,
+    overlay_dark: '/media/obstacle-overlay-dark.png',
+    overlay_light: '/media/obstacle-overlay-light.png',
+    overlay_mirrored: true,
+    overlay_width: 36,
+    overlay_x: 42,
+    overlay_y: 58,
+    slug: 'first-activity',
+    slots: [
+        {
+            item_id: '00000000-0000-4000-8000-000000000719',
+            width: 18,
+            x: 42,
+            y: 58,
+        },
+    ],
+    sound_met_enabled: true,
+    sound_met_id: '00000000-0000-4000-8000-000000000720',
+    sound_not_met_enabled: true,
+    sound_not_met_id: '00000000-0000-4000-8000-000000000720',
+    sound_transition_enabled: true,
+    sound_transition_id: '00000000-0000-4000-8000-000000000720',
+    title: 'First item obstacle (edited)',
+    updated_at: '2026-11-15T10:00:00Z',
+};
+
+async function openItemObstacleCreateForm(page: Page): Promise<void> {
+    await page.getByRole('button', { name: 'Add activity' }).dispatchEvent('click');
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page.getByRole('option', { name: 'Item obstacle' }).dispatchEvent('click');
+}
+
+for (const [status, viewport, name] of [
+    [400, { height: 900, width: 1440 }, 'validation failure'],
+    [201, { height: 844, width: 390 }, 'successful create'],
+] as const) {
+    test(`captures source Item Obstacle defaults for a typed Rust ${name}`, async ({ page }) => {
+        let commandBody: unknown = null;
+        await page.route('**/api/v1/security/csrf', async (route) => route.fulfill({ json: { token: 'test-csrf' } }));
+        await page.route('**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/item-obstacle-activities', async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill(status === 201 ? { json: { activity_id: '00000000-0000-4000-8000-000000000723' }, status } : { status });
+        });
+        await page.setViewportSize(viewport);
+        await page.goto('/activity-editor-harness.html');
+        await openItemObstacleCreateForm(page);
+        await page.getByLabel('Title').fill('Open the field case');
+        await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+        await expectBounded(page.getByLabel('Failed try lockout'), viewport.width);
+        const reloaded = status === 201 ? page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame()) : null;
+        await page.locator('form').evaluate((form) => form.requestSubmit());
+
+        if (reloaded) {
+            await reloaded;
+        }
+
+        await expect.poll(() => commandBody).not.toBeNull();
+        expect(commandBody).toEqual(defaultItemObstacleCreateBody);
+    });
+}
+
+for (const [status, viewport, name] of [
+    [409, { height: 900, width: 1440 }, 'stale update'],
+    [200, { height: 844, width: 390 }, 'successful update'],
+] as const) {
+    test(`captures a typed Rust Item Obstacle ${name} without losing source fields`, async ({ page }) => {
+        let commandBody: unknown = null;
+        await page.route('**/api/v1/security/csrf', async (route) => route.fulfill({ json: { token: 'test-csrf' } }));
+        await page.route('**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/item-obstacle', async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill(status === 200 ? { json: { activity_id: '00000000-0000-4000-8000-000000000701', updated_at: '2026-11-15T10:01:00Z' }, status } : { status });
+        });
+        await page.setViewportSize(viewport);
+        await page.goto('/activity-editor-harness.html?item-obstacle=1');
+        await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+        await page.getByLabel('Title').fill('First item obstacle (edited)');
+        await page.getByRole('tab', { name: 'Visuals' }).dispatchEvent('click');
+        await expectBounded(page.getByLabel('Overlay width'), viewport.width);
+        const reloaded = status === 200 ? page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame()) : null;
+        await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+        if (reloaded) {
+            await reloaded;
+        }
+
+        await expect.poll(() => commandBody).not.toBeNull();
+        expect(commandBody).toEqual(defaultItemObstacleUpdateBody);
+
+        if (status === 409) {
+            await expect(
+                page.getByRole('heading', { name: 'Edit activity' }),
+            ).toBeVisible();
+        }
+    });
+}
+
 for (const [status, viewport, name] of [
     [409, { height: 900, width: 1440 }, 'stale update'],
     [200, { height: 844, width: 390 }, 'successful update'],

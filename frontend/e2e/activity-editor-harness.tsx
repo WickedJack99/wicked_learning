@@ -27,6 +27,8 @@ const fixtureType = fixtureSearch.has('reflection')
                   ? 'shared_task'
                   : fixtureSearch.has('item-grant')
                     ? 'item_grant'
+                    : fixtureSearch.has('item-obstacle')
+                      ? 'item_obstacle'
                     : fixtureSearch.has('tool-grant')
                       ? 'tool_grant'
             : 'open_practice';
@@ -135,6 +137,46 @@ const activity = {
                   probabilityPercent: 65.5,
               }
             : {}),
+        ...(fixtureType === 'item_obstacle'
+            ? {
+                  backgroundDark: '/media/obstacle-dark.png',
+                  backgroundLight: '/media/obstacle-light.png',
+                  backgroundMirrored: true,
+                  consumeOnEachEntry: true,
+                  lockMinutes: 7,
+                  metBackgroundDark: '/media/obstacle-met-dark.png',
+                  metBackgroundLight: '/media/obstacle-met-light.png',
+                  metBackgroundMirrored: true,
+                  overlayDark: '/media/obstacle-overlay-dark.png',
+                  overlayLight: '/media/obstacle-overlay-light.png',
+                  overlayMirrored: true,
+                  overlayWidth: 36,
+                  overlayX: 42,
+                  overlayY: 58,
+                  slots: [
+                      {
+                          itemId: '00000000-0000-4000-8000-000000000719',
+                          width: 18,
+                          x: 42,
+                          y: 58,
+                      },
+                  ],
+                  sounds: {
+                      met: {
+                          enabled: true,
+                          soundId: '00000000-0000-4000-8000-000000000720',
+                      },
+                      notMet: {
+                          enabled: true,
+                          soundId: '00000000-0000-4000-8000-000000000720',
+                      },
+                      transition: {
+                          enabled: true,
+                          soundId: '00000000-0000-4000-8000-000000000720',
+                      },
+                  },
+              }
+            : {}),
         ...(fixtureType === 'tool_grant'
             ? {
                   backgroundDark: '/media/tool-dark.png',
@@ -233,6 +275,8 @@ const activity = {
                           ? 'First shared task'
                           : fixtureType === 'item_grant'
                             ? 'First item grant'
+                            : fixtureType === 'item_obstacle'
+                              ? 'First item obstacle'
                             : fixtureType === 'tool_grant'
                               ? 'First tool grant'
                     : 'First activity',
@@ -415,6 +459,15 @@ const tools = [
     },
 ];
 
+const sounds = [
+    {
+        id: '00000000-0000-4000-8000-000000000720',
+        name: 'Field chime',
+        slug: 'field-chime',
+        url: '/media/field-chime.mp3',
+    },
+];
+
 createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
         <OriginalPlatformTranslationProvider>
@@ -422,7 +475,7 @@ createRoot(document.getElementById('root')!).render(
                 <EditNodeActivities
                     activityGraph={graph}
                     items={items}
-                    sounds={[]}
+                    sounds={sounds}
                     tools={tools}
                     worldGraph={null}
                 />
