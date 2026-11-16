@@ -270,6 +270,17 @@ async function openSourceTransition(page: Page): Promise<void> {
     ).toBeVisible();
 }
 
+async function openSourceActivityHistory(page: Page): Promise<void> {
+    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await expect(
+        page.getByRole('heading', { name: 'Edit activity' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'History' }).dispatchEvent('click');
+    await expect(
+        page.getByRole('heading', { name: 'Activity history' }),
+    ).toBeVisible();
+}
+
 async function installCsrf(page: Page): Promise<void> {
     await page.route('**/api/v1/security/csrf', async (route) => {
         await route.fulfill({ json: { token: 'test-csrf' } });
@@ -531,6 +542,195 @@ test('saves source activity, Start, and End drag positions through their typed R
             }),
         },
     ]);
+});
+
+test('keeps the lifted source Activity History restore conflict inside the desktop dialog', async ({
+    page,
+}) => {
+    const activityId = '00000000-0000-4000-8000-000000000701';
+    const versionId = '00000000-0000-4000-8000-000000000730';
+    let restorePath: string | null = null;
+
+    await installCsrf(page);
+    await page.route(
+        /\/api\/v1\/admin\/world-builder\/activities\/[^/]+\/versions\?.*$/,
+        async (route) => {
+            const requestUrl = new URL(route.request().url());
+
+            if (
+                requestUrl.pathname !==
+                `/api/v1/admin/world-builder/activities/${activityId}/versions`
+            ) {
+                await route.fallback();
+
+                return;
+            }
+
+            await route.fulfill({
+                json: {
+                    items: [
+                        {
+                            activity_type: 'open_practice',
+                            created_at: '2026-11-15T10:00:00Z',
+                            id: versionId,
+                            introduction: 'An earlier introduction.',
+                            slug: 'saved-activity',
+                            title: 'A saved activity',
+                        },
+                    ],
+                    pagination: {
+                        last_page: 1,
+                        page: 1,
+                        per_page: 6,
+                        total: 1,
+                    },
+                },
+            });
+        },
+    );
+    await page.route(
+        new RegExp(
+            `/api/v1/admin/world-builder/activities/${activityId}/versions/${versionId}$`,
+        ),
+        async (route) => {
+            if (route.request().method() === 'POST') {
+                restorePath = new URL(route.request().url()).pathname;
+                await route.fulfill({ status: 409 });
+
+                return;
+            }
+
+            await route.fulfill({
+                json: {
+                    version: {
+                        activity_type: 'open_practice',
+                        created_at: '2026-11-15T10:00:00Z',
+                        id: versionId,
+                        introduction: 'An earlier introduction.',
+                        slug: 'saved-activity',
+                        snapshot: {
+                            companionConfig: { style: 'quiet' },
+                            config: { nextStep: 'Notice the connection.' },
+                            graphPositionX: 120,
+                            graphPositionY: 80,
+                            transitions: [{ fromConnector: 'completed' }],
+                        },
+                        title: 'A saved activity',
+                    },
+                },
+            });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html?source-mutations=1');
+    await openSourceActivityHistory(page);
+
+    const historyDialog = page
+        .getByRole('dialog')
+        .filter({ has: page.getByRole('heading', { name: 'Activity history' }) });
+    await expect(historyDialog.getByText('A saved activity')).toBeVisible();
+    await historyDialog.getByRole('button', { name: 'Inspect' }).click();
+    await expect(
+        historyDialog.getByRole('heading', { name: 'Type-specific settings' }),
+    ).toBeVisible();
+    await expect(historyDialog.getByText('Graph position')).toBeVisible();
+    await expectBounded(
+        historyDialog.getByRole('button', { name: 'Restore this version' }),
+        1440,
+    );
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await historyDialog
+        .getByRole('button', { name: 'Restore this version' })
+        .click();
+
+    await expect.poll(() => restorePath).toBe(
+        `/api/v1/admin/world-builder/activities/${activityId}/versions/${versionId}`,
+    );
+    await expect(
+        historyDialog.getByText(
+            'Activity history could not be loaded or restored. Try again.',
+        ),
+    ).toBeVisible();
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('0');
+});
+
+test('restores the lifted source Activity History entry through the typed Rust command at narrow width', async ({
+    page,
+}) => {
+    const activityId = '00000000-0000-4000-8000-000000000701';
+    const versionId = '00000000-0000-4000-8000-000000000731';
+    let restoreMethod: string | null = null;
+
+    await installCsrf(page);
+    await page.route(
+        /\/api\/v1\/admin\/world-builder\/activities\/[^/]+\/versions\?.*$/,
+        async (route) => {
+            const requestUrl = new URL(route.request().url());
+
+            if (
+                requestUrl.pathname !==
+                `/api/v1/admin/world-builder/activities/${activityId}/versions`
+            ) {
+                await route.fallback();
+
+                return;
+            }
+
+            await route.fulfill({
+                json: {
+                    items: [
+                        {
+                            activity_type: 'open_practice',
+                            created_at: '2026-11-15T10:00:00Z',
+                            id: versionId,
+                            introduction: null,
+                            slug: null,
+                            title: 'Restore me',
+                        },
+                    ],
+                    pagination: {
+                        last_page: 1,
+                        page: 1,
+                        per_page: 6,
+                        total: 1,
+                    },
+                },
+            });
+        },
+    );
+    await page.route(
+        new RegExp(
+            `/api/v1/admin/world-builder/activities/${activityId}/versions/${versionId}$`,
+        ),
+        async (route) => {
+            restoreMethod = route.request().method();
+            await route.fulfill({ status: 204 });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?source-mutations=1');
+    await openSourceActivityHistory(page);
+
+    const historyDialog = page
+        .getByRole('dialog')
+        .filter({ has: page.getByRole('heading', { name: 'Activity history' }) });
+    await expect(historyDialog.getByText('Restore me')).toBeVisible();
+    await expectBounded(
+        historyDialog.getByRole('button', { name: 'Restore this version' }),
+        390,
+    );
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await historyDialog
+        .getByRole('button', { name: 'Restore this version' })
+        .click();
+
+    await expect.poll(() => restoreMethod).toBe('POST');
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('1');
+    await expect(
+        page.getByRole('heading', { name: 'Activity history' }),
+    ).toHaveCount(0);
 });
 
 test('keeps the source Start-route validation failure in the source dialog at desktop width', async ({
