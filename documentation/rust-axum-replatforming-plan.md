@@ -457,6 +457,15 @@ live Laravel screenshot capture remains unavailable in this environment, so
 this evidence is a pinned-source-code-to-Rust-browser comparison, not a claim
 that the remaining World Builder states have received full visual acceptance.
 
+`frontend/e2e/world-builder.spec.ts` adds a separate authenticated local-Compose
+check of the mounted Rust route at those same two viewports. It reads the
+live typed graph response, verifies that its map count equals the rendered
+direct-source card count, and bounds the source Graph canvas, empty inspector,
+**New world map**, **Create world node**, and **Portal routes** controls. It
+does not claim a Laravel-side visual capture, and it deliberately does not
+claim that every live map card is visible: the high-cardinality pinned-source
+fitting limitation recorded below applies to the local graph data.
+
 #### Second P0 implementation evidence: graph cards, portal routes, fitting and loading — 15 November 2026
 
 **Pinned source remains:** `main`
