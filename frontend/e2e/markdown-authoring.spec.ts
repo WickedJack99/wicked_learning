@@ -31,11 +31,14 @@ test('a local world author can save a source Markdown page graph', async ({ page
     expect(created.status()).toBe(201);
     await page.getByRole('button', { name: 'Fit View' }).click();
     await page.getByText(title, { exact: true }).dispatchEvent('click');
-    await expect(page.getByRole('heading', { name: 'Edit Markdown' })).toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: `${title} pages` }),
+    ).toBeVisible();
+    await expect(page.getByText('Markdown page graph', { exact: true })).toBeVisible();
     await page.getByRole('textbox', { name: 'Markdown', exact: true }).fill('# Updated briefing\n\nKeep the next useful direction visible.');
     const [updated] = await Promise.all([
         page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().includes('/markdown')),
-        page.getByRole('button', { name: 'Save activity' }).click(),
+        page.getByRole('button', { name: 'Save pages' }).click(),
     ]);
     expect(updated.ok()).toBeTruthy();
     const node = await page.request.get(`/api/v1/admin/world-builder/nodes/${map.nodes[0].id}`);
@@ -44,6 +47,7 @@ test('a local world author can save a source Markdown page graph', async ({ page
     const saved = document.activity_graph.activities.find((activity) => activity.title === title);
     expect(saved?.activity_type).toBe('markdown');
     expect(saved?.config.markdownPages?.[0]?.body).toContain('Updated briefing');
+    await page.getByRole('button', { name: 'Back to MapAsset' }).click();
     await page.getByRole('button', { name: `Delete ${title}` }).dispatchEvent('click');
     await page.getByRole('dialog', { name: 'Delete activity?' }).getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.getByText(title, { exact: true })).toHaveCount(0);

@@ -3027,6 +3027,42 @@ has been lifted, mounted, or browser-verified. The next Markdown parity slice
 must lift those files as whole components and wire this endpoint only for the
 source special-node drag path.
 
+### Direct Markdown editor page lift — 16 November 2026
+
+**Status: existing Markdown activity editing is directly lifted; generic
+node-activity creation remains a separate P0 route dependency.** The pinned
+`main` baseline is `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. The Rust route
+now mounts the complete source
+`resources/js/pages/settings/worlds/edit-markdown-activity.tsx` page and
+`resources/js/pages/settings/worlds/markdown-activity-fields.tsx` tree when
+an author edits an existing Markdown card. This retains the source header,
+Back to MapAsset control, Start/page/End React Flow graph, page drawer,
+add/delete/connect/drag behavior, reusable-image picker and upload control,
+light/dark page preview, colors, footer, and source error placement. The
+generic create dialog still owns Markdown creation and is not presented as a
+replacement for the source node-activity route.
+
+The Rust adapter maps only the selected-node graph's scoped Markdown activity
+and its world/map/node context into the source page prop shape. It replaces
+only the source Laravel/Inertia seams: document title, back destination,
+map-scoped media upload, `PATCH /settings/worlds/activities/{activity}` with
+the complete typed Markdown writer, and `PATCH .../graph-layout` with the
+narrow Start/End layout writer. A failed Rust write is surfaced through the
+source footer's `updated_at` error slot; no substitute control or error layout
+is introduced. The adapter rejects a missing/non-Markdown selected activity as
+unavailable rather than inventing a document.
+
+Focused browser evidence is
+`frontend/e2e/markdown-direct-editor-harness.spec.ts`: it proves the scoped
+contract mapping, source controls/page card and bounded controls at 1440×900
+and 390×844, and the Rust save-unavailable footer state. The authenticated
+`markdown-authoring.spec.ts` now enters the direct page after source-shaped
+creation, saves through its source `Save pages` control, and returns through
+the source back control; it still requires the disposable administrator
+credentials for local execution. A direct side-by-side running-current-main
+capture and the remaining selected-node page/creation route lift are still
+required before declaring the route family fully parity-complete.
+
 ### Content API map foundation slice — 12 November 2026
 
 Rust now exposes the first source-compatible `/api/content/v1` namespace. Its

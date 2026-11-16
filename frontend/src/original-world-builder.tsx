@@ -87,6 +87,7 @@ import { LiftedWorldBuilderGraph } from './lifted-world-builder-graph';
 import { LiftedWorldBuilderMapDetails } from './lifted-world-builder-map-details';
 import { LiftedWorldBuilderConfigureMapDocument } from './lifted-world-builder-configure-map';
 import { LiftedWorldBuilderEditMapDocument } from './lifted-world-builder-edit-map-adapter';
+import { LiftedMarkdownActivityDocument } from './lifted-world-builder-edit-markdown-activity-adapter';
 import { LiftedNpcDialogueDocument } from './lifted-world-builder-edit-npc-dialogue-adapter';
 import { LiftedWorldBuilderMapWorkspace } from './lifted-world-builder-map-workspace';
 import { LiftedWorldBuilderPortalDetails } from './lifted-world-builder-portal-details';
@@ -7002,6 +7003,11 @@ function ActivityGraph({
                         }
                     },
                     onEdit: (candidate) => {
+                        if (candidate.activity_type === 'markdown') {
+                            setMarkdownActivity(candidate.id);
+                            return;
+                        }
+
                         if (isSupportedActivityType(candidate.activity_type)) {
                             setEditor({
                                 activity: candidate,
@@ -7095,6 +7101,9 @@ function ActivityGraph({
     const [npcDialogueActivity, setNpcDialogueActivity] = useState<
         string | 'create' | null
     >(null);
+    const [markdownActivity, setMarkdownActivity] = useState<string | null>(
+        null,
+    );
     const [selectedTransition, setSelectedTransition] =
         useState<ActivityTransition | null>(null);
     const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -7343,6 +7352,20 @@ function ActivityGraph({
                 }}
                 onUpdated={onReload}
                 tools={document.tools}
+            />
+        );
+    }
+
+    if (markdownActivity) {
+        return (
+            <LiftedMarkdownActivityDocument
+                activityId={markdownActivity}
+                graph={graph}
+                onBack={() => {
+                    setMarkdownActivity(null);
+                    onReload();
+                }}
+                onUpdated={onReload}
             />
         );
     }
