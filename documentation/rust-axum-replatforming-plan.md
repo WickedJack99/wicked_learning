@@ -1452,6 +1452,21 @@ browser lookup only to preserve a Laravel-only identifier type.
 | History, AI review, templates, citations and media | The mounted source route owns their launch order, loading/empty/error behavior and return-to-edit lifecycle; its only substitutions are typed Rust adapters. | P1 evidence complete | Existing activity versions/restore, AI review, template, source-record and scoped upload contracts are mapped individually; no source dialog falls back to an untyped Laravel request. | The mounted source `ActivityHistoryDialog` has desktop Rust-409 restore-error and narrow Rust-204 restore/reload browser evidence. The direct source `ActivityReviewDialog` has desktop no-review Rust-503 and narrow completed-Rust-review evidence, including bounded controls and its structured result. The source template paginator has desktop typed-Rust page-2 `503` coverage, and source-record paginator has narrow typed-Rust page-2 `503` coverage; both retain their source dialog, error copy and bounded control. The direct source portal `ConfigImageInput` has desktop and narrow typed-Rust multipart `503` evidence, including CSRF propagation, source error copy and a re-enabled bounded upload control. |
 | Transport unavailable/read denial | Complete. `WorldBuilderContent` now keeps the direct source `UnavailableWorldBuilder` panel in the lifted Settings workspace while a selected-node read is pending or unavailable; it does not expose the map editor behind an unresolved node request. | P0 closed | The existing selected-node read returns 401/403/404/503 or network failure. The transport seam supplies no authoring controls or replacement copy without a successful document. | `world-builder-status-localization.spec.ts` mocks pending, 401, 403, 404, 503 and network failure and proves the pinned source panel is visible and bounded at 1440×900 and 390×844, distinct from the source empty-activity state. |
 
+**Observed pinned-source responsive limitation — 16 November 2026:** a
+read-only authenticated local-Compose probe mounted the direct selected-node
+route with a populated local graph. At desktop, the source default React Flow
+minimum zoom could not contain a 71-activity graph: an activity card had a
+measured right edge of 16,255px while the canvas ended at 1,419px. For a
+single-activity node at 390×844, the embedded React Flow application had no
+measured visible height. The containing `WorldBuilderMapWorkspace` grid and
+its narrow stack classes are a direct pinned-source lift from
+`world-builder-settings-panel.tsx`; no Rust-only CSS or zoom change is
+authorized to mask this source behavior. A live Laravel capture is still
+unavailable, so this is mounted-Rust/source-code evidence rather than proof
+that the original Laravel runtime behaves identically. The narrow selected-node
+fit requirement remains open and must be resolved in `main` before a corrected
+source component is lifted and accepted here.
+
 **History contract prerequisite — complete:** pinned `ActivityHistoryDialog`
 requires each inspected snapshot to expose `companionConfig`, `config`,
 `graphPositionX`, `graphPositionY` and optional `transitions` under its source
