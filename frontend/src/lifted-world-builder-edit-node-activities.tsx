@@ -1228,22 +1228,39 @@ export default function EditNodeActivities({
             return;
         }
 
-        if (connection.source === 'start') {
-            if (connection.target !== 'end') {
-                await addSourceStartRoute(activityGraph.node.id, connection.target);
-                reloadGraph();
+        try {
+            if (connection.source === 'start') {
+                if (connection.target !== 'end') {
+                    const command = await addSourceStartRoute(
+                        activityGraph.node.id,
+                        connection.target,
+                    );
+
+                    if (command.ok) {
+                        reloadGraph();
+                    }
+                }
+
+                return;
             }
 
+            const command = await createSourceTransition(activityGraph.node.id, {
+                fromActivityId: connection.source,
+                fromConnector: connection.sourceHandle ?? 'completed',
+                toActivityId:
+                    connection.target === 'end' ? null : connection.target,
+                toConnector:
+                    connection.target === 'end'
+                        ? 'end'
+                        : (connection.targetHandle ?? 'in'),
+            });
+
+            if (command.ok) {
+                reloadGraph();
+            }
+        } catch {
             return;
         }
-
-        await createSourceTransition(activityGraph.node.id, {
-            fromActivityId: connection.source,
-            fromConnector: connection.sourceHandle ?? 'completed',
-            toActivityId: connection.target === 'end' ? null : connection.target,
-            toConnector: connection.target === 'end' ? 'end' : (connection.targetHandle ?? 'in'),
-        });
-        reloadGraph();
     };
 
     const handleEdgeClick = async (edge: ActivityGraphEdge) => {

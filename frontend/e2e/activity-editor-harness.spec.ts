@@ -254,6 +254,28 @@ async function exerciseSourceGraphDialogs(page: Page): Promise<void> {
     await page.getByRole('button', { name: 'Cancel' }).dispatchEvent('click');
 }
 
+async function openSourceStartRoute(page: Page): Promise<void> {
+    await page
+        .locator('[aria-label="Start route to First activity"]')
+        .dispatchEvent('click');
+    await expect(page.getByRole('heading', { name: 'Route visuals' })).toBeVisible();
+}
+
+async function openSourceTransition(page: Page): Promise<void> {
+    await page
+        .locator('[aria-label="Connection from First activity to End: completed"]')
+        .dispatchEvent('click');
+    await expect(
+        page.getByRole('heading', { name: 'Edit connection' }),
+    ).toBeVisible();
+}
+
+async function installCsrf(page: Page): Promise<void> {
+    await page.route('**/api/v1/security/csrf', async (route) => {
+        await route.fulfill({ json: { token: 'test-csrf' } });
+    });
+}
+
 test('renders the lifted source activity graph at the desktop contract viewport', async ({
     page,
 }) => {
@@ -367,6 +389,196 @@ test('keeps source graph dialogs reachable at the narrow contract viewport', asy
     await page.goto('/activity-editor-harness.html');
 
     await exerciseSourceGraphDialogs(page);
+});
+
+test('keeps the source Start-route validation failure in the source dialog at desktop width', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await installCsrf(page);
+    await page.route(
+        '**/api/v1/admin/world-builder/start-routes/00000000-0000-4000-8000-000000000704',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 409 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html?source-mutations=1');
+    await openSourceStartRoute(page);
+    await page.getByLabel('Name').fill('Choose this route');
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    expect(commandBody).toEqual({
+        button_border_color_dark: '',
+        button_border_color_light: '',
+        button_color_dark: '',
+        button_color_light: '',
+        description: '',
+        image_dark: '',
+        image_light: '',
+        label: 'Choose this route',
+    });
+    await expect(
+        page.getByText(
+            'The learner start could not be saved. Check the field values and try again.',
+        ),
+    ).toBeVisible();
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('0');
+    await expectBounded(page.getByRole('button', { name: 'Save' }), 1440);
+});
+
+test('reloads the source Start-route dialog after a typed Rust update at narrow width', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await installCsrf(page);
+    await page.route(
+        '**/api/v1/admin/world-builder/start-routes/00000000-0000-4000-8000-000000000704',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 200 });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?source-mutations=1');
+    await openSourceStartRoute(page);
+    await page.getByLabel('Description').fill('Start by inspecting the map.');
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    expect(commandBody).toEqual({
+        button_border_color_dark: '',
+        button_border_color_light: '',
+        button_color_dark: '',
+        button_color_light: '',
+        description: 'Start by inspecting the map.',
+        image_dark: '',
+        image_light: '',
+        label: '',
+    });
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('1');
+    await expect(page.getByRole('heading', { name: 'Route visuals' })).toHaveCount(0);
+});
+
+test('reorders a source Start route through the typed Rust command', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await installCsrf(page);
+    await page.route(
+        '**/api/v1/admin/world-builder/start-routes/00000000-0000-4000-8000-000000000704/reorder',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 200 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto(
+        '/activity-editor-harness.html?source-mutations=1&multi-start=1',
+    );
+    await openSourceStartRoute(page);
+    await page
+        .getByRole('button', { name: 'Move route later' })
+        .dispatchEvent('click');
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    expect(commandBody).toEqual({ direction: 'down' });
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('1');
+});
+
+test('keeps a source transition validation failure in the source dialog at desktop width', async ({
+    page,
+}) => {
+    let commandBody: unknown = null;
+
+    await installCsrf(page);
+    await page.route(
+        '**/api/v1/admin/world-builder/activity-transitions/00000000-0000-4000-8000-000000000705',
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 409 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html?source-mutations=1');
+    await openSourceTransition(page);
+    await page.getByLabel('Connection label').fill('Continue exploring');
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+    await expect.poll(() => commandBody).not.toBeNull();
+    expect(commandBody).toEqual({
+        label: 'Continue exploring',
+        trigger_value: null,
+    });
+    await expect(
+        page.getByText(
+            'The connection could not be saved. Check the values and try again.',
+        ),
+    ).toBeVisible();
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('0');
+    await expectBounded(page.getByRole('button', { name: 'Save' }), 1440);
+});
+
+test('reloads the source transition dialog after a typed Rust update at narrow width', async ({
+    page,
+}) => {
+    await installCsrf(page);
+    await page.route(
+        '**/api/v1/admin/world-builder/activity-transitions/00000000-0000-4000-8000-000000000705',
+        async (route) => {
+            await route.fulfill({ status: 200 });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?source-mutations=1');
+    await openSourceTransition(page);
+    await page.getByLabel('Connection label').fill('Continue exploring');
+    await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('1');
+    await expect(
+        page.getByRole('heading', { name: 'Edit connection' }),
+    ).toHaveCount(0);
+});
+
+test('deletes source Start routes and transitions only after their typed Rust commands succeed', async ({
+    page,
+}) => {
+    const deletedPaths: string[] = [];
+
+    await installCsrf(page);
+    await page.route('**/api/v1/admin/world-builder/start-routes/*', async (route) => {
+        deletedPaths.push(new URL(route.request().url()).pathname);
+        await route.fulfill({ status: 200 });
+    });
+    await page.route('**/api/v1/admin/world-builder/activity-transitions/*', async (route) => {
+        deletedPaths.push(new URL(route.request().url()).pathname);
+        await route.fulfill({ status: 200 });
+    });
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?source-mutations=1');
+    await openSourceStartRoute(page);
+    await page.getByRole('button', { name: 'Delete route' }).dispatchEvent('click');
+    await page
+        .getByRole('dialog')
+        .getByRole('button', { name: 'Delete' })
+        .dispatchEvent('click');
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('1');
+
+    await openSourceTransition(page);
+    await page
+        .getByRole('button', { name: 'Delete connection' })
+        .dispatchEvent('click');
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('2');
+    expect(deletedPaths).toEqual([
+        '/api/v1/admin/world-builder/start-routes/00000000-0000-4000-8000-000000000704',
+        '/api/v1/admin/world-builder/activity-transitions/00000000-0000-4000-8000-000000000705',
+    ]);
 });
 
 test('opens the source Add activity form with its first type', async ({ page }) => {

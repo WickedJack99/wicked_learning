@@ -10,6 +10,8 @@ import { OriginalPlatformTranslationProvider } from '../src/original-platform-tr
 import '../src/styles.css';
 
 const fixtureSearch = new URLSearchParams(window.location.search);
+const multiStartFixture = fixtureSearch.has('multi-start');
+const mutationHarness = fixtureSearch.has('source-mutations');
 const fixtureType = fixtureSearch.has('reflection')
     ? 'reflection'
     : fixtureSearch.has('review')
@@ -323,10 +325,20 @@ const activity = {
     updatedAt: '2026-11-15T10:00:00Z',
 };
 
+const secondActivity = {
+    ...activity,
+    id: '00000000-0000-4000-8000-000000000722',
+    position: { x: 420, y: 180 },
+    slug: 'second-activity',
+    title: 'Second activity',
+};
+
 const graph: ActivityGraphPayload = {
-    activities: new URLSearchParams(window.location.search).has('empty')
+    activities: fixtureSearch.has('empty')
         ? []
-        : [activity],
+        : multiStartFixture
+          ? [activity, secondActivity]
+          : [activity],
     activityTypes: [
         {
             description: 'Practice a next step.',
@@ -436,6 +448,24 @@ const graph: ActivityGraphPayload = {
                 label: 'Begin',
                 sortOrder: 1,
             },
+            ...(multiStartFixture
+                ? [
+                      {
+                          activityId: secondActivity.id,
+                          buttonBorderColorDark: null,
+                          buttonBorderColorLight: null,
+                          buttonColorDark: null,
+                          buttonColorLight: null,
+                          customLabel: null,
+                          description: null,
+                          id: '00000000-0000-4000-8000-000000000723',
+                          imageDark: null,
+                          imageLight: null,
+                          label: 'Second',
+                          sortOrder: 2,
+                      },
+                  ]
+                : []),
         ],
         title: 'Node',
     },
@@ -511,6 +541,7 @@ function ActivityEditorHarness(): React.JSX.Element {
     const [dedicatedActivityType, setDedicatedActivityType] = useState<
         string | null
     >(null);
+    const [reloadCount, setReloadCount] = useState(0);
 
     return (
         <BrowserRouter>
@@ -522,6 +553,12 @@ function ActivityEditorHarness(): React.JSX.Element {
                         onOpenDedicatedActivity={(selectedActivity) =>
                             setDedicatedActivityType(selectedActivity.type)
                         }
+                        {...(mutationHarness
+                            ? {
+                                  onReload: () =>
+                                      setReloadCount((current) => current + 1),
+                              }
+                            : {})}
                         sounds={sounds}
                         tools={tools}
                         worldGraph={null}
@@ -529,6 +566,11 @@ function ActivityEditorHarness(): React.JSX.Element {
                     {dedicatedActivityType ? (
                         <output data-testid="dedicated-activity-handoff">
                             {dedicatedActivityType}
+                        </output>
+                    ) : null}
+                    {mutationHarness ? (
+                        <output data-testid="source-mutation-reloads">
+                            {reloadCount}
                         </output>
                     ) : null}
                 </CurrentUserProvider>
