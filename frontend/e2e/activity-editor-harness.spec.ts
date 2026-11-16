@@ -958,6 +958,61 @@ test('keeps the lifted source saved-source pagination failure in the narrow acti
     await expectBounded(nextPage, 390);
 });
 
+for (const viewport of [
+    { height: 900, label: 'desktop', width: 1440 },
+    { height: 844, label: 'narrow', width: 390 },
+]) {
+    test(`keeps the lifted source portal-image upload failure recoverable at the ${viewport.label} viewport`, async ({
+        page,
+    }) => {
+        const mapId = '00000000-0000-4000-8000-000000000702';
+        let uploadHeaders: Record<string, string> | null = null;
+        let uploadMethod: string | null = null;
+
+        await installCsrf(page);
+        await page.route(
+            `**/api/v1/admin/world-builder/maps/${mapId}/visual-media`,
+            async (route) => {
+                uploadHeaders = route.request().headers();
+                uploadMethod = route.request().method();
+                await route.fulfill({ json: {}, status: 503 });
+            },
+        );
+        await page.setViewportSize(viewport);
+        await page.goto('/activity-editor-harness.html?portal=1');
+        await page.getByRole('button', { name: 'Edit' }).click();
+
+        const editDialog = page.getByRole('dialog', { name: 'Edit activity' });
+        await expect(editDialog).toBeVisible();
+        await editDialog.getByRole('tab', { name: /Visuals/ }).click();
+        const uploadInput = editDialog.locator(
+            '#portal_background_dark-upload',
+        );
+        await expect(uploadInput).toBeAttached();
+        await uploadInput.setInputFiles({
+            buffer: Buffer.from(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"/>',
+            ),
+            mimeType: 'image/svg+xml',
+            name: 'unavailable-portal.svg',
+        });
+
+        await expect.poll(() => uploadMethod).toBe('POST');
+        expect(uploadHeaders?.['x-csrf-token']).toBe('test-csrf');
+        expect(uploadHeaders?.['content-type']).toContain('multipart/form-data');
+        const failure = editDialog.getByText(
+            'The image could not be uploaded.',
+            { exact: true },
+        );
+        await expect(failure).toBeVisible();
+        await expect(uploadInput).toBeEnabled();
+        await expectBounded(
+            editDialog.locator('label[for="portal_background_dark-upload"]'),
+            viewport.width,
+        );
+    });
+}
+
 test('keeps the source Start-route validation failure in the source dialog at desktop width', async ({
     page,
 }) => {
