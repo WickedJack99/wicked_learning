@@ -93,6 +93,25 @@ export async function saveSourceActivity({
         return result(response.response);
     }
 
+    if (form.type === 'npc_dialogue') {
+        const response = await apiClient.POST(
+            '/admin/world-builder/nodes/{node_id}/npc-dialogue-activities',
+            {
+                body: {
+                    introduction: form.introduction.trim() || null,
+                    slug: form.slug.trim() || null,
+                    title: form.title,
+                },
+                params: {
+                    ...params,
+                    path: { node_id: nodeId },
+                },
+            },
+        );
+
+        return result(response.response);
+    }
+
     if (form.type === 'portal') {
         const body = sourcePortalRequest(form);
         const response = update

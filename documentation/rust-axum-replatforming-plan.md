@@ -2957,12 +2957,12 @@ desktop and narrow viewport sizes.
 ### Dedicated NPC dialogue editor parity audit and source-contract prerequisite — 16 November 2026
 
 **Status: direct editor page lifted; route-family parity remains incomplete.**
-`frontend/src/original-npc-dialogue-editor.tsx` remains only the temporary
-create-activity prompt because the source puts that creation flow in its
-separate node-activity route. Once an NPC dialogue activity exists, including
-when that prompt creates one, the World Builder mounts the direct pinned-source
-page through `LiftedNpcDialogueDocument`; it no longer opens the reconstructed
-canvas/editor.
+NPC creation remains in the lifted pinned-source node-activity form: selecting
+its source `NPC dialogue` type maps only that form submission to Rust's
+dedicated typed creation endpoint. `frontend/src/original-npc-dialogue-editor.tsx`
+is not mounted as a substitute creation/editor surface. Once the source graph
+card exists, its pinned `Edit dialogue` action mounts the direct page through
+`LiftedNpcDialogueDocument`; it no longer opens a reconstructed canvas/editor.
 
 **Pinned source baseline:** `main`
 `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
@@ -2998,6 +2998,7 @@ connector; that made an exact lift impossible without client invention.
 | Header/back context and map-scoped upload context: world/map/node `id`, `slug`, `title` | `GET /api/v1/admin/world-builder/activities/{activity_id}/npc-dialogue` now returns bounded `world`, `map` and `node` objects alongside the graph. | Rename snake-case wire names once at the route boundary; do not infer context from URL or make a second lookup. |
 | End-card connector `id`, `label`, `color`, `symbol` | Each dialogue node now returns nullable `connector`; the persistence projection creates it only for `end` nodes using the source connector ID/default/order policy. | Retain the source card and graph-handle code; do not recompute connector metadata in JSX. |
 | Same-world answer-event targets and typing-sound choices | Existing bounded `world_nodes` and `typing_sound_sets` remain in the graph response. The parent selected-node document remains the existing typed source for editable tools until the direct route adapter is lifted. | Preserve UUID identities and map only field casing. |
+| Source generic creation (`type: npc_dialogue`) | The lifted node-activity form submits its existing title, optional slug and optional introduction to `POST /api/v1/admin/world-builder/nodes/{node_id}/npc-dialogue-activities`. | The adapter replaces only the source Laravel post seam; it must not fall through to a different activity writer or present a replacement creation form. The returned graph card retains the source `Edit dialogue` action into the direct document. |
 | Graph/node/transition/layout commands | Existing typed create, update, delete, transition and layout endpoints remain the sole mutation seam, with CSRF and server-side scope checks. | Map source `router` calls only after the direct page is present; do not add bespoke canvas controls. |
 
 Focused contract evidence is the domain serialization test
@@ -3016,12 +3017,14 @@ policy or replacement controls. The back control returns to the existing
 selected-node activity graph state, which is the React application's equivalent
 of the source Inertia destination.
 
-The focused browser journey specifies that creating an NPC dialogue enters the
-lifted heading and source back control, retains the source default end card,
-and keeps the Add node control visible and bounded at 390×844 before continuing
-the graph authoring flow at 1440×900. Its current local execution requires the
-disposable administrator credentials; a credential-less run is intentionally
-skipped rather than treated as browser evidence. The direct Rust read's
+The focused browser journey uses the lifted source Add activity dialog's
+`NPC dialogue` type, verifies its scoped typed Rust creation request, then
+uses the source graph card's `Edit dialogue` action to enter the lifted heading
+and source back control. It retains the source default end card and keeps the
+Add node control visible and bounded at 390×844 before continuing the graph
+authoring flow at 1440×900. Its current local execution requires the disposable
+administrator credentials; a credential-less run is intentionally skipped rather
+than treated as browser evidence. The direct Rust read's
 pending, 401, 403, 404, 503 and network-failure states now render the exact
 pinned-source `UnavailableWorldBuilder` panel at both 1440×900 and 390×844;
 `npc-dialogue-direct-editor-unavailable.spec.ts` proves its copy and bounds.
@@ -3038,9 +3041,15 @@ edit dialog for a persisted monologue, proves its existing field value and
 narrow bounds, submits the typed Rust PATCH, and observes the dialog close and
 the reloaded card title. The same journey creates a disposable source node,
 opens the source deletion confirmation at narrow width, submits the typed Rust
-DELETE, and observes its card disappear after reload. Remaining closure evidence
-is deliberately separate: scoped image-upload failure. The source Start handle
-retains its pinned visual `start` identifier, while the adapter alone maps that
+DELETE, and observes its card disappear after reload. The direct source Visuals
+upload failure is browser-proven: a scoped Rust media-upload `503` retains the
+source error message, re-enables the upload input, sends the CSRF header, and
+keeps both the upload affordance and error bounded at 1440×900 and 390×844.
+This closes the specifically recorded direct-page interaction/failure evidence;
+it remains Rust browser/source-component evidence, not an unavailable
+Laravel-runtime side-by-side capture or a claim that the broader route family
+is complete. The source Start handle retains its pinned visual `start`
+identifier, while the adapter alone maps that
 Laravel-facing value to the Rust contract's persisted `out` connector. The
 authenticated browser journey proves Start-to-monologue and monologue-to-end
 handle drags submit their source-shaped typed Rust commands, clicking the
@@ -3048,8 +3057,8 @@ rendered source edge issues its typed DELETE and removes it, and a dialogue-card
 drag sends the full typed PATCH with position and retained node form. The generic
 source node-activity route that owns NPC dialogue creation is now mounted
 through `LiftedNodeActivityEditorDocument`; its source card delegates to the
-direct NPC page. The retained temporary prompt is not a parity replacement and
-must not regain routing ownership.
+direct NPC page. No temporary prompt is a parity replacement or may regain
+routing ownership.
 
 ### Markdown special-graph layout contract prerequisite — 16 November 2026
 

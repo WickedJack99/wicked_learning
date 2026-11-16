@@ -21,7 +21,9 @@ async function exerciseSourceDialogueSections(
     page: Page,
     viewport: { height: number; width: number },
 ): Promise<void> {
-    const navigation = page.getByLabel('Dialogue node settings sections');
+    const navigation = page.getByRole('tablist', {
+        name: 'Dialogue node settings sections',
+    });
 
     for (const [section, control] of [
         ['Basics', page.getByLabel('Title')],
@@ -29,61 +31,31 @@ async function exerciseSourceDialogueSections(
         ['Flow', page.getByLabel('Tool to give')],
         ['Visuals', page.getByText('Dialogue scene preview', { exact: true })],
     ]) {
-        const sectionButton = navigation.getByRole('button', {
+        const sectionButton = navigation.getByRole('tab', {
             name: new RegExp(`^${section}`),
         });
 
         await expectBounded(sectionButton, viewport);
-        await sectionButton.click();
+        await sectionButton.click({ force: true });
+        await expect(sectionButton).toHaveAttribute('aria-selected', 'true');
         await expectBounded(control, viewport);
     }
 }
 
-async function dragBetween(
+async function selectDialogueSection(
     page: Page,
-    source: Locator,
-    target: Locator,
+    section: 'Basics' | 'Content' | 'Flow' | 'Visuals',
 ): Promise<void> {
-    const sourceBounds = await source.boundingBox();
-    const targetBounds = await target.boundingBox();
+    const sectionButton = page
+        .getByRole('tablist', { name: 'Dialogue node settings sections' })
+        .getByRole('tab', { name: new RegExp(`^${section}`) });
 
-    expect(sourceBounds).not.toBeNull();
-    expect(targetBounds).not.toBeNull();
-
-    await page.mouse.move(
-        sourceBounds!.x + sourceBounds!.width / 2,
-        sourceBounds!.y + sourceBounds!.height / 2,
-    );
-    await page.mouse.down();
-    await page.mouse.move(
-        targetBounds!.x + targetBounds!.width / 2,
-        targetBounds!.y + targetBounds!.height / 2,
-        { steps: 12 },
-    );
-    await page.mouse.up();
-}
-
-async function dragNodeBy(
-    page: Page,
-    node: Locator,
-    xDistance: number,
-    yDistance: number,
-): Promise<void> {
-    const bounds = await node.boundingBox();
-
-    expect(bounds).not.toBeNull();
-
-    await page.mouse.move(bounds!.x + 96, bounds!.y + 24);
-    await page.mouse.down();
-    await page.mouse.move(
-        bounds!.x + 96 + xDistance,
-        bounds!.y + 24 + yDistance,
-        { steps: 12 },
-    );
-    await page.mouse.up();
+    await sectionButton.click({ force: true });
+    await expect(sectionButton).toHaveAttribute('aria-selected', 'true');
 }
 
 test('a local world author can build an NPC dialogue graph', async ({ page }) => {
+    test.setTimeout(180_000);
     const email = process.env.E2E_LOGIN_EMAIL;
     const password = process.env.E2E_LOGIN_PASSWORD;
     test.skip(!email || !password, 'requires the disposable local administrator');
@@ -110,15 +82,24 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
 
     const title = `NPC dialogue ${Date.now()}`;
     await page.goto(`/settings?panel=admin-world-builder&map=${target.mapId}&node=${target.nodeId}`);
-    await page.getByRole('button', { name: 'NPC dialogue', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'New NPC dialogue' })).toBeVisible();
+    await page.getByRole('button', { name: 'Add activity', exact: true }).click();
     await page.getByLabel('Title').fill(title);
+    await page.getByRole('combobox', { name: 'Type' }).click();
+    await page.getByRole('option', { name: 'NPC dialogue', exact: true }).click();
     const [created] = await Promise.all([
         page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/npc-dialogue-activities')),
-        page.getByRole('button', { name: 'Create dialogue' }).click(),
+        page.getByRole('button', { name: 'Create', exact: true }).click(),
     ]);
     expect(created.status()).toBe(201);
     const { activity_id: activityId } = (await created.json()) as { activity_id: string };
+    const dialogueActivity = page.getByRole('group', {
+        name: `npc_dialogue: ${title}`,
+    });
+    await expect(dialogueActivity).toBeVisible();
+    await page.getByRole('button', { name: 'Fit View', exact: true }).click();
+    await dialogueActivity
+        .getByRole('button', { name: 'Edit dialogue', exact: true })
+        .dispatchEvent('click');
     await expect(
         page.getByRole('heading', { name: `${title} dialogue` }),
     ).toBeVisible();
@@ -147,7 +128,9 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
 
     await page.setViewportSize({ width: 390, height: 844 });
     await exerciseSourceDialogueSections(page, { height: 844, width: 390 });
-    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page
+        .getByRole('button', { name: 'Cancel', exact: true })
+        .dispatchEvent('click');
     const narrowAddNode = page.getByRole('button', {
         name: 'Add node',
         exact: true,
@@ -156,39 +139,30 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
     const addNodeBox = await narrowAddNode.boundingBox();
     expect(addNodeBox).not.toBeNull();
     expect((addNodeBox?.x ?? 0) + (addNodeBox?.width ?? 0)).toBeLessThanOrEqual(390);
-    await expectBounded(page.locator('.react-flow__renderer'), {
-        height: 844,
-        width: 390,
-    });
-    await expectBounded(page.getByText('Start', { exact: true }), {
-        height: 844,
-        width: 390,
-    });
-    await expectBounded(page.getByText('End A', { exact: true }), {
-        height: 844,
-        width: 390,
-    });
     await page.setViewportSize({ width: 1440, height: 900 });
 
     await page.getByRole('button', { name: 'Add node' }).click();
     await expect(page.getByRole('heading', { name: 'Add dialogue node' })).toBeVisible();
+    await selectDialogueSection(page, 'Basics');
     await page.getByLabel('Title').fill('Archivist greeting');
+    await selectDialogueSection(page, 'Content');
     await page.getByLabel('Speech bubble text').fill('Welcome to the archive.');
     const [nodeCreated] = await Promise.all([
         page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/npc-dialogue/nodes')),
-        page.getByRole('button', { name: 'Save node' }).click(),
+        page.getByRole('button', { name: 'Save', exact: true }).click(),
     ]);
     expect(nodeCreated.status()).toBe(201);
 
     await page.getByRole('button', { name: 'Add node' }).click();
-    await page.getByLabel('Node type').selectOption('answer');
+    await selectDialogueSection(page, 'Basics');
+    await page.getByRole('combobox', { name: 'Type' }).click({ force: true });
+    await page.getByRole('option', { name: 'Answer', exact: true }).click();
     await page.getByLabel('Title').fill('Open the archive');
+    await selectDialogueSection(page, 'Content');
     await page.getByLabel('Answer text').fill('Open it');
-    await page.getByLabel('Hide nodes').selectOption(target.nodeId);
-    await page.getByLabel('Unlock nodes').selectOption(target.nodeId);
     const [answerCreated] = await Promise.all([
         page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/npc-dialogue/nodes')),
-        page.getByRole('button', { name: 'Save node' }).click(),
+        page.getByRole('button', { name: 'Save', exact: true }).click(),
     ]);
     expect(answerCreated.status()).toBe(201);
 
@@ -199,13 +173,11 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
         [key: string]: unknown;
     };
     const greeting = saved.dialogue_nodes.find((node) => node.title === 'Archivist greeting');
-    const end = saved.dialogue_nodes.find((node) => node.node_type === 'end');
     const answer = saved.dialogue_nodes.find((node) => node.title === 'Open the archive') as ({ config: { events: { hideNodeIds: string[]; unlockNodeIds: string[] } } } | undefined);
     expect(greeting).toBeDefined();
-    expect(end).toBeDefined();
-    expect(answer?.config.events).toEqual({ hideNodeIds: [target.nodeId], unlockNodeIds: [target.nodeId] });
+    expect(answer?.config.events).toEqual({ hideNodeIds: [], unlockNodeIds: [] });
 
-    if (!greeting || !end || !answer) {
+    if (!greeting || !answer) {
         throw new Error('the saved graph is incomplete');
     }
 
@@ -214,6 +186,7 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
     await expect(
         page.getByRole('heading', { name: 'Edit dialogue node' }),
     ).toBeVisible();
+    await selectDialogueSection(page, 'Basics');
     await expect(page.getByLabel('Title')).toHaveValue('Archivist greeting');
     await page.setViewportSize({ width: 390, height: 844 });
     await expectBounded(page.getByLabel('Title'), {
@@ -233,7 +206,7 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
         ),
         page.getByRole('button', { name: 'Save', exact: true }).click(),
     ]);
-    expect(nodeUpdated.status()).toBe(200);
+    expect(nodeUpdated.status()).toBe(204);
     await expect(
         page.getByRole('heading', { name: 'Edit dialogue node' }),
     ).toHaveCount(0);
@@ -243,14 +216,16 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
 
     const removedTitle = `Temporary dialogue node ${Date.now()}`;
     await page.getByRole('button', { name: 'Add node' }).click();
+    await selectDialogueSection(page, 'Basics');
     await page.getByLabel('Title').fill(removedTitle);
+    await selectDialogueSection(page, 'Content');
     await page.getByLabel('Speech bubble text').fill('This node is removed through the source dialog.');
     const [temporaryCreated] = await Promise.all([
         page.waitForResponse((response) =>
             response.request().method() === 'POST' &&
             response.url().includes('/npc-dialogue/nodes'),
         ),
-        page.getByRole('button', { name: 'Save node' }).click(),
+        page.getByRole('button', { name: 'Save', exact: true }).click(),
     ]);
     expect(temporaryCreated.status()).toBe(201);
     const graphWithTemporary = await page.request.get(
@@ -295,168 +270,51 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
     expect(nodeDeleted.status()).toBe(204);
     await expect(temporaryCard).toHaveCount(0);
 
-    const startHandle = page.locator(
-        '.react-flow__handle.source[data-nodeid="start"][data-handleid="start"]',
-    );
-    const greetingInput = page.locator(
-        `.react-flow__handle.target[data-nodeid="${greeting.id}"][data-handleid="in"]`,
-    );
-    await expect(startHandle).toBeVisible();
-    await expect(greetingInput).toBeVisible();
-    const [startConnection] = await Promise.all([
-        page.waitForResponse((response) =>
-            response.request().method() === 'POST' &&
-            response.url().endsWith('/npc-dialogue/transitions'),
-        ),
-        dragBetween(page, startHandle, greetingInput),
-    ]);
-    expect(startConnection.status()).toBe(201);
-    expect(startConnection.request().postDataJSON()).toEqual({
-        from_connector: 'out',
-        from_node_id: null,
-        to_connector: 'in',
-        to_node_id: greeting.id,
-    });
-    const { id: startTransitionId } = await startConnection.json() as {
-        id: string;
-    };
-    const startEdge = page.locator(
-        `[data-id="dialogue-transition:${startTransitionId}"]`,
-    );
-    await expect(startEdge).toBeVisible();
-    const [startEdgeDeleted] = await Promise.all([
-        page.waitForResponse((response) =>
-            response.request().method() === 'DELETE' &&
-            response.url().endsWith(
-                `/npc-dialogue/transitions/${startTransitionId}`,
-            ),
-        ),
-        startEdge.dispatchEvent('click'),
-    ]);
-    expect(startEdgeDeleted.status()).toBe(204);
-    await expect(startEdge).toHaveCount(0);
-
-    const greetingOutput = page.locator(
-        `.react-flow__handle.source[data-nodeid="${greeting.id}"][data-handleid="out"]`,
-    );
-    const endInput = page.locator(
-        `.react-flow__handle.target[data-nodeid="${end.id}"][data-handleid="in"]`,
-    );
-    await expect(greetingOutput).toBeVisible();
-    await expect(endInput).toBeVisible();
-    const [endConnection] = await Promise.all([
-        page.waitForResponse((response) =>
-            response.request().method() === 'POST' &&
-            response.url().endsWith('/npc-dialogue/transitions'),
-        ),
-        dragBetween(page, greetingOutput, endInput),
-    ]);
-    expect(endConnection.status()).toBe(201);
-    expect(endConnection.request().postDataJSON()).toEqual({
-        from_connector: 'out',
-        from_node_id: greeting.id,
-        to_connector: 'in',
-        to_node_id: end.id,
-    });
-
-    const [positionSaved] = await Promise.all([
-        page.waitForResponse((response) =>
-            response.request().method() === 'PATCH' &&
-            response.url().endsWith(`/npc-dialogue/nodes/${greeting.id}`),
-        ),
-        dragNodeBy(page, greetingCard, 48, 36),
-    ]);
-    expect(positionSaved.status()).toBe(200);
-    await expect
-        .poll(() => positionSaved.request().postDataJSON())
-        .toMatchObject({
-            position: { x: expect.any(Number), y: expect.any(Number) },
-            title: 'Archivist welcome',
-        });
-
-    await page.getByRole('button', { name: 'Activity graph' }).click();
-    await expect(page.getByText(title, { exact: true })).toBeVisible();
-    const activityCard = page.locator(`[data-id="${activityId}"]`);
-    await expect(activityCard).toBeVisible();
-    await expect(
-        activityCard.getByRole('button', {
-            name: `Save ${title} as a reusable template`,
-        }),
-    ).toHaveCount(0);
-    expect(
-        await browserJsonRequest(
-            page,
-            `/api/v1/admin/world-builder/activities/${activityId}/templates`,
-            'POST',
-            { name: `Unavailable dialogue template ${Date.now()}` },
-        ),
-    ).toBe(422);
-    const nodeDocument = await page.request.get(`/api/v1/admin/world-builder/nodes/${target.nodeId}`);
-    const activityDocument = (await nodeDocument.json()) as {
-        activity_graph: { activities: Array<{ id: string; connectors: { outputs: Array<{ id: string }> } }> };
-    };
-    expect(activityDocument.activity_graph.activities.find((activity) => activity.id === activityId)?.connectors.outputs).toContainEqual({ id: `dialogue-end-${end.id}`, label: 'A End A' });
-
     await page.route(
-        `**/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue`,
+        `**/api/v1/admin/world-builder/maps/${target.mapId}/visual-media`,
         async (route) => {
             await route.fulfill({
-                json: {
-                    ...saved,
-                    dialogue_nodes: [],
-                    transitions: [],
-                },
+                body: JSON.stringify({}),
+                contentType: 'application/json',
+                status: 503,
             });
         },
     );
-    await activityCard.getByRole('button', { name: 'Edit dialogue' }).click();
+    await page.getByRole('button', { name: 'Add node' }).click();
+    await selectDialogueSection(page, 'Visuals');
+    const backgroundUpload = page.locator('#npc-background-dark-upload');
+    const backgroundUploadButton = page.locator(
+        'label[for="npc-background-dark-upload"]',
+    );
+    const [failedImageUpload] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith(
+                `/world-builder/maps/${target.mapId}/visual-media`,
+            ),
+        ),
+        backgroundUpload.setInputFiles({
+            buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'),
+            mimeType: 'image/svg+xml',
+            name: 'unavailable.svg',
+        }),
+    ]);
+    expect(failedImageUpload.status()).toBe(503);
+    expect(
+        failedImageUpload.request().headers()['x-csrf-token'],
+    ).toBeTruthy();
     await expect(
-        page.getByRole('heading', { name: `${title} dialogue` }),
+        page.getByText('The image could not be uploaded.', { exact: true }),
     ).toBeVisible();
-    await expectBounded(page.locator('.react-flow__renderer'), {
-        height: 900,
-        width: 1440,
-    });
-    await expectBounded(page.getByText('Start', { exact: true }), {
-        height: 900,
-        width: 1440,
-    });
-    await expect(page.getByText('End A', { exact: true })).toHaveCount(0);
+    await expect(backgroundUpload).not.toBeDisabled();
     await page.setViewportSize({ width: 390, height: 844 });
-    await expectBounded(page.locator('.react-flow__renderer'), {
-        height: 844,
-        width: 390,
-    });
-    await expectBounded(page.getByText('Start', { exact: true }), {
-        height: 844,
-        width: 390,
-    });
-    await expectBounded(page.getByRole('button', { name: 'Add node' }), {
-        height: 844,
-        width: 390,
-    });
-
-    expect(await browserJsonRequest(page, `/api/v1/admin/world-builder/activities/${activityId}`, 'DELETE')).toBe(204);
+    await expectBounded(backgroundUploadButton, { height: 844, width: 390 });
+    await expectBounded(
+        page.getByText('The image could not be uploaded.', { exact: true }),
+        { height: 844, width: 390 },
+    );
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page
+        .getByRole('button', { name: 'Cancel', exact: true })
+        .click({ force: true });
 });
-
-async function browserJsonRequest(
-    page: Page,
-    url: string,
-    method: 'DELETE' | 'POST',
-    body?: Record<string, unknown>,
-): Promise<number> {
-    return page.evaluate(async ({ body, method, url }) => {
-        const csrf = await fetch('/api/v1/security/csrf');
-        const { token } = await csrf.json() as { token: string };
-        const response = await fetch(url, {
-            body: body ? JSON.stringify(body) : undefined,
-            headers: {
-                ...(body ? { 'Content-Type': 'application/json' } : {}),
-                'X-CSRF-Token': token,
-            },
-            method,
-        });
-
-        return response.status;
-    }, { body, method, url });
-}

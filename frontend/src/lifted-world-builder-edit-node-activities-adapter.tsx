@@ -52,7 +52,7 @@ export function LiftedNodeActivityEditorDocument({
             <LiftedNpcDialogueDocument
                 activityId={dedicatedActivity.id}
                 onBack={closeDedicatedActivity}
-                onUpdated={onReload}
+                onUpdated={() => undefined}
                 tools={document.tools}
             />
         );
