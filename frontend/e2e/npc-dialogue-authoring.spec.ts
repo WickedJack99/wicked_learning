@@ -6,6 +6,7 @@ async function expectBounded(
     locator: Locator,
     viewport: { height: number; width: number },
 ): Promise<void> {
+    await locator.scrollIntoViewIfNeeded();
     await expect(locator).toBeVisible();
     const bounds = await locator.boundingBox();
 
@@ -14,6 +15,28 @@ async function expectBounded(
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
     expect(bounds!.y).toBeGreaterThanOrEqual(0);
     expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height);
+}
+
+async function exerciseSourceDialogueSections(
+    page: Page,
+    viewport: { height: number; width: number },
+): Promise<void> {
+    const navigation = page.getByLabel('Dialogue node settings sections');
+
+    for (const [section, control] of [
+        ['Basics', page.getByLabel('Title')],
+        ['Content', page.getByLabel('Speech bubble text')],
+        ['Flow', page.getByLabel('Tool to give')],
+        ['Visuals', page.getByText('Dialogue scene preview', { exact: true })],
+    ]) {
+        const sectionButton = navigation.getByRole('button', {
+            name: new RegExp(`^${section}`),
+        });
+
+        await expectBounded(sectionButton, viewport);
+        await sectionButton.click();
+        await expectBounded(control, viewport);
+    }
 }
 
 test('a local world author can build an NPC dialogue graph', async ({ page }) => {
@@ -72,7 +95,15 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
         width: 1440,
     });
 
+    await page.getByRole('button', { name: 'Add node' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Add dialogue node' }),
+    ).toBeVisible();
+    await exerciseSourceDialogueSections(page, { height: 900, width: 1440 });
+
     await page.setViewportSize({ width: 390, height: 844 });
+    await exerciseSourceDialogueSections(page, { height: 844, width: 390 });
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     const narrowAddNode = page.getByRole('button', {
         name: 'Add node',
         exact: true,

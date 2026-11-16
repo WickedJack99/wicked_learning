@@ -3031,12 +3031,14 @@ Start/end graph and bounded React Flow renderer at 1440×900 and 390×844, then
 reopens it with the same source-shaped Rust response with no dialogue nodes and
 proves its minimal Start graph and Add-node control at both viewports. This is
 Rust browser/source-component evidence, not an unavailable Laravel-runtime
-side-by-side capture. Remaining closure evidence is deliberately separate:
-every dialog/configuration section, edit/delete/connect/drag, and image-upload
-failure. The generic source node-activity route that owns NPC dialogue creation
-is now mounted through `LiftedNodeActivityEditorDocument`; its source card
-delegates to the direct NPC page. The retained temporary prompt is not a parity
-replacement and must not regain routing ownership.
+side-by-side capture. The mounted source Add-dialog's Basics, Content, Flow,
+and Visuals navigation and their primary source controls are browser-proven at
+both viewports in that same authenticated journey. Remaining closure evidence
+is deliberately separate: edit-dialog lifecycle, delete/connect/drag, and
+image-upload failure. The generic source node-activity route that owns NPC
+dialogue creation is now mounted through `LiftedNodeActivityEditorDocument`;
+its source card delegates to the direct NPC page. The retained temporary prompt
+is not a parity replacement and must not regain routing ownership.
 
 ### Markdown special-graph layout contract prerequisite — 16 November 2026
 
