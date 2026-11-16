@@ -2087,6 +2087,159 @@ for (const [status, viewport, name] of [
     });
 }
 
+const defaultToolGrantFields = {
+    background_dark: null,
+    background_light: null,
+    background_mirrored: false,
+    bubble_border_color_dark: '#2dd4bf',
+    bubble_border_color_light: '#0891b2',
+    bubble_color_dark: '#0f172a',
+    bubble_color_light: '#ffffff',
+    bubble_opacity_dark: 92,
+    bubble_opacity_light: 94,
+    fade_duration_seconds: 0.4,
+    slide_direction: 'left',
+    slide_duration_seconds: 0.6,
+    text: null,
+    tool_id: '00000000-0000-4000-8000-000000000721',
+    tool_mirrored: false,
+    tool_x: 50,
+    tool_y: 50,
+    typing_speed: 24,
+};
+
+const validToolGrantCreateBody = {
+    ...defaultToolGrantFields,
+    fade_duration_seconds: 1,
+    slide_duration_seconds: 1,
+    introduction: null,
+    slug: null,
+    title: 'Offer a useful tool',
+};
+
+const defaultToolGrantUpdateBody = {
+    background_dark: '/media/tool-dark.png',
+    background_light: '/media/tool-light.png',
+    background_mirrored: true,
+    bubble_border_color_dark: '#4ade80',
+    bubble_border_color_light: '#15803d',
+    bubble_color_dark: '#10261a',
+    bubble_color_light: '#f0fdf4',
+    bubble_opacity_dark: 88,
+    bubble_opacity_light: 91,
+    fade_duration_seconds: 0.8,
+    introduction: 'Start with this activity.',
+    slide_direction: 'bottom',
+    slide_duration_seconds: 1.2,
+    slug: 'first-activity',
+    text: 'Use this tool to notice the details.',
+    title: 'First tool grant (edited)',
+    tool_id: '00000000-0000-4000-8000-000000000721',
+    tool_mirrored: true,
+    tool_x: 42,
+    tool_y: 58,
+    typing_speed: 30,
+    updated_at: '2026-11-15T10:00:00Z',
+};
+
+async function openToolGrantCreateForm(page: Page): Promise<void> {
+    await page.getByRole('button', { name: 'Add activity' }).dispatchEvent('click');
+    await page.getByRole('combobox', { name: 'Type' }).dispatchEvent('click');
+    await page.getByRole('option', { name: 'Tool grant' }).dispatchEvent('click');
+}
+
+for (const [status, viewport, name] of [
+    [400, { height: 900, width: 1440 }, 'validation failure'],
+    [201, { height: 844, width: 390 }, 'successful create'],
+] as const) {
+    test(`captures a valid source Tool Grant create for a typed Rust ${name}`, async ({ page }) => {
+        let commandBody: unknown = null;
+        await page.route('**/api/v1/security/csrf', async (route) => route.fulfill({ json: { token: 'test-csrf' } }));
+        await page.route('**/api/v1/admin/world-builder/nodes/00000000-0000-4000-8000-000000000703/tool-grant-activities', async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill(status === 201 ? { json: { activity_id: '00000000-0000-4000-8000-000000000722' }, status } : { status });
+        });
+        await page.setViewportSize(viewport);
+        await page.goto('/activity-editor-harness.html');
+        await openToolGrantCreateForm(page);
+        await page.getByLabel('Title').fill('Offer a useful tool');
+        await page.getByRole('tab', { name: 'Flow' }).dispatchEvent('click');
+        await page
+            .getByRole('combobox', { name: 'Tool to give' })
+            .dispatchEvent('click');
+        await page
+            .getByRole('option', { name: 'Field lens' })
+            .dispatchEvent('click');
+        await page
+            .getByRole('tab', { name: 'Visuals' })
+            .dispatchEvent('click');
+        await expectBounded(page.getByLabel('Typing speed'), viewport.width);
+        await page.getByLabel('Slide duration').fill('1');
+        await page.getByLabel('Fade duration').fill('1');
+        const reloaded = status === 201 ? page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame()) : null;
+        await page.locator('form').evaluate((form) => form.requestSubmit());
+
+        if (reloaded) {
+            await reloaded;
+        }
+
+        await expect.poll(() => commandBody).not.toBeNull();
+        expect(commandBody).toEqual(validToolGrantCreateBody);
+    });
+}
+
+test('retains the pinned Tool Grant decimal defaults and their native validity state', async ({
+    page,
+}) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+    await openToolGrantCreateForm(page);
+    await page.getByRole('tab', { name: 'Visuals' }).dispatchEvent('click');
+
+    await expect(page.getByLabel('Slide duration')).toHaveValue('0.6');
+    await expect(page.getByLabel('Fade duration')).toHaveValue('0.4');
+    await expect(
+        page.locator('form').evaluate((form) => form.checkValidity()),
+    ).resolves.toBe(false);
+});
+
+for (const [status, viewport, name] of [
+    [409, { height: 900, width: 1440 }, 'stale update'],
+    [200, { height: 844, width: 390 }, 'successful update'],
+] as const) {
+    test(`captures a typed Rust Tool Grant ${name} without losing source fields`, async ({ page }) => {
+        let commandBody: unknown = null;
+        await page.route('**/api/v1/security/csrf', async (route) => route.fulfill({ json: { token: 'test-csrf' } }));
+        await page.route('**/api/v1/admin/world-builder/activities/00000000-0000-4000-8000-000000000701/tool-grant', async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill(status === 200 ? { json: { activity_id: '00000000-0000-4000-8000-000000000701', updated_at: '2026-11-15T10:01:00Z' }, status } : { status });
+        });
+        await page.setViewportSize(viewport);
+        await page.goto('/activity-editor-harness.html?tool-grant=1');
+        await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+        await page.getByLabel('Title').fill('First tool grant (edited)');
+        await page
+            .getByRole('tab', { name: 'Visuals' })
+            .dispatchEvent('click');
+        await expect(page.getByLabel('Typing speed')).toHaveValue('30');
+        const reloaded = status === 200 ? page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame()) : null;
+        await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
+
+        if (reloaded) {
+            await reloaded;
+        }
+
+        await expect.poll(() => commandBody).not.toBeNull();
+        expect(commandBody).toEqual(defaultToolGrantUpdateBody);
+
+        if (status === 409) {
+            await expect(
+                page.getByRole('heading', { name: 'Edit activity' }),
+            ).toBeVisible();
+        }
+    });
+}
+
 for (const [status, viewport, name] of [
     [409, { height: 900, width: 1440 }, 'stale update'],
     [200, { height: 844, width: 390 }, 'successful update'],

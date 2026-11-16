@@ -27,6 +27,8 @@ const fixtureType = fixtureSearch.has('reflection')
                   ? 'shared_task'
                   : fixtureSearch.has('item-grant')
                     ? 'item_grant'
+                    : fixtureSearch.has('tool-grant')
+                      ? 'tool_grant'
             : 'open_practice';
 const reflectionLikeFixture =
     fixtureType === 'reflection' || fixtureType === 'review';
@@ -133,6 +135,28 @@ const activity = {
                   probabilityPercent: 65.5,
               }
             : {}),
+        ...(fixtureType === 'tool_grant'
+            ? {
+                  backgroundDark: '/media/tool-dark.png',
+                  backgroundLight: '/media/tool-light.png',
+                  backgroundMirrored: true,
+                  bubbleBorderColorDark: '#4ade80',
+                  bubbleBorderColorLight: '#15803d',
+                  bubbleColorDark: '#10261a',
+                  bubbleColorLight: '#f0fdf4',
+                  bubbleOpacityDark: 88,
+                  bubbleOpacityLight: 91,
+                  fadeDurationSeconds: 0.8,
+                  slideDirection: 'bottom',
+                  slideDurationSeconds: 1.2,
+                  text: 'Use this tool to notice the details.',
+                  toolId: '00000000-0000-4000-8000-000000000721',
+                  toolMirrored: true,
+                  toolX: 42,
+                  toolY: 58,
+                  typingSpeed: 30,
+              }
+            : {}),
     },
     connectors: {
         inputs: [{ id: 'in', label: 'Entry' }],
@@ -209,6 +233,8 @@ const activity = {
                           ? 'First shared task'
                           : fixtureType === 'item_grant'
                             ? 'First item grant'
+                            : fixtureType === 'tool_grant'
+                              ? 'First tool grant'
                     : 'First activity',
     type: fixtureType,
     updatedAt: '2026-11-15T10:00:00Z',
@@ -379,6 +405,16 @@ const items = [
     },
 ];
 
+const tools = [
+    {
+        id: '00000000-0000-4000-8000-000000000721',
+        imageDark: null,
+        imageLight: null,
+        slug: 'field-lens',
+        title: 'Field lens',
+    },
+];
+
 createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
         <OriginalPlatformTranslationProvider>
@@ -387,7 +423,7 @@ createRoot(document.getElementById('root')!).render(
                     activityGraph={graph}
                     items={items}
                     sounds={[]}
-                    tools={[]}
+                    tools={tools}
                     worldGraph={null}
                 />
             </CurrentUserProvider>

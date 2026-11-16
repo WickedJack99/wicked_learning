@@ -1790,7 +1790,7 @@ Reflection's source type switch and its `What feels clearer now?` default are
 browser-proven at both viewports. Its source Review/Revisit variant, including
 the same default, is browser-proven at both viewports. The harness declares every
 remaining source type and browser-proves that Markdown, Portal, Question, Message
-Prompt/Wall, Shared Task, Item Grant, Item Obstacle, Obstacle and Tool Grant each
+Prompt/Wall, Shared Task, Item Grant, Item Obstacle and Obstacle each
 reach their distinct lifted Flow section at both viewports. This is structural
 type-family evidence only: their per-field defaults, validation, stale-save and
 successful Rust command/reload behavior remain unproven, as do templates,
@@ -1837,8 +1837,16 @@ project, peer-review, contribution, validation, repeat and cycle controls
 through desktop Rust `400`/`409` failures and narrow Rust `201`/`200` reloads.
 Item Grant now captures its empty source default and selected catalog item,
 numeric probability and presentation fields through the same desktop failure
-and narrow successful-reload states. The other remaining type command behavior
-and all other listed states remain unproven.
+and narrow successful-reload states. Tool Grant now captures the selected
+source tool plus its complete scene, bubble, motion and placement payload
+through desktop Rust `400`/`409` failures and narrow Rust `201`/`200` reloads.
+The pinned source defaults its slide and fade durations to `0.6` and `0.4` but
+leaves the native number-input step at the browser default of `1`; a normal
+submit therefore rejects those untouched decimal defaults before the Rust
+transport is called. The harness explicitly proves that source validity state,
+then sets both values to `1` to exercise the source's valid authoring path. It
+does not normalize or alter the lifted component. The other remaining type
+command behavior and all other listed states remain unproven.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
