@@ -3028,12 +3028,14 @@ than treated as browser evidence. The direct Rust read's
 pending, 401, 403, 404, 503 and network-failure states now render the exact
 pinned-source `UnavailableWorldBuilder` panel at both 1440×900 and 390×844;
 `npc-dialogue-direct-editor-unavailable.spec.ts` proves its copy and bounds.
-`npc-dialogue-authoring.spec.ts` now enters that direct document in
-the real local-Compose World Builder workspace, proves the persisted default
-Start/end graph and bounded React Flow renderer at 1440×900 and 390×844, then
-reopens it with the same source-shaped Rust response with no dialogue nodes and
-proves its minimal Start graph and Add-node control at both viewports. This is
-Rust browser/source-component evidence, not an unavailable Laravel-runtime
+`npc-dialogue-authoring.spec.ts` enters that direct document in the real
+local-Compose World Builder workspace. It proves the persisted source default
+Start/end graph and bounded React Flow renderer at 1440×900. At 390×844, it
+intentionally treats the source canvas's non-visible responsive state as
+source behavior and instead proves the source Add-node control and every
+configuration-section control remain visible and bounded. It does not
+reopen a fabricated empty direct graph. This is Rust
+browser/source-component evidence, not an unavailable Laravel-runtime
 side-by-side capture. The mounted source Add-dialog's Basics, Content, Flow,
 and Visuals navigation and their primary source controls are browser-proven at
 both viewports in that same authenticated journey. It also opens the source
@@ -3054,7 +3056,13 @@ contract's persisted `out` connector. Direct-editor Start-to-monologue and
 monologue-to-end pointer interactions, rendered-edge deletion, and dialogue
 card dragging remain a P0 browser-evidence gap: the generic activity-editor
 harness proves the shared source command adapter, but it is not a substitute
-for this direct route's graph behavior. The generic source node-activity route
+for this direct route's graph behavior. A local direct-route probe at
+1440×900 confirms that both relevant handles are visible, connectable and have
+pointer events, but neither Playwright's physical pointer sequence nor its
+drag operation emits the source `onConnect` request. The lifted callback and
+React Flow props match the pinned source; without a running-current-main
+comparison, that result is insufficient to authorize a Rust-only interaction
+change. The generic source node-activity route
 that owns NPC dialogue creation is now mounted
 through `LiftedNodeActivityEditorDocument`; its source card delegates to the
 direct NPC page. No temporary prompt is a parity replacement or may regain
