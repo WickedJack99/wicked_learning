@@ -197,6 +197,60 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
         greetingCard.getByRole('heading', { name: 'Archivist welcome' }),
     ).toBeVisible();
 
+    const removedTitle = `Temporary dialogue node ${Date.now()}`;
+    await page.getByRole('button', { name: 'Add node' }).click();
+    await page.getByLabel('Title').fill(removedTitle);
+    await page.getByLabel('Speech bubble text').fill('This node is removed through the source dialog.');
+    const [temporaryCreated] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'POST' &&
+            response.url().includes('/npc-dialogue/nodes'),
+        ),
+        page.getByRole('button', { name: 'Save node' }).click(),
+    ]);
+    expect(temporaryCreated.status()).toBe(201);
+    const graphWithTemporary = await page.request.get(
+        `/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue`,
+    );
+    expect(graphWithTemporary.ok()).toBeTruthy();
+    const temporary = (
+        await graphWithTemporary.json() as {
+            dialogue_nodes: Array<{ id: string; title: string }>;
+        }
+    ).dialogue_nodes.find((node) => node.title === removedTitle);
+    expect(temporary).toBeDefined();
+
+    if (!temporary) {
+        throw new Error('the temporary dialogue node was not created');
+    }
+
+    const temporaryCard = page.locator(`[data-id="${temporary.id}"]`);
+    await temporaryCard
+        .getByRole('button', { name: `Delete ${removedTitle}` })
+        .click();
+    await expect(
+        page.getByRole('heading', { name: 'Delete dialogue node?' }),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectBounded(
+        page.getByRole('heading', { name: 'Delete dialogue node?' }),
+        { height: 844, width: 390 },
+    );
+    await expectBounded(page.getByRole('button', { name: 'Delete', exact: true }), {
+        height: 844,
+        width: 390,
+    });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const [nodeDeleted] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'DELETE' &&
+            response.url().endsWith(`/npc-dialogue/nodes/${temporary.id}`),
+        ),
+        page.getByRole('button', { name: 'Delete', exact: true }).click(),
+    ]);
+    expect(nodeDeleted.status()).toBe(204);
+    await expect(temporaryCard).toHaveCount(0);
+
     const connect = await browserJsonRequest(page, `/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue/transitions`, 'POST', { from_node_id: null, to_node_id: greeting.id, from_connector: 'out', to_connector: 'in' });
     expect(connect).toBe(201);
     const complete = await browserJsonRequest(page, `/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue/transitions`, 'POST', { from_node_id: greeting.id, to_node_id: end.id, from_connector: 'out', to_connector: 'in' });
