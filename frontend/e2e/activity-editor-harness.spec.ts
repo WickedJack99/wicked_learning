@@ -880,6 +880,84 @@ test('renders the lifted source AI review result after a typed Rust response at 
     );
 });
 
+test('keeps the lifted source saved-template pagination failure in the desktop create dialog', async ({
+    page,
+}) => {
+    let requestUrl: URL | null = null;
+
+    await page.route('**/api/v1/admin/activity-templates?*', async (route) => {
+        requestUrl = new URL(route.request().url());
+
+        if (requestUrl.searchParams.get('page') === '1') {
+            await route.fulfill({
+                json: {
+                    items: [],
+                    pagination: {
+                        last_page: 2,
+                        page: 1,
+                        per_page: 4,
+                        total: 5,
+                    },
+                    share_targets: [],
+                },
+            });
+
+            return;
+        }
+
+        await route.fulfill({ status: 503 });
+    });
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html');
+    await page.getByRole('button', { name: 'Add activity' }).click();
+
+    const createDialog = page.getByRole('dialog', { name: 'Add activity' });
+    await expect(createDialog).toBeVisible();
+    await expect.poll(() => requestUrl?.searchParams.get('page')).toBe('1');
+    expect(requestUrl?.searchParams.get('per_page')).toBe('4');
+    const nextPage = createDialog.getByRole('button', {
+        name: 'Next saved template page',
+    });
+    await nextPage.click();
+    await expect.poll(() => requestUrl?.searchParams.get('page')).toBe('2');
+    await expect(
+        createDialog.getByText('The activity templates could not be loaded.'),
+    ).toBeVisible();
+    await expectBounded(nextPage, 1440);
+});
+
+test('keeps the lifted source saved-source pagination failure in the narrow activity dialog', async ({
+    page,
+}) => {
+    let requestUrl: URL | null = null;
+
+    await page.route('**/api/v1/admin/source-records?*', async (route) => {
+        requestUrl = new URL(route.request().url());
+        await route.fulfill({ status: 503 });
+    });
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?source-catalog=1');
+    await page.getByRole('button', { name: 'Edit' }).click();
+
+    const editDialog = page.getByRole('dialog', { name: 'Edit activity' });
+    await expect(editDialog).toBeVisible();
+    await editDialog.getByRole('tab', { name: /Sources/ }).click();
+    const nextPage = editDialog.getByRole('button', {
+        name: 'Next saved sources',
+    });
+    await expect(nextPage).toBeVisible();
+    await nextPage.click();
+
+    await expect.poll(() => requestUrl?.searchParams.get('page')).toBe('2');
+    expect(requestUrl?.searchParams.get('per_page')).toBe('12');
+    await expect(
+        editDialog.getByText(
+            'The saved sources could not be loaded. Try again.',
+        ),
+    ).toBeVisible();
+    await expectBounded(nextPage, 390);
+});
+
 test('keeps the source Start-route validation failure in the source dialog at desktop width', async ({
     page,
 }) => {

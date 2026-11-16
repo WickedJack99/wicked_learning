@@ -13,6 +13,7 @@ const fixtureSearch = new URLSearchParams(window.location.search);
 const multiStartFixture = fixtureSearch.has('multi-start');
 const mutationHarness = fixtureSearch.has('source-mutations');
 const aiReviewFixture = fixtureSearch.has('ai-review');
+const sourceCatalogFixture = fixtureSearch.has('source-catalog');
 const fixtureType = fixtureSearch.has('reflection')
     ? 'reflection'
     : fixtureSearch.has('review')
@@ -492,12 +493,26 @@ const graph: ActivityGraphPayload = {
                   },
               ]
             : [],
-    sourceRecords: [],
+    sourceRecords: sourceCatalogFixture
+        ? [
+              {
+                  anchor: '',
+                  concepts: ['observation'],
+                  excerpt: 'A reusable source catalog entry.',
+                  id: '00000000-0000-4000-8000-000000000725',
+                  publishedAt: '',
+                  publisher: 'Wicked Learning',
+                  rights: '',
+                  title: 'Reusable source',
+                  url: 'https://example.test/source',
+              },
+          ]
+        : [],
     sourceRecordsPagination: {
         currentPage: 1,
-        lastPage: 1,
+        lastPage: sourceCatalogFixture ? 2 : 1,
         perPage: 12,
-        total: 0,
+        total: sourceCatalogFixture ? 13 : 0,
     },
     transitions: [
         {
