@@ -3,3 +3,4 @@
 /* The harness is served from `e2e/`; include the lifted source tree when
  * Tailwind resolves utility classes so React Flow receives a real canvas. */
 @source '../src';
+@source '../../resources/js';

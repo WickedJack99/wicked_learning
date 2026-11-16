@@ -3056,13 +3056,17 @@ contract's persisted `out` connector. Direct-editor Start-to-monologue and
 monologue-to-end pointer interactions, rendered-edge deletion, and dialogue
 card dragging remain a P0 browser-evidence gap: the generic activity-editor
 harness proves the shared source command adapter, but it is not a substitute
-for this direct route's graph behavior. A local direct-route probe at
-1440×900 confirms that both relevant handles are visible, connectable and have
-pointer events, but neither Playwright's physical pointer sequence nor its
-drag operation emits the source `onConnect` request. The lifted callback and
-React Flow props match the pinned source; without a running-current-main
-comparison, that result is insufficient to authorize a Rust-only interaction
-change. The generic source node-activity route
+for this direct route's graph behavior. `source-npc-dialogue-parity.spec.ts`
+mounts the exact pinned source page beneath its real Inertia router and proves
+that the physical Start-to-monologue drag emits the original transition visit.
+The equivalent isolated Rust document proves the adapter maps the source
+`start` connector to Rust `out`. The authenticated mounted Rust route still
+embeds that full-page source editor in a 568px MapAsset detail pane, where the
+same gesture emits no request. This is a route-mounting parity defect, not an
+authorization to change the source graph component or invent a canvas control:
+the next direct-editor slice must mount the source document as its own full
+route and then prove the complete pointer/edge/drag matrix. The generic source
+node-activity route
 that owns NPC dialogue creation is now mounted
 through `LiftedNodeActivityEditorDocument`; its source card delegates to the
 direct NPC page. No temporary prompt is a parity replacement or may regain

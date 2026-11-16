@@ -8,4 +8,17 @@ import { defineConfig } from 'vite';
 export default defineConfig({
     plugins: [react(), tailwindcss()],
     root: resolve(fileURLToPath(new URL('.', import.meta.url))),
+    resolve: {
+        alias: {
+            '@': resolve(fileURLToPath(new URL('.', import.meta.url)), '../../resources/js'),
+            react: resolve(fileURLToPath(new URL('.', import.meta.url)), '../node_modules/react'),
+            'react-dom': resolve(fileURLToPath(new URL('.', import.meta.url)), '../node_modules/react-dom'),
+        },
+        dedupe: ['react', 'react-dom'],
+    },
+    server: {
+        fs: {
+            allow: [resolve(fileURLToPath(new URL('.', import.meta.url)), '../..')],
+        },
+    },
 });

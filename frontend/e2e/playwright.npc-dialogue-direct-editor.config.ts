@@ -8,7 +8,7 @@ const frontendRoot = resolve(directory, '..');
 
 export default defineConfig({
     testDir: directory,
-    testMatch: 'npc-dialogue-direct-editor-unavailable.spec.ts',
+    testMatch: 'npc-dialogue-direct-editor-*.spec.ts',
     use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://127.0.0.1:4178',
