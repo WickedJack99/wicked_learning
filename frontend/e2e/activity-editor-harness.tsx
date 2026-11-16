@@ -1,5 +1,6 @@
 import '@xyflow/react/dist/style.css';
 import { createRoot } from 'react-dom/client';
+import { useState } from 'react';
 import { BrowserRouter } from 'react-router';
 
 import { CurrentUserProvider } from '../src/current-user';
@@ -506,18 +507,34 @@ const sounds = [
     },
 ];
 
-createRoot(document.getElementById('root')!).render(
-    <BrowserRouter>
-        <OriginalPlatformTranslationProvider>
-            <CurrentUserProvider>
-                <EditNodeActivities
-                    activityGraph={graph}
-                    items={items}
-                    sounds={sounds}
-                    tools={tools}
-                    worldGraph={null}
-                />
-            </CurrentUserProvider>
-        </OriginalPlatformTranslationProvider>
-    </BrowserRouter>,
-);
+function ActivityEditorHarness(): React.JSX.Element {
+    const [dedicatedActivityType, setDedicatedActivityType] = useState<
+        string | null
+    >(null);
+
+    return (
+        <BrowserRouter>
+            <OriginalPlatformTranslationProvider>
+                <CurrentUserProvider>
+                    <EditNodeActivities
+                        activityGraph={graph}
+                        items={items}
+                        onOpenDedicatedActivity={(selectedActivity) =>
+                            setDedicatedActivityType(selectedActivity.type)
+                        }
+                        sounds={sounds}
+                        tools={tools}
+                        worldGraph={null}
+                    />
+                    {dedicatedActivityType ? (
+                        <output data-testid="dedicated-activity-handoff">
+                            {dedicatedActivityType}
+                        </output>
+                    ) : null}
+                </CurrentUserProvider>
+            </OriginalPlatformTranslationProvider>
+        </BrowserRouter>
+    );
+}
+
+createRoot(document.getElementById('root')!).render(<ActivityEditorHarness />);

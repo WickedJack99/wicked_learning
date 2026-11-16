@@ -122,34 +122,30 @@ function ActivityGraphNodeCard({
             <div className="nodrag nopan mt-4 flex items-center gap-2">
                 {activity.type === 'npc_dialogue' ? (
                     <Button
-                        asChild
                         className="h-8 px-3 text-xs"
-                        onClick={(event) => event.stopPropagation()}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            data.onOpenDedicatedActivity?.(activity);
+                        }}
                         type="button"
                         variant="secondary"
                     >
-                        <Link
-                            href={`/settings/worlds/activities/${activity.id}/npc-dialogue`}
-                        >
-                            <MessageCircle className="size-3.5" />
-                            Edit dialogue
-                        </Link>
+                        <MessageCircle className="size-3.5" />
+                        Edit dialogue
                     </Button>
                 ) : null}
                 {activity.type === 'markdown' ? (
                     <Button
-                        asChild
                         className="h-8 px-3 text-xs"
-                        onClick={(event) => event.stopPropagation()}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            data.onOpenDedicatedActivity?.(activity);
+                        }}
                         type="button"
                         variant="secondary"
                     >
-                        <Link
-                            href={`/settings/worlds/activities/${activity.id}/markdown`}
-                        >
-                            <FileText className="size-3.5" />
-                            Edit pages
-                        </Link>
+                        <FileText className="size-3.5" />
+                        Edit pages
                     </Button>
                 ) : null}
                 <Button
@@ -379,6 +375,7 @@ export function buildGraphNodes(
     onReview: (activity: ActivitySummary) => void,
     onSaveTemplate: (activity: ActivitySummary) => void,
     onUpdateTemplate: (activity: ActivitySummary) => void,
+    onOpenDedicatedActivity?: (activity: ActivitySummary) => void,
 ): ActivityGraphNode[] {
     const activities = payload.activities.map((activity, index) => ({
         id: activity.id.toString(),
@@ -389,6 +386,7 @@ export function buildGraphNodes(
             onDuplicate,
             onDelete,
             onEdit,
+            onOpenDedicatedActivity,
             onReview,
             onSaveTemplate,
             onUpdateTemplate,

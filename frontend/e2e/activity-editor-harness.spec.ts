@@ -1204,7 +1204,9 @@ test('surfaces a typed Rust stale Markdown update without overwriting', async ({
     );
     await page.setViewportSize({ height: 900, width: 1440 });
     await page.goto('/activity-editor-harness.html?markdown=1');
-    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page
+        .getByRole('button', { name: 'Edit', exact: true })
+        .dispatchEvent('click');
     await page.getByLabel('Title').fill('First markdown (edited)');
     await page.getByRole('button', { name: 'Save' }).dispatchEvent('click');
 
@@ -1244,7 +1246,9 @@ test('reloads after a typed Rust Markdown update succeeds at narrow width', asyn
     );
     await page.setViewportSize({ height: 844, width: 390 });
     await page.goto('/activity-editor-harness.html?markdown=1');
-    await page.getByRole('button', { name: 'Edit' }).dispatchEvent('click');
+    await page
+        .getByRole('button', { name: 'Edit', exact: true })
+        .dispatchEvent('click');
     await page.getByLabel('Title').fill('First markdown (edited)');
 
     const reloaded = page.waitForEvent(
@@ -1260,6 +1264,44 @@ test('reloads after a typed Rust Markdown update succeeds at narrow width', asyn
     ).toBeVisible();
     await expectBounded(
         page.getByRole('button', { name: 'Add activity' }),
+        390,
+    );
+});
+
+test('hands the source Markdown card to the dedicated editor seam', async ({
+    page,
+}) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html?markdown=1');
+
+    await page
+        .getByRole('button', { name: 'Edit pages' })
+        .dispatchEvent('click');
+
+    await expect(page.getByTestId('dedicated-activity-handoff')).toHaveText(
+        'markdown',
+    );
+    await expectBounded(
+        page.getByRole('button', { name: 'Edit pages' }),
+        1440,
+    );
+});
+
+test('keeps the source Markdown dedicated-editor handoff reachable at narrow width', async ({
+    page,
+}) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?markdown=1');
+
+    await page
+        .getByRole('button', { name: 'Edit pages' })
+        .dispatchEvent('click');
+
+    await expect(page.getByTestId('dedicated-activity-handoff')).toHaveText(
+        'markdown',
+    );
+    await expectBounded(
+        page.getByRole('button', { name: 'Edit pages' }),
         390,
     );
 });

@@ -1751,13 +1751,15 @@ the following generated Rust client boundaries:
 | Source citations | `/admin/source-records*` |
 | Node-scoped visual upload | `/admin/world-builder/maps/{map_id}/visual-media` |
 
-This lift is intentionally **unmounted**. It must not replace the existing
-`ActivityGraph` or be called a migrated selected-node editor until the required
-source-derived browser matrix proves populated/empty, selected activity/edge/
-start, all activity type families, templates/citations/media failures, and
-transport-denial states at both 1440×900 and 390×844. The current automated
-evidence proves UUID transport mapping and every supported activity family's
-typed command shape; it is not complete browser-parity evidence.
+The selected-node route is now mounted through
+`LiftedNodeActivityEditorDocument` in both the normal Graph and Structural
+workspaces. It maps the Rust scoped node document once, calls the parent
+refetch rather than reloading the page, and sends the source card's Markdown
+and NPC dialogue controls only to their already-lifted dedicated documents.
+It replaces the retained reconstructed `ActivityGraph` at those two workspace
+mount points; it does not claim full route-family parity. The required
+source-derived browser matrix still needs the remaining template/citation/media
+and read-denial/unavailable states at both 1440×900 and 390×844.
 
 #### Nineteenth Activity Editor implementation prerequisite: isolated source-route browser harness — 15 November 2026
 
@@ -1777,7 +1779,7 @@ activity control). It also renders the source activity-card delete confirmation,
 transition editor and Start-route visuals dialog at both viewports. The
 test-only shell supplies the same current-user provider that the Start-route
 image controls require. This is source-component browser evidence for the
-unmounted lift. The source Add-activity dialog now has its pinned first type,
+mounted lift. The source Add-activity dialog now has its pinned first type,
 Open practice, browser-proven with its blank title default at both viewports
 and a bounded narrow type control. The populated narrow graph now proves a
 nonzero source React Flow renderer and bounded primary activity/Start-route
@@ -1831,7 +1833,8 @@ and Message Wall each now prove their distinct source defaults and complete
 existing-topic forms through desktop Rust `400`/`409` failures and narrow Rust
 `201`/`200` reloads: Prompt retains its support audience and prompt fields,
 while Wall retains its peer-only optional-response setting. It therefore does
-not close the P0 Activity Editor matrix or authorize mounting the route.
+not close the P0 Activity Editor parity matrix, despite the route now being
+mounted.
 Shared Task now captures its complete source default and its selected-record
 project, peer-review, contribution, validation, repeat and cycle controls
 through desktop Rust `400`/`409` failures and narrow Rust `201`/`200` reloads.
@@ -2999,13 +3002,13 @@ deliberately separate: populated and empty graph fitting, every
 dialog/configuration section, edit/delete/connect/drag, image upload failure,
 and first-load 401/403/404/503 and network failure each need source-vs-Rust
 browser captures. The generic source node-activity route that owns NPC dialogue
-creation also remains a P0 direct-lift dependency; do not treat the retained
-temporary prompt as its parity replacement.
+creation is now mounted through `LiftedNodeActivityEditorDocument`; its source
+card delegates to the direct NPC page. The retained temporary prompt is not a
+parity replacement and must not regain routing ownership.
 
 ### Markdown special-graph layout contract prerequisite — 16 November 2026
 
-**Status: backend prerequisite complete; direct-page frontend lift remains
-unstarted.** The pinned source
+**Status: complete and consumed by the direct-page lift.** The pinned source
 `main` baseline is `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
 `resources/js/pages/settings/worlds/markdown-activity-fields.tsx` calls
 `PATCH /settings/worlds/activities/{activity}/graph-layout` whenever the
@@ -3021,16 +3024,16 @@ contract with an explicit `start`/`end` enum and finite position. It locks the
 editable Markdown activity, rounds and changes only that special-node layout,
 records the same activity-history boundary on a change, and returns the normal
 typed update timestamp. The generated API schema records the narrow request.
-This is transport support only, not evidence that the direct source
-`edit-markdown-activity.tsx` route or its `markdown-activity-fields.tsx` tree
-has been lifted, mounted, or browser-verified. The next Markdown parity slice
-must lift those files as whole components and wire this endpoint only for the
-source special-node drag path.
+The direct source `edit-markdown-activity.tsx` route and its
+`markdown-activity-fields.tsx` tree now use this endpoint only for the source
+special-node drag path. Their remaining route-family parity evidence is tracked
+in the direct editor section below.
 
 ### Direct Markdown editor page lift — 16 November 2026
 
-**Status: existing Markdown activity editing is directly lifted; generic
-node-activity creation remains a separate P0 route dependency.** The pinned
+**Status: existing Markdown activity editing and the generic source
+node-activity route are directly mounted; route-family parity remains
+incomplete.** The pinned
 `main` baseline is `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. The Rust route
 now mounts the complete source
 `resources/js/pages/settings/worlds/edit-markdown-activity.tsx` page and
@@ -3038,9 +3041,10 @@ now mounts the complete source
 an author edits an existing Markdown card. This retains the source header,
 Back to MapAsset control, Start/page/End React Flow graph, page drawer,
 add/delete/connect/drag behavior, reusable-image picker and upload control,
-light/dark page preview, colors, footer, and source error placement. The
-generic create dialog still owns Markdown creation and is not presented as a
-replacement for the source node-activity route.
+light/dark page preview, colors, footer, and source error placement. Markdown
+creation remains in the mounted source node-activity route; the source card's
+`Edit pages` control opens this dedicated document rather than a recreated
+generic form.
 
 The Rust adapter maps only the selected-node graph's scoped Markdown activity
 and its world/map/node context into the source page prop shape. It replaces
@@ -3060,8 +3064,8 @@ and 390×844, and the Rust save-unavailable footer state. The authenticated
 creation, saves through its source `Save pages` control, and returns through
 the source back control; it still requires the disposable administrator
 credentials for local execution. A direct side-by-side running-current-main
-capture and the remaining selected-node page/creation route lift are still
-required before declaring the route family fully parity-complete.
+capture and the remaining template/citation/media and read-error evidence are
+still required before declaring the route family fully parity-complete.
 
 ### Content API map foundation slice — 12 November 2026
 

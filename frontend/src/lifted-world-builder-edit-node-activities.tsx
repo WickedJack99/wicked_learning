@@ -132,6 +132,8 @@ export default function EditNodeActivities({
     activityGraph,
     embedded = false,
     items,
+    onOpenDedicatedActivity,
+    onReload,
     sounds,
     tools,
     worldGraph,
@@ -140,6 +142,8 @@ export default function EditNodeActivities({
     worldGraph: ActivityTemplateTargetGraph | null;
     embedded?: boolean;
     items: EditableItem[];
+    onOpenDedicatedActivity?: (activity: ActivitySummary) => void;
+    onReload?: () => void;
     sounds: EditableSound[];
     tools: EditableTool[];
 }) {
@@ -863,6 +867,7 @@ export default function EditNodeActivities({
                 requestReview,
                 requestSaveTemplate,
                 requestUpdateTemplate,
+                onOpenDedicatedActivity,
             ),
         [
             activityGraph,
@@ -872,6 +877,7 @@ export default function EditNodeActivities({
             requestSaveTemplate,
             requestUpdateTemplate,
             useAsStartingPoint,
+            onOpenDedicatedActivity,
         ],
     );
     const initialEdges = useMemo(
@@ -1009,7 +1015,14 @@ export default function EditNodeActivities({
             ? routeFormFromStartRoute(selectedStartRoute)
             : emptyStartRouteForm(),
     );
-    const reloadGraph = () => window.location.reload();
+    const reloadGraph = () => {
+        if (onReload) {
+            onReload();
+            return;
+        }
+
+        window.location.reload();
+    };
 
     const openCreate = () => {
         setForm(emptyCreateForm(firstType));

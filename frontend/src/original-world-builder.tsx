@@ -88,6 +88,7 @@ import { LiftedWorldBuilderMapDetails } from './lifted-world-builder-map-details
 import { LiftedWorldBuilderConfigureMapDocument } from './lifted-world-builder-configure-map';
 import { LiftedWorldBuilderEditMapDocument } from './lifted-world-builder-edit-map-adapter';
 import { LiftedMarkdownActivityDocument } from './lifted-world-builder-edit-markdown-activity-adapter';
+import { LiftedNodeActivityEditorDocument } from './lifted-world-builder-edit-node-activities-adapter';
 import { LiftedNpcDialogueDocument } from './lifted-world-builder-edit-npc-dialogue-adapter';
 import { LiftedWorldBuilderMapWorkspace } from './lifted-world-builder-map-workspace';
 import { LiftedWorldBuilderPortalDetails } from './lifted-world-builder-portal-details';
@@ -827,16 +828,11 @@ function WorldBuilderContent({
                                 ? {
                                       activeView: 'nodes',
                                       content: (
-                                          <ActivityGraph
+                                          <LiftedNodeActivityEditorDocument
                                               document={editableNode}
                                               onReload={() =>
                                                   setNodeReload(
                                                       (current) => current + 1,
-                                                  )
-                                              }
-                                              onSelectMap={() =>
-                                                  selectStructuralMap(
-                                                      selectedMapId,
                                                   )
                                               }
                                               worldGraph={worldGraph!}
@@ -900,17 +896,11 @@ function WorldBuilderContent({
                                 ? {
                                       activeView: 'nodes',
                                       content: (
-                                          <ActivityGraph
+                                          <LiftedNodeActivityEditorDocument
                                               document={editableNode}
                                               onReload={() =>
                                                   setNodeReload(
                                                       (current) => current + 1,
-                                                  )
-                                              }
-                                              onSelectMap={() =>
-                                                  selectGraphMapView(
-                                                      selectedMapId,
-                                                      'nodes',
                                                   )
                                               }
                                               worldGraph={worldGraph!}
