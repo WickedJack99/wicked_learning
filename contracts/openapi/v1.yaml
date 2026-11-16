@@ -4386,6 +4386,22 @@ paths:
         '404': { description: The Markdown activity is unavailable to the caller. }
         '409': { description: The activity changed after the caller loaded it. Reload before saving again. }
         '503': { description: The application database is unavailable. }
+  /admin/world-builder/activities/{activity_id}/markdown/graph-layout:
+    patch:
+      operationId: updateAdminWorldBuilderMarkdownGraphLayout
+      summary: Save one source Markdown graph special-node position.
+      description: >-
+        Replaces only the Markdown Start or End graph position, preserving
+        unsaved page content in the source editor and recording an activity version.
+      parameters: [ { name: activity_id, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/CsrfTokenHeader' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminMarkdownGraphLayoutRequest' } } } }
+      responses:
+        '200': { description: The saved activity timestamp., content: { application/json: { schema: { $ref: '#/components/schemas/UpdateAdminMarkdownActivityResponse' } } } }
+        '400': { description: The requested special node or graph position is invalid. }
+        '401': { description: The browser has no authenticated session. }
+        '403': { description: The same-origin CSRF check failed. }
+        '404': { description: The Markdown activity is unavailable to the caller. }
+        '503': { description: The application database is unavailable. }
   /admin/world-builder/nodes/{node_id}/message-activities:
     post:
       operationId: createAdminWorldBuilderMessageActivity
@@ -14302,6 +14318,13 @@ components:
       additionalProperties: false
       required: [activity_id, updated_at]
       properties: { activity_id: { type: string, format: uuid }, updated_at: { type: string, format: date-time } }
+    UpdateAdminMarkdownGraphLayoutRequest:
+      type: object
+      additionalProperties: false
+      required: [node, position]
+      properties:
+        node: { type: string, enum: [start, end] }
+        position: { $ref: '#/components/schemas/MarkdownActivityPosition' }
     CreateAdminSharedTaskActivityRequest:
       $ref: '#/components/schemas/SharedTaskActivityForm'
     CreateAdminSharedTaskActivityResponse:

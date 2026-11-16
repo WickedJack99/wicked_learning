@@ -16,6 +16,13 @@ impl MarkdownPosition {
     pub fn parse(x: f64, y: f64) -> Option<Self> {
         (x.is_finite() && y.is_finite()).then_some(Self { x, y })
     }
+
+    pub fn rounded(self) -> Self {
+        Self {
+            x: self.x.round(),
+            y: self.y.round(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -135,6 +142,29 @@ pub struct MarkdownGraphLayout {
     pub end: Option<MarkdownPosition>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MarkdownGraphLayoutNode {
+    End,
+    Start,
+}
+
+impl MarkdownGraphLayoutNode {
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "end" => Some(Self::End),
+            "start" => Some(Self::Start),
+            _ => None,
+        }
+    }
+
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::End => "end",
+            Self::Start => "start",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct MarkdownActivityForm {
     pub graph_position_x: Option<i32>,
@@ -248,6 +278,14 @@ pub trait AdminWorldMarkdownRepository {
         form: &MarkdownActivityForm,
         expected_updated_at: &str,
     ) -> impl Future<Output = Result<Option<UpdatedMarkdownActivity>, AdminWorldMarkdownError>> + Send;
+
+    fn update_markdown_graph_layout(
+        &self,
+        principal: &AuthorizedPrincipal,
+        activity_id: Uuid,
+        node: MarkdownGraphLayoutNode,
+        position: &MarkdownPosition,
+    ) -> impl Future<Output = Result<Option<UpdatedMarkdownActivity>, AdminWorldMarkdownError>> + Send;
 }
 
 pub struct AdminWorldMarkdownCommand<'repository, Repository> {
@@ -289,6 +327,22 @@ impl<'repository, Repository: AdminWorldMarkdownRepository>
             .update_markdown(principal, activity_id, form, expected_updated_at)
             .await
     }
+
+    pub async fn update_graph_layout(
+        &self,
+        principal: &AuthorizedPrincipal,
+        activity_id: Uuid,
+        node: MarkdownGraphLayoutNode,
+        position: &MarkdownPosition,
+    ) -> Result<Option<UpdatedMarkdownActivity>, AdminWorldMarkdownError> {
+        if !principal.has_permission("world_activities", "ru") {
+            return Ok(None);
+        }
+
+        self.repository
+            .update_markdown_graph_layout(principal, activity_id, node, position)
+            .await
+    }
 }
 
 #[cfg(test)]
@@ -296,7 +350,7 @@ mod tests {
     use std::{
         future::Future,
         sync::{
-            Arc,
+            Arc, Mutex,
             atomic::{AtomicBool, Ordering},
         },
     };
@@ -306,12 +360,14 @@ mod tests {
 
     use super::{
         AdminWorldMarkdownCommand, AdminWorldMarkdownError, AdminWorldMarkdownRepository,
-        CreatedMarkdownActivity, MarkdownActivityForm, MarkdownGraphLayout, MarkdownPageForm,
-        MarkdownPageVisual, MarkdownPosition, MarkdownTransitionForm, UpdatedMarkdownActivity,
+        CreatedMarkdownActivity, MarkdownActivityForm, MarkdownGraphLayout,
+        MarkdownGraphLayoutNode, MarkdownPageForm, MarkdownPageVisual, MarkdownPosition,
+        MarkdownTransitionForm, UpdatedMarkdownActivity,
     };
 
     struct RecordingRepository {
         called: Arc<AtomicBool>,
+        graph_layout: Mutex<Option<(MarkdownGraphLayoutNode, MarkdownPosition)>>,
     }
 
     impl AdminWorldMarkdownRepository for RecordingRepository {
@@ -335,6 +391,22 @@ mod tests {
         ) -> impl Future<Output = Result<Option<UpdatedMarkdownActivity>, AdminWorldMarkdownError>> + Send
         {
             self.called.store(true, Ordering::SeqCst);
+            async { Ok(None) }
+        }
+
+        fn update_markdown_graph_layout(
+            &self,
+            _principal: &AuthorizedPrincipal,
+            _activity_id: Uuid,
+            node: MarkdownGraphLayoutNode,
+            position: &MarkdownPosition,
+        ) -> impl Future<Output = Result<Option<UpdatedMarkdownActivity>, AdminWorldMarkdownError>> + Send
+        {
+            self.called.store(true, Ordering::SeqCst);
+            *self
+                .graph_layout
+                .lock()
+                .expect("test lock remains available") = Some((node, position.clone()));
             async { Ok(None) }
         }
     }
@@ -398,6 +470,7 @@ mod tests {
     async fn requires_source_world_activity_update_before_writing() {
         let repository = RecordingRepository {
             called: Arc::new(AtomicBool::new(false)),
+            graph_layout: Mutex::new(None),
         };
         let principal = AuthorizedPrincipal {
             subject_id: Uuid::new_v4(),
@@ -411,5 +484,43 @@ mod tests {
             .expect("authorization check succeeds");
         assert_eq!(result, None);
         assert!(!repository.called.load(Ordering::SeqCst));
+    }
+
+    #[tokio::test]
+    async fn saves_only_a_source_markdown_special_node_position() {
+        let called = Arc::new(AtomicBool::new(false));
+        let repository = RecordingRepository {
+            called: Arc::clone(&called),
+            graph_layout: Mutex::new(None),
+        };
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec!["role_permission:world_activities:ru:all".to_owned()],
+        };
+        let position = MarkdownPosition::parse(-160.0, 80.0).expect("finite position");
+
+        let result = AdminWorldMarkdownCommand::new(&repository)
+            .update_graph_layout(
+                &principal,
+                Uuid::new_v4(),
+                MarkdownGraphLayoutNode::Start,
+                &position,
+            )
+            .await
+            .expect("source graph layout authorization succeeds");
+
+        assert_eq!(result, None);
+        assert!(called.load(Ordering::SeqCst));
+        assert_eq!(
+            *repository
+                .graph_layout
+                .lock()
+                .expect("test lock remains available"),
+            Some((
+                MarkdownGraphLayoutNode::Start,
+                MarkdownPosition::parse(-160.0, 80.0).expect("finite position"),
+            ))
+        );
     }
 }

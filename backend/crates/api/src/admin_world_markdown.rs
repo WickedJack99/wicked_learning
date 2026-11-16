@@ -9,7 +9,8 @@ use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 use wicked_learning_application::admin_world_markdown::{
     AdminWorldMarkdownCommand, AdminWorldMarkdownError, MarkdownActivityForm, MarkdownGraphLayout,
-    MarkdownPageForm, MarkdownPageVisual, MarkdownPosition, MarkdownTransitionForm,
+    MarkdownGraphLayoutNode, MarkdownPageForm, MarkdownPageVisual, MarkdownPosition,
+    MarkdownTransitionForm,
 };
 use wicked_learning_persistence::admin_world_markdown::PostgresAdminWorldMarkdownRepository;
 
@@ -83,6 +84,12 @@ pub struct UpdateMarkdownActivityRequest {
     #[serde(flatten)]
     form: MarkdownActivityRequest,
     updated_at: String,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateMarkdownGraphLayoutRequest {
+    node: String,
+    position: MarkdownPositionRequest,
 }
 
 #[derive(Serialize)]
@@ -231,6 +238,33 @@ pub async fn update(
     }))
 }
 
+pub async fn update_graph_layout(
+    State(state): State<AppState>,
+    Path(activity_id): Path<String>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateMarkdownGraphLayoutRequest>,
+) -> Result<Json<UpdateMarkdownActivityResponse>, ApiError> {
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let node =
+        MarkdownGraphLayoutNode::parse(&request.node).ok_or_else(ApiError::invalid_request)?;
+    let position = position(request.position)?.rounded();
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresAdminWorldMarkdownRepository::new(&state.application_database);
+    let updated = AdminWorldMarkdownCommand::new(&repository)
+        .update_graph_layout(&principal, activity_id, node, &position)
+        .await
+        .map_err(map_error)?
+        .ok_or_else(ApiError::not_found)?;
+
+    Ok(Json(UpdateMarkdownActivityResponse {
+        activity_id: updated.activity_id,
+        updated_at: updated.updated_at,
+    }))
+}
+
 fn map_error(error: AdminWorldMarkdownError) -> ApiError {
     match error {
         AdminWorldMarkdownError::InvalidActivity => ApiError::invalid_request(),
@@ -241,7 +275,12 @@ fn map_error(error: AdminWorldMarkdownError) -> ApiError {
 
 #[cfg(test)]
 mod tests {
-    use super::UpdateMarkdownActivityRequest;
+    use wicked_learning_application::admin_world_markdown::MarkdownGraphLayoutNode;
+
+    use super::{
+        MarkdownPositionRequest, UpdateMarkdownActivityRequest, UpdateMarkdownGraphLayoutRequest,
+        position,
+    };
 
     #[test]
     fn update_requires_the_complete_source_markdown_form() {
@@ -251,5 +290,38 @@ mod tests {
             r#"{"title":"Briefing","slug":null,"introduction":null,"markdown_pages":[],"updated_at":"2026-11-08T00:00:00Z"}"#,
         )
         .is_err());
+    }
+
+    #[test]
+    fn graph_layout_request_and_special_nodes_match_the_source() {
+        assert!(
+            serde_json::from_str::<UpdateMarkdownGraphLayoutRequest>(
+                r#"{"node":"start","position":{"x":140,"y":80}}"#,
+            )
+            .is_ok()
+        );
+        assert_eq!(
+            MarkdownGraphLayoutNode::parse("start"),
+            Some(MarkdownGraphLayoutNode::Start)
+        );
+        assert_eq!(
+            MarkdownGraphLayoutNode::parse("end"),
+            Some(MarkdownGraphLayoutNode::End)
+        );
+        assert_eq!(MarkdownGraphLayoutNode::parse("page-1"), None);
+    }
+
+    #[test]
+    fn graph_layout_rounds_positions_like_the_source_drag_handler() {
+        let Ok(position) = position(MarkdownPositionRequest {
+            x: -160.5,
+            y: 80.49,
+        }) else {
+            panic!("finite source position must be accepted");
+        };
+        let position = position.rounded();
+
+        assert_eq!(position.x, -161.0);
+        assert_eq!(position.y, 80.0);
     }
 }

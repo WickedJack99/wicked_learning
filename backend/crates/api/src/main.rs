@@ -1163,6 +1163,10 @@ fn router(state: AppState) -> Router {
             patch(admin_world_markdown::update),
         )
         .route(
+            "/api/v1/admin/world-builder/activities/{activity_id}/markdown/graph-layout",
+            patch(admin_world_markdown::update_graph_layout),
+        )
+        .route(
             "/api/v1/admin/world-builder/nodes/{node_id}/portal-activities",
             post(admin_world_portal::create),
         )

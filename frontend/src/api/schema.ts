@@ -3586,6 +3586,26 @@ export interface paths {
         patch: operations["updateAdminWorldBuilderMarkdownActivity"];
         trace?: never;
     };
+    "/admin/world-builder/activities/{activity_id}/markdown/graph-layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save one source Markdown graph special-node position.
+         * @description Replaces only the Markdown Start or End graph position, preserving unsaved page content in the source editor and recording an activity version.
+         */
+        patch: operations["updateAdminWorldBuilderMarkdownGraphLayout"];
+        trace?: never;
+    };
     "/admin/world-builder/nodes/{node_id}/message-activities": {
         parameters: {
             query?: never;
@@ -10513,6 +10533,11 @@ export interface components {
             activity_id: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        UpdateAdminMarkdownGraphLayoutRequest: {
+            /** @enum {string} */
+            node: "start" | "end";
+            position: components["schemas"]["MarkdownActivityPosition"];
         };
         CreateAdminSharedTaskActivityRequest: components["schemas"]["SharedTaskActivityForm"];
         CreateAdminSharedTaskActivityResponse: {
@@ -24218,6 +24243,70 @@ export interface operations {
             };
             /** @description The activity changed after the caller loaded it. Reload before saving again. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateAdminWorldBuilderMarkdownGraphLayout: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminMarkdownGraphLayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved activity timestamp. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateAdminMarkdownActivityResponse"];
+                };
+            };
+            /** @description The requested special node or graph position is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The browser has no authenticated session. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The same-origin CSRF check failed. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The Markdown activity is unavailable to the caller. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

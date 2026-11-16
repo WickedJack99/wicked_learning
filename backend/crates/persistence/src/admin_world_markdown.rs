@@ -4,8 +4,8 @@ use uuid::Uuid;
 use wicked_learning_application::{
     admin_world_markdown::{
         AdminWorldMarkdownError, AdminWorldMarkdownRepository as Port, CreatedMarkdownActivity,
-        MarkdownActivityForm, MarkdownGraphLayout, MarkdownPageForm, MarkdownPosition,
-        UpdatedMarkdownActivity,
+        MarkdownActivityForm, MarkdownGraphLayout, MarkdownGraphLayoutNode, MarkdownPageForm,
+        MarkdownPosition, UpdatedMarkdownActivity,
     },
     admin_world_reflection::generated_slug,
 };
@@ -54,6 +54,22 @@ impl Port for PostgresAdminWorldMarkdownRepository<'_> {
     > + Send {
         async move {
             update(self.pool, principal, activity_id, form, expected_updated_at)
+                .await
+                .map_err(map_error)
+        }
+    }
+
+    fn update_markdown_graph_layout(
+        &self,
+        principal: &AuthorizedPrincipal,
+        activity_id: Uuid,
+        node: MarkdownGraphLayoutNode,
+        position: &MarkdownPosition,
+    ) -> impl std::future::Future<
+        Output = Result<Option<UpdatedMarkdownActivity>, AdminWorldMarkdownError>,
+    > + Send {
+        async move {
+            update_graph_layout(self.pool, principal, activity_id, node, position)
                 .await
                 .map_err(map_error)
         }
@@ -211,6 +227,51 @@ async fn update(
     .fetch_one(&mut *transaction)
     .await?;
     transaction.commit().await?;
+    Ok(Some(UpdatedMarkdownActivity {
+        activity_id,
+        updated_at,
+    }))
+}
+
+async fn update_graph_layout(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    activity_id: Uuid,
+    node: MarkdownGraphLayoutNode,
+    position: &MarkdownPosition,
+) -> Result<Option<UpdatedMarkdownActivity>, MutationError> {
+    let mut transaction = pool.begin().await?;
+    let Some(current) = lock_editable_markdown(&mut transaction, principal, activity_id).await?
+    else {
+        return Ok(None);
+    };
+    let mut config = current.config.clone();
+    let config_object = config.as_object_mut().ok_or(MutationError::Invalid)?;
+    let layout = config_object
+        .entry("markdownGraphLayout")
+        .or_insert_with(|| Value::Object(Map::new()))
+        .as_object_mut()
+        .ok_or(MutationError::Invalid)?;
+    layout.insert(node.key().to_owned(), position_json(position));
+
+    if config == current.config {
+        transaction.commit().await?;
+        return Ok(Some(UpdatedMarkdownActivity {
+            activity_id,
+            updated_at: current.updated_at,
+        }));
+    }
+
+    record_activity_version(&mut transaction, activity_id, principal).await?;
+    let updated_at: String = sqlx::query_scalar(
+        "UPDATE learning_activities SET activity_config = $2, updated_at = NOW() WHERE id = $1 RETURNING to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"')",
+    )
+    .bind(activity_id)
+    .bind(config)
+    .fetch_one(&mut *transaction)
+    .await?;
+    transaction.commit().await?;
+
     Ok(Some(UpdatedMarkdownActivity {
         activity_id,
         updated_at,

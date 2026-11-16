@@ -2511,15 +2511,15 @@ reusing only the same bounded prompt, note and journal-topic fields: Rust
 persists the distinct `review` type, so learner playback retains its separate
 earlier-note, confidence and revisit semantics rather than treating it as a
 Reflection.
-Source Markdown page-graph authoring is now available through `POST
+Source Markdown creation and complete-form updates are available through `POST
 /api/v1/admin/world-builder/nodes/{node_id}/markdown-activities` and `PATCH
-/api/v1/admin/world-builder/activities/{activity_id}/markdown`. The lifted
-editor retains the source Start/page/End graph, page positions, bounded
-Markdown text, dark/light page colors and preview. Its complete graph save uses
-the same scoped CSRF and optimistic-concurrency boundary, preserves unrelated
-configuration and records embedded managed reusable-media URLs as activity
-references, so selected images cannot be deleted while an authored page uses
-them.
+/api/v1/admin/world-builder/activities/{activity_id}/markdown`. The existing
+replatform editor remains subject to the pinned-source direct-lift audit; it
+must not be counted as frontend parity until the exact Markdown route and its
+field tree are mounted through a Rust transport adapter. The complete-form
+writer preserves unrelated configuration and records embedded managed
+reusable-media URLs as activity references, so selected images cannot be
+deleted while an authored page uses them.
 Item-grant creation and editing are now available through `POST
 /api/v1/admin/world-builder/nodes/{node_id}/item-grant-activities` and `PATCH
 /api/v1/admin/world-builder/activities/{activity_id}/item-grant`. They retain
@@ -3001,6 +3001,31 @@ and first-load 401/403/404/503 and network failure each need source-vs-Rust
 browser captures. The generic source node-activity route that owns NPC dialogue
 creation also remains a P0 direct-lift dependency; do not treat the retained
 temporary prompt as its parity replacement.
+
+### Markdown special-graph layout contract prerequisite — 16 November 2026
+
+**Status: backend prerequisite complete; direct-page frontend lift remains
+unstarted.** The pinned source
+`main` baseline is `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+`resources/js/pages/settings/worlds/markdown-activity-fields.tsx` calls
+`PATCH /settings/worlds/activities/{activity}/graph-layout` whenever the
+Markdown Start or End node is dragged. It rounds the position, writes only the
+corresponding `markdownGraphLayout.start` or `.end` value, records a version,
+and does not submit the editor's unsaved page content. Reusing the full
+Markdown update command for that interaction would have changed source
+semantics by overwriting unrelated in-progress form edits.
+
+Rust now provides the scoped, CSRF-protected
+`PATCH /api/v1/admin/world-builder/activities/{activity_id}/markdown/graph-layout`
+contract with an explicit `start`/`end` enum and finite position. It locks the
+editable Markdown activity, rounds and changes only that special-node layout,
+records the same activity-history boundary on a change, and returns the normal
+typed update timestamp. The generated API schema records the narrow request.
+This is transport support only, not evidence that the direct source
+`edit-markdown-activity.tsx` route or its `markdown-activity-fields.tsx` tree
+has been lifted, mounted, or browser-verified. The next Markdown parity slice
+must lift those files as whole components and wire this endpoint only for the
+source special-node drag path.
 
 ### Content API map foundation slice — 12 November 2026
 
