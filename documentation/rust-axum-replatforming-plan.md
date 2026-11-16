@@ -3045,17 +3045,17 @@ DELETE, and observes its card disappear after reload. The direct source Visuals
 upload failure is browser-proven: a scoped Rust media-upload `503` retains the
 source error message, re-enables the upload input, sends the CSRF header, and
 keeps both the upload affordance and error bounded at 1440×900 and 390×844.
-This closes the specifically recorded direct-page interaction/failure evidence;
-it remains Rust browser/source-component evidence, not an unavailable
+This closes the specifically recorded direct-page form and upload-failure
+evidence; it remains Rust browser/source-component evidence, not an unavailable
 Laravel-runtime side-by-side capture or a claim that the broader route family
 is complete. The source Start handle retains its pinned visual `start`
-identifier, while the adapter alone maps that
-Laravel-facing value to the Rust contract's persisted `out` connector. The
-authenticated browser journey proves Start-to-monologue and monologue-to-end
-handle drags submit their source-shaped typed Rust commands, clicking the
-rendered source edge issues its typed DELETE and removes it, and a dialogue-card
-drag sends the full typed PATCH with position and retained node form. The generic
-source node-activity route that owns NPC dialogue creation is now mounted
+identifier, while the adapter alone maps that Laravel-facing value to the Rust
+contract's persisted `out` connector. Direct-editor Start-to-monologue and
+monologue-to-end pointer interactions, rendered-edge deletion, and dialogue
+card dragging remain a P0 browser-evidence gap: the generic activity-editor
+harness proves the shared source command adapter, but it is not a substitute
+for this direct route's graph behavior. The generic source node-activity route
+that owns NPC dialogue creation is now mounted
 through `LiftedNodeActivityEditorDocument`; its source card delegates to the
 direct NPC page. No temporary prompt is a parity replacement or may regain
 routing ownership.
