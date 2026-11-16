@@ -225,7 +225,11 @@ function useRustTransport(
                 };
                 ({ response } = await apiClient.POST('/admin/world-builder/activities/{activity_id}/npc-dialogue/transitions', {
                     body: {
-                        from_connector: transition.from_connector,
+                        from_connector:
+                            transition.from_dialogue_node_id === null &&
+                            transition.from_connector === 'start'
+                                ? 'out'
+                                : transition.from_connector,
                         from_node_id: transition.from_dialogue_node_id,
                         to_connector: transition.to_connector,
                         to_node_id: transition.to_dialogue_node_id,

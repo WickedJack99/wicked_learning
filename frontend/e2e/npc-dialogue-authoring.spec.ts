@@ -39,6 +39,50 @@ async function exerciseSourceDialogueSections(
     }
 }
 
+async function dragBetween(
+    page: Page,
+    source: Locator,
+    target: Locator,
+): Promise<void> {
+    const sourceBounds = await source.boundingBox();
+    const targetBounds = await target.boundingBox();
+
+    expect(sourceBounds).not.toBeNull();
+    expect(targetBounds).not.toBeNull();
+
+    await page.mouse.move(
+        sourceBounds!.x + sourceBounds!.width / 2,
+        sourceBounds!.y + sourceBounds!.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+        targetBounds!.x + targetBounds!.width / 2,
+        targetBounds!.y + targetBounds!.height / 2,
+        { steps: 12 },
+    );
+    await page.mouse.up();
+}
+
+async function dragNodeBy(
+    page: Page,
+    node: Locator,
+    xDistance: number,
+    yDistance: number,
+): Promise<void> {
+    const bounds = await node.boundingBox();
+
+    expect(bounds).not.toBeNull();
+
+    await page.mouse.move(bounds!.x + 96, bounds!.y + 24);
+    await page.mouse.down();
+    await page.mouse.move(
+        bounds!.x + 96 + xDistance,
+        bounds!.y + 24 + yDistance,
+        { steps: 12 },
+    );
+    await page.mouse.up();
+}
+
 test('a local world author can build an NPC dialogue graph', async ({ page }) => {
     const email = process.env.E2E_LOGIN_EMAIL;
     const password = process.env.E2E_LOGIN_PASSWORD;
@@ -251,10 +295,66 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
     expect(nodeDeleted.status()).toBe(204);
     await expect(temporaryCard).toHaveCount(0);
 
-    const connect = await browserJsonRequest(page, `/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue/transitions`, 'POST', { from_node_id: null, to_node_id: greeting.id, from_connector: 'out', to_connector: 'in' });
-    expect(connect).toBe(201);
-    const complete = await browserJsonRequest(page, `/api/v1/admin/world-builder/activities/${activityId}/npc-dialogue/transitions`, 'POST', { from_node_id: greeting.id, to_node_id: end.id, from_connector: 'out', to_connector: 'in' });
-    expect(complete).toBe(201);
+    const startHandle = page.locator(
+        '.react-flow__handle.source[data-nodeid="start"][data-handleid="start"]',
+    );
+    const greetingInput = page.locator(
+        `.react-flow__handle.target[data-nodeid="${greeting.id}"][data-handleid="in"]`,
+    );
+    await expect(startHandle).toBeVisible();
+    await expect(greetingInput).toBeVisible();
+    const [startConnection] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith('/npc-dialogue/transitions'),
+        ),
+        dragBetween(page, startHandle, greetingInput),
+    ]);
+    expect(startConnection.status()).toBe(201);
+    expect(startConnection.request().postDataJSON()).toEqual({
+        from_connector: 'out',
+        from_node_id: null,
+        to_connector: 'in',
+        to_node_id: greeting.id,
+    });
+
+    const greetingOutput = page.locator(
+        `.react-flow__handle.source[data-nodeid="${greeting.id}"][data-handleid="out"]`,
+    );
+    const endInput = page.locator(
+        `.react-flow__handle.target[data-nodeid="${end.id}"][data-handleid="in"]`,
+    );
+    await expect(greetingOutput).toBeVisible();
+    await expect(endInput).toBeVisible();
+    const [endConnection] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'POST' &&
+            response.url().endsWith('/npc-dialogue/transitions'),
+        ),
+        dragBetween(page, greetingOutput, endInput),
+    ]);
+    expect(endConnection.status()).toBe(201);
+    expect(endConnection.request().postDataJSON()).toEqual({
+        from_connector: 'out',
+        from_node_id: greeting.id,
+        to_connector: 'in',
+        to_node_id: end.id,
+    });
+
+    const [positionSaved] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'PATCH' &&
+            response.url().endsWith(`/npc-dialogue/nodes/${greeting.id}`),
+        ),
+        dragNodeBy(page, greetingCard, 48, 36),
+    ]);
+    expect(positionSaved.status()).toBe(200);
+    await expect
+        .poll(() => positionSaved.request().postDataJSON())
+        .toMatchObject({
+            position: { x: expect.any(Number), y: expect.any(Number) },
+            title: 'Archivist welcome',
+        });
 
     await page.getByRole('button', { name: 'Activity graph' }).click();
     await expect(page.getByText(title, { exact: true })).toBeVisible();
