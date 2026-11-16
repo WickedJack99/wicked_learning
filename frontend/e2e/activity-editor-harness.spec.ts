@@ -733,6 +733,153 @@ test('restores the lifted source Activity History entry through the typed Rust c
     ).toHaveCount(0);
 });
 
+test('keeps the lifted source AI review unavailable state inside the desktop dialog', async ({
+    page,
+}) => {
+    const activityId = '00000000-0000-4000-8000-000000000701';
+    let commandBody: unknown = null;
+
+    await installCsrf(page);
+    await page.route(
+        new RegExp(
+            `/api/v1/admin/world-builder/activities/${activityId}/ai-review$`,
+        ),
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({ status: 503 });
+        },
+    );
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await page.goto('/activity-editor-harness.html?source-mutations=1&ai-review=1');
+    await expect(
+        page.getByText('1 activity needs AI review. The queue is scoped to this node.'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Review next' }).click();
+
+    const reviewDialog = page
+        .getByRole('dialog')
+        .filter({ has: page.getByRole('heading', { name: 'Review activity with AI' }) });
+    await expect(reviewDialog.getByText('Needs AI review')).toBeVisible();
+    await expect(reviewDialog.getByText('AI review not run yet')).toBeVisible();
+    await reviewDialog.getByRole('button', { name: 'Review activity' }).click();
+
+    await expect.poll(() => commandBody).toEqual({
+        template_id: '00000000-0000-4000-8000-000000000724',
+    });
+    await expect(
+        reviewDialog.getByText('Request failed with status 503'),
+    ).toBeVisible();
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('0');
+    await expectBounded(
+        reviewDialog.getByRole('button', { name: 'Review activity' }),
+        1440,
+    );
+});
+
+test('renders the lifted source AI review result after a typed Rust response at narrow width', async ({
+    page,
+}) => {
+    const activityId = '00000000-0000-4000-8000-000000000701';
+    let commandBody: unknown = null;
+
+    await installCsrf(page);
+    await page.route(
+        new RegExp(
+            `/api/v1/admin/world-builder/activities/${activityId}/ai-review$`,
+        ),
+        async (route) => {
+            commandBody = route.request().postDataJSON();
+            await route.fulfill({
+                json: {
+                    activity_id: activityId,
+                    ai_review: {
+                        contractVersion: 'v1',
+                        model: 'review-model',
+                        provider: 'local-provider',
+                        review: {
+                            feedbackGuidance: {
+                                evidence: {
+                                    note: 'Invite a concrete observation.',
+                                    signal: 'supported',
+                                },
+                                nextAction: {
+                                    note: 'Offer a quiet next step.',
+                                    signal: 'supported',
+                                },
+                                purpose: {
+                                    note: 'The purpose is visible.',
+                                    signal: 'supported',
+                                },
+                            },
+                            learningDesign: {
+                                purpose: {
+                                    note: 'The activity purpose is aligned.',
+                                    signal: 'aligned',
+                                },
+                                suggestedCompetenceTopics: ['Orientation'],
+                                suggestedLearningIntent: 'reflect',
+                                topics: {
+                                    note: 'The topic remains specific.',
+                                    signal: 'aligned',
+                                },
+                            },
+                            sdt: {
+                                autonomy: {
+                                    note: 'The learner retains a choice.',
+                                    signal: 'supported',
+                                },
+                                competence: {
+                                    note: 'The next action is clear.',
+                                    signal: 'supported',
+                                },
+                                relatedness: {
+                                    note: 'The activity is individual by design.',
+                                    signal: 'unclear',
+                                },
+                            },
+                            strengths: ['The activity offers a clear first step.'],
+                            suggestions: ['Add one optional orientation cue.'],
+                            summary: 'The activity provides a calm, inspectable starting point.',
+                        },
+                        reviewedByPrincipalId:
+                            '00000000-0000-4000-8000-000000000725',
+                        usage: {
+                            inputTokens: 120,
+                            outputTokens: 80,
+                            totalTokens: 200,
+                        },
+                    },
+                    ai_review_status: 'reviewed',
+                    ai_reviewed_at: '2026-11-15T12:00:00Z',
+                },
+            });
+        },
+    );
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto('/activity-editor-harness.html?source-mutations=1&ai-review=1');
+    await page.getByRole('button', { name: 'Review next' }).click();
+
+    const reviewDialog = page
+        .getByRole('dialog')
+        .filter({ has: page.getByRole('heading', { name: 'Review activity with AI' }) });
+    await reviewDialog.getByRole('button', { name: 'Review activity' }).click();
+
+    await expect.poll(() => commandBody).toEqual({
+        template_id: '00000000-0000-4000-8000-000000000724',
+    });
+    await expect(
+        reviewDialog.getByText(
+            'The activity provides a calm, inspectable starting point.',
+        ),
+    ).toBeVisible();
+    await expect(reviewDialog.getByText('AI review current')).toBeVisible();
+    await expect(page.getByTestId('source-mutation-reloads')).toHaveText('1');
+    await expectBounded(
+        reviewDialog.getByRole('button', { name: 'Review again' }),
+        390,
+    );
+});
+
 test('keeps the source Start-route validation failure in the source dialog at desktop width', async ({
     page,
 }) => {

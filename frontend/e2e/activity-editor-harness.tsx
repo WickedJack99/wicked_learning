@@ -12,6 +12,7 @@ import './activity-editor-harness.css';
 const fixtureSearch = new URLSearchParams(window.location.search);
 const multiStartFixture = fixtureSearch.has('multi-start');
 const mutationHarness = fixtureSearch.has('source-mutations');
+const aiReviewFixture = fixtureSearch.has('ai-review');
 const fixtureType = fixtureSearch.has('reflection')
     ? 'reflection'
     : fixtureSearch.has('review')
@@ -46,7 +47,7 @@ const activity = {
     aiReview: null,
     aiReviewedAt: null,
     aiReviewHistory: [],
-    aiReviewStatus: 'reviewed',
+    aiReviewStatus: aiReviewFixture ? 'needs_review' : 'reviewed',
     config: {
         graphLayout: { end: { x: 480, y: 0 } },
         ...(reflectionLikeFixture
@@ -410,7 +411,16 @@ const graph: ActivityGraphPayload = {
             label: 'Tool grant',
         },
     ],
-    aiReviewTemplates: [],
+    aiReviewTemplates: aiReviewFixture
+        ? [
+              {
+                  id: '00000000-0000-4000-8000-000000000724',
+                  model: 'review-model',
+                  name: 'Careful review',
+                  providerLabel: 'Local provider',
+              },
+          ]
+        : [],
     canManageAiReview: false,
     competenceTopicOptions: [],
     evidenceConceptOptions: [],
