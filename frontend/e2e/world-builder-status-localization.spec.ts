@@ -49,6 +49,62 @@ async function expectUnavailableAtBothViewports(page: Page) {
     }
 }
 
+function selectedNodeGraphResponse() {
+    return {
+        maps: [
+            {
+                access_roles: [],
+                description: 'A map with a selected activity graph.',
+                id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9b',
+                node_count: 1,
+                nodes: [
+                    {
+                        activity_review_count: 0,
+                        description: 'A MapAsset with a selected activity graph.',
+                        id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9c',
+                        position: { q: 0, r: 0 },
+                        slug: 'selected-map-asset',
+                        state: 'available',
+                        title: 'Selected MapAsset',
+                        unlock_diagnostics: [],
+                        visual_config: {},
+                    },
+                ],
+                review_count: 0,
+                slug: 'selected-map',
+                title: 'Selected map',
+                updated_at: '2026-11-15T12:34:00Z',
+            },
+        ],
+        portal_candidates: [],
+        portal_links: [],
+        world: {
+            description: null,
+            id: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9b',
+            slug: 'mocked-world',
+            title: 'Mocked World',
+            updated_at: '2026-11-15T12:34:00Z',
+        },
+    };
+}
+
+async function installSelectedNodeGraphRoutes(page: Page) {
+    await page.route('**/api/v1/admin/world-builder', async (route) => {
+        await route.fulfill({
+            body: JSON.stringify(selectedNodeGraphResponse()),
+            contentType: 'application/json',
+        });
+    });
+    await page.route('**/api/v1/admin/world-builder/maps/*', async (route) => {
+        await route.fulfill({
+            status: 503,
+        });
+    });
+}
+
+const selectedNodeUrl =
+    '/settings?panel=admin-world-builder&map=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9b&node=018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d9c';
+
 test('World Builder keeps the pinned-source unavailable panel while its Rust graph read is loading', async ({
     page,
 }) => {
@@ -123,5 +179,59 @@ test('World Builder keeps the pinned-source unavailable panel for a Rust graph n
     await page.unroute('**/api/v1/me');
     await installAuthorRoutes(page, {});
     await page.goto('/settings?panel=admin-world-builder');
+    await expectUnavailableAtBothViewports(page);
+});
+
+test('World Builder keeps the pinned-source unavailable panel while a selected-node Rust read is pending', async ({
+    page,
+}) => {
+    await installAuthorRoutes(page);
+    await installSelectedNodeGraphRoutes(page);
+    let releaseNode: (() => void) | undefined;
+    const nodeRequest = new Promise<void>((resolve) => {
+        releaseNode = resolve;
+    });
+    await page.route('**/api/v1/admin/world-builder/nodes/*', async (route) => {
+        await nodeRequest;
+        await route.fulfill({ status: 503 });
+    });
+
+    await page.goto(selectedNodeUrl, { waitUntil: 'domcontentloaded' });
+    await expectUnavailableAtBothViewports(page);
+    releaseNode?.();
+});
+
+for (const unavailableResponse of [401, 403, 404, 503]) {
+    test(`World Builder keeps the pinned-source unavailable panel for a selected-node Rust ${unavailableResponse} response`, async ({
+        page,
+    }) => {
+        await installAuthorRoutes(page);
+        await installSelectedNodeGraphRoutes(page);
+        await page.route(
+            '**/api/v1/admin/world-builder/nodes/*',
+            async (route) => {
+                await route.fulfill({
+                    body: JSON.stringify({ code: 'selected_node_unavailable' }),
+                    contentType: 'application/problem+json',
+                    status: unavailableResponse,
+                });
+            },
+        );
+
+        await page.goto(selectedNodeUrl);
+        await expectUnavailableAtBothViewports(page);
+    });
+}
+
+test('World Builder keeps the pinned-source unavailable panel for a selected-node Rust network failure', async ({
+    page,
+}) => {
+    await installAuthorRoutes(page);
+    await installSelectedNodeGraphRoutes(page);
+    await page.route('**/api/v1/admin/world-builder/nodes/*', async (route) => {
+        await route.abort('failed');
+    });
+
+    await page.goto(selectedNodeUrl);
     await expectUnavailableAtBothViewports(page);
 });

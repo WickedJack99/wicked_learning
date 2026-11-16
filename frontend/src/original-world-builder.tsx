@@ -563,6 +563,9 @@ function WorldBuilderContent({
     const [worldGraph, setWorldGraph] = useState<WorldGraph | null>(null);
     const [editableMap, setEditableMap] = useState<EditableMap | null>(null);
     const [editableNode, setEditableNode] = useState<EditableNode | null>(null);
+    const [selectedNodeReadState, setSelectedNodeReadState] = useState<
+        'idle' | 'loading' | 'ready' | 'unavailable'
+    >('idle');
     const [mapReload, setMapReload] = useState(0);
     const [nodeReload, setNodeReload] = useState(0);
     const [, setError] = useState<string | null>(null);
@@ -740,10 +743,12 @@ function WorldBuilderContent({
     useEffect(() => {
         if (!selectedNodeId) {
             setEditableNode(null);
+            setSelectedNodeReadState('idle');
             return;
         }
         let current = true;
         setEditableNode(null);
+        setSelectedNodeReadState('loading');
         void apiClient
             .GET('/admin/world-builder/nodes/{node_id}', {
                 params: { path: { node_id: selectedNodeId } },
@@ -753,30 +758,20 @@ function WorldBuilderContent({
                     return;
                 }
                 if (!response.ok || !data) {
-                    setError(
-                        t(
-                            'settings.world_builder.status.activity_graph_unavailable',
-                            'The selected activity graph is no longer available for editing.',
-                        ),
-                    );
+                    setSelectedNodeReadState('unavailable');
                     return;
                 }
                 setEditableNode(data);
+                setSelectedNodeReadState('ready');
             })
             .catch(
                 () =>
-                    current &&
-                    setError(
-                        t(
-                            'settings.world_builder.status.activity_graph_load_failed',
-                            'The selected activity graph could not be loaded.',
-                        ),
-                    ),
+                    current && setSelectedNodeReadState('unavailable'),
             );
         return () => {
             current = false;
         };
-    }, [nodeReload, selectedNodeId, t]);
+    }, [nodeReload, selectedNodeId]);
 
     return (
         <main
@@ -813,7 +808,8 @@ function WorldBuilderContent({
                             }
                         >
                 {!resolvedWorldBuilderSection ||
-                (resolvedWorldBuilderSection !== 'review' && !worldGraph) ? (
+                (resolvedWorldBuilderSection !== 'review' && !worldGraph) ||
+                (selectedNodeId && selectedNodeReadState !== 'ready') ? (
                     <UnavailableWorldBuilder />
                 ) : resolvedWorldBuilderSection === 'review' ? (
                     <LiftedWorldBuilderSectionWorkspace>
