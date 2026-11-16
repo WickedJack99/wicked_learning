@@ -317,6 +317,24 @@ test('a local world author can build an NPC dialogue graph', async ({ page }) =>
         to_connector: 'in',
         to_node_id: greeting.id,
     });
+    const { id: startTransitionId } = await startConnection.json() as {
+        id: string;
+    };
+    const startEdge = page.locator(
+        `[data-id="dialogue-transition:${startTransitionId}"]`,
+    );
+    await expect(startEdge).toBeVisible();
+    const [startEdgeDeleted] = await Promise.all([
+        page.waitForResponse((response) =>
+            response.request().method() === 'DELETE' &&
+            response.url().endsWith(
+                `/npc-dialogue/transitions/${startTransitionId}`,
+            ),
+        ),
+        startEdge.dispatchEvent('click'),
+    ]);
+    expect(startEdgeDeleted.status()).toBe(204);
+    await expect(startEdge).toHaveCount(0);
 
     const greetingOutput = page.locator(
         `.react-flow__handle.source[data-nodeid="${greeting.id}"][data-handleid="out"]`,

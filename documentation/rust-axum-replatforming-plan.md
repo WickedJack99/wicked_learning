@@ -3039,16 +3039,17 @@ narrow bounds, submits the typed Rust PATCH, and observes the dialog close and
 the reloaded card title. The same journey creates a disposable source node,
 opens the source deletion confirmation at narrow width, submits the typed Rust
 DELETE, and observes its card disappear after reload. Remaining closure evidence
-is deliberately separate: source edge removal and image-upload failure. The
-source Start handle retains its pinned visual `start` identifier, while the
-adapter alone maps that Laravel-facing value to the Rust contract's persisted
-`out` connector. The authenticated browser journey proves Start-to-monologue
-and monologue-to-end handle drags submit their source-shaped typed Rust commands
-and that a dialogue-card drag sends the full typed PATCH with position and
-retained node form. The generic source node-activity route that owns NPC
-dialogue creation is now mounted through `LiftedNodeActivityEditorDocument`;
-its source card delegates to the direct NPC page. The retained temporary prompt
-is not a parity replacement and must not regain routing ownership.
+is deliberately separate: scoped image-upload failure. The source Start handle
+retains its pinned visual `start` identifier, while the adapter alone maps that
+Laravel-facing value to the Rust contract's persisted `out` connector. The
+authenticated browser journey proves Start-to-monologue and monologue-to-end
+handle drags submit their source-shaped typed Rust commands, clicking the
+rendered source edge issues its typed DELETE and removes it, and a dialogue-card
+drag sends the full typed PATCH with position and retained node form. The generic
+source node-activity route that owns NPC dialogue creation is now mounted
+through `LiftedNodeActivityEditorDocument`; its source card delegates to the
+direct NPC page. The retained temporary prompt is not a parity replacement and
+must not regain routing ownership.
 
 ### Markdown special-graph layout contract prerequisite — 16 November 2026
 
