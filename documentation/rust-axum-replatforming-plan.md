@@ -606,6 +606,15 @@ explicit action in addition to Login; it is not generic Inertia transport.
 Create account control at 1440×900 and 390×844. Recovery and other auth pages
 remain unavailable pending their own audited contracts.
 
+### Canonical Forgot Password activation — 17 November 2026
+
+The exact copied `pages/auth/forgot-password.tsx` is mounted through the
+copied auth layout. Its sole form action is `GET /security/csrf` followed by
+the existing typed `POST /password/forgot` contract; success reloads the same
+source route with its source status message. `canonical-forgot-password.spec.ts`
+proves this source behavior and bounded submit control at both required
+viewports. Reset-token consumption remains a separately audited route.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not

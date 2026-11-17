@@ -88,7 +88,7 @@ export function useForm<TData extends SourceFormData>(initialData: TData): {
 }
 
 type AuthFormProps = {
-    action: '/api/v1/session/login' | '/api/v1/registration';
+    action: '/api/v1/session/login' | '/api/v1/registration' | '/api/v1/password/forgot';
     method: 'post';
     resetOnSuccess?: string[];
     children: (state: { errors: Record<string, string>; processing: boolean }) => ReactNode;
@@ -133,9 +133,14 @@ export function Form({ action, children, className, resetOnSuccess }: AuthFormPr
                 },
                 params: { header: { 'X-CSRF-Token': csrfToken } },
                 })
-                : await apiClient.POST('/registration', { body: body as never, params: { header: { 'X-CSRF-Token': csrfToken } } });
+                : action === '/api/v1/registration'
+                    ? await apiClient.POST('/registration', { body: body as never, params: { header: { 'X-CSRF-Token': csrfToken } } })
+                    : await apiClient.POST('/password/forgot', { body: { email: body.email }, params: { header: { 'X-CSRF-Token': csrfToken } } });
 
-            if (!response.ok || !data?.authenticated) {
+            const succeeded = action === '/api/v1/password/forgot'
+                ? response.ok && Boolean(data)
+                : response.ok && Boolean((data as { authenticated?: boolean } | undefined)?.authenticated);
+            if (!succeeded) {
                 setErrors({
                     email: response.status === 503
                         ? 'Login is currently unavailable.'
@@ -150,7 +155,12 @@ export function Form({ action, children, className, resetOnSuccess }: AuthFormPr
                     input.value = '';
                 }
             }
-            window.location.assign('/world');
+            if (action === '/api/v1/password/forgot') {
+                sessionStorage.setItem('wicked-password-reset-status', 'If that email address is registered, a password reset link has been sent.');
+                window.location.reload();
+            } else {
+                window.location.assign('/world');
+            }
         } catch {
             setErrors({ form: 'Login is currently unavailable.' });
         } finally {

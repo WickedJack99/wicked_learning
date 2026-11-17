@@ -5,3 +5,5 @@ export const store = {
 export function request(): string {
     return '/forgot-password';
 }
+
+export const email = { form: () => ({ action: '/api/v1/password/forgot' as const, method: 'post' as const }) };

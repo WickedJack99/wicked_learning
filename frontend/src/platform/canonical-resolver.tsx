@@ -7,6 +7,7 @@ import { PublicInformationRoute } from './public-information-route';
 import { SourceCodeRoute } from './source-code-route';
 import { LoginRoute } from './login-route';
 import { RegisterRoute } from './register-route';
+import { ForgotPasswordRoute } from './forgot-password-route';
 
 /**
  * The only presentation import in this bootstrap is copied from the pinned
@@ -29,6 +30,9 @@ export function CanonicalSourceResolver() {
     }
     if (location.pathname === '/register') {
         return <RegisterRoute />;
+    }
+    if (location.pathname === '/forgot-password') {
+        return <ForgotPasswordRoute />;
     }
 
     if (
