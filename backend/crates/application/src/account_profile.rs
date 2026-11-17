@@ -20,9 +20,11 @@ pub struct AccountProfileDraft {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AccountProfileError {
-    Conflict,
+    EmailConflict,
     Missing,
+    ProfileImageRejected,
     Unavailable,
+    UsernameConflict,
 }
 
 pub trait AccountProfileRepository {

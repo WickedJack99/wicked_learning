@@ -1,6 +1,11 @@
-use std::str::FromStr;
+use std::{collections::BTreeMap, str::FromStr};
 
-use axum::{Json, extract::State, http::HeaderMap};
+use axum::{
+    Json,
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+};
 use axum_login::AuthSession;
 use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
@@ -33,6 +38,51 @@ pub struct AccountProfileResponse {
     pub profile_image_url: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+pub(crate) struct ProfileValidationProblem {
+    code: &'static str,
+    errors: BTreeMap<&'static str, &'static str>,
+    title: &'static str,
+}
+
+impl ProfileValidationProblem {
+    fn field(field: &'static str, message: &'static str) -> Self {
+        Self {
+            code: "profile_update_rejected",
+            errors: BTreeMap::from([(field, message)]),
+            title: "The profile could not be updated with these details.",
+        }
+    }
+}
+
+pub(crate) enum ProfileUpdateError {
+    Api(ApiError),
+    Validation(ProfileValidationProblem),
+}
+
+impl From<ApiError> for ProfileUpdateError {
+    fn from(error: ApiError) -> Self {
+        Self::Api(error)
+    }
+}
+
+impl From<ProfileValidationProblem> for ProfileUpdateError {
+    fn from(problem: ProfileValidationProblem) -> Self {
+        Self::Validation(problem)
+    }
+}
+
+impl IntoResponse for ProfileUpdateError {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Api(error) => error.into_response(),
+            Self::Validation(problem) => {
+                (StatusCode::UNPROCESSABLE_ENTITY, Json(problem)).into_response()
+            }
+        }
+    }
+}
+
 pub async fn show(
     State(state): State<AppState>,
     auth_session: AuthSession<IdentityBackend>,
@@ -47,7 +97,7 @@ pub async fn show(
     let profile = AccountProfileQuery::new(&repository)
         .execute(subject.subject_id())
         .await
-        .map_err(map_profile_error)?
+        .map_err(map_profile_read_error)?
         .ok_or_else(ApiError::forbidden)?;
     Ok(Json(profile_response(profile)))
 }
@@ -58,13 +108,13 @@ pub async fn update(
     csrf_token: axum_csrf::CsrfToken,
     mut auth_session: AuthSession<IdentityBackend>,
     Json(request): Json<UpdateAccountProfileRequest>,
-) -> Result<Json<AccountProfileResponse>, ApiError> {
+) -> Result<Json<AccountProfileResponse>, ProfileUpdateError> {
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let subject = auth_session
         .user
         .clone()
         .ok_or_else(ApiError::authentication_required)?;
-    let draft = normalize_request(request).ok_or_else(ApiError::profile_update_rejected)?;
+    let draft = normalize_request(request)?;
     let repository = PostgresAccountProfileRepository::new(
         &state.application_database,
         &state.identity_database,
@@ -81,27 +131,68 @@ pub async fn update(
     Ok(Json(profile_response(profile)))
 }
 
-fn normalize_request(request: UpdateAccountProfileRequest) -> Option<AccountProfileDraft> {
+fn normalize_request(
+    request: UpdateAccountProfileRequest,
+) -> Result<AccountProfileDraft, ProfileValidationProblem> {
     let display_name = request.name.trim();
     let email = request.email.trim().to_lowercase();
-    let public_username = request.username?.trim().to_owned();
-    let public_username = (!public_username.is_empty()).then_some(public_username);
-    if display_name.is_empty()
-        || display_name.chars().count() > MAX_DISPLAY_NAME_CHARACTERS
-        || email.is_empty()
-        || email.len() > MAX_EMAIL_BYTES
-        || EmailAddress::from_str(&email).is_err()
-        || public_username.as_deref().is_some_and(|username| {
-            username.len() < 3
-                || username.len() > 32
-                || !username
-                    .bytes()
-                    .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
-        })
-    {
-        return None;
+    let public_username = request.username.map(|username| username.trim().to_owned());
+    let public_username =
+        public_username.and_then(|username| (!username.is_empty()).then_some(username));
+    if display_name.is_empty() {
+        return Err(ProfileValidationProblem::field(
+            "name",
+            "The name field is required.",
+        ));
     }
-    Some(AccountProfileDraft {
+    if display_name.chars().count() > MAX_DISPLAY_NAME_CHARACTERS {
+        return Err(ProfileValidationProblem::field(
+            "name",
+            "The name field must not be greater than 255 characters.",
+        ));
+    }
+    if email.is_empty() {
+        return Err(ProfileValidationProblem::field(
+            "email",
+            "The email field is required.",
+        ));
+    }
+    if email.len() > MAX_EMAIL_BYTES {
+        return Err(ProfileValidationProblem::field(
+            "email",
+            "The email field must not be greater than 255 characters.",
+        ));
+    }
+    if EmailAddress::from_str(&email).is_err() {
+        return Err(ProfileValidationProblem::field(
+            "email",
+            "The email field must be a valid email address.",
+        ));
+    }
+    if let Some(username) = public_username.as_deref() {
+        if username.len() < 3 {
+            return Err(ProfileValidationProblem::field(
+                "username",
+                "The username field must be at least 3 characters.",
+            ));
+        }
+        if username.len() > 32 {
+            return Err(ProfileValidationProblem::field(
+                "username",
+                "The username field must not be greater than 32 characters.",
+            ));
+        }
+        if !username
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+        {
+            return Err(ProfileValidationProblem::field(
+                "username",
+                "The username field format is invalid.",
+            ));
+        }
+    }
+    Ok(AccountProfileDraft {
         display_name: display_name.to_owned(),
         email,
         public_username,
@@ -109,11 +200,32 @@ fn normalize_request(request: UpdateAccountProfileRequest) -> Option<AccountProf
     })
 }
 
-fn map_profile_error(error: AccountProfileError) -> ApiError {
+fn map_profile_error(error: AccountProfileError) -> ProfileUpdateError {
     match error {
-        AccountProfileError::Conflict => ApiError::profile_update_rejected(),
+        AccountProfileError::EmailConflict => ProfileUpdateError::Validation(
+            ProfileValidationProblem::field("email", "The email has already been taken."),
+        ),
+        AccountProfileError::Missing => ApiError::forbidden().into(),
+        AccountProfileError::ProfileImageRejected => {
+            ProfileUpdateError::Validation(ProfileValidationProblem::field(
+                "profile_image",
+                "The selected profile image is not available.",
+            ))
+        }
+        AccountProfileError::Unavailable => ApiError::service_unavailable().into(),
+        AccountProfileError::UsernameConflict => ProfileUpdateError::Validation(
+            ProfileValidationProblem::field("username", "The username has already been taken."),
+        ),
+    }
+}
+
+fn map_profile_read_error(error: AccountProfileError) -> ApiError {
+    match error {
         AccountProfileError::Missing => ApiError::forbidden(),
         AccountProfileError::Unavailable => ApiError::service_unavailable(),
+        AccountProfileError::EmailConflict
+        | AccountProfileError::ProfileImageRejected
+        | AccountProfileError::UsernameConflict => ApiError::internal_server_error(),
     }
 }
 
@@ -131,7 +243,10 @@ fn profile_response(profile: AccountProfile) -> AccountProfileResponse {
 
 #[cfg(test)]
 mod tests {
-    use super::{UpdateAccountProfileRequest, normalize_request};
+    use super::{
+        ProfileUpdateError, UpdateAccountProfileRequest, map_profile_error, normalize_request,
+    };
+    use wicked_learning_application::account_profile::AccountProfileError;
 
     #[test]
     fn normalizes_the_source_profile_fields() {
@@ -158,8 +273,46 @@ mod tests {
                     username: Some(username.to_owned()),
                     profile_image_id: None,
                 })
-                .is_none()
+                .is_err()
             );
         }
+    }
+
+    #[test]
+    fn identifies_the_source_field_for_each_invalid_profile_value() {
+        let invalid_email = normalize_request(UpdateAccountProfileRequest {
+            name: "Learner".to_owned(),
+            email: "not an email".to_owned(),
+            username: None,
+            profile_image_id: None,
+        })
+        .expect_err("invalid email");
+        assert!(invalid_email.errors.contains_key("email"));
+
+        let invalid_name = normalize_request(UpdateAccountProfileRequest {
+            name: " ".to_owned(),
+            email: "learner@example.test".to_owned(),
+            username: None,
+            profile_image_id: None,
+        })
+        .expect_err("blank name");
+        assert!(invalid_name.errors.contains_key("name"));
+    }
+
+    #[test]
+    fn maps_persisted_profile_conflicts_to_the_matching_source_field() {
+        let ProfileUpdateError::Validation(username) =
+            map_profile_error(AccountProfileError::UsernameConflict)
+        else {
+            panic!("username conflict must be a source field error");
+        };
+        assert!(username.errors.contains_key("username"));
+
+        let ProfileUpdateError::Validation(email) =
+            map_profile_error(AccountProfileError::EmailConflict)
+        else {
+            panic!("email conflict must be a source field error");
+        };
+        assert!(email.errors.contains_key("email"));
     }
 }

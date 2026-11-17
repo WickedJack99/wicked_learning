@@ -6886,6 +6886,14 @@ export interface components {
             /** Format: uuid */
             profile_image_id: string | null;
         };
+        ProfileValidationProblem: {
+            /** @enum {string} */
+            code: "profile_update_rejected";
+            errors: {
+                [key: string]: string;
+            };
+            title: string;
+        };
         DeleteAccountRequest: {
             /** @description The authenticated account owner's current password. It is never persisted or returned. */
             password: string;
@@ -15882,12 +15890,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The name */
+            /** @description The name, email address, public username, or selected image was rejected. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProfileValidationProblem"];
+                };
             };
             /** @description An identity or application database is unavailable. */
             503: {

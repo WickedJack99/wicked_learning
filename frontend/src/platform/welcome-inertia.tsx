@@ -6,6 +6,7 @@ import { useSourcePageProjection } from './page-props';
 import { unavailableSourceOperation } from './inertia-facade';
 import { apiClient, getCsrfToken } from './api/client';
 import { setTwoFactorLayoutProps } from './two-factor-layout';
+import { profileImageIdForSourceUrl } from './profile-media-upload';
 import type { WelcomePageProps } from './welcome-projection';
 
 type WelcomeLinkHref = string | { url: string };
@@ -14,6 +15,7 @@ export type InertiaLinkProps = Omit<
     AnchorHTMLAttributes<HTMLAnchorElement>,
     'href'
 > & {
+    as?: string;
     href: WelcomeLinkHref;
 };
 
@@ -28,6 +30,7 @@ export function Head({ title }: { title: string }) {
 export function Link({
     children,
     href,
+    as: _as,
     ...props
 }: PropsWithChildren<InertiaLinkProps>) {
     const target = typeof href === 'string' ? href : href.url;
@@ -145,21 +148,33 @@ type AuthFormProps = {
     method: 'post';
     resetOnError?: boolean;
     resetOnSuccess?: string[] | boolean;
-    children: (state: { errors: Record<string, string>; processing: boolean; clearErrors: () => void }) => ReactNode;
+    children: (state: { errors: Record<string, string>; processing: boolean; clearErrors: () => void; isDirty: boolean }) => ReactNode;
     className?: string;
     disableWhileProcessing?: boolean;
+    id?: string;
     transform?: (data: Record<string, string>) => Record<string, string>;
 };
 
+type ProfileFormProps = {
+    action: 'profile-update';
+    method: 'patch';
+    children: AuthFormProps['children'];
+    className?: string;
+    id?: string;
+    options?: SourceFormOptions;
+    resetOnSuccess?: never;
+    transform?: never;
+};
+
 /**
- * The copied Login page is the only source form mounted by this adapter.
- * It obtains Rust's CSRF cookie/token and then submits the source fields to
- * the typed Rust session command in one click; it is not an Inertia form
- * emulator or a fallback/retry transport for other pages.
+ * Each accepted action is an individually audited source form seam. The
+ * adapter obtains Rust's CSRF cookie/token and calls only its matching typed
+ * Rust command; it is not an Inertia form emulator or fallback transport.
  */
-export function Form({ action, children, className, resetOnSuccess, transform }: AuthFormProps) {
+export function Form({ action, children, className, resetOnSuccess, transform, id }: AuthFormProps | ProfileFormProps) {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -167,6 +182,38 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
         setErrors({});
         const form = event.currentTarget;
         const values = new FormData(form);
+
+        if (action === 'profile-update') {
+            const profileImage = String(values.get('profile_image') ?? '');
+            const profileImageId = profileImage ? profileImageIdForSourceUrl(profileImage) : null;
+            if (profileImage && !profileImageId) {
+                setErrors({ profile_image: 'The selected profile image is not available.' });
+                setProcessing(false);
+                return;
+            }
+            try {
+                const csrfToken = await getCsrfToken();
+                const { data, error, response } = await apiClient.PATCH('/account/profile', {
+                    body: { email: String(values.get('email') ?? ''), name: String(values.get('name') ?? ''), profile_image_id: profileImageId, username: String(values.get('username') ?? '') || null },
+                    params: { header: { 'X-CSRF-Token': csrfToken } },
+                });
+                if (!response.ok || !data) {
+                    const problem = error as { errors?: Record<string, string> } | undefined;
+                    setErrors(
+                        response.status === 422 && problem?.errors
+                            ? problem.errors
+                            : { name: response.status === 503 ? 'Profile settings are currently unavailable.' : 'The profile could not be updated with these details.' },
+                    );
+                    return;
+                }
+                window.location.reload();
+            } catch {
+                setErrors({ name: 'Profile settings are currently unavailable.' });
+            } finally {
+                setProcessing(false);
+            }
+            return;
+        }
 
         try {
             const csrfToken = await getCsrfToken();
@@ -269,7 +316,7 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
         }
     };
 
-    return <form className={className} onSubmit={submit}>{children({ errors, processing, clearErrors: () => setErrors({}) })}</form>;
+    return <form className={className} id={id} onChange={() => setIsDirty(true)} onSubmit={submit}>{children({ errors, processing, isDirty, clearErrors: () => setErrors({}) })}</form>;
 }
 
 function passwordConfirmationDestination(): string {

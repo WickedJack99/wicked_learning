@@ -850,6 +850,34 @@ after a `503`, and read-unavailable behavior. The source back target remains
 `/settings`, which is deliberately unavailable until the separately audited
 root document is activated.
 
+### Canonical direct Profile Settings activation — 17 November 2026
+
+The unchanged copied `resources/js/pages/settings/profile.tsx` is mounted at
+its source `/settings/profile` URL, together with the complete direct source
+tree it renders: `features/settings/profile-settings-panel.tsx`,
+`components/settings-configuration-shell.tsx`, source image controls,
+translation/appearance hooks, settings design tokens and source styling. It is
+not the incomplete Personal document or the root Settings workspace.
+
+| Source dependency / behavior | Rust contract / adapter | Rule |
+| --- | --- | --- |
+| Profile inputs and owner-scoped current-user chrome | `GET /api/v1/account/profile` (`getAccountProfile`, `AccountProfile`) plus `GET /api/v1/me` (`getCurrentUser`, `CurrentUser`) | The route projection maps only the fields consumed by the copied panel: name, normalized email, nullable username, profile image route, avatar route and `can_view_media_paths`. It never casts the Rust UUID subject to the source's obsolete numeric user ID or fabricates unconsumed Laravel user fields. |
+| Settings palette, appearance and translated copy | `GET /api/v1/public/welcome` and `GET /api/v1/learner/platform-translations` | The existing presentation projection supplies the source Settings palette; the translation hook receives the server-selected catalog and the current-user appearance is synchronized by the source hook. All four reads must succeed, otherwise the route displays a bounded explicit unavailable state. |
+| Source profile form write | `GET /api/v1/security/csrf`; `PATCH /api/v1/account/profile` (`updateAccountProfile`, `UpdateAccountProfileRequest`) | The dedicated `ProfileController.update.form()` facade admits only this source form. Its adapter sends exactly `{name,email,username,profile_image_id}` through the typed Rust client and reloads this source document only after success. It is not a reusable Inertia form transport. |
+| Source per-field validation slots | `ProfileValidationProblem` on the Profile update `422` contract; `account_profile.rs` | Rust now validates source-equivalent name, email and public-username bounds/format before dispatch and returns a field-keyed bounded error. Distinct identity-email, public-username and owner-staged-image conflicts map to the matching copied field. The adapter renders those exact error slots; it does not recreate validation rules in the browser or assign all failures to an arbitrary field. |
+| Source profile-image staging | `POST /api/v1/account/profile/image` (`uploadAccountProfileImage`, `ProfileImageUpload`) and owner-checked `/api/v1/profile-images/{id}` | The exact copied upload control receives its returned URL. The narrow media seam retains the staged opaque UUID only for that URL and emits the UUID on the next typed profile save; an arbitrary raw Laravel-storage path cannot be converted into an ID. The copied raw-path input remains source-visible only when Rust's `can_view_media_paths` permits it, but saving such an unprojected path is explicitly rejected in its existing source error slot. |
+| Source email-verification branch | Active Rust identity lookup admits only active subjects with verified email; no resend-verification projection exists | The direct copied page is deliberately given `mustVerifyEmail: false`. No nonexistent verification state, route or success flash is fabricated. The source branch remains unavailable until the identity verification lifecycle itself has an audited Settings projection. |
+| Read/write/image failure | OpenAPI `401`/`403`/`422`/`503` contracts | A failed required read renders `Profile settings are unavailable.` rather than empty profile data. A `422` stays dirty and displays field feedback; a `503` stays dirty/retryable with no success state. Image-upload failures use the copied image error slot. |
+
+`frontend/e2e/canonical-settings-profile.spec.ts` proves the copied Profile
+headings, back destination, controls and reachable bounded controls at both
+1440×900 and 390×844; the exact profile-save body; staged-image UUID mapping;
+field-level `422`; retry after `503`; and profile-read unavailability. Source
+identity is verified by `check:canonical-source` against
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`; the route is mounted exclusively
+through `frontend/src/platform/profile-route.tsx` and its documented narrow
+facades.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not

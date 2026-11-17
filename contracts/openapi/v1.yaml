@@ -1517,7 +1517,12 @@ paths:
                 $ref: '#/components/schemas/AccountProfile'
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '422': { description: The name, email address, public username, or selected image was rejected. }
+        '422':
+          description: The name, email address, public username, or selected image was rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileValidationProblem'
         '503': { description: An identity or application database is unavailable. }
     delete:
       operationId: deleteAccountProfile
@@ -8788,6 +8793,21 @@ components:
         profile_image_id:
           type: [string, 'null']
           format: uuid
+    ProfileValidationProblem:
+      type: object
+      additionalProperties: false
+      required: [code, errors, title]
+      properties:
+        code:
+          type: string
+          enum: [profile_update_rejected]
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          minProperties: 1
+        title:
+          type: string
     DeleteAccountRequest:
       type: object
       additionalProperties: false

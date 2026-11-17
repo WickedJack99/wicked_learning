@@ -146,14 +146,6 @@ impl ApiError {
         }
     }
 
-    pub fn profile_update_rejected() -> Self {
-        Self {
-            code: "profile_update_rejected",
-            status: StatusCode::UNPROCESSABLE_ENTITY,
-            title: "The profile could not be updated with these details.",
-        }
-    }
-
     pub fn account_deletion_rejected() -> Self {
         Self {
             code: "account_deletion_rejected",

@@ -26,6 +26,9 @@
             "@/routes/register": ["src/platform/register-routes.ts"],
             "@/routes/password": ["src/platform/auth-routes.ts"],
             "@/theme/appearance-persistence": ["src/platform/appearance-persistence.ts"],
+            "@/actions/App/Http/Controllers/Settings/ProfileController": ["src/platform/profile-actions.ts"],
+            "@/lib/media-upload": ["src/platform/profile-media-upload.ts"],
+            "@/routes/verification": ["src/platform/verification-routes.ts"],
             "@inertiajs/react": ["src/platform/welcome-inertia.tsx"],
             "@/routes": ["src/platform/welcome-routes.ts"],
             "@/*": ["canonical-source/resources/js/*"]

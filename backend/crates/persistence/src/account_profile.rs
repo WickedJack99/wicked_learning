@@ -104,7 +104,7 @@ impl Port for PostgresAccountProfileRepository<'_> {
                 .await;
                 return Err(identity_result
                     .err()
-                    .map(database_error)
+                    .map(|error| database_error(error, AccountProfileError::EmailConflict))
                     .unwrap_or(AccountProfileError::Missing));
             }
             let display_name_result = sqlx::query(
@@ -125,7 +125,7 @@ impl Port for PostgresAccountProfileRepository<'_> {
                 .await;
                 return Err(display_name_result
                     .err()
-                    .map(database_error)
+                    .map(|error| database_error(error, AccountProfileError::Unavailable))
                     .unwrap_or(AccountProfileError::Missing));
             }
             if identity_transaction.commit().await.is_err() {
@@ -164,21 +164,21 @@ async fn save_public_profile(
     .bind(profile_image_id)
     .execute(application_database)
     .await
-    .map_err(database_error)?
+    .map_err(|error| database_error(error, AccountProfileError::UsernameConflict))?
     .rows_affected()
     .eq(&1)
     .then_some(())
-    .ok_or(AccountProfileError::Conflict)?;
+    .ok_or(AccountProfileError::ProfileImageRejected)?;
     Ok(())
 }
 
-fn database_error(error: sqlx::Error) -> AccountProfileError {
+fn database_error(error: sqlx::Error, conflict: AccountProfileError) -> AccountProfileError {
     match error
         .as_database_error()
         .and_then(|database| database.code())
         .as_deref()
     {
-        Some("23505") => AccountProfileError::Conflict,
+        Some("23505") => conflict,
         _ => AccountProfileError::Unavailable,
     }
 }

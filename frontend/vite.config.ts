@@ -28,6 +28,9 @@ export default defineConfig({
                 find: '@/theme/appearance-persistence',
                 replacement: resolve(import.meta.dirname, 'src/platform/appearance-persistence.ts'),
             },
+            { find: '@/actions/App/Http/Controllers/Settings/ProfileController', replacement: resolve(import.meta.dirname, 'src/platform/profile-actions.ts') },
+            { find: '@/lib/media-upload', replacement: resolve(import.meta.dirname, 'src/platform/profile-media-upload.ts') },
+            { find: '@/routes/verification', replacement: resolve(import.meta.dirname, 'src/platform/verification-routes.ts') },
             {
                 find: '@inertiajs/react',
                 replacement: resolve(import.meta.dirname, 'src/platform/welcome-inertia.tsx'),
