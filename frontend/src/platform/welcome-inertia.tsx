@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
-import type { AnchorHTMLAttributes, PropsWithChildren } from 'react';
+import { useEffect, useState } from 'react';
+import type { AnchorHTMLAttributes, FormEvent, PropsWithChildren, ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router';
 
 import { useSourcePageProjection } from './page-props';
 import { unavailableSourceOperation } from './inertia-facade';
+import { apiClient, getCsrfToken } from './api/client';
 import type { WelcomePageProps } from './welcome-projection';
 
 type WelcomeLinkHref = string | { url: string };
@@ -38,6 +39,7 @@ export function Link({
 }
 
 export function usePage<TProps extends object = WelcomePageProps>(): {
+    component: string;
     props: TProps & WelcomePageProps;
 } {
     const projection = useSourcePageProjection<TProps & WelcomePageProps>();
@@ -46,8 +48,14 @@ export function usePage<TProps extends object = WelcomePageProps>(): {
         throw new Error('The Welcome source page was mounted without its audited Rust projection.');
     }
 
-    return { props: projection.props };
+    return { component: projection.component, props: projection.props };
 }
+
+export const router = {
+    visit(url: string): void {
+        window.location.assign(url);
+    },
+};
 
 type SourceFormData = Record<string, unknown>;
 
@@ -77,4 +85,65 @@ export function useForm<TData extends SourceFormData>(initialData: TData): {
         processing: false,
         setData: () => {},
     };
+}
+
+type LoginFormProps = {
+    action: '/api/v1/session/login';
+    method: 'post';
+    resetOnSuccess?: string[];
+    children: (state: { errors: Record<string, string>; processing: boolean }) => ReactNode;
+    className?: string;
+};
+
+/**
+ * The copied Login page is the only source form mounted by this adapter.
+ * It obtains Rust's CSRF cookie/token and then submits the source fields to
+ * the typed Rust session command in one click; it is not an Inertia form
+ * emulator or a fallback/retry transport for other pages.
+ */
+export function Form({ children, className, resetOnSuccess }: LoginFormProps) {
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [processing, setProcessing] = useState(false);
+
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setProcessing(true);
+        setErrors({});
+        const values = new FormData(event.currentTarget);
+
+        try {
+            const csrfToken = await getCsrfToken();
+            const { data, response } = await apiClient.POST('/session/login', {
+                body: {
+                    email: String(values.get('email') ?? ''),
+                    password: String(values.get('password') ?? ''),
+                    remember: values.get('remember') === 'on',
+                },
+                params: { header: { 'X-CSRF-Token': csrfToken } },
+            });
+
+            if (!response.ok || !data?.authenticated) {
+                setErrors({
+                    email: response.status === 503
+                        ? 'Login is currently unavailable.'
+                        : 'The provided credentials are invalid.',
+                });
+                return;
+            }
+
+            for (const field of resetOnSuccess ?? []) {
+                const input = event.currentTarget.elements.namedItem(field);
+                if (input instanceof HTMLInputElement) {
+                    input.value = '';
+                }
+            }
+            window.location.assign('/world');
+        } catch {
+            setErrors({ form: 'Login is currently unavailable.' });
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    return <form className={className} onSubmit={submit}>{children({ errors, processing })}</form>;
 }

@@ -573,6 +573,27 @@ source-owned Back navigation and the source-links unavailable state at
 1440×900 and 390×844. The tested visible controls are bounded at both
 viewports; no source defect was observed for this route.
 
+### Canonical Login activation contract matrix — 17 November 2026
+
+**Pinned source verified:** `main` resolves to
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. This slice mounts the complete
+copied `pages/auth/login.tsx` within copied `layouts/auth-layout.tsx` and
+`layouts/auth/auth-simple-layout.tsx`, with their named controls, passkey
+alternative, appearance/cursor/theme hooks, password input and source layout
+unchanged.
+
+| Source dependency | Rust evidence | Activation rule |
+| --- | --- | --- |
+| Public auth presentation and guest appearance | `GET /api/v1/public/welcome` | Reuse the bounded public projection to render the copied auth layout. A failed read is explicit Login unavailability. |
+| Password submit and Remember me | `GET /api/v1/security/csrf`, `POST /api/v1/session/login`, `session_commands.rs`, OpenAPI `LoginRequest`/`SessionStatus` | The route-specific form adapter performs one same-origin CSRF issuance then one JSON login submission. It is not an Inertia or generic form transport. Successful login follows the source destination `/world`; 401 and 503 remain visible in the copied source error region. |
+| Laravel route helpers and page component identity | `auth-routes.ts`, source `Login.layout` values | Preserve source URLs through narrow helpers and provide `auth/login` page identity so the copied auth theme resolves its Login presentation. |
+
+`frontend/e2e/canonical-login.spec.ts` proves first-click CSRF then session
+submission, request shape, 503 visibility, and bounded submit controls at
+1440×900 and 390×844. This closes the reported retry-dependent login behavior
+for this standalone route; it does not activate registration, recovery, MFA
+or a generic Laravel/Inertia form mechanism.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not

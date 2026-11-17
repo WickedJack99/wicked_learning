@@ -8,6 +8,14 @@ export default defineConfig({
     resolve: {
         alias: [
             {
+                find: '@/routes/login',
+                replacement: resolve(import.meta.dirname, 'src/platform/auth-routes.ts'),
+            },
+            {
+                find: '@/routes/password',
+                replacement: resolve(import.meta.dirname, 'src/platform/auth-routes.ts'),
+            },
+            {
                 find: '@inertiajs/react',
                 replacement: resolve(import.meta.dirname, 'src/platform/welcome-inertia.tsx'),
             },
