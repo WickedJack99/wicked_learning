@@ -329,6 +329,143 @@ The standalone Welcome page is the first fidelity migration: it reuses the
 original layout, content structure, Tailwind utilities and Lucide icons while
 substituting React Router and the existing Rust session state for Inertia.
 
+### Canonical-frontend reset audit — 17 November 2026
+
+**Status: audit complete; no frontend reset has been performed by this
+section.** This is the binding execution register for the next frontend
+baseline replacement. It supersedes any reading of the current standalone
+`frontend/src/{original,lifted,extracted}-*` tree as a source-of-truth UI.
+Those files are evidence of individual Rust capability experiments only. They
+are not the canonical presentation implementation and do not establish visual
+parity merely by compiling or by using a Rust endpoint.
+
+**Canonical source:** current `main` at
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`, resolved on 17 November 2026.
+The source contains 299 files under `resources/js` and its one Tailwind entry
+stylesheet at `resources/css/app.css`. The current standalone frontend has 201
+files under `frontend/src`; it is neither a complete copy nor an authoritative
+subset of that source.
+
+#### Audit method and classification
+
+The register below was derived from the pinned page tree, the Laravel route
+declarations/controllers and the current Rust router, OpenAPI and module/test
+trees. The Rust service currently exposes 398 versioned OpenAPI operations;
+test-bearing modules exist in 78 API, 115 application and 59 persistence
+modules. That is implementation evidence, not a claim that a source Inertia
+page can consume the Rust response without an adapter.
+
+For a source family, a contract is classified as follows:
+
+| Class | Meaning | Reset behavior |
+| --- | --- | --- |
+| **R — reusable** | A Rust API route, application/persistence boundary, OpenAPI operation and focused Rust test already cover the underlying actor/action/data boundary. | Retain the Rust code and bind a narrow source transport/page-prop adapter after the exact source page tree is copied. |
+| **P — partial** | Rust implements a useful portion, but does not yet project the complete source page props, match a source command/error/pagination/media shape, or have the required source-route browser proof. | Keep the copied page structurally intact; implement only the named missing contract/adapter. Do not replace controls or compose a substitute screen. |
+| **M — missing** | No Rust contract exists for the source behavior, or the behavior is deliberately excluded by a recorded product decision. | Preserve the source route’s explicit unavailable/loading surface until a separately approved backend slice supplies the contract. Never invent client-side policy or a success state. |
+
+#### Exact pinned source route/page register
+
+Each path below is part of the exact source copy. Comma-separated entries are
+separate source files and must not be selectively reimplemented. Files under
+`pages/settings/worlds` that are fields/helpers are listed with the page that
+owns their component tree.
+
+| Source route family and exact page files | Shared component/dependency tree that must move whole | Laravel/Inertia/Wayfinder and page-prop seams | Rust classification and evidence | Reset disposition |
+| --- | --- | --- | --- | --- |
+| Public entry and information: `pages/welcome.tsx`, `pages/source.tsx`, `pages/info/{about,data-protection,imprint,show}.tsx` | `layouts/{app-layout,auth-layout}.tsx`, `components/{app-*,platform-logo,source-code-link}`, `features/{platform-info,platform-presentation}` | `Head`, `Link`, `usePage.publicPresentation`, `usePage.platformInfo`, source-link/page URLs | **P** — public presentation/content/search/world reads are registered in `backend/crates/api/src/main.rs` under `/api/v1/public/*`, with `application/src/{public_page,public_presentation,public_world,public_search}.rs`; no complete source page-prop aggregate exists. | Copy pages/layouts/styles intact. Add public page/presentation loaders first; show source unavailable state for any missing public projection. |
+| Authentication and recovery: `pages/auth/{login,register,forgot-password,reset-password,confirm-password,two-factor-challenge,verify-email}.tsx` | `layouts/auth/**`, `components/{password-input,one-time-code-input,passkey-*,manage-two-factor,two-factor-*}`, `hooks/use-two-factor-auth.ts` | Inertia `useForm`, `router`, `route`, flash/errors; Fortify login/reset/verification props; `@laravel/passkeys` | Login/registration/recovery/password-confirmation/TOTP/passkeys are **R**: `session_commands`, `identity_registration`, `password_recovery`, `account_password_confirmation`, `account_two_factor`, `account_passkey` API/application modules and OpenAPI routes. Email verification/re-notification is **M**: the source verify-email page has no corresponding Rust API operation. | Copy all source files. Build a restricted auth form/session adapter around reusable contracts. Keep the exact verify-email page unavailable until verification/re-notification is implemented; do not route around it. |
+| Learner World and playback: `pages/world.tsx`, `pages/learning/node-play.tsx` | `components/{learner-*,platform-feedback-prompt}`, `features/world/**`, `features/{items,learning,messages,sounds,tools}`, `theme/{appearance,cursors,presentation}` | `usePage` world/playback props, `router`, `route`, current-user/nav props, protected/public media and uploads | **P** — reusable APIs include `/api/v1/learner/world`, play-run, route/reset, activity completion, portal, question, reflection, recall, item/tool/obstacle/NPC/shared-task/message/companion routes in `api/src/main.rs`; application/persistence evidence is under `learner_{world,playback,route_run,portal,question,reflection,recall,shared_task,peer_message,companion}.rs`. A single source-shaped World/page-playback aggregate and its exact error/navigation adapter remain missing. | Copy the full World/player tree before binding endpoints. Start with read/current-run adapters; unavailable states must retain source orientation and cannot calculate transitions client-side. |
+| Learner desk and records: `pages/{home,bookmarks,paths}.tsx`, `pages/competence/{index,competence-star-layout}.ts` | `features/{home,journal,competence,topics}`, `components/{learner-document-surface,learner-paginated-items,pagination-controls}` | Inertia props, `router`, `route`, page/area query state, journal overlay and export download | **P** — learner desk/search, bookmarks, paths, competence, journal/recall/revisit and preferences are implemented by `learner_{desk_search,bookmark_map,paths,topics,journal,journal_page,journal_export,recall,revisit_run,desk_planning}.rs`; their routes and generated schemas are in `main.rs`/OpenAPI. The exact source page-prop aggregation and source route/history adapter are absent. | Bind copied source pages family by family. Use source loading/empty/error views while a projection is incomplete. |
+| Topics and feedback: `pages/topics/{index,show}.tsx`, `pages/feedback.tsx` | `features/topics/**`, `features/platform-presentation`, common navigation/header | `Link`, `router`, `route`, topic page props and feedback flash/errors | **P** — `/learner/topics`, topic overview/trail/maps and `/platform-feedback` are reusable (`learner_topics`, `learner_topic_detail`, `platform_feedback` modules/tests); source detail’s composed page props and navigation mapping still need an adapter. | Copy whole directory/detail/feedback trees; wire read endpoints before any route-local mutation. |
+| Organizations and access links: `pages/organizations/{index,show}.tsx`, `pages/access-links/redeem.tsx` | `features/organizations/**`, access-link/current-user/navigation components | `useForm`, `router`, `route`, source redirects and validation/error props | **P** — organization, group and access-link routes are in `main.rs` with `application/src/{organization,learner_group}.rs` and `api/src/access_link.rs`; both source page-prop projection and Inertia redirect/flash compatibility are still missing. | Copy source trees whole; adapt existing commands at one route boundary and preserve source confirmation/error state. |
+| General Settings and personal/security pages: `pages/settings/{index,personal,profile,appearance,language,security,about,imprint,data-protection}.tsx` | `layouts/settings/layout.tsx`, `components/{app-*,nav-*,learner-account-controls,delete-user,manage-passkeys,manage-two-factor}`, `features/settings/{settings-workspace-shell,settings-panel-directory,profile-settings-panel,appearance-settings-panel,security-settings-panel,sound-settings-panel}` | global `usePage` auth/settings/presentation/flash props; Inertia form/router/link and `route` helpers | **P** — `/api/v1/me`, profile/image/delete, password confirmation/update, TOTP/passkeys, appearance/language/sound/feedback preferences and information/public-content routes are implemented and tested in the named Rust modules above. The source’s all-settings bootstrap projection, flash lifecycle and route-to-panel mapping are not a Rust contract. | Copy the settings shell and every named source page first. Build one typed Settings bootstrap adapter; never replace nested source navigation with route-local panels. |
+| Asset, presentation, localization and platform administration: `pages/settings/{admin-panel,ai,color-palette,journal,languages,presentation}.tsx`, `pages/settings/assets/{index,media,items,tools,sounds,dialogue-sound-sets}.tsx`, `pages/admin/topics.tsx` | `features/settings/{assets-world-objects-panel,asset-library-workspace,cursor-image-settings-panel,language-settings-panel,learning-*,support-*,presentation-localization-panel,access-*,content-api-panel}`, `features/{ai,sounds,topics,content-api}` | Inertia props/forms/router, generated actions/routes, media multipart/download URLs, paginated history/import/export | **P** — reusable Rust modules/endpoints cover assets/media/sounds/typing sets, topics/taxonomy, translations, public presentation/content, AI configuration/content plans, support signals, access/users/roles/groups and journals. Evidence is in the correspondingly named `api`, `application`, `persistence` modules and OpenAPI. Each source page still needs a complete page projection, source URL/flash adapter and exact pagination/error mapping. | Copy all listed pages and shared feature trees as a unit. Authoring/admin capabilities remain source-unavailable until their exact contract mapping is confirmed. |
+| World Builder and direct editors: `pages/settings/worlds/{index,edit-map,configure-map,edit-node-activities,edit-markdown-activity,edit-npc-dialogue}.tsx`; all siblings `activity-*.tsx`, `{item,markdown,message,obstacle,portal,shared-task,tool-grant}-activity-fields.tsx`, `edit-node-activity-types.ts`, `use-node-image-upload.ts` | `features/settings/{world-builder-settings-panel,world-map-management-panel,map-asset-editor,map-asset-history-dialog,map-layout-history-dialog,map-import-dialog,map-export-validation-dialog,duplicate-map-dialog}`, `features/admin-worlds/hex-grid-geometry.ts`, world media/theme/scene components | Inertia graph/map/node/activity documents, `router` commands, `route`/Wayfinder links, media upload, history/export/import/download and source direct URLs | **P** — the Rust authoring graph/map/node/asset/activity/portal/template/media/import/export/history contracts are extensive: `admin_world_*`, `admin_activity_*`, `admin_source_records`, `admin_activity_templates` API/application/persistence modules and their OpenAPI routes. Current contracts are reusable only after an exact source adapter maps each source command/document. No current standalone component is parity evidence. | Copy this complete source family whole. Mount the original source routes before adding adapters. For each page, use the source unavailable/read-error UI until its named read/command matrix is verified; do not embed the page inside a different workspace. |
+
+The source test catalogue that defines behavioral reference remains
+`tests/Feature/{Auth,Settings,ContentApi,MapAsset,Organizations,Learning*,
+QuestionActivity,SharedTaskActivity,Activity*,Platform*}.php` plus the
+route-specific tests under `tests/Feature/Settings/**`. These tests are
+reference evidence, not files to port mechanically. Existing standalone
+Playwright tests are retained only as Rust/browser-contract evidence after the
+reset; they must be relinked to the copied source tree before they can prove
+visual parity.
+
+#### Shared-source copy and framework seam inventory
+
+The reset must move these directories exactly from the pinned source; copying
+only the pages would repeat the present failure mode:
+
+| Exact source tree | Role in the copied frontend | Adapter boundary allowed after copy |
+| --- | --- | --- |
+| `resources/js/{components,features,hooks,layouts,theme,types,lib}` | Shared controls, page composition, source visual tokens, accessibility, graph/canvas and media behavior. | Only imports that are framework transport seams; preserve JSX, classes, component nesting and local interaction state. |
+| `resources/js/{pages,app.tsx}` and `resources/css/app.css` | Every route document, source layout selection and Tailwind/theme entry. | Replace the bootstrap with a standalone route/page resolver only after the exact page files are present; preserve source URL and layout selection rules. |
+| `@inertiajs/react` (`Head`, `Link`, `router`, `useForm`, `usePage`, `createInertiaApp`) | Source navigation, title/history, page props, forms, partial reloads, error/flash lifecycle and application bootstrap. | One audited compatibility facade over React Router plus the typed Rust client. It may expose only source operations backed by a typed adapter; it must not emulate Laravel requests generically. |
+| `@/routes` and `@/actions` (Wayfinder-generated helpers) | Route URL/form action construction used throughout pages and components. | Preserve source helper modules where they are pure URLs; replace Laravel-only command dispatch at an explicit route-family transport adapter. Do not mass-edit JSX links. |
+| `usePage().props` and global Inertia share props | Current user, permissions, settings navigation, presentation, translations, flash/errors, page-specific documents. | A typed source-page projection per route family. The adapter may rename/case-map Rust wire fields once; it cannot invent omitted policy/data. |
+| `lib/{media-upload,media-url,json-response}.ts`, download links and `ConfigImageInput` | Multipart validation, scoped preview, protected/public URLs and download behavior. | Typed Rust upload/download/media adapters that preserve scope and source error placement. No generic raw-media fallback. |
+| `@laravel/passkeys` | Browser WebAuthn invocation. | A thin WebAuthn transport adapter around the existing Rust passkey options/confirmation endpoints; retain source prompts and recovery semantics. |
+
+#### Rust reuse register and missing contracts
+
+The following is the implementation reuse boundary. The listed code is not
+frontend code and must survive the reset unchanged unless a later contract
+audit finds a real behavior defect.
+
+| Capability boundary | Reusable Rust evidence | Classification | Concrete reset requirement |
+| --- | --- | --- | --- |
+| Identity/session/password/TOTP/passkeys | `backend/crates/api/src/{session_commands,identity_registration,password_recovery,account_password*,account_two_factor,account_passkey}.rs`, matching application/persistence modules and OpenAPI | R except email verification | Add page adapters for source auth forms. Add a separate verification/re-notification backend slice before enabling `verify-email`. |
+| Current-user, preferences, notifications and settings access | `current_user`, `account_profile*`, `learner_{appearance_preference,language_preference,sound_preference,desk_planning,platform_translation}`, `admin_settings_notifications` | P | Define one source Settings/current-user page projection; do not let individual copied components fetch/reconstruct permissions. |
+| Public presentation/content/search/world | `public_{page,presentation,search,world}` API/application/persistence modules and `/api/v1/public/*` schema | P | Implement public shell/page document loaders with source media URL/presentation fields and error states. |
+| Learner exploration, routes, records and playback | `learner_{world,playback,route_run,check_in,bookmark*,paths,topics,topic_detail,journal*,recall*,revisit*,reflection,portal,*}` and `content_api` | P | Adapt source screen documents and commands one family at a time; retain server-owned navigation/transition/reward decisions. |
+| Organizations, groups, feedback and access links | `organization`, `learner_group`, `platform_feedback`, `access_link`, `temporary_access_login`, `admin_registration_tokens` | P | Map source forms, flash/redirects and paginated projections; preserve existing Rust authorization. |
+| Media, reusable assets, sounds and translations | `admin_{media_assets,asset_catalog,sound,dialogue_typing_sound_set,translation_catalog}`, media-store and learner/public media modules | P | Map source multipart and protected/download URL semantics, including error placement and media-reference scope, before enabling a copied picker. |
+| World Builder authoring and AI | `admin_world_*`, `admin_activity_*`, `admin_source_records`, `admin_activity_templates`, `admin_ai_*` API/application/persistence modules | P | Derive exact per-page document/command matrices from copied source; do not continue adapting old `lifted-*` components. |
+| Email verification/re-notification | Rust identity data requires verified email, but no verification API operation is present in `contracts/openapi/v1.yaml` or `api/src/main.rs`. | M | Keep source verification page unavailable and record a dedicated identity slice; never bypass verification in the copied client. |
+
+#### Safe reset boundary and execution order
+
+This audit authorizes **no deletion in this commit**. The next implementation
+slice must make the following file boundary explicit before it changes anything:
+
+| Preserve | Replace only in the dedicated baseline-reset slice | Never infer from the old frontend |
+| --- | --- | --- |
+| `backend/**`, `contracts/openapi/**`, `infra/**`, database migrations, Compose/proxy configuration, Rust tests and the generated client contract; API/browser fixtures that prove a real Rust request/response/security invariant | The current reconstructed frontend presentation tree: `frontend/src/app.tsx`, `frontend/src/original-*`, `frontend/src/lifted-*`, `frontend/src/extracted-*`, reconstructed `public-*` UI and any route-local replacement components. `frontend/e2e` tests stay until each is classified as reusable Rust evidence, rewritten against copied source, or explicitly retired with a replacement. | UI hierarchy, labels, source URL ownership, hidden/visible controls, client authorization rules, backend response fields or user success states. Existing frontend implementation cannot fill a missing source or Rust contract. |
+
+The baseline-reset commit must be mechanically reviewable:
+
+1. Record the then-current `main` SHA and fail if it differs from this audit
+   without a new audit.
+2. Copy the complete pinned `resources/js/**` tree and
+   `resources/css/app.css` without selectively copying individual components.
+   Keep its source identity visible (for example, under a dedicated canonical
+   source root with `@` resolving to that root); do not rename it into
+   `original-*`/`lifted-*` derivatives.
+3. Keep the standalone Vite/Docker/bootstrap and typed API client in a small,
+   clearly separate platform adapter root. Install source UI dependencies only
+   when the source import inventory requires them; do not substitute controls
+   to avoid a dependency.
+4. Implement only compile-time/runtime bootstrap facades for the framework
+   seams listed above. A facade must return an explicit unavailable state for a
+   route without a recorded Rust projection. It must not make a Laravel HTTP
+   request, deserialize a Laravel session or emulate arbitrary Inertia form
+   posts.
+5. Compare copied-file identity against the recorded SHA, run type/build
+   verification, and prove that no current reconstructed page imports remain
+   in the canonical route resolver. Do not claim any business route migrated
+   merely because the baseline compiles.
+6. Thereafter, select routes in this order: public/auth bootstrap; shared
+   current-user/settings projection; learner World/playback; learner records
+   and discovery; organizations/access links; administration/media; World
+   Builder/direct editors. For each family, bind **R** contracts first, close
+   documented **P** gaps through Rust slices, and leave **M** states visibly
+   unavailable.
+
+The reset therefore preserves completed Rust functionality and its evidence,
+but deliberately discards the premise that its present frontend wrappers are a
+safe visual baseline. No future migration slice may copy fragments from the
+old standalone frontend instead of the pinned source tree.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not
