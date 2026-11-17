@@ -710,6 +710,92 @@ Settings management, or learner content. Those operations either already have
 separate Rust contracts awaiting their source page family or remain explicitly
 unavailable; none is silently represented as successful bootstrap behavior.
 
+### Canonical shared current-user and Settings bootstrap audit — 17 November 2026
+
+**Status: audited; activation not yet started.** The canonical baseline remains
+the exact `main` commit `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. Its
+`resources/js/**` and `resources/css/app.css` copies under
+`frontend/canonical-source/**` are immutable. Existing standalone Settings
+screens, including their Playwright tests, demonstrate a Rust capability only;
+they are not a source-UI implementation and must not be imported into a
+canonical route activation.
+
+#### Source composition and page-prop boundary
+
+The primary source Settings route is `/settings` (with `panel` and nested query
+keys), not a collection of substitute `/settings/*` pages. The root is
+`resources/js/pages/settings/index.tsx`; it selects whole source panels and
+must retain its `SettingsNestedWorkspace` hierarchy, sidebar/top-bar,
+URL-owned selection and source-visible navigation. Direct source pages
+`settings/{profile,appearance,language,security,about,imprint,data-protection}.tsx`
+are separate documents that may be enabled only when their own prop/form matrix
+is complete. The copied `layouts/settings/layout.tsx` is a legacy source layout
+used by direct pages; it is not permission to replace the root workspace.
+
+| Source responsibility | Exact pinned source paths | Required source inputs / behavior | Rust disposition at audit |
+| --- | --- | --- | --- |
+| Shared page props and account chrome | `resources/js/types/{global,auth}.ts`; `components/{nav-user,user-menu-content,user-info,learner-account-controls}.tsx`; `hooks/{use-appearance,use-platform-translation}.tsx`; `theme/{appearance,presentation}.ts` | `auth.user`, `auth.canViewMediaPaths`, appearance, localization, presentation palette/cursors, current URL; the source `User` also declares legacy numeric `id`, role, verification/timestamps and optional avatar/profile image. | **Partial.** `GET /api/v1/me` is authenticated and returns Rust `subject_id`, name, email, username, avatar URL, appearance, roles, capabilities, `can_view_media_paths` and server-filtered `settings_access`. It cannot be cast to the Laravel user: it lacks the legacy numeric id, role enum, verification/timestamp fields and `auth.items/tools`. A Settings adapter must map only fields actually consumed by a mounted source component and keep all uncontracted values out of the component tree. |
+| Settings root, navigation and chrome | `pages/settings/index.tsx`; `features/settings/{settings-navigation,settings-workspace-shell,settings-panel-directory,settings-corner-navigation,settings-access-navigation-state,settings-access-types}.ts(x)`; `components/settings-configuration-shell.tsx` | Source navigation needs complete per-resource `{read,update,delete}` access capability records, current user, bounded notification summary, public presentation/settings palette, URL panel state and every selected-panel document listed below. | **Missing bootstrap projection.** `/api/v1/me.settings_access` is deliberately only boolean read visibility and cannot safely become the root's update/delete map. `GET /api/v1/admin/settings/notifications` is reusable but separately authorized and contains only counts plus up to four report thumbnails. No single Rust Settings document currently joins these sources or defines 401/403/503 behavior. |
+| Personal source workspace | `pages/settings/personal.tsx`; `features/settings/{profile-settings-panel,appearance-settings-panel,language-settings-panel,sound-settings-panel,security-settings-panel}.tsx`; `components/{delete-user,manage-passkeys,manage-two-factor,passkey-*,two-factor-*}.tsx` | `PersonalSettingsProps`: `availableLanguages`, `initialSection`, locale, `mustVerifyEmail`, sound preferences, feedback-prompt status, optional flash status, password rules, TOTP flags, passkey flags and summaries. Its eight nested panels own source forms, security dialogs and URL selection. | **Partial by operation, missing as document.** Profile, appearance, language, sound, feedback preference, password confirmation/update, profile deletion, TOTP and passkey operations have bounded Rust contracts. No read projection provides their source-shaped aggregate, `passwordRules`, source flash lifecycle or a verified-email flag. Do not mount the root Personal panel until that aggregate and its source-form seams are explicit. |
+| Direct personal pages | `pages/settings/{profile,appearance,language,security}.tsx` plus the same whole panels above | Profile needs `mustVerifyEmail` and status; Language needs available language list and locale; Security needs password rules, TOTP/passkey flags and summaries; Appearance needs source appearance persistence. | **Mixed.** Appearance is the earliest candidate because its copied page has no route prop. Language, profile and security await their documented typed reads and narrowly allowed forms. A successful direct page must not imply that `/settings?panel=personal` is active. |
+| Information in Settings | `pages/settings/{about,imprint,data-protection}.tsx`; `features/platform-info/{platform-info-page,content,markdown-renderer}.tsx` | Authenticated settings variant of the already copied information surface and its presentation/content props. | **Reusable read dependency; inactive.** Public information projection exists for public routes, but the settings variant still depends on authenticated shared Settings props and needs a route-local audit. It is not included in the first bootstrap slice. |
+| Administration/authoring root panels | `pages/settings/index.tsx`; `features/settings/{access-*,assets-world-objects-panel,content-api-panel,learning-companion-*,learning-support-panel,presentation-localization-panel,world-builder-settings-panel,world-map-management-panel}.tsx`; pages under `pages/settings/{admin-panel,ai,color-palette,journal,languages,presentation,assets/**,worlds/**}.tsx` | The root type requires access groups/links/tokens/users/roles, AI, companion, asset and sound catalogs, language admin, learning-support, presentation, map graph/selected map/selected node and their pagination/error/flash details. | **Individually partial, bootstrap-absent.** Rust/OpenAPI provide bounded endpoint families below, but no route may receive fabricated empty arrays or old standalone data just to render the source root. Every listed panel remains explicit unavailable until its page document and command mapping are audited. World Builder retains its separately pinned P0 parity backlog. |
+
+#### Existing Rust/OpenAPI contract register
+
+All paths below are implemented evidence, not authorization to invent a
+Laravel-shaped page prop. Named API handlers and generated OpenAPI operations
+must continue to be the only transport inputs for their future typed adapter.
+
+| Source need | Existing Rust/OpenAPI evidence | Classification and activation rule |
+| --- | --- | --- |
+| Authenticated principal, appearance and Settings visibility | `GET /api/v1/me`; `backend/crates/api/src/current_user.rs`; `application/src/current_user.rs`; `persistence/src/current_user.rs`; OpenAPI `getCurrentUser` / `CurrentUser` | **Reusable partial.** Provides only safe current-subject chrome and boolean read visibility. It does not provide source numeric identity, precise access levels, flash, localization or a Settings document. |
+| Profile read/write/image/delete | `GET/PATCH/DELETE /api/v1/account/profile`, `POST /api/v1/account/profile/image`, profile-image read; `api/src/account_profile*.rs`; OpenAPI `getAccountProfile`, `updateAccountProfile`, `deleteAccountProfile`, `uploadAccountProfileImage` | **Reusable partial.** Keep the source validation/error placement and destructive-password confirmation; a future adapter must map UUID image staging and no current source numeric media identity. |
+| Appearance, language, sound and feedback-prompt preferences | `PATCH /api/v1/learner/appearance`; `GET/PATCH /api/v1/learner/language-preference`; `GET/PATCH /api/v1/learner/sound-preferences`; `GET/PATCH /api/v1/learner/feedback-prompt-preference`; `learner_{appearance_preference,language_preference,sound_preference}.rs`, `feedback_prompt_preference.rs` and matching OpenAPI | **Reusable operations, partial reads.** The language endpoint must be paired with the authoritative available-language catalog; no source fallback locale list may be fabricated. The feedback source link `/feedback` stays unavailable until its route family is activated. |
+| Password update and confirmation window | `POST /api/v1/account/password/confirmation`, password-change contract and `account_password*.rs`, already mounted confirmation route adapter | **Reusable partial.** The future Settings form may use only a dedicated typed action that preserves source errors and confirmation recovery; it cannot widen the public/auth form facade into generic Inertia. |
+| Two-factor and passkeys | `/api/v1/account/two-factor/{setup,confirm,recovery-codes}` and delete; `/api/v1/account/passkeys/{confirmation/options,confirmation,options}` plus list/register/delete; `account_two_factor.rs`, `account_passkey.rs`, matching OpenAPI | **Reusable operations, document absent.** Source lists need passkey summaries and flags; TOTP state needs source-compatible management status. Reuse existing WebAuthn transport only after the Settings component’s complete lifecycle is audited. |
+| Administrator notification menu | `GET /api/v1/admin/settings/notifications`; `api/src/admin_settings_notifications.rs`; OpenAPI `getAdminSettingsNotifications` | **Reusable bounded read.** It remains a separately permission-filtered request and must render a source-visible unavailable/error result rather than a zero-count success if it fails or is unauthorized. |
+| Administration resource families | `admin_{registration_tokens,users,roles,learning_groups,media_assets,asset_catalog,sound,dialogue_typing_sound_set,translation_catalog,public_presentation,ai_settings,world_*,activity_*,source_records,activity_templates}.rs`; `learner_{support_signals,journal*,topics}.rs`; `organization`, `access_link`, `platform_feedback`, `journal_feedback_review` modules and their OpenAPI operations | **Partial by page family.** Operations and many reads exist, but none establishes the whole `SettingsIndexProps` document, source pagination/query-state or form/flash semantics. They remain unavailable from canonical Settings until route-family matrices are accepted. |
+
+#### Executable activation order and unavailable rules
+
+1. Add one narrowly typed authenticated Settings bootstrap adapter. It must read
+   only current-user and presentation inputs needed by the copied shell, map
+   Rust identity deliberately (never coerce a UUID into a Laravel numeric id),
+   fetch the notification summary only when the server-derived visibility makes
+   it eligible, and surface 401/403/503 as a source-contained unavailable
+   state. It must not mount the root `pages/settings/index.tsx` until every
+   selected root-panel prop has an audited projection.
+2. Activate the copied direct `pages/settings/appearance.tsx` first, using the
+   existing authenticated appearance projection/write seam. Its page remains
+   unavailable on failed current-user/appearance dependency; no default user or
+   “saved” flash is invented. Capture source controls and toggle behavior at
+   1440×900 and 390×844.
+3. Build one Personal document read contract from the named existing profile,
+   language, sound, feedback, security and credential reads; record exactly
+   which fields are source-shaped and which source operations map to Rust. Then
+   activate the complete copied `PersonalSettingsContent` as a whole, not a
+   recreated tab panel. Profile, language, sound, feedback, security and
+   deletion are separate command slices with focused source-derived browser
+   evidence.
+4. Only after the Personal document and root read/navigation contracts exist,
+   activate copied `pages/settings/index.tsx` with the source personal section
+   and explicit unavailable cards for all other panel keys. The adapter must
+   preserve `panel`/nested URL state, source navigation filtering and narrow
+   selector; it may not fill `SettingsIndexProps` with empty administration
+   models.
+5. Continue administration, assets, learning support and World Builder using
+   their separate exact-source audits. The root settings route must leave an
+   uncontracted destination visibly unavailable, not navigate to a reconstructed
+   standalone page or imply a successful Rust action.
+
+**Required evidence per activation:** canonical identity check; contract
+matrix with OpenAPI operation and error mapping; anonymous, unauthorized and
+dependency-unavailable behavior; source-derived browser proof at 1440×900 and
+390×844 including bounded visible controls and URL/back/refresh semantics; and
+focused frontend, Rust, OpenAPI and browser verification. This audit changes no
+canonical UI or endpoint.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not
