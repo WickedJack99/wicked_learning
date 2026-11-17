@@ -57,6 +57,14 @@ test('renders explicit root Settings unavailability when the typed bootstrap rea
     await expect(page.getByText('Settings are unavailable.')).toBeVisible();
 });
 
+test('renders explicit root Settings unavailability for an anonymous bootstrap response', async ({ page }) => {
+    await routePersonal(page);
+    await page.unroute('**/api/v1/settings/bootstrap');
+    await page.route('**/api/v1/settings/bootstrap', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ code: 'authentication_required', title: 'Authentication is required.' }) }));
+    await page.goto('/settings?panel=personal');
+    await expect(page.getByText('Settings are unavailable.')).toBeVisible();
+});
+
 test('leaves a selected unprojected Settings panel explicitly unavailable without reading Personal data', async ({ page }) => {
     let personalReads = 0;
     await routePersonal(page, undefined, () => { personalReads += 1; });
