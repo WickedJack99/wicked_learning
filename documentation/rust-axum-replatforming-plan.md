@@ -627,7 +627,7 @@ typed `POST /api/v1/registration` contract (`identity_registration.rs` and
 `IdentityRegistrationRequest`). The narrow form facade admits only this
 explicit action in addition to Login; it is not generic Inertia transport.
 `canonical-register.spec.ts` proves the invitation submission and bounded
-Create account control at 1440×900 and 390×844. Recovery and other auth pages
+Create account control and source Fortify `/home` completion at 1440×900 and 390×844. Recovery and other auth pages
 remain unavailable pending their own audited contracts.
 
 ### Canonical Forgot Password activation — 17 November 2026
@@ -637,7 +637,11 @@ copied auth layout. Its sole form action is `GET /security/csrf` followed by
 the existing typed `POST /password/forgot` contract; success reloads the same
 source route with its source status message. `canonical-forgot-password.spec.ts`
 proves this source behavior and bounded submit control at both required
-viewports. Reset-token consumption remains a separately audited route.
+viewports. The copied reset route consumes its token through the existing typed
+command, then follows Fortify’s source Login destination with the copied Login
+status “Your password has been reset.” rather than the former `/world` fallback;
+`canonical-reset-password.spec.ts` proves that status and destination at both
+viewports.
 
 ### Canonical password-confirmation activation — 17 November 2026
 

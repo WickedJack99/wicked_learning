@@ -211,6 +211,11 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
                 window.location.reload();
             } else if (action === '/api/v1/account/password/confirmation') {
                 window.location.assign(passwordConfirmationDestination());
+            } else if (action === '/api/v1/password/reset') {
+                sessionStorage.setItem('wicked-login-status', 'Your password has been reset.');
+                window.location.assign('/login');
+            } else if (action === '/api/v1/registration') {
+                window.location.assign('/home');
             } else {
                 window.location.assign('/world');
             }

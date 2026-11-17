@@ -11,7 +11,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         for (const [name, value] of Object.entries({ name: 'Learner', email: 'learner@example.test', registration_token: 'invite', password: 'correct horse battery staple', password_confirmation: 'correct horse battery staple' })) await page.locator(`input[name="${name}"]`).fill(value);
         const submit = page.getByRole('button', { name: 'Create account' });
         const box = await submit.boundingBox(); expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
-        await submit.click(); await expect.poll(() => registrations).toBe(1);
+        await submit.click(); await expect.poll(() => registrations).toBe(1); await expect(page).toHaveURL(/\/home$/);
     });
 }
 function welcome() { const t={background_color:'#07111f',background_image:null,background_overlay:'none',border_line_color:'#fff',button_text_color:'#fff',input_background:'#07111f',panel_background:'#07111f'},p={accent_text:'#5eead4',accent_text_opacity:100,body_text:'#e2e8f0',body_text_opacity:100,control_border:'#fff',control_border_opacity:100,control_text:'#fff',control_text_opacity:100,heading_text:'#fff',heading_text_opacity:100,muted_text:'#94a3b8',muted_text_opacity:100,welcome_overlay:'#020617',welcome_overlay_opacity:62}; return {appearance:'light',auth:{user:null},publicPresentation:{branding:{logo:'/images/logo.png'},auth:{login:{dark:t,light:t},register:{dark:t,light:t},welcome:{dark:t,light:t}},cursors:{},welcome:{pages:[]},information_pages:[],public_palette:{dark:p,light:p},settings_palette:{dark:{},light:{}}}}; }

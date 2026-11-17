@@ -24,6 +24,12 @@ export function LoginRoute({
     component?: string;
 } = {}) {
     const [state, setState] = useState<LoginState>({ kind: 'loading' });
+    const [status] = useState(() => {
+        const value = sessionStorage.getItem('wicked-login-status') ?? undefined;
+        sessionStorage.removeItem('wicked-login-status');
+
+        return value;
+    });
 
     useEffect(() => {
         void apiClient.GET('/public/welcome').then(({ data, response }) => {
@@ -39,5 +45,5 @@ export function LoginRoute({
     if (state.kind === 'unavailable') {
         return <main className="flex min-h-svh items-center justify-center p-6"><AlertError title="Login is unavailable." errors={['The public Login projection is currently unavailable.']} /></main>;
     }
-    return <SourcePageProjectionProvider value={{ component, props: state.props }}>{render ? render(state.props) : <AuthLayout title="Log in to your account" description="Enter your email and password below to log in"><Login canResetPassword={false} /></AuthLayout>}</SourcePageProjectionProvider>;
+    return <SourcePageProjectionProvider value={{ component, props: state.props }}>{render ? render(state.props) : <AuthLayout title="Log in to your account" description="Enter your email and password below to log in"><Login canResetPassword={false} status={status} /></AuthLayout>}</SourcePageProjectionProvider>;
 }
