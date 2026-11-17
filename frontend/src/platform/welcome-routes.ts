@@ -10,3 +10,8 @@ export function register(): string {
 export function home(): string {
     return '/';
 }
+
+/** The copied Settings corner navigation is the only mounted consumer. */
+export function logout(): { method: 'post'; url: '/api/v1/session/logout' } {
+    return { method: 'post', url: '/api/v1/session/logout' };
+}

@@ -957,7 +957,39 @@ copied destructive confirmation form to `DELETE /account/profile`. Existing
 Profile, Appearance, Language and Security facades are reused unchanged.
 `canonical-settings-personal.spec.ts` records URL selection and source tabs at
 1440×900/390×844, the sound request mapping, and read unavailability. Root
-`pages/settings/index.tsx` and every administration panel remain unavailable.
+`pages/settings/index.tsx` and every administration panel remained unavailable
+until the following separately verified root-shell activation.
+
+### Canonical root Settings shell — Personal-only activation — 17 November 2026
+
+The exact copied `resources/js/pages/settings/index.tsx` now owns canonical
+`/settings` and the source's Personal-compatible legacy panel aliases
+(`personal`, `appearance`, `notifications`, `profile`, `security`). It is
+loaded as one source module through `frontend/src/platform/settings-root-route.tsx`;
+no copied component is renamed, reconstructed or selectively substituted. The
+adapter shares `frontend/src/platform/personal-settings-projection.ts` with the
+prior Personal route, so its selected Personal workspace receives the same
+complete audited document rather than a new or fabricated prop set.
+
+| Source root input / behavior | Rust contract and adapter evidence | Availability rule |
+| --- | --- | --- |
+| Per-resource `{read, update, delete}` map and administrative visibility used by `settings-navigation.ts` and `index.tsx` | Authenticated `GET /api/v1/settings/bootstrap`, `getSettingsBootstrap`, `SettingsBootstrap`, `SettingsAccessCapability`; `api/src/settings_bootstrap.rs` derives only display levels from the current `AuthorizedPrincipal`. It exposes no role-permission scopes and every downstream API route reauthorizes. | `401`, `403`, `503`, malformed/missing data or a network failure render the bounded root Settings unavailable state. The older `/me.settings_access` boolean map remains a lower-detail current-user visibility projection and is not recast as this map. |
+| Source Settings notification bell | The same bootstrap request runs the existing bounded `AdminSettingsNotificationsQuery`; OpenAPI now carries opaque report UUID keys in `AdminSettingsNotificationOrganization`. The adapter preserves that UUID for React's source key rather than inventing a Laravel numeric identifier. | Notification data is never replaced with a zero-count success after an unavailable dependency. Bootstrap failure makes the shell unavailable. |
+| Source user chrome, public Settings palette and complete Personal panel | Existing owner/public reads: `GET /me`, `/account/profile`, `/account/security`, `/public/welcome`, `/learner/language-preference`, `/learner/platform-translations`, `/learner/sound-preferences`, `/learner/feedback-prompt-preference`. `loadPersonalSettingsProjection` maps only the fields each copied Personal/root component consumes. | A failed required Personal dependency makes the root unavailable. The adapter supplies no Laravel numeric user identifier, generic flash data, admin arrays or old standalone page props. |
+| Root sidebar/top bar, source URL ownership, narrow selector and copied corner navigation | `settings-root-route.tsx` mounts the source index whole. Its minimal compatibility boundary adds only the copied shell's lifecycle subscription, exact typed logout command and the dormant media-route rejection needed to load the source module. It does not add generic Inertia visits/forms or Laravel transport. | `panel` values outside the complete Personal family never mount the source index, never issue Personal reads and show the explicit unavailable state. Thus AI, Access, assets, Learning Support, World Builder, presentation, translations, API and information panels cannot look successfully loaded from empty props. |
+
+The source index imports all source administration panels as part of its own
+module graph. The root adapter therefore loads that exact module lazily, while
+the admission guard prevents an incomplete selection from evaluating its panel
+document. This preserves the source root hierarchy without broadening the
+platform facade solely to make every dormant Laravel mutation executable.
+
+`frontend/e2e/canonical-settings-personal.spec.ts` now proves the root's source
+top bar/sidebar and Personal tab selection at 1440×900 and 390×844, including
+the narrow selector's visible bounded control, typed sound request, required
+Personal-read failure, bootstrap failure, and an unprojected admin selection
+that makes no Personal API read. Rust's focused bootstrap unit test proves
+read/update/delete display projection and the absence of scope leakage.
 
 ### World Builder exact-source parity audit — 15 November 2026
 

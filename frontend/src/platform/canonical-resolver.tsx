@@ -16,7 +16,7 @@ import { LanguageRoute } from './language-route';
 import { ProfileRoute } from './profile-route';
 import { SettingsInformationRoute } from './settings-information-route';
 import { SecurityRoute } from './security-route';
-import { PersonalRoute } from './personal-route';
+import { SettingsRootRoute } from './settings-root-route';
 
 /**
  * The only presentation import in this bootstrap is copied from the pinned
@@ -49,8 +49,8 @@ export function CanonicalSourceResolver() {
     if (location.pathname === '/settings/security') {
         return <SecurityRoute />;
     }
-    if (location.pathname === '/settings' && new URLSearchParams(location.search).get('panel') === 'personal') {
-        return <PersonalRoute />;
+    if (location.pathname === '/settings') {
+        return <SettingsRootRoute />;
     }
     if (
         location.pathname === '/settings/about' ||

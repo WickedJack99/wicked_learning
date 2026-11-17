@@ -852,6 +852,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the authenticated source Settings shell projection.
+         * @description Returns only the complete display-level access map and bounded notification summary required by the copied Settings shell. It contains no selected panel document, scopes, credentials, or server-authorizing capability.
+         */
+        get: operations["getSettingsBootstrap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/settings/notifications": {
         parameters: {
             query?: never;
@@ -7018,9 +7038,33 @@ export interface components {
             reported_organizations: components["schemas"]["AdminSettingsNotificationOrganization"][];
         };
         AdminSettingsNotificationOrganization: {
+            /**
+             * Format: uuid
+             * @description Opaque organization-icon report identifier used only as a stable Settings notification key.
+             */
+            id: string;
             /** @description An authenticated route for the immutable reported-icon snapshot; never a storage path. */
             icon_url: string | null;
             name: string;
+        };
+        SettingsBootstrap: {
+            /** @description Complete read/update/delete display map for the copied Settings navigation. Every request is independently authorized by Rust. */
+            access_capabilities: {
+                [key: string]: components["schemas"]["SettingsAccessCapability"];
+            };
+            /** @description Whether any Settings administration resource is readable by the current principal. */
+            can_access_administration: boolean;
+            notifications: components["schemas"]["SettingsBootstrapNotifications"];
+        };
+        SettingsAccessCapability: {
+            delete: boolean;
+            read: boolean;
+            update: boolean;
+        };
+        SettingsBootstrapNotifications: {
+            pending_feedback_requests: number;
+            pending_organization_icon_reports: number;
+            reported_organizations: components["schemas"]["AdminSettingsNotificationOrganization"][];
         };
         AccessLinkSummary: {
             /** Format: date-time */
@@ -14652,6 +14696,47 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    getSettingsBootstrap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The authenticated source Settings shell projection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsBootstrap"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

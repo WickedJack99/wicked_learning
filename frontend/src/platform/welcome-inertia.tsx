@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
-import type { AnchorHTMLAttributes, FormEvent, PropsWithChildren, ReactNode } from 'react';
+import type {
+    AnchorHTMLAttributes,
+    ButtonHTMLAttributes,
+    FormEvent,
+    PropsWithChildren,
+    ReactNode,
+} from 'react';
 import { Link as RouterLink } from 'react-router';
 
 import { useSourcePageProjection } from './page-props';
@@ -17,7 +23,7 @@ export type InertiaLinkProps = Omit<
     'href'
 > & {
     as?: string;
-    href: WelcomeLinkHref;
+    href: WelcomeLinkHref | { method: 'post'; url: '/api/v1/session/logout' };
 };
 
 export function Head({ title }: { title: string }) {
@@ -35,6 +41,31 @@ export function Link({
     ...props
 }: PropsWithChildren<InertiaLinkProps>) {
     const target = typeof href === 'string' ? href : href.url;
+
+    if (typeof href !== 'string' && href.url === '/api/v1/session/logout') {
+        return (
+            <button
+                {...(props as unknown as ButtonHTMLAttributes<HTMLButtonElement>)}
+                onClick={(event) => {
+                    props.onClick?.(event as never);
+                    event.preventDefault();
+                    void (async () => {
+                        const csrfToken = await getCsrfToken();
+                        const { response } = await apiClient.POST('/session/logout', {
+                            params: { header: { 'X-CSRF-Token': csrfToken } },
+                        });
+
+                        if (response.ok) {
+                            window.location.assign('/');
+                        }
+                    })();
+                }}
+                type="button"
+            >
+                {children}
+            </button>
+        );
+    }
 
     return (
         <RouterLink {...props} to={target}>
@@ -67,7 +98,15 @@ type RouterDeleteOptions = {
     preserveScroll?: boolean;
 };
 
+type SourceRouterEvent = 'cancel' | 'finish' | 'start';
+
 export const router = {
+    // The mounted copied Settings top bar subscribes only to these lifecycle
+    // events. Navigation remains browser-owned; this is not an Inertia visit
+    // transport or event bus for unprojected source routes.
+    on(_event: SourceRouterEvent, _listener: () => void): () => void {
+        return () => {};
+    },
     visit(url: string): void {
         window.location.assign(url);
     },
@@ -154,6 +193,10 @@ export const router = {
     reload(): void {
         window.location.reload();
     },
+    // The copied Settings logout control clears in-flight Inertia visits
+    // before the exact typed logout request above. The standalone adapter has
+    // no visit queue, so there is nothing to cancel.
+    flushAll(): void {},
 };
 
 export function setLayoutProps(props: Record<string, unknown>): void {

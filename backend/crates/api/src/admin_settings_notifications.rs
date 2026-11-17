@@ -18,6 +18,7 @@ pub struct SettingsNotificationsResponse {
 
 #[derive(Serialize)]
 pub struct ReportedOrganizationResponse {
+    pub id: String,
     pub icon_url: Option<String>,
     pub name: String,
 }
@@ -42,6 +43,7 @@ pub async fn show(
             .reported_organizations
             .into_iter()
             .map(|organization| ReportedOrganizationResponse {
+                id: organization.icon_report_id.clone(),
                 icon_url: organization.has_icon.then(|| {
                     format!(
                         "/api/v1/admin/organization-icon-reports/{}/icon",
