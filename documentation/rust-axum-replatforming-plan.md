@@ -689,6 +689,27 @@ being rendered as an invalid-password error. No TOTP enrollment/settings,
 email verification, generic Inertia transport, or World route is
 activated by this slice.
 
+### Canonical public/auth bootstrap completion audit — 17 November 2026
+
+The pinned `main` SHA remains `32c3113a5bc688c9944c20942cdf40a6a5d57d7f` and
+the canonical verifier still proves all 299 copied source files plus
+`resources/css/app.css` are byte-identical. The public/auth bootstrap boundary
+is complete only at the following route/contract level:
+
+| Canonical source route family | Current disposition and evidence |
+| --- | --- |
+| `/`, `/about`, `/imprint`, `/data-protection`, `/source` | Mounted exact copied public pages through the bounded public Welcome/page/source-link projections. Their dedicated browser specs cover source controls, read failure and both required viewports. |
+| `/login`, `/register`, `/forgot-password`, `/reset-password/{token}` | Mounted copied auth pages using only typed Rust session/registration/recovery contracts. Login covers password, passkey and pending TOTP; registration follows `/home`; reset follows copied Login status at `/login`. |
+| `/two-factor-challenge`, `/user/confirm-password` | Mounted copied challenge/confirmation pages with their exact source controls, typed Rust CSRF/session/WebAuthn contracts, anonymous guard or pending-challenge behavior, and 1440×900/390×844 coverage. |
+| `/info/{page}` and `/email/verify` (including verification commands/deep links) | Explicitly unavailable: source configured-information admission and email verification/re-notification have no audited Rust page projection/contract. The resolver makes no API call or success claim; `canonical-public-auth-unavailable.spec.ts` proves the visible unavailable state at both required viewports. |
+| Learner `/home` and `/world` destinations | Intentionally not part of the public/auth bootstrap: source-compliant successful auth completion may navigate to them, but they remain their own learner route-family migration slices and render the explicit unavailable state until then. |
+
+This phase does not activate Laravel HTTP, Laravel session decoding, generic
+Inertia posts, arbitrary Wayfinder actions, verification writes, passkey/TOTP
+Settings management, or learner content. Those operations either already have
+separate Rust contracts awaiting their source page family or remain explicitly
+unavailable; none is silently represented as successful bootstrap behavior.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not
