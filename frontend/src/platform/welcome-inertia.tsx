@@ -88,12 +88,13 @@ export function useForm<TData extends SourceFormData>(initialData: TData): {
 }
 
 type AuthFormProps = {
-    action: '/api/v1/session/login' | '/api/v1/registration' | '/api/v1/password/forgot';
+    action: '/api/v1/session/login' | '/api/v1/registration' | '/api/v1/password/forgot' | '/api/v1/password/reset';
     method: 'post';
     resetOnSuccess?: string[];
     children: (state: { errors: Record<string, string>; processing: boolean }) => ReactNode;
     className?: string;
     disableWhileProcessing?: boolean;
+    transform?: (data: Record<string, string>) => Record<string, string>;
 };
 
 /**
@@ -102,7 +103,7 @@ type AuthFormProps = {
  * the typed Rust session command in one click; it is not an Inertia form
  * emulator or a fallback/retry transport for other pages.
  */
-export function Form({ action, children, className, resetOnSuccess }: AuthFormProps) {
+export function Form({ action, children, className, resetOnSuccess, transform }: AuthFormProps) {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
@@ -114,9 +115,10 @@ export function Form({ action, children, className, resetOnSuccess }: AuthFormPr
 
         try {
             const csrfToken = await getCsrfToken();
+            const raw = Object.fromEntries(values.entries()) as Record<string, string>;
+            const transformed = transform ? transform(raw) : raw;
             const body = {
-                email: String(values.get('email') ?? ''),
-                password: String(values.get('password') ?? ''),
+                email: String(transformed.email ?? ''), password: String(transformed.password ?? ''),
                 ...(action === '/api/v1/session/login'
                     ? { remember: values.get('remember') === 'on' }
                     : {
@@ -135,10 +137,12 @@ export function Form({ action, children, className, resetOnSuccess }: AuthFormPr
                 })
                 : action === '/api/v1/registration'
                     ? await apiClient.POST('/registration', { body: body as never, params: { header: { 'X-CSRF-Token': csrfToken } } })
-                    : await apiClient.POST('/password/forgot', { body: { email: body.email }, params: { header: { 'X-CSRF-Token': csrfToken } } });
+                    : action === '/api/v1/password/forgot' ? await apiClient.POST('/password/forgot', { body: { email: body.email }, params: { header: { 'X-CSRF-Token': csrfToken } } }) : await apiClient.POST('/password/reset', { body: transformed as never, params: { header: { 'X-CSRF-Token': csrfToken } } });
 
-            const succeeded = action === '/api/v1/password/forgot'
-                ? response.ok && Boolean(data)
+            const succeeded = action === '/api/v1/password/reset'
+                ? response.ok
+                : action === '/api/v1/password/forgot'
+                    ? response.ok && Boolean(data)
                 : response.ok && Boolean((data as { authenticated?: boolean } | undefined)?.authenticated);
             if (!succeeded) {
                 setErrors({
