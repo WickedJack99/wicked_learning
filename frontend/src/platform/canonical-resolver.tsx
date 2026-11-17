@@ -17,6 +17,7 @@ import { ProfileRoute } from './profile-route';
 import { SettingsInformationRoute } from './settings-information-route';
 import { SecurityRoute } from './security-route';
 import { SettingsRootRoute } from './settings-root-route';
+import { WorldRoute } from './world-route';
 
 /**
  * The only presentation import in this bootstrap is copied from the pinned
@@ -32,6 +33,10 @@ export function CanonicalSourceResolver() {
 
     if (location.pathname === '/source') {
         return <SourceCodeRoute />;
+    }
+
+    if (location.pathname === '/world') {
+        return <WorldRoute />;
     }
 
     if (location.pathname === '/login') {

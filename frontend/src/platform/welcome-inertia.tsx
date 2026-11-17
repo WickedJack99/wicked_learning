@@ -77,6 +77,7 @@ export function Link({
 export function usePage<TProps extends object = WelcomePageProps>(): {
     component: string;
     props: TProps & WelcomePageProps;
+    url: string;
 } {
     const projection = useSourcePageProjection<TProps & WelcomePageProps>();
 
@@ -84,7 +85,14 @@ export function usePage<TProps extends object = WelcomePageProps>(): {
         throw new Error('The Welcome source page was mounted without its audited Rust projection.');
     }
 
-    return { component: projection.component, props: projection.props };
+    return {
+        component: projection.component,
+        props: projection.props,
+        // Source pages use this only as a read-only representation of the
+        // current browser location. It is intentionally not an Inertia visit
+        // document or transport protocol.
+        url: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+    };
 }
 
 type RouterPatchOptions = {
@@ -190,7 +198,7 @@ export const router = {
             }
         })();
     },
-    reload(): void {
+    reload(_options?: unknown): void {
         window.location.reload();
     },
     // The copied Settings logout control clears in-flight Inertia visits

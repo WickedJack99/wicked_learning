@@ -33,6 +33,7 @@
             "@/actions/App/Http/Controllers/Settings/ProfileController": ["src/platform/profile-actions.ts"],
             "@/lib/media-upload": ["src/platform/profile-media-upload.ts"],
             "@/routes/verification": ["src/platform/verification-routes.ts"],
+            "@/features/world/api": ["src/platform/world-api.ts"],
             "@inertiajs/react": ["src/platform/welcome-inertia.tsx"],
             "@/routes": ["src/platform/welcome-routes.ts"],
             "@/*": ["canonical-source/resources/js/*"]

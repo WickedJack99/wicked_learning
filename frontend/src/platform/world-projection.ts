@@ -1,0 +1,267 @@
+import type { components } from './api/schema';
+
+type LearnerGroups = components['schemas']['LearnerGroupPage'];
+type LearnerTranslations = components['schemas']['LearnerPlatformTranslationResponse'];
+type LearnerWorldSnapshot = components['schemas']['LearnerWorldSnapshot'];
+type CurrentUser = components['schemas']['CurrentUser'];
+type LearnerSoundPreferences = components['schemas']['LearnerSoundPreferences'];
+
+/**
+ * Props consumed by the copied World page. The source still declares numeric
+ * Laravel record IDs, while the Rust contract deliberately keeps UUIDs opaque.
+ * Numeric values below are document-local rendering handles only: they are
+ * never sent to Rust and are never persisted as server identities.
+ */
+export type WorldPageProps = {
+    appearance: CurrentUser['appearance'];
+    auth: { user: { subjectId: string } };
+    bookmarkedNodeIds: number[];
+    groups: unknown[];
+    groupsPagination: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
+    localization: {
+        locale: string;
+        translations: Record<string, string>;
+    };
+    progress: unknown;
+    soundPreferences: {
+        ambienceVolume: number;
+        effectsVolume: number;
+        muted: boolean;
+    };
+    world: unknown;
+};
+
+export function toWorldPageProps(
+    snapshot: LearnerWorldSnapshot,
+    groups: LearnerGroups,
+    currentUser: CurrentUser,
+    translations: LearnerTranslations,
+    soundPreferences: LearnerSoundPreferences,
+): WorldPageProps {
+    let nextMapId = 1;
+    let nextNodeId = 1;
+    let nextAssetId = 1;
+    let nextActivityId = 1;
+    let nextStartId = 1;
+    const nodeIds = new Map<string, number>();
+    const activityIds = new Map<string, number>();
+    const progress: Record<number, { status: string }> = {};
+
+    const world = {
+        // The source page does not render World.id, but its legacy type
+        // requires it. This is strictly a local rendering handle.
+        id: 1,
+        slug: snapshot.world.slug,
+        title: snapshot.world.title,
+        description: snapshot.world.description,
+        themeConfig: snapshot.world.theme_config,
+        maps: snapshot.world.maps.map((map) => {
+            const mapId = nextMapId++;
+            const startsForMap = snapshot.start_routes.filter(
+                (start) => start.map_slug === map.slug,
+            );
+            const nodes = map.nodes.map((node) => {
+                const nodeId = nextNodeId++;
+                const nodeKey = `${map.slug}:${node.slug}`;
+                nodeIds.set(nodeKey, nodeId);
+                const starts = startsForMap.filter(
+                    (start) => start.node_slug === node.slug,
+                );
+                const activities = starts.map((start) => {
+                    const activityKey = `${nodeKey}:${start.activity_slug}`;
+                    const activityId = nextActivityId++;
+                    activityIds.set(activityKey, activityId);
+
+                    // World reads this outline only to preserve the copied
+                    // page's local active-route affordance. Playback itself
+                    // remains an explicit unavailable destination.
+                    return {
+                        id: activityId,
+                        slug: start.activity_slug,
+                        title: start.label,
+                    };
+                });
+
+                return {
+                    id: nodeId,
+                    mapId,
+                    mapSlug: map.slug,
+                    mapTitle: map.title,
+                    topic: map.topic
+                        ? {
+                            competenceHref: `/topics/${map.topic.slug}`,
+                            href: `/topics/${map.topic.slug}`,
+                            slug: map.topic.slug,
+                            title: map.topic.title,
+                        }
+                        : null,
+                    slug: node.slug,
+                    title: node.title,
+                    description: node.description,
+                    position: { q: node.q, r: node.r },
+                    state: node.state,
+                    visualConfig: node.visual_config,
+                    startActivityId: activities[0]?.id ?? null,
+                    startRoutes: starts.map((start, startIndex) => {
+                        const activityId = activities[startIndex]?.id ?? null;
+                        const routeProgress = snapshot.route_progress.find(
+                            (candidate) => candidate.start_id === start.start_id,
+                        );
+
+                        return {
+                            activityId,
+                            buttonBorderColorDark: start.button_border_color_dark,
+                            buttonBorderColorLight: start.button_border_color_light,
+                            buttonColorDark: start.button_color_dark,
+                            buttonColorLight: start.button_color_light,
+                            description: start.description,
+                            id: nextStartId++,
+                            imageDark: start.image_dark,
+                            imageLight: start.image_light,
+                            label: start.label,
+                            progress: routeProgress
+                                ? {
+                                    completionCount: routeProgress.completion_count,
+                                    currentActivityId: null,
+                                    lastCompletedAt: routeProgress.last_completed_at,
+                                    lastEnteredAt: routeProgress.last_entered_at,
+                                    playRunId: null,
+                                    status: routeProgress.status,
+                                }
+                                : null,
+                            sortOrder: start.sort_order,
+                        };
+                    }),
+                    activities,
+                };
+            });
+
+            return {
+                id: mapId,
+                slug: map.slug,
+                title: map.title,
+                description: map.description,
+                topic: map.topic
+                    ? {
+                        competenceHref: `/topics/${map.topic.slug}`,
+                        href: `/topics/${map.topic.slug}`,
+                        slug: map.topic.slug,
+                        title: map.topic.title,
+                    }
+                    : null,
+                backgroundConfig: map.background_config,
+                gridConfig: map.grid_config,
+                mapAssets: map.assets.map((asset) => ({
+                    id: nextAssetId++,
+                    nodeId: nodeIds.get(
+                        `${map.slug}:${map.nodes.find((node) => node.asset_slug === asset.slug)?.slug ?? ''}`,
+                    ) ?? null,
+                    imageUrl: asset.image_url,
+                    text: asset.text,
+                    x: asset.x,
+                    y: asset.y,
+                    z: asset.z,
+                    width: asset.width,
+                    opacity: asset.opacity,
+                    locked: asset.locked,
+                    focusable: asset.interaction_mode === 'focusable',
+                    interactionMode: asset.interaction_mode,
+                    interactionConfig: asset.interaction_config,
+                    visualConfig: asset.visual_config,
+                    soundConfig: asset.sound_config,
+                })),
+                mapAssetsLocked: map.map_assets_locked,
+                nodes,
+            };
+        }),
+    };
+
+    for (const activityProgress of snapshot.activity_progress) {
+        for (const map of snapshot.world.maps) {
+            const activityId = activityIds.get(
+                `${map.slug}:${activityProgress.node_slug}:${activityProgress.activity_slug}`,
+            );
+            if (activityId) {
+                progress[activityId] = { status: activityProgress.status };
+            }
+        }
+    }
+
+    const bookmarkedNodeIds = snapshot.bookmarked_nodes.flatMap((bookmark) => {
+        const nodeId = nodeIds.get(`${bookmark.map_slug}:${bookmark.node_slug}`);
+
+        return nodeId ? [nodeId] : [];
+    });
+
+    return {
+        appearance: currentUser.appearance,
+        auth: { user: { subjectId: currentUser.subject_id } },
+        bookmarkedNodeIds,
+        groups: groups.groups.map(toSourceGroup),
+        groupsPagination: {
+            currentPage: groups.pagination.current_page,
+            lastPage: groups.pagination.last_page,
+            perPage: groups.pagination.per_page,
+            total: groups.pagination.total,
+        },
+        localization: {
+            locale: translations.locale,
+            translations: translations.translations,
+        },
+        progress: { activities: progress },
+        soundPreferences: {
+            ambienceVolume: soundPreferences.ambience_volume,
+            effectsVolume: soundPreferences.effects_volume,
+            muted: soundPreferences.muted,
+        },
+        world,
+    };
+}
+
+function toSourceGroup(group: LearnerGroups['groups'][number]) {
+    return {
+        adminChatRequiredVotes: group.admin_chat_required_votes,
+        adminChatVisible: group.admin_chat_visible,
+        adminChatVoteCount: group.admin_chat_vote_count,
+        currentUserVotedForAdminChat: group.current_user_voted_for_admin_chat,
+        description: group.description,
+        // Group IDs remain Rust UUIDs at runtime. The copied component only
+        // compares/interpolates them, and writer calls are blocked by the
+        // World transport facade.
+        id: group.id,
+        memberCount: group.member_count,
+        members: group.members.map((member) => ({
+            email: member.email,
+            id: member.id,
+            name: member.name,
+        })),
+        messages: group.messages.map((message) => ({
+            body: message.body,
+            canResolve: message.can_resolve,
+            createdAt: message.created_at,
+            id: message.id,
+            isHelpRequest: message.is_help_request,
+            resolvedAt: message.resolved_at,
+            resolvedBy: message.resolved_by
+                ? {
+                    email: message.resolved_by.email,
+                    id: message.resolved_by.id,
+                    name: message.resolved_by.name,
+                }
+                : null,
+            user: message.user
+                ? {
+                    email: message.user.email,
+                    id: message.user.id,
+                    name: message.user.name,
+                }
+                : null,
+        })),
+        name: group.name,
+    };
+}

@@ -878,11 +878,20 @@ pub struct PublicMap {
     pub slug: String,
     pub title: String,
     pub description: String,
+    /// The published learning topic that owns this map when one exists. This
+    /// is presentation metadata only; it does not authorize topic access.
+    pub topic: Option<PublicMapTopic>,
     pub background_config: Value,
     pub grid_config: Value,
     pub map_assets_locked: bool,
     pub assets: Vec<PublicMapAsset>,
     pub nodes: Vec<PublicNode>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PublicMapTopic {
+    pub slug: String,
+    pub title: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -986,7 +995,7 @@ mod tests {
         AdminActivityGraphPosition, AdminNpcDialogueActivity, AdminNpcDialogueConnector,
         AdminNpcDialogueGraph, AdminNpcDialogueMap, AdminNpcDialogueNode,
         AdminNpcDialogueSourceNode, AdminNpcDialogueTypingSoundSet, AdminNpcDialogueWorld,
-        PublicNode,
+        PublicMapTopic, PublicNode,
     };
 
     #[test]
@@ -1007,6 +1016,20 @@ mod tests {
 
         assert!(serialized.get("id").is_none());
         assert_eq!(serialized["slug"], "first-node");
+    }
+
+    #[test]
+    fn public_map_topic_keeps_only_learner_navigation_metadata() {
+        let serialized = serde_json::to_value(PublicMapTopic {
+            slug: "orientation".to_owned(),
+            title: "Orientation".to_owned(),
+        })
+        .expect("public map topic serializes");
+
+        assert_eq!(
+            serialized,
+            json!({ "slug": "orientation", "title": "Orientation" })
+        );
     }
 
     #[test]

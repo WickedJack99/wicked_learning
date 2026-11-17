@@ -6,7 +6,9 @@ use uuid::Uuid;
 use wicked_learning_application::public_world::{
     PublicWorldReadError, PublicWorldRepository as PublicWorldRepositoryPort,
 };
-use wicked_learning_domain::world_content::{PublicMap, PublicMapAsset, PublicNode, PublicWorld};
+use wicked_learning_domain::world_content::{
+    PublicMap, PublicMapAsset, PublicMapTopic, PublicNode, PublicWorld,
+};
 
 use crate::learner_media::{learner_media_config, learner_media_url};
 
@@ -53,6 +55,8 @@ struct MapRow {
     slug: String,
     title: String,
     description: String,
+    topic_slug: Option<String>,
+    topic_title: Option<String>,
     background_config: Value,
     grid_config: Value,
     map_assets_locked: bool,
@@ -112,7 +116,7 @@ pub async fn load_first_visible(
     };
 
     let maps = sqlx::query_as::<_, MapRow>(
-        "SELECT id, slug, title, description, background_config, grid_config, map_assets_locked FROM learning_maps WHERE world_id = $1 AND published_at IS NOT NULL AND (access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY position ASC, slug ASC",
+        "SELECT maps.id, maps.slug, maps.title, maps.description, topics.slug AS topic_slug, topics.title AS topic_title, maps.background_config, maps.grid_config, maps.map_assets_locked FROM learning_maps AS maps LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL WHERE maps.world_id = $1 AND maps.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY maps.position ASC, maps.slug ASC",
     )
     .bind(world.id)
     .bind(roles)
@@ -211,6 +215,10 @@ pub async fn load_first_visible(
                     slug: map.slug,
                     title: map.title,
                     description: map.description,
+                    topic: map
+                        .topic_slug
+                        .zip(map.topic_title)
+                        .map(|(slug, title)| PublicMapTopic { slug, title }),
                     background_config: map.background_config,
                     grid_config: map.grid_config,
                     map_assets_locked: map.map_assets_locked,

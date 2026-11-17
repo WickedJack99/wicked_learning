@@ -9753,7 +9753,7 @@ components:
     PublicMap:
       type: object
       additionalProperties: false
-      required: [slug, title, description, background_config, grid_config, map_assets_locked, assets, nodes]
+      required: [slug, title, description, topic, background_config, grid_config, map_assets_locked, assets, nodes]
       properties:
         slug:
           type: string
@@ -9762,6 +9762,10 @@ components:
           type: string
         description:
           type: string
+        topic:
+          oneOf:
+            - $ref: '#/components/schemas/PublicMapTopic'
+            - type: 'null'
         background_config:
           type: object
           additionalProperties: true
@@ -9780,6 +9784,16 @@ components:
           maxItems: 100
           items:
             $ref: '#/components/schemas/PublicNode'
+    PublicMapTopic:
+      type: object
+      additionalProperties: false
+      required: [slug, title]
+      properties:
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        title:
+          type: string
     PublicWorld:
       type: object
       additionalProperties: false

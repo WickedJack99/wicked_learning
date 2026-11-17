@@ -37,6 +37,10 @@ export default defineConfig({
             { find: '@/lib/media-upload', replacement: resolve(import.meta.dirname, 'src/platform/profile-media-upload.ts') },
             { find: '@/routes/verification', replacement: resolve(import.meta.dirname, 'src/platform/verification-routes.ts') },
             {
+                find: '@/features/world/api',
+                replacement: resolve(import.meta.dirname, 'src/platform/world-api.ts'),
+            },
+            {
                 find: '@inertiajs/react',
                 replacement: resolve(import.meta.dirname, 'src/platform/welcome-inertia.tsx'),
             },

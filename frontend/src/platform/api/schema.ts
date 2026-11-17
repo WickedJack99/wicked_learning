@@ -7478,6 +7478,7 @@ export interface components {
             slug: string;
             title: string;
             description: string;
+            topic: components["schemas"]["PublicMapTopic"] | null;
             background_config: {
                 [key: string]: unknown;
             };
@@ -7487,6 +7488,10 @@ export interface components {
             map_assets_locked: boolean;
             assets: components["schemas"]["PublicMapAsset"][];
             nodes: components["schemas"]["PublicNode"][];
+        };
+        PublicMapTopic: {
+            slug: string;
+            title: string;
         };
         PublicWorld: {
             slug: string;

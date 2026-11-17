@@ -675,6 +675,42 @@ Settings management, or learner content. Those operations either already have
 separate Rust contracts awaiting their source page family or remain explicitly
 unavailable; none is silently represented as successful bootstrap behavior.
 
+### Canonical learner World read-route activation — 18 November 2026
+
+**Pinned source verified:** `main` resolves to
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. The mounted source entry is the
+byte-identical copied `resources/js/pages/world.tsx`, including its complete
+direct tree: `features/world/{world-map,node-detail-drawer,activity-panel,
+world-search,group-control,map-control-theme,theme,active-activity,types}`;
+`features/{sounds/sound-player,tools/tool-selection}`; `hooks/{use-appearance,
+use-platform-translation}`; `types/{learning,learning-search}`; map-media and
+interaction helpers; shared UI primitives; and the canonical stylesheet.
+`frontend/src/platform/world-route.tsx` imports that entry only via
+`frontend/canonical-source/resources/js/pages/world.tsx`; it imports no
+`original-*`, `lifted-*`, or `extracted-*` presentation file.
+
+| Source dependency / behavior | Rust contract and adapter evidence | Read-route rule |
+| --- | --- | --- |
+| Authenticated World, maps, nodes, learner state, safe map media and route-start summaries | `GET /api/v1/learner/world`; `api/src/learner_world.rs`; `application/src/learner_world.rs`; `persistence/src/{learner_world,public_world}.rs`; OpenAPI `getLearnerWorld` / `LearnerWorldSnapshot` | Reused as a bounded read. The adapter maps snake case and joins source-visible start/progress summaries by slug. It creates only document-local numeric rendering handles because copied source pointer logic requires legacy numeric IDs; no UUID-derived handle is accepted by Rust or used as persistence identity. |
+| Map-to-topic navigation | `PublicMap.topic`, `PublicMapTopic`; `persistence/src/public_world.rs`; OpenAPI `PublicMapTopic` | The learner/public map projection now returns only the published topic slug/title needed to retain the copied “Back to …” control. It does not disclose topic drafts or grant topic access. Its destination remains explicit-unavailable until Topics is activated. |
+| Current authenticated marker and private appearance | `GET /api/v1/me`; `api/src/current_user.rs`; OpenAPI `getCurrentUser` / `CurrentUser` | Required successful read. The copied page receives only an authenticated marker and appearance value; its copied `useAppearance` keeps the source browser preference behavior. This read route never calls the appearance writer, and name, email, roles and capabilities are not injected into source props. |
+| UI translations | `GET /api/v1/learner/platform-translations`; `api/src/learner_platform_translation.rs`; OpenAPI `getLearnerPlatformTranslations` | Reused to preserve copied labels. A failed read makes World unavailable rather than silently presenting an unverified language projection. |
+| Source sound preference controls | `GET /api/v1/learner/sound-preferences`; `api/src/learner_sound_preference.rs`; OpenAPI `getLearnerSoundPreferences` | Reused as a read-only volume/mute projection for copied map sounds. The adapter maps only the three source values and never calls its preference writer. |
+| Initial group control and its bounded pagination read | `GET /api/v1/learner/groups`; `api/src/learner_group.rs`; OpenAPI `getLearnerGroups` | Reused and mapped only at the source field-name seam. Opaque Rust UUID group/message identities stay opaque at runtime; the copied component only uses them for equality/keys. |
+| World search | `GET /api/v1/learner/search`; `api/src/learner_desk_search.rs`; OpenAPI `searchLearnerDesk` | `world-api.ts` maps only the copied page's legacy search URL to this typed Rust read. Search result map/node selection remains slug-based; no synthetic server identity is sent. |
+| Bookmarks, tool use, group messages/votes/resolution, route reset and activity start/playback | Existing command families are deliberately **not** activated by this slice. `frontend/src/platform/world-api.ts` rejects every legacy source writer and emits the visible unavailable alert. Source `router.visit` may navigate to a separately explicit-unavailable route, never to a fabricated play/run success. | No Laravel path is called and no Rust writer is called. `/learning/nodes/{id}/play`, portal travel, map-asset editing and all playback are outside this activation. |
+| Empty, authentication, authorization and dependency failures | World handler/OpenAPI `401`, `403`, `404`, `503`; route adapter failure boundary | `404` maps to the copied source's exact empty-World view. `401`, `403`, `503`, missing companion reads or network failure render the bounded explicit World-unavailable state; none becomes an empty or successful map. |
+
+The copied component does not read map access-role lists or portal/activity
+authoring documents while rendering this read-only surface, so the adapter
+does not invent empty values for them. Activity outlines exist solely to retain
+the source drawer's real route-start labels and local URL formation; playback
+data/configuration is not projected. `frontend/e2e/canonical-world.spec.ts`
+records map visibility, bounded source controls, the copied node drawer,
+unavailable bookmark/playback behavior, loading, empty, permission-unavailable
+and API-failure states at 1440×900 and 390×844. The source verifier continues
+to prove all 299 copied modules/styles are byte-identical.
+
 ### Canonical shared current-user and Settings bootstrap audit — 17 November 2026
 
 **Status: audited; activation not yet started.** The canonical baseline remains
