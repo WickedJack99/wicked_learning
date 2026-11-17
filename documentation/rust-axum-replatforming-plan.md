@@ -503,6 +503,45 @@ the controls the source keeps visible. A future source-UI change must correct
 the main source first, establish a new pinned SHA, and then re-audit it; this
 migration slice must not compensate with substitute JSX or CSS.
 
+### Canonical fixed public-information activation contract matrix — 17 November 2026
+
+**Pinned source verified:** `main` resolves to
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. This slice mounts the exact
+copied `resources/js/pages/info/about.tsx`, `info/imprint.tsx`, and
+`info/data-protection.tsx`, each of which renders the complete copied
+`features/platform-info/platform-info-page.tsx` public variant. Its named
+source dependency tree also includes `features/platform-info/content.ts`,
+`features/platform-info/markdown-renderer.tsx`, `hooks/use-appearance.tsx`,
+`hooks/use-platform-cursors.ts`, `theme/platform-theme.ts`,
+`theme/presentation.ts`, `theme/appearance*.ts`, `theme/cursors.ts`,
+`lib/utils.ts`, `lib/media-url.ts`, `components/input-error.tsx`,
+`components/ui/button.tsx`, and the copied app stylesheet. Those whole source
+files remain byte-identical under `frontend/canonical-source/**`; only the
+standalone platform adapter supplies the documented Inertia/page-prop seam.
+
+| Source dependency / behavior | Rust evidence | Classification | Activation rule |
+| --- | --- | --- | --- |
+| Shared `auth`, resolved `appearance`, public palette, auth/welcome backgrounds, cursor configuration and ordered information-navigation links | `GET /api/v1/public/welcome`; `backend/crates/api/src/public_welcome.rs`; `backend/crates/application/src/public_presentation.rs`; `backend/crates/persistence/src/public_presentation.rs` | Reusable | Reuse the bounded Welcome projection exactly as already audited. The adapter uses the existing snake_case-to-source-shape mapper and exposes only the authenticated marker, never a profile, role, capability or settings-write permission. |
+| `platformInfoContent.key` and `platformInfoContent.markdown` selected by each fixed source route | `GET /api/v1/public/pages/{slug}`; `backend/crates/api/src/public_pages.rs`; `backend/crates/application/src/public_page.rs`; `backend/crates/persistence/src/public_page.rs`; `PublicPage` in `contracts/openapi/v1.yaml` | Reusable | Fetch the published fixed-page document independently. A `404` or `503` is an explicit unavailable page; do not fall back to copied static text or an unverified presentation value. `PublicPage.title` remains transport metadata because this exact source component takes its visible title from the presentation configuration. |
+| `canEditPlatformInfo`, update metadata and source `useForm` initialization | Public source route explicitly passes `canEditPlatformInfo: false`; Rust fixed-page endpoint deliberately exposes neither author identity nor editing authority | Reusable, read-only | Supply `false` plus null update metadata. The narrow facade provides only the local form shape evaluated before the source’s public/settings branch; its `patch` throws the explicit unavailable operation and cannot issue Laravel or generic form HTTP. |
+| Public header links and copied Markdown renderer | Exact copied `PlatformInfoPage` source plus the bounded projection above | Reusable | Preserve source JSX, URLs, theme/style functions, responsive classes and Markdown/media safe-link behavior unchanged. Browser evidence covers `/about`, `/imprint`, and `/data-protection` at 1440×900 and 390×844, including a bounded Home control and source navigation back to Welcome. |
+| Configured `pages/info/show.tsx` at `/info/{page}` | Public presentation contains ordered configured page settings, but no audited source-shaped Rust projection proves the Laravel controller’s configured-page admission rule together with its content override | Partial — not activated | `/info/:page` stays on the explicit canonical unavailable state and makes no public API request. A later slice must audit the source controller’s configuration membership condition and add a bounded projection only if the existing reads cannot prove it. |
+
+**Adapter boundary:** `frontend/src/platform/public-information-route.tsx` makes only
+the two documented read calls and maps their data in
+`public-information-projection.ts`; `welcome-inertia.tsx` adds no write
+transport. `canonical-resolver.tsx` activates only `/about`, `/imprint` and
+`/data-protection`. The copied source files, configured `/info/:page`, source
+page, authentication forms and every settings/editor path remain outside this
+slice.
+
+**Source-browser evidence:**
+`frontend/e2e/canonical-public-information.spec.ts` records all three fixed
+pages at both required viewports, their bounded visible Home control and
+source-owned navigation, the published-page `404` unavailable state, and the
+unprojected configured-page no-request unavailable state. No inherited clipping
+or other source defect was observed for that tested visible control at 390×844.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not

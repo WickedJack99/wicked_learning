@@ -3,6 +3,7 @@ import { useLocation } from 'react-router';
 import Heading from '@/components/heading';
 
 import { WelcomeRoute } from './welcome-route';
+import { PublicInformationRoute } from './public-information-route';
 
 /**
  * The only presentation import in this bootstrap is copied from the pinned
@@ -14,6 +15,21 @@ export function CanonicalSourceResolver() {
 
     if (location.pathname === '/') {
         return <WelcomeRoute />;
+    }
+
+    if (
+        location.pathname === '/about' ||
+        location.pathname === '/imprint' ||
+        location.pathname === '/data-protection'
+    ) {
+        return (
+            <PublicInformationRoute
+                slug={location.pathname.slice(1) as
+                    | 'about'
+                    | 'data-protection'
+                    | 'imprint'}
+            />
+        );
     }
 
     return (
