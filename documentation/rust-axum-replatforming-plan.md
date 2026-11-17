@@ -594,6 +594,30 @@ submission, request shape, 503 visibility, and bounded submit controls at
 for this standalone route; it does not activate registration, recovery, MFA
 or a generic Laravel/Inertia form mechanism.
 
+### Canonical Login passkey activation — 17 November 2026
+
+**Pinned source verified:** `main` resolves to
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. The exact copied
+`components/passkey-verify.tsx` remains the Login control owner; no passkey
+JSX, copy, spinner, separator, error placement, route or responsive class was
+recreated. This slice replaces only its `@laravel/passkeys/react` transport
+import with a narrowly typed platform facade.
+
+| Source dependency / behavior | Rust evidence | Activation rule |
+| --- | --- | --- |
+| Discoverable WebAuthn option ceremony | `POST /api/v1/session/passkey/options`; `account_passkey::login_options`; OpenAPI `startPasskeyLogin` / `PasskeyOptions` | The facade first obtains the same-origin Rust CSRF token, then starts only this documented anonymous ceremony. It passes Rust’s options unchanged to the maintained `@simplewebauthn/browser` client. |
+| Browser assertion and successful session | `POST /api/v1/session/passkey`; `account_passkey::login`; OpenAPI `completePasskeyLogin` / `WebAuthnCredential` / `SessionStatus` | The browser-produced credential is sent to only the typed Rust completion endpoint. Rust alone verifies it, updates its credential counter and creates the server-side session; source `PasskeyVerify` retains its `/world` success navigation. |
+| Unsupported browser, rejection, rate limit and service failure | Copied component’s support gate/error region; OpenAPI `401`/`403`/`429`/`503` | Unsupported browsers retain the copied hidden-control behavior. Rejection remains visible in the copied error region; `503` is explicitly “Passkey authentication is currently unavailable.” No Laravel default URL, CSRF cookie convention, session, or generic passkey client remains active. |
+| Password-confirmation and passkey-registration operations | Existing `account/passkeys/**` Rust API operations | Not activated by this Login slice. The facade refuses supplied custom passkey routes explicitly; the copied confirmation/settings source stays unavailable until its separately audited page projection is mounted. |
+
+`frontend/e2e/canonical-passkey-login.spec.ts` provides source-derived browser
+evidence at 1440×900 and 390×844. It supplies a browser WebAuthn assertion,
+proves the CSRF/options/assertion request chain and Rust request shape, checks
+the source-owned success navigation and bounded control, and verifies visible
+Rust service unavailability. The tests use only a browser credential mock; the
+Rust API’s server-side ceremony/credential verification remains covered by its
+focused passkey tests.
+
 ### Canonical Registration activation — 17 November 2026
 
 The exact copied `pages/auth/register.tsx` is mounted in the copied auth
@@ -638,7 +662,7 @@ success navigation, rejection and `503` state at 1440×900 and 390×844, with
 bounded visible controls. `canonical-login.spec.ts` additionally proves that a
 Rust `two_factor_required` response enters the copied challenge rather than
 being rendered as an invalid-password error. No TOTP enrollment/settings,
-passkey, email verification, generic Inertia transport, or World route is
+email verification, generic Inertia transport, or World route is
 activated by this slice.
 
 ### World Builder exact-source parity audit — 15 November 2026

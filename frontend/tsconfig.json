@@ -17,6 +17,7 @@
         "jsx": "react-jsx",
         "baseUrl": ".",
         "paths": {
+            "@laravel/passkeys/react": ["src/platform/passkey-react.ts"],
             "@/routes/two-factor/login": ["src/platform/two-factor-routes.ts"],
             "@/routes/two-factor": ["src/platform/two-factor-management-routes.ts"],
             "@/routes/login": ["src/platform/auth-routes.ts"],

@@ -7,6 +7,7 @@ export default defineConfig({
     plugins: [react(), tailwindcss()],
     resolve: {
         alias: [
+            { find: '@laravel/passkeys/react', replacement: resolve(import.meta.dirname, 'src/platform/passkey-react.ts') },
             { find: '@/routes/two-factor/login', replacement: resolve(import.meta.dirname, 'src/platform/two-factor-routes.ts') },
             { find: '@/routes/two-factor', replacement: resolve(import.meta.dirname, 'src/platform/two-factor-management-routes.ts') },
             {
