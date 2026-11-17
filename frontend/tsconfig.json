@@ -17,6 +17,8 @@
         "jsx": "react-jsx",
         "baseUrl": ".",
         "paths": {
+            "@inertiajs/react": ["src/platform/welcome-inertia.tsx"],
+            "@/routes": ["src/platform/welcome-routes.ts"],
             "@/*": ["canonical-source/resources/js/*"]
         }
   },

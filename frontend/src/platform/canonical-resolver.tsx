@@ -2,6 +2,8 @@ import { useLocation } from 'react-router';
 
 import Heading from '@/components/heading';
 
+import { WelcomeRoute } from './welcome-route';
+
 /**
  * The only presentation import in this bootstrap is copied from the pinned
  * Laravel source tree. Route families are deliberately not mounted until an
@@ -9,6 +11,10 @@ import Heading from '@/components/heading';
  */
 export function CanonicalSourceResolver() {
     const location = useLocation();
+
+    if (location.pathname === '/') {
+        return <WelcomeRoute />;
+    }
 
     return (
         <main className="min-h-svh bg-background px-6 py-12 text-foreground md:px-10">

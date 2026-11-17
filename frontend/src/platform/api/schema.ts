@@ -6204,6 +6204,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/welcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the bounded source-shaped document for the canonical Welcome page.
+         * @description Returns only the public presentation, source guest/authentication marker, and resolved appearance needed to mount the copied Welcome page. It does not expose a profile, roles, permissions, settings writes, or translations.
+         */
+        get: operations["getPublicWelcome"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/source-links": {
         parameters: {
             query?: never;
@@ -7154,6 +7174,23 @@ export interface components {
             information_pages: components["schemas"]["PublicInformationPage"][];
             public_palette: components["schemas"]["PublicPaletteModes"];
             settings_palette: components["schemas"]["SettingsPaletteModes"];
+        };
+        WelcomePageProjection: {
+            auth: components["schemas"]["WelcomePageAuth"];
+            /**
+             * @description Source-compatible resolved account preference, or system for an anonymous browser.
+             * @enum {string}
+             */
+            appearance: "light" | "dark" | "system";
+            publicPresentation: components["schemas"]["PublicPresentation"];
+        };
+        WelcomePageAuth: {
+            /** @description Presence-only source auth marker; this projection intentionally does not return a profile. */
+            user: components["schemas"]["WelcomePageUser"] | null;
+        };
+        WelcomePageUser: {
+            /** Format: uuid */
+            id: string;
         };
         PublicBranding: {
             /** @description Deployment-provided logo URL or same-origin asset path. */
@@ -33857,6 +33894,40 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    getPublicWelcome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The public Welcome page projection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WelcomePageProjection"];
+                };
+            };
+            /** @description The authenticated identity has no application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The public presentation or authenticated appearance dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

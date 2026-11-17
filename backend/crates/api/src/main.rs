@@ -156,6 +156,7 @@ mod public_presentation;
 mod public_routes;
 mod public_search;
 mod public_source_links;
+mod public_welcome;
 mod public_world;
 mod registration_tokens;
 mod security_access_audit;
@@ -1587,6 +1588,7 @@ fn router(state: AppState) -> Router {
             "/api/v1/public/presentation",
             get(public_presentation::show),
         )
+        .route("/api/v1/public/welcome", get(public_welcome::show))
         .route(
             "/api/v1/public/source-links",
             get(public_source_links::index),

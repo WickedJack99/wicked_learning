@@ -466,6 +466,43 @@ but deliberately discards the premise that its present frontend wrappers are a
 safe visual baseline. No future migration slice may copy fragments from the
 old standalone frontend instead of the pinned source tree.
 
+### Canonical Welcome activation contract matrix — 17 November 2026
+
+**Scope:** `resources/js/pages/welcome.tsx` at pinned `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`, including its directly rendered
+appearance toggle, cursor/theme helpers, page navigation and information-link
+footer. This is the first route activation after the canonical-source reset;
+it does not activate login, registration, World, information or settings
+routes.
+
+| Source dependency | Existing Rust evidence | Classification | Welcome-slice rule |
+| --- | --- | --- | --- |
+| `publicPresentation` (welcome pages, public palette, auth background images, cursors and information-page links) | `GET /api/v1/public/presentation`, `api/src/public_presentation.rs`, `application/src/public_presentation.rs` | Partial | Reuse the read model. The Welcome adapter may perform the one documented snake_case-to-source-shape mapping; it must not provide administration data or defaults that conceal an unavailable projection. |
+| `auth.user` truthiness | `GET /api/v1/session`, `api/src/session_status.rs` | Partial | Welcome needs only the actual authenticated/not-authenticated state, but the source prop is nested under `auth.user`. Do not fetch or invent profile data for this page. |
+| Authenticated `appearance` | `GET /api/v1/me`, `api/src/current_user.rs`, `application/src/current_user.rs` | Partial | The source page needs the current account’s resolved light/dark preference, but `/me` is not an anonymous public document. Do not invoke the appearance writer. |
+| Guest `appearance` | Source `Appearance::forGuest()` and canonical `theme/appearance.ts` | Reusable source fallback | Supply the source-defined `system` value only; browser storage and system-media resolution remain source-local behavior. |
+| Appearance write in canonical `theme/appearance-persistence.ts` | `PATCH /api/v1/learner/appearance`, `api/src/learner_appearance_preference.rs` | Reusable but out of scope | The copied Welcome page renders its appearance toggle only for anonymous visitors, whose source behavior is browser-local. This slice does not mount a settings writer, alias this transport, or call the Rust writer. |
+| Appearance-toggle fixed labels | canonical `hooks/use-platform-translation.ts` fallback arguments | Reusable source fallback | Use the source’s own English fallback with an empty public translation map; no private translation read or fabricated catalog is permitted. |
+| `login()` / `register()` Wayfinder helpers and all Welcome destinations | Laravel-generated helpers are not part of the pinned `resources/js` tree; Rust auth and public route families are separately audited | Missing outside this slice | A Welcome-only facade may preserve the exact `/login` and `/register` URL strings. Every destination resolves to the explicit unavailable state until its own route projection is approved. |
+
+**Required projection:** add at most one anonymous-safe, read-only
+`GET /api/v1/public/welcome` document that aggregates the existing public
+presentation read with the session-derived user marker and, only for an
+authenticated session, the existing application appearance preference. It
+returns no profile, roles, permissions, credentials, settings-write capability
+or translation catalog. A failed dependency must remain an unavailable
+response, never a fallback success document.
+
+**Known inherited source defect (accepted for this activation):** at
+390×844, the pinned source Welcome page’s unauthenticated header has a
+384.8px navigation beginning at x=132.7; its Login control extends to x=398.0
+and the source page’s `overflow-hidden` clips it. This is not a Rust adapter
+or page-projection defect. The focused browser regression records the exact
+overflow at the pinned source breakpoint and continues to require bounds for
+the controls the source keeps visible. A future source-UI change must correct
+the main source first, establish a new pinned SHA, and then re-audit it; this
+migration slice must not compensate with substitute JSX or CSS.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not

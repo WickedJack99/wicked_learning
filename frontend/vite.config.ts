@@ -6,9 +6,20 @@ import { resolve } from 'node:path';
 export default defineConfig({
     plugins: [react(), tailwindcss()],
     resolve: {
-        alias: {
-            '@': resolve(import.meta.dirname, 'canonical-source/resources/js'),
-        },
+        alias: [
+            {
+                find: '@inertiajs/react',
+                replacement: resolve(import.meta.dirname, 'src/platform/welcome-inertia.tsx'),
+            },
+            {
+                find: '@/routes',
+                replacement: resolve(import.meta.dirname, 'src/platform/welcome-routes.ts'),
+            },
+            {
+                find: '@',
+                replacement: resolve(import.meta.dirname, 'canonical-source/resources/js'),
+            },
+        ],
     },
     server: {
         proxy: {

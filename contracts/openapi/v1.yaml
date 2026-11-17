@@ -7720,6 +7720,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /public/welcome:
+    get:
+      operationId: getPublicWelcome
+      summary: Read the bounded source-shaped document for the canonical Welcome page.
+      description: Returns only the public presentation, source guest/authentication marker, and resolved appearance needed to mount the copied Welcome page. It does not expose a profile, roles, permissions, settings writes, or translations.
+      responses:
+        '200':
+          description: The public Welcome page projection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WelcomePageProjection' }
+        '403': { description: The authenticated identity has no application principal. }
+        '503': { description: The public presentation or authenticated appearance dependency is unavailable. }
   /public/source-links:
     get:
       operationId: getPublicSourceLinks
@@ -9267,6 +9280,35 @@ components:
           $ref: '#/components/schemas/PublicPaletteModes'
         settings_palette:
           $ref: '#/components/schemas/SettingsPaletteModes'
+    WelcomePageProjection:
+      type: object
+      additionalProperties: false
+      required: [auth, appearance, publicPresentation]
+      properties:
+        auth:
+          $ref: '#/components/schemas/WelcomePageAuth'
+        appearance:
+          type: string
+          enum: [light, dark, system]
+          description: Source-compatible resolved account preference, or system for an anonymous browser.
+        publicPresentation:
+          $ref: '#/components/schemas/PublicPresentation'
+    WelcomePageAuth:
+      type: object
+      additionalProperties: false
+      required: [user]
+      properties:
+        user:
+          anyOf:
+            - $ref: '#/components/schemas/WelcomePageUser'
+            - type: 'null'
+          description: Presence-only source auth marker; this projection intentionally does not return a profile.
+    WelcomePageUser:
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id: { type: string, format: uuid }
     PublicBranding:
       type: object
       additionalProperties: false
