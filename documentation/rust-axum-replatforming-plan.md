@@ -878,6 +878,33 @@ identity is verified by `check:canonical-source` against
 through `frontend/src/platform/profile-route.tsx` and its documented narrow
 facades.
 
+### Canonical direct Settings information activation — 17 November 2026
+
+The unchanged copied `resources/js/pages/settings/{about,imprint,data-protection}.tsx`
+documents are mounted at their exact source URLs through the complete copied
+`features/platform-info/platform-info-page.tsx` tree, its Markdown renderer,
+appearance/presentation hooks, source buttons and source styling. The pinned
+`PlatformInfoPageController::showSettings` explicitly supplies
+`canEditPlatformInfo: false`; these are read-only direct documents, not the
+root Settings workspace or the administrator public-information editor.
+
+| Source dependency / behavior | Rust contract / adapter | Rule |
+| --- | --- | --- |
+| Authenticated direct-Settings admission and active appearance | `GET /api/v1/me` (`getCurrentUser`, `CurrentUser`) | The route requires a successful actual current-user read before mounting the copied Settings document. It uses only the returned appearance; no legacy source user ID or extra account field is fabricated. |
+| Source palette, public presentation and page-prop shape | `GET /api/v1/public/welcome` (`getPublicWelcome`) plus `toWelcomePageProps` | The existing bounded Welcome projection supplies the exact source `auth`, appearance and `publicPresentation` dependencies. Its failure makes the document explicitly unavailable; it does not fall back to copied presentation defaults. |
+| Selected information document | `GET /api/v1/public/pages/{slug}` (`getPublicPage`) | The adapter maps only the returned `body` to `platformInfoContent.markdown` for the source slug. The whole source component continues to choose its own static title and render the copied Markdown renderer. |
+| Edit capability | Pinned source `PlatformInfoPageController::showSettings` | The adapter always supplies the source-owned `canEditPlatformInfo: false`, exactly as the controller did. The unrelated `GET/PATCH /admin/public-information-pages` contract and source editing branch remain inactive; no editor control is hidden by an invented permission decision. |
+| Read failure or unavailable page | Rust `401`/`403`/`404`/`503` and network failures from any required read | The adapter renders the bounded `Settings information is unavailable.` state. It does not mount an empty source document, infer public content, or claim the page can be edited. The copied back URL stays `/settings`, whose root document remains explicitly unavailable. |
+
+`frontend/e2e/canonical-settings-information.spec.ts` proves the exact copied
+About, Imprint and Data Protection documents and their source Markdown at
+1440×900 and 390×844, including a bounded source back control, the source's
+read-only/no-Edit state, and failure of the authenticated page projection.
+`check:canonical-source` verifies the mounted source files against
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`; no canonical source file is
+changed. The dedicated adapter is
+`frontend/src/platform/settings-information-route.tsx`.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not

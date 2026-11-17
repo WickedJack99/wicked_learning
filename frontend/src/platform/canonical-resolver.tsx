@@ -14,6 +14,7 @@ import { ConfirmPasswordRoute } from './confirm-password-route';
 import { AppearanceRoute } from './appearance-route';
 import { LanguageRoute } from './language-route';
 import { ProfileRoute } from './profile-route';
+import { SettingsInformationRoute } from './settings-information-route';
 
 /**
  * The only presentation import in this bootstrap is copied from the pinned
@@ -42,6 +43,20 @@ export function CanonicalSourceResolver() {
     }
     if (location.pathname === '/settings/profile') {
         return <ProfileRoute />;
+    }
+    if (
+        location.pathname === '/settings/about' ||
+        location.pathname === '/settings/imprint' ||
+        location.pathname === '/settings/data-protection'
+    ) {
+        return (
+            <SettingsInformationRoute
+                slug={location.pathname.slice(10) as
+                    | 'about'
+                    | 'data-protection'
+                    | 'imprint'}
+            />
+        );
     }
     if (location.pathname === '/register') {
         return <RegisterRoute />;
