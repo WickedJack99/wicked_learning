@@ -8,6 +8,8 @@ export default defineConfig({
     resolve: {
         alias: [
             { find: '@laravel/passkeys/react', replacement: resolve(import.meta.dirname, 'src/platform/passkey-react.ts') },
+            { find: '@/actions/Laravel/Passkeys/Http/Controllers/PasskeyConfirmationController', replacement: resolve(import.meta.dirname, 'src/platform/passkey-confirmation-actions.ts') },
+            { find: '@/routes/password/confirm', replacement: resolve(import.meta.dirname, 'src/platform/password-confirm-routes.ts') },
             { find: '@/routes/two-factor/login', replacement: resolve(import.meta.dirname, 'src/platform/two-factor-routes.ts') },
             { find: '@/routes/two-factor', replacement: resolve(import.meta.dirname, 'src/platform/two-factor-management-routes.ts') },
             {

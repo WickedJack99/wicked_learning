@@ -639,6 +639,26 @@ source route with its source status message. `canonical-forgot-password.spec.ts`
 proves this source behavior and bounded submit control at both required
 viewports. Reset-token consumption remains a separately audited route.
 
+### Canonical password-confirmation activation — 17 November 2026
+
+The exact copied `pages/auth/confirm-password.tsx` is mounted at its source
+`/user/confirm-password` URL with copied auth layout, password input and
+`PasskeyVerify` control intact. `GET /api/v1/session` preserves the source
+anonymous redirect to Welcome; `GET /public/welcome` remains the bounded auth
+presentation projection. The copied password form uses only `GET /security/csrf`
+and the existing typed `POST /account/password/confirmation` contract. Its
+password and passkey successes follow Laravel’s configured `/home` fallback;
+a local, same-origin `return_to` path is accepted only when it is an absolute
+non-network path, preserving a future source intended-destination handoff
+without an open redirect. The named passkey confirmation actions map only to
+`POST /account/passkeys/confirmation/options` and
+`POST /account/passkeys/confirmation`; their WebAuthn credential is verified
+server-side and opens the existing Rust confirmation window. `403`/`422` and
+`503` stay visible in the copied control’s error region. No Settings route or
+passkey-management page is activated. `canonical-confirm-password.spec.ts`
+proves password and passkey completion, rejection, anonymous routing and
+bounded password controls at 1440×900 and 390×844.
+
 ### Canonical two-factor challenge activation — 17 November 2026
 
 **Pinned source verified:** `main` resolves to

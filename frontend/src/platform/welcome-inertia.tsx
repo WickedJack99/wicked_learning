@@ -104,7 +104,7 @@ export function useForm<TData extends SourceFormData>(initialData: TData): {
 }
 
 type AuthFormProps = {
-    action: '/api/v1/session/login' | '/api/v1/registration' | '/api/v1/password/forgot' | '/api/v1/password/reset' | '/api/v1/session/two-factor';
+    action: '/api/v1/session/login' | '/api/v1/registration' | '/api/v1/password/forgot' | '/api/v1/password/reset' | '/api/v1/session/two-factor' | '/api/v1/account/password/confirmation';
     method: 'post';
     resetOnError?: boolean;
     resetOnSuccess?: string[] | boolean;
@@ -155,9 +155,10 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
                 })
                 : action === '/api/v1/registration'
                     ? await apiClient.POST('/registration', { body: body as never, params: { header: { 'X-CSRF-Token': csrfToken } } })
-                    : action === '/api/v1/password/forgot' ? await apiClient.POST('/password/forgot', { body: { email: body.email }, params: { header: { 'X-CSRF-Token': csrfToken } } }) : action === '/api/v1/password/reset' ? await apiClient.POST('/password/reset', { body: transformed as never, params: { header: { 'X-CSRF-Token': csrfToken } } }) : await apiClient.POST('/session/two-factor', { body: transformed as never, params: { header: { 'X-CSRF-Token': csrfToken } } });
+                    : action === '/api/v1/password/forgot' ? await apiClient.POST('/password/forgot', { body: { email: body.email }, params: { header: { 'X-CSRF-Token': csrfToken } } }) : action === '/api/v1/password/reset' ? await apiClient.POST('/password/reset', { body: transformed as never, params: { header: { 'X-CSRF-Token': csrfToken } } }) : action === '/api/v1/session/two-factor' ? await apiClient.POST('/session/two-factor', { body: transformed as never, params: { header: { 'X-CSRF-Token': csrfToken } } }) : await apiClient.POST('/account/password/confirmation', { body: { password: String(transformed.password ?? '') }, params: { header: { 'X-CSRF-Token': csrfToken } } });
 
             const sessionStatus = data as { authenticated?: boolean; two_factor_required?: boolean } | undefined;
+            const passwordConfirmation = data as { confirmed?: boolean } | undefined;
             const challengeRequired = action === '/api/v1/session/login'
                 && response.ok
                 && sessionStatus?.two_factor_required === true;
@@ -165,6 +166,8 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
                 ? response.ok
                 : action === '/api/v1/password/forgot'
                     ? response.ok && Boolean(data)
+                    : action === '/api/v1/account/password/confirmation'
+                        ? response.ok && passwordConfirmation?.confirmed === true
                     : response.ok && Boolean(sessionStatus?.authenticated);
             if (challengeRequired) {
                 window.location.assign('/two-factor-challenge');
@@ -173,14 +176,20 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
             if (!succeeded) {
                 const errorField = action === '/api/v1/session/two-factor'
                     ? (values.get('recovery_code') ? 'recovery_code' : 'code')
+                    : action === '/api/v1/account/password/confirmation'
+                        ? 'password'
                     : 'email';
                 setErrors({
                     [errorField]: response.status === 503
                         ? action === '/api/v1/session/two-factor'
                             ? 'Two-factor authentication is currently unavailable.'
+                            : action === '/api/v1/account/password/confirmation'
+                                ? 'Password confirmation is currently unavailable.'
                             : 'Login is currently unavailable.'
                         : action === '/api/v1/session/two-factor'
                             ? 'The authentication code is invalid or expired.'
+                            : action === '/api/v1/account/password/confirmation'
+                                ? 'The password could not be confirmed.'
                             : 'The provided credentials are invalid.',
                 });
                 return;
@@ -200,6 +209,8 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
             if (action === '/api/v1/password/forgot') {
                 sessionStorage.setItem('wicked-password-reset-status', 'If that email address is registered, a password reset link has been sent.');
                 window.location.reload();
+            } else if (action === '/api/v1/account/password/confirmation') {
+                window.location.assign(passwordConfirmationDestination());
             } else {
                 window.location.assign('/world');
             }
@@ -207,6 +218,8 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
             setErrors({
                 form: action === '/api/v1/session/two-factor'
                     ? 'Two-factor authentication is currently unavailable.'
+                    : action === '/api/v1/account/password/confirmation'
+                        ? 'Password confirmation is currently unavailable.'
                     : 'Login is currently unavailable.',
             });
         } finally {
@@ -215,4 +228,14 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
     };
 
     return <form className={className} onSubmit={submit}>{children({ errors, processing, clearErrors: () => setErrors({}) })}</form>;
+}
+
+function passwordConfirmationDestination(): string {
+    const returnTo = new URLSearchParams(window.location.search).get('return_to');
+
+    if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+        return returnTo;
+    }
+
+    return '/home';
 }

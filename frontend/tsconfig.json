@@ -18,6 +18,8 @@
         "baseUrl": ".",
         "paths": {
             "@laravel/passkeys/react": ["src/platform/passkey-react.ts"],
+            "@/actions/Laravel/Passkeys/Http/Controllers/PasskeyConfirmationController": ["src/platform/passkey-confirmation-actions.ts"],
+            "@/routes/password/confirm": ["src/platform/password-confirm-routes.ts"],
             "@/routes/two-factor/login": ["src/platform/two-factor-routes.ts"],
             "@/routes/two-factor": ["src/platform/two-factor-management-routes.ts"],
             "@/routes/login": ["src/platform/auth-routes.ts"],

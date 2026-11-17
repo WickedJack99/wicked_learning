@@ -31,14 +31,13 @@ export function usePasskeyVerify({ onSuccess, routes }: UsePasskeyVerifyOptions 
         setError(null);
 
         try {
-            if (routes) {
-                throw new Error('Passkey confirmation is not available on this route.');
-            }
-
             const csrfToken = await getCsrfToken();
-            const options = await apiClient.POST('/session/passkey/options', {
-                params: { header: { 'X-CSRF-Token': csrfToken } },
-            });
+            const isConfirmation = routes?.options === '/api/v1/account/passkeys/confirmation/options'
+                && routes.submit === '/api/v1/account/passkeys/confirmation';
+            if (routes && !isConfirmation) throw new Error('Passkey confirmation is not available on this route.');
+            const options = isConfirmation
+                ? await apiClient.POST('/account/passkeys/confirmation/options', { params: { header: { 'X-CSRF-Token': csrfToken } } })
+                : await apiClient.POST('/session/passkey/options', { params: { header: { 'X-CSRF-Token': csrfToken } } });
             if (!options.response.ok || !options.data) {
                 throw new Error(problemTitle(options.error, options.response.status));
             }
@@ -46,15 +45,15 @@ export function usePasskeyVerify({ onSuccess, routes }: UsePasskeyVerifyOptions 
             const credential = await startAuthentication({
                 optionsJSON: options.data.options as unknown as Parameters<typeof startAuthentication>[0]['optionsJSON'],
             });
-            const completion = await apiClient.POST('/session/passkey', {
-                body: credential as never,
-                params: { header: { 'X-CSRF-Token': csrfToken } },
-            });
-            if (!completion.response.ok || !completion.data?.authenticated) {
-                throw new Error(problemTitle(completion.error, completion.response.status));
+            if (isConfirmation) {
+                const completion = await apiClient.POST('/account/passkeys/confirmation', { body: credential as never, params: { header: { 'X-CSRF-Token': csrfToken } } });
+                if (!completion.response.ok || completion.data?.confirmed !== true) throw new Error(problemTitle(completion.error, completion.response.status));
+                onSuccess?.({ redirect: passwordConfirmationDestination() });
+            } else {
+                const completion = await apiClient.POST('/session/passkey', { body: credential as never, params: { header: { 'X-CSRF-Token': csrfToken } } });
+                if (!completion.response.ok || completion.data?.authenticated !== true) throw new Error(problemTitle(completion.error, completion.response.status));
+                onSuccess?.({ redirect: completion.data.redirect });
             }
-
-            onSuccess?.({ redirect: completion.data.redirect });
         } catch (reason) {
             setError(reason instanceof Error ? reason.message : 'Passkey authentication could not be completed.');
         } finally {
@@ -63,6 +62,14 @@ export function usePasskeyVerify({ onSuccess, routes }: UsePasskeyVerifyOptions 
     }, [onSuccess, routes]);
 
     return { verify, isLoading, error, isSupported };
+}
+
+function passwordConfirmationDestination(): string {
+    const returnTo = new URLSearchParams(window.location.search).get('return_to');
+
+    if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) return returnTo;
+
+    return '/home';
 }
 
 function problemTitle(error: unknown, status: number): string {
