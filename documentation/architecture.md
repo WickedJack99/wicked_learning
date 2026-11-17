@@ -597,12 +597,9 @@ Application revalidates the stored plan and atomically creates the MapAsset,
 compatibility node, route, supported typed Activities, route start and linear
 transitions; Markdown media references are synchronized before commit. Selected
 source references use the Rust platform's opaque UUIDs, not Laravel's retired
-numeric record identifiers. The source-derived standalone World Builder map
-surface exposes the same bounded brief, source selection, draft preview/edit
-and explicit approval flow only after those Rust endpoints are available. It
-loads enabled `content_authoring` templates through the scoped AI settings
-projection, never invokes a provider from the browser, and refreshes the map
-only after a successful atomic application.
+numeric record identifiers. The ContentPlan backend is available as a scoped
+Rust contract. Its copied canonical World Builder frontend remains unavailable
+until a complete source-route projection and transport matrix are verified.
 
 ## Account, Access And Support Models
 

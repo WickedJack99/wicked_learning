@@ -868,27 +868,19 @@ bounded, paginated node positions spatially, including each visible node's
 current position and whether restoring it would move that node, before
 restoring it, so the history cannot be mistaken for a complete map backup.
 
-The standalone World Builder now lifts the source map-tile dialog for creating,
-editing and deleting a tile's title, slug, description, hex position and
-state. Its presentation section edits the learner-facing label and hover text,
-visibility flags, dark/light theme colors, image placement and opacity, and can
-select a reusable visual for either theme. Its source-shaped availability
-section configures hidden tool discovery, completed-tile, role, item and tool
-prerequisites, AND/OR grouping, and UTC unlock/lock scheduling. Its interaction
-section selects and previews managed reusable sounds for the source pointer
-enter, click/tap, pointer leave and confirmed unlock triggers. The server
-continues to resolve selected catalog UUIDs, validate prerequisites and
-canonicalize schedules before learner delivery; sound UUIDs are likewise
-verified as published and are rewritten to learner-safe URLs only in the public
-projection.
+The Rust MapAsset and node authoring contracts support tile identity,
+presentation, availability, and managed interaction-sound behavior. The
+canonical copied MapAsset editor is not yet activated; its source route remains
+unavailable until the World Builder activation plan has verified its complete
+projection and transport seams.
 
-For locked tiles, the same dialog also shows the source opening-path warning
-when a completed-tile prerequisite cannot open independently. The author-only
-server projection follows nested AND/OR branches and recognises configured
-tools, items, roles, schedules, hidden-tool discovery, and answer-event
-openings; it does not let the browser infer reachability. An independently
-openable OR branch suppresses the warning, while Learning Support remains an
-explicit fallback rather than an authored path.
+For locked tiles, the Rust author-only reachability projection determines when
+the copied source opening-path warning may render after the canonical editor is
+activated. It follows nested AND/OR branches and recognises configured tools,
+items, roles, schedules, hidden-tool discovery, and answer-event openings; it
+does not let the browser infer reachability. An independently openable OR
+branch suppresses the warning, while Learning Support remains an explicit
+fallback rather than an authored path.
 
 The Rust backend for a selected node's source `Lock for all users` action now
 resets only learner-specific tool unlocks. It deliberately preserves discovery

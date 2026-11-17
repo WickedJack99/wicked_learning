@@ -331,20 +331,18 @@ substituting React Router and the existing Rust session state for Inertia.
 
 ### Canonical-frontend reset audit — 17 November 2026
 
-**Status: audit complete; no frontend reset has been performed by this
-section.** This is the binding execution register for the next frontend
-baseline replacement. It supersedes any reading of the current standalone
-`frontend/src/{original,lifted,extracted}-*` tree as a source-of-truth UI.
-Those files are evidence of individual Rust capability experiments only. They
-are not the canonical presentation implementation and do not establish visual
-parity merely by compiling or by using a Rust endpoint.
+**Status: reset complete.** The canonical source tree is copied under
+`frontend/canonical-source/**` and is the active frontend source baseline.
+This remains the binding register for route-family activation. Any former
+reconstructed presentation files are retired: they are not source, migration
+targets, or visual-parity evidence.
 
 **Canonical source:** current `main` at
 `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`, resolved on 17 November 2026.
 The source contains 299 files under `resources/js` and its one Tailwind entry
-stylesheet at `resources/css/app.css`. The current standalone frontend has 201
-files under `frontend/src`; it is neither a complete copy nor an authoritative
-subset of that source.
+stylesheet at `resources/css/app.css`. Standalone platform code is limited to
+the route resolver, Vite bootstrap, typed Rust client, and narrowly audited
+compatibility facades; it is not a presentation-source tree.
 
 #### Audit method and classification
 
@@ -420,51 +418,18 @@ audit finds a real behavior defect.
 | Learner exploration, routes, records and playback | `learner_{world,playback,route_run,check_in,bookmark*,paths,topics,topic_detail,journal*,recall*,revisit*,reflection,portal,*}` and `content_api` | P | Adapt source screen documents and commands one family at a time; retain server-owned navigation/transition/reward decisions. |
 | Organizations, groups, feedback and access links | `organization`, `learner_group`, `platform_feedback`, `access_link`, `temporary_access_login`, `admin_registration_tokens` | P | Map source forms, flash/redirects and paginated projections; preserve existing Rust authorization. |
 | Media, reusable assets, sounds and translations | `admin_{media_assets,asset_catalog,sound,dialogue_typing_sound_set,translation_catalog}`, media-store and learner/public media modules | P | Map source multipart and protected/download URL semantics, including error placement and media-reference scope, before enabling a copied picker. |
-| World Builder authoring and AI | `admin_world_*`, `admin_activity_*`, `admin_source_records`, `admin_activity_templates`, `admin_ai_*` API/application/persistence modules | P | Derive exact per-page document/command matrices from copied source; do not continue adapting old `lifted-*` components. |
+| World Builder authoring and AI | `admin_world_*`, `admin_activity_*`, `admin_source_records`, `admin_activity_templates`, `admin_ai_*` API/application/persistence modules | P | Derive exact per-page document/command matrices from copied source; activate only whole copied source routes. |
 | Email verification/re-notification | Rust identity data requires verified email, but no verification API operation is present in `contracts/openapi/v1.yaml` or `api/src/main.rs`. | M | Keep source verification page unavailable and record a dedicated identity slice; never bypass verification in the copied client. |
 
 #### Safe reset boundary and execution order
 
-This audit authorizes **no deletion in this commit**. The next implementation
-slice must make the following file boundary explicit before it changes anything:
-
-| Preserve | Replace only in the dedicated baseline-reset slice | Never infer from the old frontend |
-| --- | --- | --- |
-| `backend/**`, `contracts/openapi/**`, `infra/**`, database migrations, Compose/proxy configuration, Rust tests and the generated client contract; API/browser fixtures that prove a real Rust request/response/security invariant | The current reconstructed frontend presentation tree: `frontend/src/app.tsx`, `frontend/src/original-*`, `frontend/src/lifted-*`, `frontend/src/extracted-*`, reconstructed `public-*` UI and any route-local replacement components. `frontend/e2e` tests stay until each is classified as reusable Rust evidence, rewritten against copied source, or explicitly retired with a replacement. | UI hierarchy, labels, source URL ownership, hidden/visible controls, client authorization rules, backend response fields or user success states. Existing frontend implementation cannot fill a missing source or Rust contract. |
-
-The baseline-reset commit must be mechanically reviewable:
-
-1. Record the then-current `main` SHA and fail if it differs from this audit
-   without a new audit.
-2. Copy the complete pinned `resources/js/**` tree and
-   `resources/css/app.css` without selectively copying individual components.
-   Keep its source identity visible (for example, under a dedicated canonical
-   source root with `@` resolving to that root); do not rename it into
-   `original-*`/`lifted-*` derivatives.
-3. Keep the standalone Vite/Docker/bootstrap and typed API client in a small,
-   clearly separate platform adapter root. Install source UI dependencies only
-   when the source import inventory requires them; do not substitute controls
-   to avoid a dependency.
-4. Implement only compile-time/runtime bootstrap facades for the framework
-   seams listed above. A facade must return an explicit unavailable state for a
-   route without a recorded Rust projection. It must not make a Laravel HTTP
-   request, deserialize a Laravel session or emulate arbitrary Inertia form
-   posts.
-5. Compare copied-file identity against the recorded SHA, run type/build
-   verification, and prove that no current reconstructed page imports remain
-   in the canonical route resolver. Do not claim any business route migrated
-   merely because the baseline compiles.
-6. Thereafter, select routes in this order: public/auth bootstrap; shared
-   current-user/settings projection; learner World/playback; learner records
-   and discovery; organizations/access links; administration/media; World
-   Builder/direct editors. For each family, bind **R** contracts first, close
-   documented **P** gaps through Rust slices, and leave **M** states visibly
-   unavailable.
-
-The reset therefore preserves completed Rust functionality and its evidence,
-but deliberately discards the premise that its present frontend wrappers are a
-safe visual baseline. No future migration slice may copy fragments from the
-old standalone frontend instead of the pinned source tree.
+The reset preserved `backend/**`, `contracts/**`, migrations, infrastructure,
+Rust tests, generated API evidence, and public assets. It replaced the old
+presentation tree with the complete pinned source copy and kept only the
+minimal standalone platform adapter. Future work must reverify copied-file
+identity, run production frontend verification, and prove that a route resolver
+mounts canonical source rather than a replacement implementation. A route
+without a recorded Rust projection remains explicitly unavailable.
 
 ### Canonical Welcome activation contract matrix — 17 November 2026
 
@@ -991,652 +956,124 @@ Personal-read failure, bootstrap failure, and an unprojected admin selection
 that makes no Personal API read. Rust's focused bootstrap unit test proves
 read/update/delete display projection and the absence of scope leakage.
 
-### World Builder exact-source parity audit — 15 November 2026
+### Canonical World Builder activation plan - 17 November 2026
 
-**Status: parity blocked.** This is a documentation-only audit; it does not
-accept the existing standalone World Builder as visually migrated. Any earlier
-`Available`, `source-derived`, or `source-shaped` wording for this route family
-describes a separately verified capability/API slice, **not** visual or
-interaction parity. No World Builder state may be marked frontend-complete
-until the blockers below are closed against this baseline.
+**Status: not activated.** The exact World Builder frontend already exists only
+under `frontend/canonical-source/resources/js/**`, copied from pinned `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. The active standalone resolver
+intentionally rejects `/settings?panel=admin-world-builder` before it mounts
+the copied Settings index because there is no audited page projection for that
+route family yet.
 
-**Pinned source baseline:** `main` at
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f` (verified locally against
-`origin/main` on 15 November 2026). Re-audit from the current `main` SHA if it
-changes before work starts; do not use a snapshot from `replatform-discovery`
-as the source of truth.
+This replaces the former P0/parity backlog and every claim based on
+`original-*`, `lifted-*`, `extracted-*`, or bespoke standalone World
+Builder presentation. Those files and their browser tests are not a migration
+plan or visual evidence. The Rust endpoints behind
+`/api/v1/admin/world-builder/**` remain reusable capability evidence; they
+are not frontend activation evidence.
 
-#### Exact source composition and dependencies
+#### Canonical route boundary
 
-The route under audit is the current Laravel Settings composition:
-`/settings?panel=admin-world-builder`, not the historical standalone
-`/settings/worlds` page header. `resources/js/pages/settings/index.tsx` selects
-`WorldBuilderSettingsPanel`, which selects the Graph, Review queue, Structural,
-or selected-map workspace. The shared graph body is `WorldBuilderPanel` from
-`resources/js/pages/settings/worlds/index.tsx`. The following is the complete
-source component/dependency set to trace before a follow-up slice; every item
-must be either directly lifted or deliberately retained behind a documented
-Rust transport adapter.
+The source route is exactly:
 
-| Source role | Exact current-`main` source paths / dependency |
+```text
+/settings?panel=admin-world-builder
+  -> pages/settings/index.tsx
+  -> features/settings/world-builder-settings-panel.tsx
+  -> Graph | Review | Structural | selected-map workspace
+```
+
+The copied source files and their direct source-owned destinations are:
+
+| Source boundary | Copied source paths |
 | --- | --- |
-| Route and nested workspace composition | `resources/js/pages/settings/index.tsx`; `resources/js/features/settings/world-builder-settings-panel.tsx`; `resources/js/components/settings-configuration-shell.tsx`; its `SettingsNestedWorkspace`, `SettingsSectionNavigation`, `SettingsSectionButton`, and `SettingsNavigationItem` contracts |
-| Graph, graph inspector and graph-owned dialogs | `resources/js/pages/settings/worlds/index.tsx`: `WorldBuilderPanel`, `MapGraphNode`, `MapGraphHandles`, `MapDetails`, `PortalDetails`, `PortalEndpoint`, `EmptyDetails`, `GraphViewportLoadingOverlay`, graph node/edge/route helpers, create-map dialog and world-details/history dialog |
-| Review queue and its transport/error states | `resources/js/features/settings/world-builder-settings-panel.tsx`: `WorldBuilderReviewQueue`, `WorldBuilderSectionWorkspace`, `UnavailableWorldBuilder`, plus `resources/js/components/pagination-controls.tsx` and `resources/js/lib/json-response.ts` |
-| Structural map/MapAsset workspace | `resources/js/features/settings/world-map-management-panel.tsx`: `WorldMapManagementPanel` and its selected-map, configuration and MapAsset-list states |
-| Graph action dialogs | `resources/js/features/settings/duplicate-map-dialog.tsx`; `resources/js/features/settings/map-export-validation-dialog.tsx`; `resources/js/features/settings/map-import-dialog.tsx` |
-| Source destinations opened from World Builder | `resources/js/pages/settings/worlds/edit-map.tsx`; `resources/js/pages/settings/worlds/configure-map.tsx`; `resources/js/pages/settings/worlds/edit-node-activities.tsx` |
-| Shared UI, theme and translation dependencies | `resources/js/components/input-error.tsx`; `resources/js/components/learner-paginated-items.tsx`; `resources/js/components/ui/button.tsx`; `resources/js/components/ui/dialog.tsx`; `resources/js/components/ui/input.tsx`; `resources/js/components/ui/label.tsx`; `resources/js/components/ui/spinner.tsx`; `resources/js/hooks/use-appearance.tsx`; `resources/js/hooks/use-platform-translation.ts`; `resources/js/lib/utils.ts`; `resources/js/theme/presentation.ts`; source Settings design tokens in `resources/css` |
-| Runtime dependencies to adapt, not reimplement | Source `package.json`: `@inertiajs/react` `^3.0.0` (`Head`, `Link`, `router`); `@xyflow/react` `^12.11.1`; `lucide-react` `^0.475.0`; `@radix-ui/react-dialog` `^1.1.6`; `@radix-ui/react-label` `^2.1.2`; `@radix-ui/react-slot` `^1.2.3`; `class-variance-authority` `^0.7.1`; `clsx` `^2.1.1`; `tailwind-merge` `^3.0.1`; and `tw-animate-css` `^1.4.0`, alongside React. The standalone frontend now carries the matching non-Inertia packages, including `@xyflow/react` `^12.11.1`; only Inertia itself is intentionally replaced at documented transport seams. Package availability is not permission to recreate controls. |
-
-The current Rust entry and replacements are
-`frontend/src/app.tsx` (`admin-world-builder` route) and
-`frontend/src/original-world-builder.tsx` (`WorldBuilderContent`,
-`WorldBuilderGraphWorkspace`, `WorldBuilderReviewQueueWorkspace`,
-`WorldMapManagementWorkspace`, `GraphMapDetails`, `PortalDetails`,
-`WorldBuilderStatus`, and selected-map authoring surfaces). Its server boundary
-is `backend/crates/api/src/main.rs` under `/api/v1/admin/world-builder/*`.
-Those paths are evidence of an existing capability boundary only; they are not
-evidence that the source presentation has been lifted.
-
-#### State comparison and recovery backlog
-
-This comparison is source-code and existing focused-browser-coverage evidence.
-The Rust browser specs exercise isolated Rust states, but there is no recorded
-live Laravel-versus-Rust capture at either required viewport. That missing
-side-by-side proof is itself a P0 closure requirement; do not treat a passing
-Rust-only screenshot or a test labelled “source-shaped” as a source comparison.
-
-| State(s) and exact source path | Current Rust path | Concrete mismatch observed against pinned source | Severity | Required lifted source component(s) | Rust contract / evidence still required |
-| --- | --- | --- | --- | --- | --- |
-| Normal graph and empty inspector — `resources/js/features/settings/world-builder-settings-panel.tsx`; `resources/js/pages/settings/worlds/index.tsx` | `frontend/src/original-world-builder.tsx`: `WorldBuilderContent`, `WorldBuilderGraphWorkspace`, `WorldBuilderGraphActions`, `EmptyDetails` | The source renders a two-column Graph workspace (`minmax(0,1fr)` plus a 360px inspector) inside `SettingsNestedWorkspace`, with the exact **Prepare / New world map** and **Travel / Portal routes** sections. Rust substitutes `World tools`, adds Source catalog and a narrow-screen `<details>` disclosure, and uses a separately composed page shell. Its empty guidance also differs. | P0 blocker | `WorldBuilderSettingsPanel`, `WorldBuilderPanel`, `EmptyDetails`, settings configuration shell/navigation, source action/dialog components | Map the typed graph response to source `WorldGraph` without changing hierarchy or copy. Existing `GET /api/v1/admin/world-builder` appears to cover the read; record a field-by-field response mapping and direct 1440×900 + 390×844 source/Rust screenshots before closure. |
-| Graph cards, portal routing, fit/loading — `resources/js/pages/settings/worlds/index.tsx` (`MapGraphNode`, handles, `buildGraphNodes`, `buildGraphEdges`, `graphFitViewOptions`, `GraphViewportLoadingOverlay`) | `frontend/src/original-world-builder.tsx`: `WorldBuilderGraphWorkspace`, `MapGraphCard`, custom position/resize fitting helpers | Rust recreates the canvas and fitting logic instead of lifting the source helper/component set. In particular, it contains custom coordinate shifting/resize behavior and lacks the source card’s review-queue link; a visually contained card is not proof of matching graph routes, labels, handles, animation, or loading overlay. | P0 blocker | `MapGraphNode`, `MapGraphHandles`, all graph route helpers, `GraphViewportLoadingOverlay`, `useAppearance` seam | Verify that the graph response supplies map descriptions, slugs, nodes, review counts and portal endpoint/activity fields required by `WorldGraph`. Add source-reference interaction coverage for single, parallel and self portal routes, fit/loading, and no-map graph at both viewports. |
-| Selected map inspector — `resources/js/pages/settings/worlds/index.tsx` (`MapDetails`) | `frontend/src/original-world-builder.tsx`: `GraphMapDetails`; separately, the unrelated selected-map editor `MapDetails` | Rust’s graph inspector only offers “Open map authoring” and “Open map configuration.” The source inspector includes authoring-review summary, review-node pagination, Configure MapAssets, Configure map, both exports, and `DuplicateMapDialog`. The Rust editor `MapDetails` is not the source graph inspector and cannot substitute for it. | P0 blocker | Source `MapDetails`, `LearnerPaginatedItems`, `DuplicateMapDialog`, source links/buttons | Confirm one graph projection has every `MapSummary` field and an adapter for source-style review-node destinations. Existing map/export/duplicate APIs exist, but no source-equivalent inspector contract/mapping has been recorded. Browser coverage must select a map with and without pending review at 1440×900 and 390×844. |
-| Selected portal inspector — `resources/js/pages/settings/worlds/index.tsx` (`PortalDetails`, `PortalEndpoint`) | `frontend/src/original-world-builder.tsx`: `PortalDetails`, `PortalEndpoint` | Rust changes the source action from conditional **Edit source activity** to unconditional **Open source activity graph**, changes endpoint content (the source includes node description/slug), and substitutes its own icon/copy/translation behavior. | P0 blocker | `PortalDetails`, `PortalEndpoint`, source `Link` behavior | Map `source_activity`, `target_activity`, both nodes’ title/description/slug and source map/node IDs from the graph response; make the source action conditional. Record portal-with-activity and portal-without-activity browser comparisons at both viewports. |
-| Review queue: loading, populated, pagination, empty and error — `resources/js/features/settings/world-builder-settings-panel.tsx` (`WorldBuilderReviewQueue`) | `frontend/src/original-world-builder.tsx`: `WorldBuilderReviewQueueWorkspace`, `WorldBuilderReviewQueueDialog` | The source owns a 4-item page, source card/link hierarchy, source pagination primitive, centered loading/empty/error states and “Try again” retry. Rust uses a custom queue/card/dialog/navigation implementation; current coverage proves an API flow, not source layout, labels, error treatment, or route semantics. | P0 blocker | `WorldBuilderReviewQueue`, `PaginationControls`, `readJsonResponse`, source Settings nested workspace | Existing `/review-queue` endpoint is a candidate adapter, but normalize its item and pagination shapes to the source contract and document navigation to map/node/activity. Add mocked populated, loading, empty, failure/retry and multi-page tests plus source/Rust captures at both viewports. |
-| Structural: selected map, selected MapAsset, no map — `resources/js/features/settings/world-map-management-panel.tsx` (`WorldMapManagementPanel`) | `frontend/src/original-world-builder.tsx`: `WorldMapManagementWorkspace` and selected editor surfaces | Rust is a bespoke structural workspace. Passing localization assertions do not establish the source’s exact three-column desktop composition, selected-map/map-configuration/MapAsset links, active indicators, empty messages, or narrow stacking. | P1 blocking visual parity | `WorldMapManagementPanel`, source `Button`, `cn`, source map/node links | Reuse the existing graph projection only after its field mapping covers descriptions, slugs, node review counts and detail URLs. Capture no-map, selected-map, selected-MapAsset and configure states at both viewports. |
-| Selected map workspace — `resources/js/features/settings/world-builder-settings-panel.tsx` (`WorldBuilderMapWorkspace`) | `frontend/src/original-world-builder.tsx`: URL selection and custom map/asset editor routing | The source has a dedicated 17rem map-view navigator with exactly **Configure MapAssets** and **Configure map**. Rust routes directly into custom editor surfaces and does not retain that source workspace as the graph-selected-map state. | P1 blocker | `WorldBuilderMapWorkspace`, `SettingsSectionButton`, map-view section definitions | Record how Rust map/node documents populate `detail.content` while preserving the source URL selection. Existing selected map/node reads are candidates; document authorization and not-found/error responses before lifting. |
-| Permission unavailable, initial graph loading and graph-fetch error — `resources/js/features/settings/world-builder-settings-panel.tsx` (`UnavailableWorldBuilder`) | `frontend/src/original-world-builder.tsx`: `WorldBuilderStatus`, `UnavailableWorldBuilder`, graph fetch branching | Source shows the scoped unavailable panel only when no permitted section/graph is available; source Review owns its own loading/error. Rust invents account/permission recovery copy and applies client fetch status semantics that are not the source shell. | P0 blocker | `UnavailableWorldBuilder`, `WorldBuilderReviewQueue` state branches, surrounding source shell | Define an explicit transport-only adapter state for Rust fetch failures, nested in the lifted source surface. Verify 401/403/404/network and empty graph responses; do not introduce new product copy without source or approved transport-state evidence. |
-| Responsive shell at desktop 1440×900 and narrow 390×844 — all three core source files above | `frontend/src/original-world-builder.tsx`; `frontend/e2e/world-builder-graph-localization.spec.ts`; `frontend/e2e/world-map-management-localization.spec.ts`; `frontend/e2e/world-builder-status-localization.spec.ts` | Existing Rust tests check bounds at 390px and some graph content, but do not compare against main. They currently encode Rust-specific substitutions such as the custom graph action area and localized portal action. No recorded 1440×900 visual matrix covers every requested state. | P0 release gate | Entire source composition; no responsive redesign or custom mobile disclosure | Replace/adapt tests so they assert the pinned source hierarchy and controls. Produce an acceptance matrix for normal graph, selected map, selected portal, review (populated/loading/empty/error), structural (map/asset/no-map), unavailable and fetch-error at both exact viewports, with a live source/Rust comparison attached to the follow-up slice. |
-| Source dependencies and transport seams — all source paths listed above | `frontend/package.json`; `frontend/src/original-world-builder.tsx`; typed client/API schemas | The standalone frontend does not carry the source component/runtime dependency boundary. Current code has copied fragments and bespoke controls rather than a documented adapter for Inertia links/router, source primitives, appearance and package behavior. | P0 prerequisite | Source primitive and dialog dependency chain; `@inertiajs/react` seams replaced only at the boundary | Before implementation, make a written import-by-import adapter matrix: source dependency, Rust replacement, behavior retained, API endpoint/payload/error mapping, and test. Do not add a replacement component or a new endpoint until the matrix shows the source seam cannot be retained. |
-
-#### Audit coverage disposition
-
-Existing Rust-only Playwright coverage is retained as regression evidence for
-the current behavior, not parity acceptance:
-
-- `frontend/e2e/world-builder-graph-localization.spec.ts` checks mocked graph
-  data and some 390px bounds, but it also asserts the substituted portal action
-  and never proves the source card/inspector/action hierarchy.
-- `frontend/e2e/world-builder-review-queue.spec.ts` exercises a credentialed
-  Rust authoring flow, but does not cover source loading, empty, error/retry or
-  visual parity.
-- `frontend/e2e/world-builder-status-localization.spec.ts` asserts Rust-only
-  recovery messages that are not a source-equivalent acceptance baseline.
-- `frontend/e2e/world-map-management-localization.spec.ts` proves labels in a
-  mocked structural state, not the exact source three-column/narrow layout.
-
-The next World Builder implementation slice must start by selecting **one** P0
-row, lifting its named current-`main` source components as a whole, and adding
-the stated contract matrix and two-viewport source/Rust evidence. It must not
-repair an adjacent row opportunistically or claim parity from this audit.
-
-#### First P0 implementation evidence: normal Graph workspace and empty inspector — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This deliberately narrow implementation lifts the normal, unselected Graph
-workspace from `resources/js/pages/settings/worlds/index.tsx` into
-`frontend/src/lifted-world-builder-graph.tsx`, including the source graph node,
-handle, edge-routing, fitting, loading-overlay, empty-inspector, Prepare and
-Travel composition. It also lifts the source Button and Spinner primitives into
-`frontend/src/lifted-button.tsx` and `frontend/src/lifted-spinner.tsx`; their
-Radix/CVA/class-name runtime dependencies and the source `@xyflow/react`
-`^12.11.1` version are now present in `frontend/package.json`.
-
-The existing selected-map and selected-portal renderers are explicitly passed
-as slots. They were not changed and are not accepted by this slice. Review,
-Structural, map/MapAsset editors, and transfer-dialog internals likewise remain
-backlog items. The normal Graph no longer exposes the prior invented Source
-catalog action or narrow-screen `World tools` disclosure, because neither
-exists in the pinned source component.
-
-| Pinned-source `WorldGraph` field | Rust OpenAPI field (`GET /api/v1/admin/world-builder`) | Adapter behavior | Evidence |
-| --- | --- | --- | --- |
-| `world.id`, `slug`, `title`, `description`, `updatedAt` | `world.id`, `slug`, `title`, `description`, `updated_at` | `updated_at` is renamed only at the source-component boundary; the normal graph does not otherwise derive world data. | Generated `AdminWorldGraph` client type; frontend production build. |
-| `maps[].id`, `slug`, `title`, `description`, `updatedAt`, `nodeCount`, `reviewCount` | `maps[].id`, `slug`, `title`, `description`, `updated_at`, `node_count`, `review_count` | `adaptRustWorldGraph` performs the explicit snake_case-to-source-name mapping before the lifted JSX/graph helpers run. | Mocked browser graph uses every required map field. |
-| `maps[].nodes[].id`, `slug`, `title`, `description`, `activityReviewCount` | `maps[].nodes[].id`, `slug`, `title`, `description`, `activity_review_count` | The adapter preserves nodes only for source card review-link selection; it does not invent client review state. | Source-card and empty-inspector Playwright assertions. |
-| `portalLinks[].id`, `label`, `description`, source/target map IDs, nodes and activities | `portal_links[]` with `source_map_id`, `target_map_id`, `source_node`, `target_node`, `source_activity`, `target_activity.activity_type` | The adapter changes names only; source graph geometry continues to use the lifted source helpers. The existing portal renderer is a deferred slot. | TypeScript build and focused graph fixture retain the complete endpoint shape. |
-| Inertia `Link`, appearance hook and source export URLs | React Router `Link`, existing `appearance` prop, `/api/v1/admin/world-builder/world/(export|export-package)` | These are the only framework/transport substitutions in the lifted normal workspace. | Playwright asserts visible source controls, export destination and bounds at 1440×900 and 390×844. |
-
-Focused Rust-browser evidence is
-`frontend/e2e/world-builder-graph-localization.spec.ts`: it runs the rebuilt
-Rust frontend at **1440×900** and **390×844**, verifies the lifted normal and
-empty states, map-card bounds within the graph viewport, source action
-hierarchy/copy, and the absence of the two replaced custom controls. Direct
-live Laravel screenshot capture remains unavailable in this environment, so
-this evidence is a pinned-source-code-to-Rust-browser comparison, not a claim
-that the remaining World Builder states have received full visual acceptance.
-
-`frontend/e2e/world-builder.spec.ts` adds a separate authenticated local-Compose
-check of the mounted Rust route at those same two viewports. It reads the
-live typed graph response, verifies that its map count equals the rendered
-direct-source card count, and bounds the source Graph canvas, empty inspector,
-**New world map**, **Create world node**, and **Portal routes** controls. It
-does not claim a Laravel-side visual capture, and it deliberately does not
-claim that every live map card is visible: the high-cardinality pinned-source
-fitting limitation recorded below applies to the local graph data.
-
-#### Second P0 implementation evidence: graph cards, portal routes, fitting and loading — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-`frontend/src/lifted-world-builder-graph.tsx` now remains the direct home for
-the complete pinned-source graph unit: `MapGraphNode`, `MapGraphHandles`,
-`GraphViewportLoadingOverlay`, `graphFitViewOptions`, node/edge construction,
-pair counting, parallel/self-route choice, handle placement, edge labels and
-edge styles. The standalone composition now also restores the source
-`WorldBuilderSectionWorkspace` height boundary around that unit. No selected
-map/portal inspector, Review, Structural, or editor component was changed.
-
-| Source graph read | Rust `GET /api/v1/admin/world-builder` contract | Adapter / server invariant | Regression evidence |
-| --- | --- | --- | --- |
-| `maps[].id` and graph-card fields (`title`, `nodeCount`, `reviewCount`, `nodes`) | `maps[].id`, `title`, `node_count`, `review_count`, `nodes` | `adaptRustWorldGraph` performs only source-name conversion before the direct graph helpers run. Empty `maps` produces no cards and no fitting overlay. | No-map browser fixture at 1440×900 and 390×844. |
-| Edge identity and endpoints (`portalLinks[].id`, `sourceMapId`, `targetMapId`) | `portal_links[].id`, `source_map_id`, `target_map_id` | `id` remains the React Flow edge identity; both endpoint IDs must be members of `maps`. `PostgresAdminWorldGraphRepository` now requires both endpoint maps in its SQL scope and repeats that check before serialization, so Rust cannot emit a dangling or cross-scope edge. | Rust unit `graph_portal_links_require_both_endpoint_maps_in_the_scoped_projection`; browser single/parallel/self fixtures. |
-| Source hover/edge labels (`label`, source/target activity title with node-title fallback) | `portal_links[].label`, `source_activity`, `target_activity`, `source_node`, `target_node` | The adapter renames only `activity_type` to `type`; the lifted `portalActivityLabel` retains source fallback and route display behavior. | Browser fixture supplies every activity/node endpoint, asserts the three source edge labels and distinct parallel SVG paths; the direct lifted helper retains the hover fallback. |
-| Source routing/fitting (`buildGraphNodes`, `chooseEdgeRoute`, `parallelPairRoute`, `graphFitViewOptions`, `GraphViewportLoadingOverlay`) | Complete map/portal endpoint relation above; no new API endpoint | Rust preserves the source radial positions, five-lane handles, parallel offset distribution, self-route branch, 320ms fit settings and overlay lifecycle. No prior custom resize/coordinate helper participates. | Browser verifies a single route, two distinct parallel routes, a self route, loading-overlay attach/clear and card bounds at 1440×900; it repeats the complete route fixture at 390×844. |
-
-Focused source-derived Rust-browser evidence is
-`frontend/e2e/world-builder-graph-routing.spec.ts`. It runs no-map and
-single/parallel/self portal fixtures at **1440×900** and **390×844**. As with
-the first graph slice, this is pinned-source-code-to-Rust-browser evidence;
-the unavailable live-Laravel capture is not represented as a side-by-side
-screenshot claim.
-
-#### High-cardinality Graph limitation discovered during local parity investigation — 15 November 2026
-
-This is an observed limitation of the pinned source graph algorithm, **not** a
-Rust-only regression or permission/filtering difference. A local authenticated
-desktop read at **1440×900** returned 350 scoped maps across two authors, of
-which 287 contained at least one node. Both Structural and Graph received that
-same `maps` collection. After the source fitting overlay cleared, React Flow
-had mounted all 350 map-card elements but no card was visible in the canvas.
-
-The cause is source `buildGraphNodes`: its radial radius is
-`max(220, maps.length * 86)`. At 350 maps that places every card about
-30,100px from the origin. The pinned source's React Flow and `fitView` options
-also set `minZoom: 0.12`, which prevents the viewport from zooming far enough
-out to contain the resulting graph. Structural remains usable because it is a
-list rather than a fitted spatial surface.
-
-Do **not** lower Rust's zoom floor or replace the source radial layout as a
-parity fix. Any remedy—pagination, search/filtering, clustering, an alternate
-large-graph layout, or a lower source zoom limit—is a deliberate source
-product/design change and must first be decided and implemented in `main`,
-then lifted with a high-cardinality source/Rust browser matrix. The existing
-no-map, single, parallel and self-route fixtures prove source behavior at
-small cardinalities; they are not acceptance evidence for this case.
-
-#### Third P0 implementation evidence: selected-map Graph inspector — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This slice directly lifts the pinned `MapDetails` inspector from
-`resources/js/pages/settings/worlds/index.tsx` into
-`frontend/src/lifted-world-builder-map-details.tsx`, along with its complete
-named dependency chain: `Detail`, `LearnerPaginatedItems`,
-`PaginationControls`, `DuplicateMapDialog`, `InputError`, and the source
-`Input`, `Label`, and `Dialog` primitives. The source Radix dialog/label and
-`tw-animate-css` dependencies are installed at their pinned-source-compatible
-ranges. The existing source-derived Button remains shared from the preceding
-Graph slice. No normal Graph card/canvas/routing code, selected-portal
-inspector, Review, Structural, map editor, or MapAsset editor was changed.
-
-| Source `MapDetails` requirement | Rust read or command contract | Deliberate adapter boundary and retained behavior | Evidence |
-| --- | --- | --- | --- |
-| Map heading and metadata: `id`, `title`, nullable `description`, `slug`, `nodeCount`, `reviewCount` | `GET /api/v1/admin/world-builder` → `AdminWorldGraph.maps[]` requires `id`, `title`, `description`, `slug`, `node_count`, `review_count`, `nodes`, plus scoped authoring metadata. Maps are bounded to 500. | `adaptRustMapSummary` changes only snake_case names before the lifted JSX runs. Missing description retains the source “No description yet.” fallback. | Generated `AdminMapSummary` type; no-review browser fixture at both viewports asserts title, description, slug, tile count and current-review state. |
-| Review warning, first-review link and review-node list | Each returned `AdminMapSummary.nodes[]` requires `id`, `title`, `activity_review_count` (and Rust additionally returns slug, description, position, state, visual config and diagnostics). The graph projection bounds nodes to 10,000. | Source filters `activityReviewCount > 0` and performs its own five-item `LearnerPaginatedItems` pagination; this inspector does **not** invent a second server pagination endpoint. | Six-node pending-review fixture asserts wording, queue link, first five items, Next → sixth item, then retained bounded pagination controls at 390×844. |
-| **Configure MapAssets** source graph destination | Source URL: `?panel=admin-world-builder&worldSection=graph&map={mapId}&worldView=nodes`. Rust already has the selected-map read at `GET /api/v1/admin/world-builder/maps/{map_id}` and its existing Structural MapAsset authoring route. | `RustNavigationLink` retains the exact source href/copy, intercepting only the Inertia visit to call the existing `selectStructuralMap(mapId)` adapter. It does not alter the editor. | Browser asserts the source href; callback remains the pre-existing scoped map destination. |
-| **Configure map** source graph destination | Source URL: `?panel=admin-world-builder&worldSection=graph&map={mapId}&worldView=configure`; Rust selected-map reader above supplies that existing configuration editor. | The same navigation adapter retains the source link then calls existing `selectStructuralMapView(mapId)`. No new URL, view, or form is created. | Browser asserts the exact href at both viewports. |
-| **Open review queue** and per-node review destinations | Source destinations nominate map/node IDs. Rust's existing selected-node reader is `GET /api/v1/admin/world-builder/nodes/{node_id}` and requires scoped `world_activities` update permission. | Source graph URLs remain in anchors; the Inertia-only visit seam calls existing `selectStructuralNode(mapId, nodeId)`. Authorization/not-found remain owned by that unchanged Rust reader. | Pending-review fixture exposes the first-node and each paginated-node controls. |
-| **Export map** and **Export map with media** | Existing scoped downloads: `GET /api/v1/admin/world-builder/maps/{map_id}/export` (JSON attachment) and `.../export-package` (bounded ZIP attachment). Both preserve source editor scope; package read also validates declared media availability. | Direct source button hierarchy is retained; Laravel relative endpoints become the documented Rust `/api/v1/...` download hrefs only. | Browser asserts both exact Rust download URLs. |
-| Duplicate form defaults, submit, close/reload behavior and failure state | `POST /api/v1/admin/world-builder/maps/{map_id}/duplicate`, CSRF header, body `title` (1–120) and nullable `slug` (max 140, source slug pattern), response `201 { map_id }`; `400/401/403/404/503` are possible. Rust creates new authoring identities, retains outbound portal destinations, resets copied activity review state, and excludes learner history, review runs, versions and editor assignments. | The lifted source dialog keeps reset/defaults, labels, bounds and submit state. Inertia `router.post` becomes typed `apiClient.POST`; blank slug becomes `null`. Successful `{map_id}` re-fetches the graph and opens the existing Structural MapAsset destination. Rust's documented generic failure responses have no source field-error payload, so the adapter places the source fallback under the title InputError rather than fabricating validation fields. | Pending-review fixture mocks Rust CSRF plus a 400 response and proves the dialog remains open with the bounded source fallback error. |
-
-Focused source-derived Rust-browser evidence is
-`frontend/e2e/world-builder-map-details.spec.ts`. It selects a graph map first
-at desktop and then verifies the same selected source state at **1440×900** and
-**390×844**; retaining selection across resize is necessary because the
-pinned source Graph's narrow row sizing does not guarantee a separately
-clickable canvas. It covers no-pending-review and six-pending-review states,
-visible/bounded map controls, review pagination, both downloads and the Rust
-duplicate failure. This remains a pinned-source-code-to-Rust-browser
-comparison: direct live Laravel screenshot capture is unavailable and is not
-claimed here.
-
-#### Fourth P0 implementation evidence: selected-portal Graph inspector — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This slice directly lifts pinned `PortalDetails` and `PortalEndpoint` from
-`resources/js/pages/settings/worlds/index.tsx` into
-`frontend/src/lifted-world-builder-portal-details.tsx`. It reuses the already
-lifted source Button; `ArrowRight`, `Pencil`, and the source Link are the only
-remaining component dependencies. No normal Graph canvas/routing code,
-selected-map inspector, Review, Structural, map editor, or MapAsset editor was
-changed.
-
-| Source portal-inspector requirement | Rust graph/read contract | Deliberate adapter boundary and retained behavior | Evidence |
-| --- | --- | --- | --- |
-| Link identity, heading and description | `GET /api/v1/admin/world-builder` → required `portal_links[].id`, nullable `label`, nullable `description`, `source_map_id`, and `target_map_id`. The persistence projection emits a portal only when both endpoint maps are in the caller's scoped graph. | The adapter changes only Rust snake_case names. Source fallbacks remain `Unnamed portal` and `No portal description yet.` | Browser fixture verifies populated values and both null fallbacks at 1440×900 and 390×844. |
-| Source and target endpoint title/description/slug | Required `source_node` and `target_node` are complete `AdminNodeSummary` projections: `id`, `title`, nullable `description`, `slug`, plus graph metadata. Their map IDs are supplied separately above. | Direct `PortalEndpoint` lift displays each node title, then exact source `description ?? slug` fallback; no endpoint is reconstructed from map cards or a second request. | Populated fixture proves both descriptions; null-activity fixture proves both slugs remain visible as fallbacks. |
-| Nullable source/target activity context and activity type | `source_activity` and `target_activity` are each nullable `AdminPortalActivity { id, title, activity_type }`. The scoped graph query left-joins each activity and serializes all three fields only when complete. | The direct source component displays an available activity title and intentionally does not invent a type label; the adapter still maps `activity_type` to source `type` so the complete source graph read remains intact. | Populated fixture supplies distinct `portal` and `markdown` activity types and asserts both source titles; null fixture uses both `null`. |
-| Conditional **Edit source activity** destination | The action is valid only when `source_activity` is non-null and uses `source_map_id` plus `source_node.id`. Rust's existing selected-node read is `GET /api/v1/admin/world-builder/nodes/{node_id}` under the existing scoped `world_activities` authorization. | `RustNavigationLink` keeps the pinned source graph href/copy, replacing only the Inertia visit with existing `selectStructuralNode(mapId, nodeId)`. It does not add or change the node editor. Browser navigation proves the existing Structural destination receives the source IDs. | Populated fixture asserts the exact source href and resulting Structural URL; no-source-activity fixture proves the action is absent. |
-| Relevant unavailable state | `source_activity: null` is a valid Rust graph projection and means no editable source activity is available for this portal. There is no inspector-local portal request to fail. | The lifted conditional renders no action for this state—the source behavior—rather than an unconditional Rust-only “Open source activity graph” control. Graph fetch failures remain owned by the separate P0 status/loading/error backlog and were not altered. | Null source/target activity fixture at both viewports verifies source fallbacks, bounded inspector controls and absence of the action. |
-
-Focused source-derived Rust-browser evidence is
-`frontend/e2e/world-builder-portal-details.spec.ts`. It selects the source
-graph edge at desktop, preserves that selected state through **1440×900** and
-**390×844**, asserts inspector bounds and controls, and covers both populated
-and unavailable source-activity projections. It is a pinned-source-code-to-Rust
-browser comparison; direct live Laravel screenshot capture remains unavailable
-and is not claimed.
-
-#### Fifth P0 implementation evidence: Review queue — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This slice directly lifts `WorldBuilderReviewQueue` and
-`WorldBuilderSectionWorkspace` from
-`resources/js/features/settings/world-builder-settings-panel.tsx`, together
-with the named source `PaginationControls` and `readJsonResponse` dependencies.
-The Rust frontend retains the source's four-item default page, card hierarchy,
-loading, empty, error, retry, and pagination behavior. Its only transport
-seams are the Rust endpoint/response adapter and React Router's handoff to the
-already-existing Structural activity review dialog. Normal Graph canvas/routing,
-selected map and portal inspectors, Structural presentation, and every map or
-MapAsset editor flow are unchanged.
-
-| Source review-queue requirement | Rust graph/read contract | Deliberate adapter boundary and retained behavior | Evidence |
-| --- | --- | --- | --- |
-| Queue fetch and page bounds | `GET /api/v1/admin/world-builder/review-queue?page={1…10000}&per_page={1…12}` returns `AdminWorldReviewQueuePage`; Rust defaults omitted values to page `1` and `per_page` `4`, requires `world_activities:ru`, and reports `400`, `401`, `404`, or `503` as applicable. | The lifted effect retains source `fetch`, abort, loading and retry behavior. Only `/settings/worlds/review-queue` becomes `/api/v1/admin/world-builder/review-queue`; the explicit source `per_page=4` stays intact. | OpenAPI operation and application authorization/bounds tests; browser routes assert the exact query shape across source states. |
-| Item identity and source card context | Every item contains activity `id`, `title`, `activity_type`, plus `map { id, title }` and `node { id, title }`. Persistence emits only scoped editable maps, orders map/node/activity deterministically, and selects activities whose AI review status is not reviewed. | `adaptRustReviewQueuePage` changes only flattened Rust activity fields and snake_case pagination into the pinned source's nested `activity` plus camel-case pagination read shape. Source JSX supplies all card copy and layout. | Populated browser fixture supplies five items, distinct activity types, map/node context, then proves the first four and second page. |
-| Pagination | Rust `pagination { current_page, last_page, per_page, total }` reports a bounded page, including `total` and `last_page`. | The source `PaginationControls` is used whole; `current_page` maps only to `page`, and source controls own page validation and disabled states. | Browser test verifies the visible bounded **Next** control and page-two fifth item; shared lifted pagination already covers input boundaries. |
-| Empty and loading states | A successful page may contain zero items with `total: 0`; an in-flight read has no additional backend shape. | No Rust-only placeholder is introduced: the source header remains visible while its centered loading copy and empty-detail state run unchanged. | Browser gate captures loading, then the empty header/detail at **1440×900** and confirms its bounded empty state at **390×844**. |
-| Failure/unavailable state | Rust's unavailable response can be a Problem JSON `503` (and authorization/not-found responses above); it intentionally does not present Laravel's optional `message`/`errors` fields. | Direct source `readJsonResponse` is lifted as `readLiftedJsonResponse`; absent source error fields resolve to the source fallback “The review queue could not be loaded.” rather than inventing a Rust-only error surface. | Browser fixture returns Rust-shaped `503 application/problem+json` and verifies the bounded source error/retry control at both viewports. |
-| **Open** activity destination | The source card supplies map, node, and activity IDs. Rust's existing selected-node read is `GET /api/v1/admin/world-builder/nodes/{node_id}` and retains scoped `world_activities` authorization; the existing `ActivityGraph` owns the review dialog. | Cards preserve the exact pinned source Graph href. The React Router-only navigation seam changes the actual visit to the existing Structural node destination and preserves `reviewActivity={activityId}`. `ActivityGraph` initializes its existing review dialog from that parameter and clears it after opening, matching the pinned source's one-shot URL handoff. | Browser asserts the source anchor href and then the actual Structural URL including map, node, and review activity IDs. |
-
-Focused source-derived Rust-browser evidence is
-`frontend/e2e/world-builder-review-queue-parity.spec.ts`; the credential-gated
-live workflow regression is retained in
-`frontend/e2e/world-builder-review-queue.spec.ts`. The parity fixture compares
-the pinned source's observable queue states—populated/multi-page, loading,
-empty, and Rust failure—at **1440×900** and **390×844**, with visible-control
-bounds and the source destination handoff. It is a pinned-source-code-to-Rust
-browser comparison; direct live Laravel screenshot capture remains unavailable
-and is not claimed.
-
-#### Sixth P0 implementation evidence: unavailable graph/read shell — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This slice directly lifts `UnavailableWorldBuilder` from
-`resources/js/features/settings/world-builder-settings-panel.tsx` and keeps it
-inside the existing lifted Settings nested workspace. The former Rust-only
-full-page `WorldBuilderStatus` and its account/network recovery copy are
-removed. No Graph, Review, Structural, map/MapAsset-editor, or read contract
-is changed. In particular, Review still mounts its separately lifted queue and
-therefore retains its own loading/error state regardless of the graph read.
-
-| Source shell requirement | Rust graph/read contract | Deliberate adapter boundary and retained behavior | Evidence |
-| --- | --- | --- | --- |
-| No permitted World Builder section | The client `GET /api/v1/me` projection yields scoped `settings_access`; Graph/Review are available when any of `world_maps`, `world_nodes`, or `world_activities` is available, while Structural additionally requires `world_maps`. | If no section is visible, the direct source panel is rendered in the Settings workspace. Its exact fixed copy is deliberately not localized through a Rust-only recovery key. | Browser fixture supplies empty `settings_access` and asserts the source panel and bounds at 1440×900 and 390×844. |
-| Graph read pending or unavailable | `GET /api/v1/admin/world-builder` returns `200 AdminWorldGraph`; `401` lacks a session, `403` lacks an application principal/role assignment, `404` means no authorized graph, and `503` represents an unavailable dependency. Network failure is also possible before a response. Rust's graph application query returns `None` when the scoped principal has none of the four source read permissions. | No status copy is invented for any transport outcome. While a non-Review graph/Structural read has no graph, the direct source unavailable panel stays nested under Settings navigation. A successful empty graph is distinct: it remains the already-lifted normal no-map Graph workspace. | Browser gate proves the initial pending panel turns into the empty Graph workspace after `200`; fixtures cover `401`, `403`, `404`, `503`, and a failed network request at both required viewports. |
-| Review ownership of its own transport state | The queue's bounded Rust reader remains `GET /api/v1/admin/world-builder/review-queue`; its documented errors and source-adapted `readJsonResponse` state remain in the fifth P0 slice. | The outer graph read does not suppress or replace the Review queue component. This preserves the source condition that Review has its own loading/error panel rather than the graph shell’s unavailable state. | Existing Review parity browser coverage continues to exercise loading, empty, populated, and failure states independently. |
-
-Focused source-derived Rust-browser evidence is
-`frontend/e2e/world-builder-status-localization.spec.ts`. Despite its retained
-filename, it now asserts the pinned source's unlocalized unavailable panel,
-its nested Settings-shell placement, state transition after a successful empty
-graph read, and bounded presentation at **1440×900** and **390×844**. It is a
-pinned-source-code-to-Rust-browser comparison; direct live Laravel screenshot
-capture remains unavailable and is not claimed.
-
-#### Seventh parity implementation evidence: Structural map/MapAsset navigator — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This slice directly lifts `WorldMapManagementPanel` from
-`resources/js/features/settings/world-map-management-panel.tsx` into
-`frontend/src/lifted-world-map-management.tsx`, including its source Button,
-class-name helper, map list, selected-map navigator, MapAsset list, guidance,
-and no-map branches. The existing Rust map configuration and activity-graph
-editors remain content slots; no editor form, map/MapAsset writer, Graph
-canvas, or Review UI changed. React Router and the field-name adapter are the
-only seams.
-
-| Source Structural requirement | Rust read or destination contract | Deliberate adapter boundary and retained behavior | Evidence |
-| --- | --- | --- | --- |
-| Map list and selected-map summary | `GET /api/v1/admin/world-builder` → bounded `maps[]` (`id`, `title`, nullable `description`, `slug`, `node_count`, `review_count`, `nodes[]`); maps remain caller-scoped editable projections. | `adaptRustMap` renames only `node_count`, `review_count`, and each node's `activity_review_count`. The lifted source component retains its source default selection, tile/review singulars, source description fallback, and 18rem/18rem/remaining desktop grid. | Browser fixture uses two maps, selects the second through the source link, and asserts source map summary/copy and bounded workspace at 1440×900 and 390×844. |
-| Map configuration destination | Existing scoped `GET /api/v1/admin/world-builder/maps/{map_id}` supplies the established Rust configuration editor; its authorization/not-found state is unchanged. | Pinned source links retain their original href. The Inertia visit alone becomes `selectStructuralMapView(mapId)`, which opens the unchanged editor content slot. | Browser asserts both source configuration links’ href, then the adapter’s actual Structural URL. |
-| MapAsset list and activity-editor destination | Every graph node is an `AdminNodeSummary` with `id`, `title`, nullable `description`, `slug`, and `activity_review_count`; the existing scoped reader is `GET /api/v1/admin/world-builder/nodes/{node_id}`. | The direct source MapAsset links retain node description/slug fallback and review count. React Router calls the existing `selectStructuralNode(mapId, nodeId)` seam; it does not recreate or alter `ActivityGraph`. | Browser asserts source node link/copy/review state and the actual Structural map/node URL. |
-| Selected-map guidance and no-map states | A successful graph may contain a selected map without a loaded detail slot, or zero editable maps. Neither requires a new endpoint. | The lifted source shows its exact **Configure map** guidance when no editor slot is active and the original duplicated no-map message in its two source columns when `maps=[]`. | Browser asserts guidance and configure action for a selected map plus both no-map panels at desktop and narrow sizes. |
-
-Focused source-derived Rust-browser evidence is
-`frontend/e2e/world-map-management-localization.spec.ts` (the retained
-filename now tests pinned source hierarchy/copy, not localization). It verifies
-selected-map, MapAsset/navigation, and no-map states at **1440×900** and
-**390×844**. It is a pinned-source-code-to-Rust-browser comparison; direct
-live Laravel screenshot capture remains unavailable and is not claimed.
-
-#### Eighth parity implementation evidence: selected-map Graph workspace — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This slice directly lifts `WorldBuilderMapWorkspace` and its named
-`SettingsSectionButton` dependency from
-`resources/js/features/settings/world-builder-settings-panel.tsx` into
-`frontend/src/lifted-world-builder-map-workspace.tsx`. Its two source-owned
-section definitions remain whole: **Configure MapAssets** and **Configure
-map**, with their source descriptions, icons, 17rem desktop navigator and
-narrow stacked layout. The existing Rust `MapAssetSurface`, `MapDetails`, and
-`ActivityGraph` remain deliberately unchanged content slots; this slice does
-not claim source parity for any of those editor surfaces.
-
-| Source workspace requirement | Rust read or destination contract | Deliberate adapter boundary and retained behavior | Evidence |
-| --- | --- | --- | --- |
-| Selected map identity and the two workspace content slots | `GET /api/v1/admin/world-builder/maps/{map_id}` returns `AdminEditableMap`: `editable_map.map` requires `id`, `title`, `slug`, `description`, `node_count`, `review_count`, `nodes`, map assets/configuration and source-world context; its surrounding option collections remain available to the unchanged content slots. | The lifted wrapper receives only `mapId`, `mapTitle`, `activeView` and an existing Rust editor node as its `detail.content`. No editor markup, writer, or response field is recreated in the wrapper. | Mocked selected-map reader supplies the complete typed document and the browser test asserts the source title/navigator and visible MapAsset content slot. |
-| Graph map and node selection | The graph projection supplies selected map/node IDs; map reads require `world_maps:ru` and its all/own/assigned/direct-editor scope. `GET /api/v1/admin/world-builder/nodes/{node_id}` remains the existing scoped activity-graph read. | Source `router.visit` becomes the single `selectGraphMapView(mapId, view)` React Router adapter. It preserves `panel=admin-world-builder`, `worldSection=graph`, `map`, and `worldView`; switching a map view clears `node`/`reviewActivity`, while selecting a node retains source `worldView=nodes`. | Browser starts at the exact source Graph URL, switches both source buttons, and asserts the resulting Graph URLs. |
-| Map read unavailable/failure ownership | The selected-map reader returns `401` without a session, `403` without an application principal/role assignment, `404` for an unknown or out-of-scope map, and `503` for database failure. The application query refuses to load before the `world_maps:ru` check; the persistence query additionally enforces the map's source editor scope. | This wrapper introduces no replacement unavailable copy or retry flow. The existing selected-map fetch seam continues to own failure handling and does not render a partially invented map workspace without `AdminEditableMap`; graph/read unavailable presentation remains the separate sixth P0 shell slice. | Existing selected-map read authorization tests and the typed OpenAPI operation cover the server states; the focused browser fixture proves the wrapper mounts only after the successful Rust map document is available. |
-| Inspector-to-workspace destinations | The pinned graph `MapDetails` links target `?panel=admin-world-builder&worldSection=graph&map={mapId}&worldView=nodes` and `...&worldView=configure`. | The already-lifted graph inspector keeps its source hrefs; its callbacks now use this Graph workspace adapter rather than detouring through Structural. This supersedes the earlier third-slice adapter wording that described those callbacks as Structural destinations. | Browser coverage starts from the `nodes` URL and proves both view transitions preserve the source Graph route family at desktop and narrow widths. |
-
-Focused source-derived Rust-browser evidence is
-`frontend/e2e/world-builder-map-workspace.spec.ts`. It exercises the selected
-map workspace at **1440×900** and **390×844**, verifies both visible/bounded
-source controls and descriptions, confirms the unchanged MapAsset content
-slot, and proves the two source Graph URL transitions. It is a
-pinned-source-code-to-Rust-browser comparison; direct live Laravel screenshot
-capture is unavailable and is not claimed.
-
-#### Ninth P0 implementation evidence: Graph map-export validation dialog — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This slice directly lifts `MapExportValidationDialog`, `ValidationSummary`,
-`MediaReferenceDetails`, `ValidationCount`, and `ValidationMessages` from
-`resources/js/features/settings/map-export-validation-dialog.tsx` into
-`frontend/src/lifted-world-builder-map-export-validation.tsx`. It reuses the
-already-lifted source Button, Dialog, Input, Label, class-name helper, Lucide
-icons, and platform-translation hook. The source dialog now mounts directly in
-the lifted Graph action area; create-map, world-details, map/world import,
-inspectors, Structural, and every editor remain outside this slice.
-
-| Source validation requirement | Rust contract | Deliberate adapter boundary and retained behavior | Evidence |
-| --- | --- | --- | --- |
-| Open/reset/close dialog, JSON file chooser, source loading state and fixed copy | No server state is needed before submission. The source form accepts `.json`, `application/json`, and `text/plain`; Rust independently enforces a non-empty `manifest` at most 5 MiB. | The source component and its local reset/loading/error state remain whole. Laravel's endpoint prop becomes the fixed typed Rust endpoint; Laravel's CSRF meta lookup becomes the existing Rust CSRF-token reader. | Browser opens the exact source controls and verifies bounded dialog content at desktop and narrow viewports. |
-| Preflight command and authorization | `POST /api/v1/admin/world-builder/map-exports/preflight`, multipart `manifest`; `200` result or `400/401/403/404/503`. It requires the source `world_maps:ru` permission. The handler now verifies the same-origin `Origin` and `X-CSRF-Token` before parsing the upload, matching the recorded OpenAPI parameter and the source's Laravel CSRF-protected POST. | `getCsrfToken()` supplies the header to the Rust adapter. No form field, endpoint, validation copy, or client-side manifest decision is invented. | Browser fixture asserts the supplied Rust CSRF header; focused Rust API/session checks retain the authenticated route boundary. |
-| Source validation presentation | Rust `AdminWorldMapExportPreflightResult` returns `valid`, `summary`, bounded `errors`/`warnings`, and counts for nodes, activities, MapAssets, portal targets, and media references. | Field names already match the source result. Rust deliberately does not expose source `mediaReferenceDetails`, map slug, or world slug; the adapter supplies an empty details list, taking the direct source component's existing omitted-details branch rather than fabricating media URLs or workspace identifiers. | Successful fixture asserts the source status, count headings, bounded correction list and notes. |
-| Rust unavailable state | A `503` is a Problem response with no Laravel `message` payload. | The lifted source fallback remains “The manifest could not be checked.”; no Rust-only recovery panel or product copy is introduced. | Browser fixture returns a Rust-shaped `503` after a valid desktop check and verifies the source alert at **390×844**. |
-
-Focused source-derived Rust-browser evidence is
-`frontend/e2e/world-builder-map-export-validation.spec.ts`. It proves the
-source dialog’s visible success and Rust-unavailable branches at **1440×900**
-and **390×844**, including bounds and the CSRF request seam. It is a
-pinned-source-code-to-Rust-browser comparison; direct live Laravel screenshot
-capture is unavailable and is not claimed.
-
-#### Tenth P0 implementation evidence: Graph create-world-node dialog — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This slice directly lifts the `createOpen` dialog and its complete form markup
-from `resources/js/pages/settings/worlds/index.tsx` into
-`frontend/src/lifted-world-builder-create-map-dialog.tsx`, using the already
-lifted source Button, Dialog, Input, Label and InputError primitives. It
-replaces only `router.post` and the successful Inertia redirect with the
-existing Rust create command plus the existing graph reload/selected-map URL
-adapter. Import, world details/history, inspectors, Structural and editor
-flows are unchanged.
-
-| Source create-dialog requirement | Rust contract | Deliberate adapter boundary and retained behavior | Evidence |
-| --- | --- | --- | --- |
-| Source trigger, dialog hierarchy and Title/Slug/Description fields | No additional read is needed to open the dialog. The exact pinned source text, field IDs, placeholders, textarea classes, cancel/create actions and `sm:max-w-xl` dialog are retained. | The source `createOpen` state is localized to the lifted component. Its success callback is the only navigation seam. | Browser asserts the complete visible source form at **1440×900**, then bounds the same dialog at **390×844**. |
-| Create command and authorization | `POST /api/v1/admin/world-builder/maps` accepts `{ title, slug: string|null, description: string|null }`, returns `201 { map_id }`, and reports `400/401/403/404/503`. The application command requires `world_maps:ru`; the handler validates the CSRF token/origin and resolves the current authoring World server-side. | Empty optional source inputs become `null`; successful `map_id` triggers the existing graph refetch then Graph selected-map URL. The frontend does not generate IDs, slugs, scope, or redirects. | Browser fixture asserts the Rust CSRF header and the exact successful Graph URL containing the returned map ID. Existing application test proves permission is checked before the create repository runs. |
-| Source validation-field placement | Laravel Inertia supplies named validation errors to the source `InputError` slots. Rust’s current `400` Problem response intentionally exposes no Laravel field bag. | The adapter places the existing bounded source-form fallback under the title `InputError`; it does not add a replacement alert, custom dialog, or client-side validation policy. Network failure uses the same existing form slot. | Browser returns Rust `400` and verifies the visible source-form fallback before retrying a successful create. |
-
-Focused source-derived Rust-browser evidence is
-`frontend/e2e/world-builder-create-map-dialog.spec.ts`. It covers source
-fields/controls, a Rust `400` failure, a Rust `201` create, CSRF propagation,
-and visible dialog bounds at **1440×900** and **390×844**. It is a
-pinned-source-code-to-Rust-browser comparison; direct live Laravel screenshot
-capture is unavailable and is not claimed.
-
-#### Eleventh P0 prerequisite evidence: World Builder source dependency and transport adapter matrix — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This is a source inventory and adapter boundary, not an implementation claim.
-It supersedes the audit's initial dependency-package observation: the Rust
-frontend now has the source-compatible non-Inertia packages. The only allowed
-substitutions are the specific framework/transport seams below. An existing
-bespoke Rust dialog or editor is not a source lift merely because it calls the
-same endpoint.
-
-| Pinned source import/component | Rust location and replacement seam | Source behavior retained | Rust endpoint, response/error mapping | Regression/browser evidence |
-| --- | --- | --- | --- | --- |
-| `pages/settings/index.tsx` → `WorldBuilderSettingsPanel`; `features/settings/world-builder-settings-panel.tsx` → `WorldBuilderSectionWorkspace`, `SettingsNestedWorkspace`, `SettingsSectionNavigation`, `SettingsSectionButton` | `original-world-builder.tsx` owns `WorldBuilderContent`; `LiftedWorldBuilderSectionWorkspace` and `LiftedWorldBuilderMapWorkspace` retain the source nested workspace. Source `router.visit` becomes narrowly scoped React Router `navigate` callbacks that retain `panel=admin-world-builder`, `worldSection`, `map`, `node`, `reviewActivity`, and `worldView`. | Source Graph/Review/Structural/map-workspace selection and source URL parameter names. No new shell or mobile navigation may replace this composition. | Reads remain typed `GET /admin/world-builder`, `GET /admin/world-builder/maps/{map_id}`, and `GET /admin/world-builder/nodes/{node_id}`. `401`, `403`/out-of-scope `404`, and `503` remain read-boundary states; navigation never manufactures selected data. | `world-builder-map-workspace.spec.ts`, `world-builder-review-queue-parity.spec.ts`, and status coverage exercise the active adapters; each implementation section records its viewport scope. |
-| `pages/settings/worlds/index.tsx` → `WorldBuilderPanel`, `MapGraphNode`, `MapGraphHandles`, `buildGraphNodes`, `buildGraphEdges`, `graphFitViewOptions`, `GraphViewportLoadingOverlay`, `EmptyDetails` | `lifted-world-builder-graph.tsx` is the direct lift. `adaptRustWorldGraph` is the only read-shape adapter, and its `renderSelectedMap`/`renderSelectedPortal` slots isolate the separately lifted inspectors. `useAppearance` receives the existing `OriginalAppearance` adapter. | Exact graph node/handle/edge/fit/loading/empty-inspector structure, source React Flow use, theme color mode, Graph action hierarchy, and no-map branch. | `GET /admin/world-builder` maps every source graph field: map `id/title/description/slug/nodeCount/reviewCount/nodes`, node `id/title/description/slug/activityReviewCount`, and portal source/target map IDs, nodes, nullable activities, label and description. A failed read must not be normalized into an empty graph. | `world-builder-graph-routing.spec.ts` and `world-builder-graph-localization.spec.ts` cover no-map, single/parallel/self routes, fitting/loading and source controls at 1440×900 and 390×844. |
-| `pages/settings/worlds/index.tsx` → `MapDetails`; `components/learner-paginated-items.tsx`; `features/settings/duplicate-map-dialog.tsx` | `lifted-world-builder-map-details.tsx` and `lifted-duplicate-map-dialog.tsx`. Source `Link` is a React Router link whose click delegates only to Graph map/node URL callbacks; duplicate uses `apiClient` plus `getCsrfToken`. | Map title/description/slug/tile count, review summary and pagination, authoring/configuration links, both exports and duplicate dialog all remain source-owned markup. | Graph `AdminMapSummary` has the required selected-map fields. `POST /admin/world-builder/maps/{map_id}/duplicate` accepts source title/optional slug, returns `201 { map_id }`; `400/401/403/404/503` keep the source form's bounded error slot. | `world-builder-map-details.spec.ts` covers no-pending/pending review at both required viewports and the Rust failure branch; duplicate-focused coverage remains attached to its existing slice. |
-| `pages/settings/worlds/index.tsx` → `PortalDetails`, `PortalEndpoint` | `lifted-world-builder-portal-details.tsx`. The sole Inertia replacement is `RustNavigationLink`, a React Router link that delegates the source destination through `onOpenSourceActivity`. | Source endpoint title, description, slug, nullable activity title/type and conditional **Edit source activity** action; no action exists with no source activity. | Graph `AdminPortalLink` supplies portal label, source/target map and node IDs, endpoint titles/descriptions/slugs, nullable source/target activities and activity types. The conditional destination is `?panel=admin-world-builder&worldSection=graph&map={sourceMapId}&node={sourceNodeId}&worldView=nodes`. | `world-builder-portal-details.spec.ts` covers with/without source activity, bounded desktop/narrow controls, and the Rust unavailable state. |
-| `features/settings/world-builder-settings-panel.tsx` → `WorldBuilderReviewQueue`; `components/pagination-controls.tsx`; `lib/json-response.ts` | `lifted-world-builder-review-queue.tsx` directly carries queue/card/paginator/error markup; `readJsonResponse` is retained for Rust Problem decoding. Source route links use the same limited React Router adapter. | Source four-item pagination, loading/populated/empty/error/retry states and map/node/activity destination hierarchy. | `GET /admin/world-builder/review-queue` maps its typed items/pagination. HTTP/network failures are decoded only into the existing source error/retry branch; no product recovery panel is created. | `world-builder-review-queue-parity.spec.ts` and `world-builder-review-queue.spec.ts` cover source-derived states and navigation. |
-| `features/settings/world-builder-settings-panel.tsx` → `WorldBuilderMapWorkspace`; `SettingsSectionButton`; `features/settings/world-map-management-panel.tsx` → `WorldMapManagementPanel` | `lifted-world-builder-map-workspace.tsx` and `lifted-world-map-management.tsx`. React Router callbacks are limited to source Graph/Structural selection URLs; current Rust editor surfaces remain content slots, not replacement source markup. | The two source map-workspace sections, source descriptions/icons and map-management layout that have been lifted. No map/MapAsset editor flow is implied by this mapping. | Typed map/node reads above supply selected content only after authorization. The wrapper has no invented unavailable state. | `world-builder-map-workspace.spec.ts` and `world-map-management-localization.spec.ts` preserve current source-derived regression coverage; Structural visual closure remains separately backlogged. |
-| `pages/settings/worlds/index.tsx` create dialog; `components/ui/button.tsx`, `dialog.tsx`, `input.tsx`, `label.tsx`, `input-error.tsx`; `lib/utils.ts` | `lifted-world-builder-create-map-dialog.tsx`, `lifted-button.tsx`, `lifted-dialog.tsx`, `lifted-input.tsx`, `lifted-label.tsx`, `lifted-input-error.tsx`, and `lifted-class-names.ts`. Source `router.post` becomes one typed command; Radix/CVA/clsx/tailwind-merge remain source-compatible runtime dependencies. | The source trigger, dialog/form hierarchy, field constraints and success selection. Laravel's named validation bag is not fabricated. | `POST /admin/world-builder/maps` sends `{ title, slug: string|null, description: string|null }` with CSRF, returns `201 { map_id }`; `400/401/403/404/503` are bounded source-form adapter states. | `world-builder-create-map-dialog.spec.ts` proves form, Rust `400`, `201`, CSRF and bounds at both viewports. |
-| `features/settings/map-export-validation-dialog.tsx` → `ValidationSummary`, `MediaReferenceDetails`, `ValidationCount`, `ValidationMessages` | `lifted-world-builder-map-export-validation.tsx`; source `fetch` CSRF-meta seam becomes `getCsrfToken` and typed `apiClient`. | Source dialog, file input, loading/failure/success structure and validation presentation, including real media rows rather than the former omitted-details fallback. | `POST /admin/world-builder/map-exports/preflight`, multipart `manifest` plus CSRF, now returns the complete source-compatible `valid/summary/errors/warnings/counts/mediaReferenceDetails/world/map` read model; `400/401/403/404/503` use the source failure state. | `world-builder-map-export-validation.spec.ts` asserts success/media details, `503`, CSRF and two viewport bounds. |
-| `features/settings/map-import-dialog.tsx` (map scope) and its reuse of `ValidationSummary` | **Lifted.** `lifted-world-builder-world-import-dialog.tsx` contains the complete pinned source component for both scopes; Graph mounts its map-scope wrapper where the bespoke trigger/dialog previously lived. The legacy bespoke `MapImportDialog` is removed. | Pinned file-change preflight, sequence cancellation, check-again, validation summary, map title/optional slug fields, responsive dialog and submit gate are source-owned. | `POST /admin/world-builder/map-exports/preflight` and `POST /admin/world-builder/map-exports/import` replace only Laravel/Inertia transport with multipart + CSRF; `201 { map_id }` invokes the existing Graph reload/selection callback, while Rust Problem failures use the source `InputError` manifest slot. | `map-import-localization.spec.ts` covers source controls, a Rust `503` retry, success, CSRF, summary/media facts and visible bounds at both required viewports. |
-| `features/settings/map-import-dialog.tsx` (world scope) and its `ValidationSummary` dependency | **Lifted.** `lifted-world-builder-world-import-dialog.tsx` carries the complete pinned `MapImportDialog`; the legacy bespoke `WorldImportDialog` is removed. Its map scope is now recorded separately in the Fifteenth slice below. | Source trigger, Dialog/field hierarchy, file-change preflight, sequence cancellation, check-again, validation summary, and world-only import gate remain source-owned. | `POST /admin/world-builder/world-exports/preflight` supplies the full validation result with CSRF. `POST /world-exports/import` accepts multipart `manifest` plus CSRF and returns `201 { map_ids }`; its Rust Problem failures use the source `InputError` manifest slot rather than a replacement dialog. | `world-import-localization.spec.ts` proves the source hierarchy, Rust `503` retry, successful preflight/import, CSRF and visible/bounded controls at 1440×900 and 390×844. |
-| `hooks/use-platform-translation.ts`, source settings CSS/tokens, `theme/presentation.ts`, Lucide imports | `original-platform-translation.ts`, existing Settings CSS tokens, `original-appearance.ts`, and direct `lucide-react` imports. | Source fallback copy, active appearance, icons and source utilities remain inside each direct lift. Translation loading never changes graph or authoring payload semantics. | Translation/appearance are read adapters only; no World Builder endpoint is altered. A missing catalog entry falls back to the pinned source literal already in the lifted component. | The focused specs above retain source fallback text assertions; visual acceptance is scoped per completed slice. |
-
-The import rows are deliberately a blocking result, not a request to normalize
-the current Rust response in the client. The source `MapImportDialog` shares
-`MapExportValidationResult`, whose `world` identity and media/count detail are
-part of its review surface. Until Rust returns those server-owned facts, the
-source dialog cannot be honestly lifted.
-
-#### Twelfth P0 prerequisite evidence: World-import source validation contract — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This backend-only prerequisite closes the world-scope transport gap identified
-by the adapter matrix. It does **not** lift `MapImportDialog`, alter the map
-import contract, or claim parity for the existing bespoke `WorldImportDialog`.
-The follow-up UI slice must directly lift the pinned source component as a
-whole and use this result rather than retain the bespoke dialog.
-
-| Source `MapImportDialog` world-scope requirement | Rust contract now recorded | Evidence |
+| Settings route and nesting | `pages/settings/index.tsx`; `components/settings-configuration-shell.tsx`; `features/settings/world-builder-settings-panel.tsx` |
+| Graph and inspectors | `pages/settings/worlds/index.tsx` |
+| Structural workspace | `features/settings/world-map-management-panel.tsx` |
+| Graph dialogs | `features/settings/{duplicate-map-dialog,map-export-validation-dialog,map-import-dialog}.tsx` |
+| Direct authoring destinations | `pages/settings/worlds/{edit-map,configure-map,edit-node-activities,edit-markdown-activity,edit-npc-dialogue}.tsx` and their complete sibling helpers |
+| Shared source dependencies | `components/{input-error,learner-paginated-items,pagination-controls}.tsx`, `components/ui/**`, `hooks/{use-appearance,use-platform-translation}.tsx`, `lib/{json-response,media-upload,media-url,utils}.ts`, `theme/**`, and copied `resources/css/app.css` |
+
+All of these stay byte-identical inside `frontend/canonical-source/**`.
+Platform code may mount a source module and replace only its explicitly
+audited Inertia, Wayfinder, page-prop, media, or typed-Rust transport seam. It
+must not copy a component out to a new `lifted-*` file, edit the canonical
+copy, or use a reconstructed component as a fallback.
+
+#### Current boundary and reusable Rust evidence
+
+| Need | Current evidence | Activation rule |
 | --- | --- | --- |
-| Shared `MapExportValidationResult`: `valid`, `summary`, bounded errors/warnings, counts for maps/nodes/activities/MapAssets/portal targets/media references, media detail rows, and source-world identity | `AdminWorldImportPreflightResult` now has exact `warnings`, `counts`, `mediaReferenceDetails`, and `world` properties in the domain result, OpenAPI contract, and generated TypeScript schema. The result aggregates every bounded embedded map manifest and de-duplicates at most 2,000 displayed media details. | `admin_world_import` application tests verify a complete current-workspace result and its aggregate counts. `npm run check:api` verifies generated client parity. |
-| Current workspace identity is a server-owned fact, not a client default | The preflight repository reads the current World slug, reports the submitted slug plus `exists`, and marks a mismatched World invalid before any write. Missing current World or authorization remains `404`; database failure remains `503`. | The application regression test exercises an `other-world` manifest and verifies the bounded mismatch result. |
-| A JSON bundle must not claim a missing managed media object is importable; a verified portable archive may make its declared media available to the later writer | Persistence resolves only canonical managed-media URLs against `reusable_media_assets`. The API derives the additional available set solely from `read_package` after its archive integrity checks; the caller cannot submit an arbitrary availability list. | Regression tests distinguish unavailable JSON media from archive-verified package media. |
-| Source uses a CSRF-protected POST for preflight | World preflight now validates the same-origin CSRF request and declares `X-CSRF-Token` in OpenAPI. The existing Rust adapter first obtains that token and sends it with the multipart request. | `world-import-localization.spec.ts` asserts the header, the complete source-shaped response adapter, and visible/bounded controls at **1440×900** and **390×844**. |
+| Canonical route admission | `frontend/src/platform/canonical-resolver.tsx` and `settings-root-route.tsx` mount the copied Settings root for Personal-only aliases and reject every administration panel. | World Builder stays explicitly unavailable until a complete source-shaped route projection is registered. Do not bypass the root by embedding a substitute workspace. |
+| Graph/read data | `GET /api/v1/admin/world-builder`; `backend/crates/api/src/main.rs`; generated `AdminWorldGraph` schema and Rust graph tests. | Audit every source `WorldGraph` field, including map/node descriptions and slugs, review counts, portal endpoints and nullable activities, before a Graph branch is admitted. |
+| Map/node documents | Existing scoped map and node reads plus `admin_world_*` application/persistence modules and OpenAPI operations. | Use only after their source page/document/URL/error mapping is written; a successful generic editor read is not a source route projection. |
+| Review queue | Existing typed review-queue endpoint and pagination contract. | Audit the source four-item pagination, destination URLs, loading/empty/retry/error presentation before enabling the copied Review branch. |
+| Commands, media, import/export and history | Existing typed authoring commands and OpenAPI schemas. | Bind one complete copied source destination at a time. A command may not be exposed just because its endpoint exists. |
+| Authorization and failure | Rust remains the sole scope and policy owner. | `401`, `403`, scoped `404`, `503`, malformed data, and network failure must select a documented source-compatible unavailable/error branch; they must never become an empty successful model. |
 
-The map-scope import contract remained separately blocked at this point. Its
-completion is recorded in the later Fourteenth prerequisite below; map scope
-must still not be treated as UI-parity complete until its source dialog is
-lifted whole.
+#### Activation register and order
 
-#### Thirteenth P0 implementation evidence: source world-import dialog — 15 November 2026
+The work is ordered by complete canonical source boundaries, not old P0 labels
+or isolated visual widgets.
 
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+1. **World Builder route admission audit.** Trace the copied Settings-root
+   invocation and every prop passed to `WorldBuilderSettingsPanel`. Record
+   exact source files, prop shape, navigation/query ownership, direct runtime
+   imports, existing Rust/OpenAPI evidence, missing fields, and the unavailable
+   state. No UI is activated in this audit.
+2. **Read-only Graph route.** Mount the copied root/panel/graph composition as
+   whole modules only after one graph projection supplies every required field.
+   Include normal, loading, empty, permission-unavailable, read-error,
+   selected-map, and selected-portal source states; destinations without a
+   complete route projection remain explicitly unavailable.
+3. **Copied Review branch.** Activate it only after its complete read,
+   pagination, retry/error, and map/node/activity destination matrix exists.
+4. **Copied Structural branch.** Activate the exact source layout only after
+   selected-map, selected-MapAsset, no-map, and configuration destination
+   documents are available. Do not substitute legacy authoring surfaces in its
+   content slots.
+5. **Direct copied editor routes.** Activate `configure-map`,
+   `edit-map`, activity, Markdown, and NPC routes one complete source route
+   at a time. Map their full read/write/history/media contract before
+   admitting a route; unimplemented subflows stay source-unavailable.
+6. **Remaining dialogs and mutations.** Activate duplicate, create, import,
+   export, details/history, and media actions only with the source component
+   mounted whole and its command/error/CSRF/download contract covered.
 
-This slice directly lifts the complete `MapImportDialog` from
-`resources/js/features/settings/map-import-dialog.tsx` into
-`frontend/src/lifted-world-builder-world-import-dialog.tsx`, activated only
-with its source `scope="world"` behavior. It reuses the already-lifted source
-Button, Dialog, Input, Label, InputError, platform translation, and
-`ValidationSummary` components. It removes the legacy bespoke
-`WorldImportDialog`; map import, Review, Structural, inspectors, and editors
-are unchanged.
+#### Required evidence for every activation
 
-| Source world-scope requirement | Rust adapter boundary | Evidence |
-| --- | --- | --- |
-| Source trigger, responsive `sm:max-w-lg` Dialog, original fixed copy/translations, `.json/.zip` input, form reset and check-again control | No presentation is recreated. The only substitutions are Laravel's preflight URL/meta-CSRF lookup and Inertia form post. The adapter uses the typed Rust CSRF reader, world preflight endpoint, and world import endpoint. | The browser test verifies source `data-wl-id` controls and bounds at **1440×900** and **390×844**. |
-| File-change validation, sequence cancellation, result summary/counts/media details and disabled submit until `valid` | The complete Rust `AdminWorldImportPreflightResult` is adapted field-for-field to the source `MapExportValidationResult`; its optional map identity remains absent, as the source world scope does not render it. | The mocked Rust success result renders the source validation summary and media-detail dependency; the first mocked Rust `503` renders the source InputError/check-again branch. |
-| Source multipart import and success behavior | Rust receives only `manifest` and an explicit CSRF header, returns `201 { map_ids }`; the existing graph refetch/first-created-map selection callback is the sole post-success navigation seam. Rust Problem failures remain in the source manifest InputError slot because Rust has no Laravel named validation bag. | Browser asserts both preflight and import CSRF headers, successful import, and dialog closure. |
+- Reverify that `main` resolves to the pinned SHA and that the canonical-copy
+  verifier still reports byte identity.
+- Record a source-to-Rust contract matrix: source path and input, exact Rust
+  endpoint/schema/error, narrow adapter, missing contract, and unavailable
+  rule.
+- Prove the copied source hierarchy, labels, URLs, visible/bounded controls,
+  loading/empty/error behavior, and responsive layout at **1440x900** and
+  **390x844**. Browser tests must import or mount the canonical module, never
+  a reconstructed replacement.
+- Run the focused frontend build/type checks, relevant Rust/OpenAPI tests, and
+  source-derived browser tests before committing. Preserve unrelated worktree
+  changes.
+- A route is complete only when its complete source boundary and every exposed
+  destination contract are verified. Backend availability alone is not
+  frontend parity.
 
-This is a pinned-source-code-to-Rust-browser comparison; direct live Laravel
-screenshot capture remains unavailable and is not claimed. The map-scope
-source dialog was still blocked by its separate incomplete contract at this
-point; the following prerequisite closes that contract only.
+#### Prohibitions
 
-#### Fourteenth P0 prerequisite evidence: map-import source validation contract — 15 November 2026
+Do not recreate the graph, cards, inspectors, mobile layout, dialogs, form
+markup, or navigation in platform code. Do not selectively copy source
+fragments. Do not invent page props, empty maps, fake permissions, generic
+Inertia/Laravel transport, or success data. Do not call a historical
+standalone/e2e assertion source parity merely because it passes. Laravel remains
+the production owner until this canonical route activation evidence exists.
 
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+### Retired standalone frontend audit
 
-This backend/read-contract slice closed the map-scope blocker without lifting
-or redesigning `MapImportDialog` at that point. The subsequent Fifteenth slice
-lifts only the complete pinned `features/settings/map-import-dialog.tsx` map
-scope with its explicit Rust transport adapters.
-
-| Pinned source validator requirement | Rust preflight contract | Evidence |
-| --- | --- | --- |
-| Full `MapExportValidationResult` including `mediaReferenceDetails`, `world`, and `map` | `POST /admin/world-builder/map-exports/preflight` now returns required `valid`, `summary`, `errors`, `warnings`, five counts, deduplicated bounded media rows, and submitted world/map slug plus server-owned `exists` flags. OpenAPI and generated TypeScript require every field. The already lifted source `ValidationSummary` maps them field-for-field. | `admin_world_map_export_preflight` application regressions cover populated identity/media/conflict output and unavailable workspace/media output. `world-builder-map-export-validation.spec.ts` renders the source media detail branch and tests the Rust unavailable state at **1440×900** and **390×844**. |
-| Current workspace, source map conflicts, map topic and external portal endpoint integrity | The preflight repository reads only the active Rust World, requested map slugs/nodes/activities, requested topic slugs, and canonical managed-media IDs. A different world, unavailable topic, unavailable external target map/node/activity, or missing media reference makes the response invalid; an existing source map produces the source conflict warning rather than reserving a slug. | Application fixture verifies exact current-world identity, topic, external portal activity and conflict warning. The unavailable fixture proves these values are not frontend defaults. |
-| Portable package media may be available only after archive verification | The API obtains package URLs solely from `read_package`; it merges those verified sources into the read-only availability set without materializing media. JSON manifests may only report a canonical existing `reusable_media_assets` URL available. | Application regression distinguishes unavailable JSON media from archive-verified package media; authorization denies before the repository is read. |
-
-The Rust greenfield platform has exactly one active workspace rather than
-Laravel's global World lookup. Therefore `world.exists` means “the submitted
-slug is the current writable Rust workspace”; this is the same condition the
-Rust writer enforces and is not a fabricated compatibility value. The source
-map-scope dialog's direct lift is recorded immediately below.
-
-#### Fifteenth P0 implementation evidence: source map-import dialog — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This slice directly lifts the map scope of
-`resources/js/features/settings/map-import-dialog.tsx` into the shared
-`frontend/src/lifted-world-builder-world-import-dialog.tsx` source component.
-The source component already owns both `scope="map"` and `scope="world"`
-branches; retaining it as one direct lift prevents divergent dialogs. The
-world wrapper is unchanged, while Graph now mounts the map wrapper in place of
-the bespoke trigger and dialog. No graph canvas/routing, selected inspector,
-Review, Structural, map editor or MapAsset editor was changed.
-
-| Source map-scope requirement | Rust adapter boundary | Evidence |
-| --- | --- | --- |
-| Source trigger, `sm:max-w-lg` Dialog, file-change validation, sequence cancellation and **Check again** | The source meta-CSRF lookup/validation endpoint becomes `getCsrfToken` plus `POST /api/v1/admin/world-builder/map-exports/preflight`. Rust accepts only `manifest`, so the Laravel-only `scope` multipart field is intentionally omitted. Its full preflight result adapts field-for-field to `MapExportValidationResult`. | `map-import-localization.spec.ts` forces a Rust `503`, verifies the source `InputError`/retry branch, then validates the full result and controls at **390×844** and **1440×900**. |
-| Source map title and optional slug fields, valid-preflight import gate and source submit copy | The only write seam is multipart `POST /api/v1/admin/world-builder/map-exports/import` with `manifest`, title, optional slug and CSRF. `201 { map_id }` maps to the existing Graph reload and selection callback; Rust Problem payloads stay in the source manifest error slot because Rust has no Laravel named validation bag. | Browser evidence asserts the title/slug controls, import request, CSRF headers, successful close and source validation media summary. |
-
-This is a pinned-source-code-to-Rust-browser comparison; direct live Laravel
-screenshot capture remains unavailable and is not claimed.
-
-#### Sixteenth P0 implementation evidence: source World details/history dialog — 15 November 2026
-
-**Pinned source remains:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-This slice directly lifts the `WorldDetails` trigger and dialog portion of
-`resources/js/pages/settings/worlds/index.tsx` into
-`frontend/src/lifted-world-builder-world-details-dialog.tsx`. It reuses the
-pinned Button, Dialog, Input, Label and InputError primitives as complete
-components. The legacy bespoke `EditWorldDetailsDialog` is removed. Graph
-canvas/routing, selected-map and selected-portal inspectors, Review,
-Structural, map editor and MapAsset editor remain unchanged.
-
-| Source requirement | Rust adapter boundary | Evidence |
-| --- | --- | --- |
-| Source trigger, Dialog hierarchy, title/description form, current-version reset and close behavior | The source's local open/reset state remains in the lifted component. Laravel `router.patch('/settings/worlds/details')` becomes typed `PATCH /api/v1/admin/world-builder/world/details` with source `title`, nullable blank `description`, `updated_at`, and the existing CSRF token adapter. The successful source close invokes only the existing graph reload callback. | `world-details-localization.spec.ts` asserts the pinned headings/copy/controls and bounded visible dialog at **1440×900** and **390×844**. |
-| Paged immutable history | Laravel's source `fetch('/settings/worlds/versions?page=&per_page=1')` becomes typed `GET /api/v1/admin/world-builder/world/versions?page=&per_page=1`. `AdminWorldDetailsVersionPage` changes only snake_case fields and its flat pagination envelope into the source component's `createdAt` and nested `pagination` names. | Browser coverage asserts the exact page-one query, source history/empty-description/pagination controls, and visible bounds. Rust application tests retain the distinct global `world_map_access:ru` authorization and history bounds. |
-| Source restore confirmation, form replacement and refresh | Laravel's restore `POST /settings/worlds/versions/{id}/restore` becomes typed CSRF `POST /api/v1/admin/world-builder/world/versions/{version_id}`. The Rust response is the source `world` payload flattened one level, so the adapter maps only `title`, `description`, and `updated_at` before rerunning source history and graph reload behavior. | Browser coverage accepts the exact source confirmation, asserts the CSRF header and `200` restore, then verifies the source form receives the restored title and blank description. |
-| Relevant Rust unavailable state | The source has one history-error presentation, so `401/404/503` or transport failure of the Rust history read select that unchanged branch. Rust's typed update failures occupy the source `updated_at` InputError slot because the source's Inertia named validation bag has no Rust equivalent; no new error panel is invented. | The focused browser spec forces Rust `503` and proves the exact source history-error copy remains visible and bounded at **390×844**. |
-
-This is a pinned-source-code-to-Rust-browser comparison; direct live Laravel
-screenshot capture remains unavailable and is not claimed.
-
-### Active frontend provenance audit — 5 November 2026
-
-The active Rust frontend was checked component-by-component against the named
-Laravel React sources. The current code must retain this mapping; a new route
-or control is not an acceptable stand-in merely because it can call a Rust
-endpoint.
-
-**Meaning of the classifications:** the standalone Vite application cannot
-import a Laravel/Inertia page unchanged: those files depend on Inertia props,
-Wayfinder route helpers, and Laravel-only client modules. “Source-adapted”
-therefore means the original React component structure, Tailwind utilities,
-icons, copy and interaction model have been lifted into `frontend/`, with only
-that transport glue replaced by React Router and the typed API client. It does
-not mean that a similarly styled new screen is acceptable. A smaller Rust
-surface may omit a source control whose required contract is not ready; it may
-not replace it with a newly invented workflow.
-
-| Rust surface                 | Laravel React reference                                                                                                                                                     | Current boundary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Welcome (`/`)                | `pages/welcome.tsx`, `components/appearance-tabs.tsx`, `hooks/use-appearance.tsx`, `theme/presentation.ts`                                                                  | Source-adapted markup, wheel/pager interaction, footer links and Light/Dark selector. The anonymous preference persists under the source browser-storage key and follows the visitor across public routes. `GET /public/presentation` supplies the server-owned welcome pages, backgrounds, palette and base theme instead of duplicated frontend defaults.                                                                                                                                                                                                                                                                                           |
-| Login, registration and personal preferences (`/login`, `/register`, `/settings`, `/settings?panel=personal&personal=appearance`, `/settings?panel=personal&personal=language`, `/settings?panel=personal&personal=feedback`, `/settings?panel=personal&personal=sound`, `/settings?panel=personal&personal=security`, `/settings?panel=personal&personal=delete-account`) | `pages/auth/login.tsx`, `pages/auth/register.tsx`, `pages/settings/personal.tsx`, `components/delete-user.tsx`, `components/platform-feedback-prompt.tsx`, `features/settings/profile-settings-panel.tsx`, `features/settings/appearance-settings-panel.tsx`, `features/settings/language-settings-panel.tsx`, `features/settings/sound-settings-panel.tsx`, `layouts/auth/auth-simple-layout.tsx`, `components/appearance-tabs.tsx`, `hooks/use-appearance.tsx`, `theme/platform-theme.ts` | Source-adapted sign-in, invitation registration and Personal Profile/Appearance/Language/Feedback/Sound/Security/Delete-account forms/layouts, with Inertia submits replaced by typed Rust requests. The source Personal workspace's complete eight-section navigation is shared across every migrated Personal route, including its descriptions, danger treatment and keyboard tab controls; URL navigation replaces only the source's in-page Inertia selection. Registration consumes a one-use identity-database invitation, provisions the separate application principal with its hierarchy-validated selected roles, saves the source Light/Dark choice as private application data and establishes a session. Profile preserves its name, sign-in email and optional public username fields across the identity/application boundary; profile-image upload now uses the completed mounted-volume media lifecycle. The lifted appearance, language and sound controls update only owner-scoped application preferences. Language reads enabled application locales, persists the selected locale, and loads the selected locale's fixed platform-copy catalog through a learner-scoped endpoint. Language administration can create and enable locales and import/export the bounded platform catalog; activity translations are a separate active-run-only read that can replace learner-facing copy but never graph, scoring, media or access data. Feedback retains the source's occasional invitation, fourteen-day dismissal and durable decline/re-enable choice, without a campaign or analytics system. Sound retains the source mute, effects/ambience-volume and local-preview behavior. Security now preserves the current-password, replacement-password and confirmation flow through the identity-data boundary; it keeps the initiating server-side session current while verifier-bound older sessions expire. The source-derived TOTP and passkey lifecycles retain their source sign-in, recent-confirmation, enrollment/list/removal and non-secret audit paths. The source Delete account modal requires the current password in the destructive request, destroys the application/identity pair through the shared resumable lifecycle, ends the current session and returns to the original welcome surface. Password recovery and source 400-day remembered sessions are complete; the other Personal-settings controls remain unavailable rather than being imitated. |
-| Information and source pages | `features/platform-info/platform-info-page.tsx`, `pages/source.tsx`, `pages/settings/presentation.tsx`, `features/platform-info/markdown-renderer.tsx`                      | Lifted page hierarchy, source layout and markdown renderer. The same public-presentation model supplies their palette, base welcome theme and ordered configured information pages; their published text and source links remain separate bounded reads. Administrators with source `presentation.ru` can manage up to 24 source-shaped information pages (slug, title, Markdown and dark/light backgrounds), while the three direct source routes retain their fixed-content editor. Additional configured pages resolve at `/info/{slug}`; public readers remain anonymous bounded projections. The former floating source-code launcher was removed because it has no equivalent on the original information pages. |
-| World/map/search/node drawer | `pages/world.tsx`, `features/world/world-map.tsx`, `world-search.tsx`, `node-detail-drawer.tsx`, `activity-panel.tsx`, `map-asset-visual.tsx`, `components/app-side-action-bar.tsx`, `components/learner-navigation-header.tsx` | Source-adapted around the bounded public/learner contracts. Map assets, hit testing, desktop and narrow-screen search-panel structure, drawer geometry/swipe, original bookmark toggle, owned item/tool belt, equipped-tool map reveal/unlock, supported route-start cards and every currently available original learner-navigation destination retain their original structures. The lifted source theme resolver selects dark/light map, asset and route-start presentation from the server model. Source `tool_grant`, item-grant, item-obstacle, base-obstacle and NPC-dialogue configured tool-grant playback now follow server-owned acquisition, consumption and transition paths. Node-drawer obstacle/item use and member-only Groups now have their own contracts; source group creation and assignment is available to the migrated platform-administrator scope. Remaining World parity is tracked per unavailable authoring/access slice rather than by a substitute UI. |
-| Personal bookmark map        | `pages/bookmarks.tsx`, `features/world/world-map.tsx`, `map-asset-visual.tsx`, `components/learner-navigation-header.tsx`                                                   | Source-adapted personal-map, shared learner header, selected-place, return-to-source-map and removal flow. The same lifted dark/light map and asset theme resolution applies. Rust returns only the principal's bookmarks that remain visible, with their original map context and presentation asset.                                                                                                                                                                                                                                                                                                                                                                            |
-| Topics directory and detail  | `features/topics/topic-directory.tsx`, `features/topics/topic-detail.tsx`, `components/learner-navigation-header.tsx`, `components/learner-paginated-items.tsx`           | Source-adapted authenticated directory, search, bounded pagination, default Trail, keyboard tab strip, Routes filters/start action, Maps and Overview/subtopics. The selected topic’s header remains present in every section, beneath the shared lifted learner header with working Rust destinations, Journal and sign-out controls. Rust keeps path eligibility, topic context and opaque run issuance server-owned. Topic Trail competence drill-down, recent-reflection, competence evidence and return controls are restored: the first preserves source topic context in the Star Map, while activity controls use the shared CSRF-protected opaque replay command. Broader reflection-history controls remain omitted until their own data contracts and evidence exist. The standalone source `/paths` reader uses the same typed Paths contract, route-start command and shared header.                                                                                                                                         |
-| Competence star map          | `pages/competence/index.tsx`, `pages/competence/competence-star-layout.ts`, `components/learner-navigation-header.tsx`, `components/learner-paginated-items.tsx`          | Source-adapted private Star Map, deterministic original SVG layout, shared learner header, map guide, selected-light reading, evidence ledger, learning-pulse timeline and bounded review history. Rust provides only the signed-in learner's qualitative evidence. The header retains only source destinations whose Rust routes exist, plus the existing private Journal and sign-out controls; unavailable source destinations are omitted. Topic context links use the existing authenticated topic reader. Revisit/check-in/review cards restore their source activity controls by obtaining a CSRF-protected authorized opaque replay run; the read model still never exposes a client-constructed activity URL. |
-| Playback                     | `pages/learning/node-play.tsx`, `features/world/activity-panel.tsx`, `features/world/standard-activities.tsx`, `features/world/activity-ambient-sound.tsx`, `features/world/portal-scene.tsx`, `features/world/markdown-activity.tsx`, `features/world/tool-grant-activity.tsx`, `features/world/item-grant-activity.tsx`, `features/world/item-obstacle-activity.tsx`, `features/world/obstacle-activity.tsx`, `features/world/message-activities.tsx`, `features/world/learning-check-in.tsx` | Source-adapted open-practice, question, base/explain/transfer reflection and review, Portal, Markdown page graph, tool-grant, item-grant, item-obstacle, base obstacle, peer-message prompt and peer-message wall frames, followed on ordinary route runs by the lifted optional source check-in pause. The World projection and ordinary route-start command share the same supported-activity allowlist, so a published Message Prompt or Message Wall configured as a MapAsset start is visible to an authorized learner and opens its existing source-derived player. The source Activity Frame's pre-activity learning focus, related learning-area links and `From beginning` route reset now use the same bounded server projection/authorized reset command; focus is no longer delayed until after completion, and a restart cannot be used for portal, revisit, recall or replay runs. Rust owns answer evaluation, reflection persistence, server-authorized portal travel, safe bounded authored Markdown pages, configured-tool ownership, configured-item probability rolls/holdings, item-obstacle slot consumption/locks and source `notMet`/`transition`/`met` effect events, owned configured-tool obstacle resolution, peer-message topic binding/visibility and completed-activity transitions; it exposes only bounded authored check-in context, and accepts a check-in only after server-side completion. Reflection persistence follows the source save-then-complete boundary: its standalone surface preserves source response focus, changed context, authored cues, after-save guidance, optional independent response and comparison, review controls, and platform-catalog fixed copy while Rust retains private persistence and progression authority. Item-grant loading, received and retryable-error states also resolve through that bounded catalog while its roll, holdings and completion authority remain server-owned. Base-obstacle prompt, selected-tool guidance, target, speech-bubble and continuation states likewise resolve through it while Rust retains tool authorization and resolved-state authority. Revisit runs deliberately return to World rather than recording a second ordinary check-in. Question feedback now includes the source confidence reflection, an up-to-three private earlier-attempt summary, optional post-feedback confidence, and the source keep/remove-recall control. Reloading an active question restores only that run's latest evaluated answer and its bounded earlier-attempt context; a fresh run does not inherit it. Recall attempts are separate one-question runs: they never advance a route or create evidence. Published activity ambience and item-obstacle effects follow the source player and saved learner comfort controls through bounded sound projections; base-obstacle effects and remaining unsupported activity types remain separate contracts and are not silently represented as complete; staff peer-message moderation is recorded with the source staff workspace below. |
-| Private journal              | `components/learner-account-controls.tsx`, `components/learner-paginated-items.tsx`, `features/journal/journal-overlay.tsx`, `pages/settings/admin-panel.tsx`, `pages/settings/journal.tsx`, `features/platform-info/markdown-renderer.tsx` | Source-adapted learner-owned overlay, reached from the original journal control. Rust scopes and paginates private page markdown and durable learning context, and supports the source add/edit/view/save/delete controls. The bounded source Learning trail now shows recent check-ins, preserves its source competence destination and reopens an activity only through a CSRF-protected opaque replay run. Due revisit invitations use the lifted source sidebar panel, one-at-a-time pagination and `Open activity`/`Later`/`Hide` controls; opening first obtains a server-owned opaque revisit run. The source one-time review request is now available for a saved page when the source policy is enabled; requests remain private unless deliberately shared, then authorized staff may give one immutable response. The source feedback-domain model deliberately contains only Journal and the learner's learning groups; organizations are not a source destination. The original Export control downloads only the learner's own pages in source-compatible Markdown; it excludes check-ins and review metadata. The source-default light/dark paper presentation is served by Rust and follows the active appearance while the overlay is open. Authorized Learning Support staff can now use the lifted source Journal policy/background editor, including dark/light image placement, up to twelve decorative assets per mode, direct upload or reusable-visual selection and preview. The saved Rust references prevent deletion of selected media and learner projection serves them only to authenticated Journal readers. Its bounded Learning trail keeps the source's recent four-entry presentation while the shared private check-in reader retains the source's 30-entry history for the competence pulse. |
-
-The Item-obstacle player's fixed continuation, lock and validation-feedback
-copy now also resolves through the bounded platform catalog; its slot state,
-inventory mutation and continuation remain server-owned.
-
-Markdown playback's empty state, previous-page accessibility label and final
-continuation copy likewise use the catalog while its bounded page graph and
-completion remain server-owned.
-
-Peer-message prompt loading, validation, peer-visibility, contribution and
-completion copy now resolves through the catalog while Rust retains its topic
-binding, message write and activity-completion authority.
-
-Peer-message wall reading, response/helpfulness controls, pagination and close
-copy likewise use the catalog; Rust remains the authority for visible messages,
-one-response eligibility, helpfulness and completion.
-
-NPC-dialogue's bounded source orientation, answer, reflection and navigation
-copy now resolves through the platform catalog; active node state, answer,
-reflection, configured tool grant, history and completion remain Rust-owned.
-
-Portal heading, destination, arrival and traversal copy now resolves through
-the catalog while Rust remains the authority for destination eligibility and
-opaque arrival-run creation.
-
-Open-practice default next-step guidance and continuation copy now resolve
-through the catalog while Rust retains route-run completion authority.
-
-Shared Task progress, contribution, project-brief, peer-review, follow-up and
-revision copy now also resolves through the catalog while Rust retains
-contribution eligibility, anonymous review state, private checklist state and
-completion authority.
-
-Tool Grant availability, discovered-tool, prompt, action and error copy now
-resolve through the catalog while Rust retains active-run authorization, scoped
-tool resolution and completion authority.
-
-The source World Builder's map Access permissions control is now lifted for
-principals with its distinct `world_map_access` update scope. Its typed Rust
-command replaces only the complete map viewer-group list after validating
-current application-role keys; it does not conflate learner visibility with
-map content editing or editor-group assignment. See ADR-098.
+The standalone/reconstructed frontend audit and its implementation sequence were
+removed after the canonical frontend reset. The canonical-source activation
+register above is the sole frontend execution plan. Existing Rust contracts and
+tests remain reusable only after the source route that consumes them is
+independently audited.
 
 ### Private Learning Support slice — 6 November 2026
 
@@ -1754,12 +1191,11 @@ visuals, arrival behavior, typing bubble and presentation colors. Its typed
 Rust command scopes node/activity mutations to `world_activities.ru`, checks
 the stale timestamp, writes the server-owned Portal link only for an Entry
 Portal with a valid Exit target, records activity history, and keeps every
-selected or uploaded reusable visual referenced. The lifted World Builder form
-uses the existing reusable-visual picker/upload path and learner Portal scene
-for its preview. Global map-link storage and API now preserve the source's
-distinct node-to-node links, including their nullable activity endpoints; the
-source-adapted editing controls remain deferred until the remaining backend
-authoring contracts are complete.
+selected or uploaded reusable visual referenced. Global map-link storage and
+API now preserve the source's distinct node-to-node links, including their
+nullable activity endpoints. The copied Portal authoring control remains
+unavailable until its complete canonical source route and transport matrix are
+verified.
 
 ### Learner sound-preference slice — 6 November 2026
 
@@ -1942,19 +1378,16 @@ destination objects.
 
 ### World Builder World-details history slice — 8 November 2026
 
-The World Builder header now lifts the source `Edit world details` dialog only
-after the corresponding Rust write contract is present. `PATCH
+The World-details backend contract is available for a later canonical source
+route activation. `PATCH
 /api/v1/admin/world-builder/world/details` requires the distinct global
 `world_map_access.ru` grant, locks the current World, rejects a stale
 `updated_at` value, stores the pre-change title/description as an immutable
 revision, and then changes only those two fields. `GET
 /api/v1/admin/world-builder/world/versions` provides the bounded newest-first
 history page; its CSRF-protected restore endpoint first snapshots the current
-details and then restores the selected same-World revision. The source-adapted
-dialog retains the unchanged canonical slug, pagination, confirmation and
-restoration wording. Its local browser proof writes disposable details,
-observes the prior immutable version, restores it, and leaves the visible World
-details unchanged.
+details and then restores the selected same-World revision. The copied dialog
+remains unavailable until its complete source route is admitted.
 
 ### World Builder map-visuals slice — 8 November 2026
 
@@ -1966,583 +1399,20 @@ positioned decorative layers. The writer retains unrelated legacy configuration
 while merging recognized fields, replaces the submitted layer list atomically,
 and uses the source `world_maps.ru` all/own/assigned/direct-editor check.
 
-The lifted World Builder dialog retains the source section navigation, dark and
-light mode editors, image upload/reusable-media selection, X/Y/size/opacity
-layer controls and visual preview. Map-owned reusable-media references are
-synchronized on save, copied when a map is duplicated, removed when it is
-deleted, and delivered to learners only for a published role-visible map. The
-local browser proof saves a background and layer from the media library, reads
-the persisted configuration, then proves map deletion releases both references.
-
-#### Source-parity correction: complete Map Configuration route — 15 November 2026
-
-**Status: source-visible route complete — 15 November 2026.** Earlier
-map-visual evidence proved the bounded Rust writer and a bespoke editor, not
-the full current-`main` destination. The verified lift starts from pinned
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f` source
-`resources/js/pages/settings/worlds/configure-map.tsx` and retains its Details,
-Visuals, Access and Delete sections, history dialog, dark/light mode, visual
-subnavigation and responsive nested workspace. Named source dependencies are
-lifted as whole components in `frontend/src/lifted-color-input.tsx` and
-`frontend/src/lifted-reusable-image-picker.tsx`. The route now consumes the
-whole lifted `SettingsConfigurationShell`, `SettingsNestedWorkspace` and
-`SettingsSectionButton` from
-`frontend/src/extracted-settings-configuration-shell.tsx`. Its source Inertia
-`Link` becomes React Router; its source page-prop presentation lookup is
-supplied by the existing Rust Settings presentation surface that embeds the
-route. The matching source
-`ConfigImageInput` is retained in
-`frontend/src/lifted-world-builder-configure-map.tsx` with only its page-prop,
-download-route and request seams replaced.
-
-| Source contract | Rust adapter / evidence | Current parity status |
-| --- | --- | --- |
-| `PATCH settings/worlds/maps/{map}/details`, map-history list/restore and delete | Existing typed map details/version/delete endpoints, CSRF and UUID-only path adapter | Source-form save, history/restore confirmation, delete confirmation and scoped requests are browser-proven. |
-| `PATCH settings/worlds/maps/{map}/visuals` | Existing scoped `background_config` writer and map-reference synchronizer | Source color/mode/image/layer controls mount in the direct lift; browser coverage proves source image selection/upload plus the persisted stable media URL. |
-| `POST settings/worlds/node-images` with `map_id`, source `world_nodes.ru` plus map-editor policy, 50 MiB limit | `POST /admin/world-builder/maps/{map_id}/visual-media`, CSRF, `world_nodes.ru`, `world_maps.ru` and the exact all/own/assigned/direct-editor predicate; OpenAPI declares its multipart `file` seam | Write authorization and source size bound are covered. It deliberately does **not** grant generic asset-library upload authority. |
-| `auth.canViewMediaPaths` | Explicit `/me.can_view_media_paths` projection, consumed by the direct source image control | Raw URL disclosure is now role-projected, not hard-coded for administrators. |
-| `GET settings/assets/reusable-images` and source `ConfigImageInput` picker | Typed `GET /admin/media-assets` maps Rust `items/pagination` to the lifted source gallery's search, tag, responsive page size, loading, selection and error states | Browser fixtures cover populated selection and bounded `503` state at source controls. |
-
-The scoped upload returns both the stable reusable-media URL that is persisted
-on save and a map-editor-authorized preview URL for the unsaved source control.
-The preview URL is intentionally not a learner delivery path: the form adapter
-converts only that exact temporary URL back to the stable media URL when it
-writes the map, so the existing learner map-reference authorization remains
-the sole persisted-media boundary. This removes the prior `assets.ro` preview
-gap without granting generic asset-library access. The direct lift has browser
-evidence for its details, access, history, delete and visual mutation paths
-against the typed Rust contracts. The focused source-derived browser fixture is
-`frontend/e2e/world-builder-configure-map.spec.ts` at 1440×900 and 390×844.
-
-#### P0 implementation: complete MapAsset editor route — 15 November 2026
-
-**Status: source-visible route complete — 15 November 2026.** The Graph
-workspace now mounts the whole pinned-source route through
-`LiftedWorldBuilderEditMapDocument`, rather than the bespoke
-`MapAssetSurface`. The verified direct lift is committed as
-`b7269b30 feat: lift source mapasset editor`; no old surface is used as a
-fallback.
-The lifted editor is the entire pinned-main
-`resources/js/pages/settings/worlds/edit-map.tsx` (5,290 lines), whose default
-`EditWorldMap` component is the source destination behind **Configure
-MapAssets**. It must be lifted as one route with its named dependencies; the
-existing `MapAssetSurface`, `MapAssetEditorDialog`, and node-dialog code in
-`frontend/src/original-world-builder.tsx` are an implementation reference for
-Rust contracts only, not a substitute source UI.
-
-| Pinned source component / dependency | Required source behavior | Rust contract or explicit preflight result |
-| --- | --- | --- |
-| `EditWorldMap` with `SettingsConfigurationLayout`, `SettingsContentPane`, `SettingsConfigurationDialog`, `SettingsConfigurationSection`, `SettingsSectionButton` and `ConfigModeSwitch` | Hex-grid surface; node/MapAsset selection; all source sidebar sections; embedded map-workspace sizing; map details/access/visual dialogs; source dialog close/reset behavior. | The existing selected-map document is `GET /api/v1/admin/world-builder/maps/{map_id}`. It supplies map, World, nodes, MapAssets, access groups, role options, items, sounds and tools. The adapter must map only field casing/UUID transport and preserve source hierarchy. |
-| `features/settings/map-asset-editor.tsx`: `MapAssetEditor`, `MapAssetFields`, `assetForm`, `assetPayload` and interaction-state helpers | Whole MapAsset canvas, add/import controls, focusable/decorative/hide-on-hover/toggle modes, two-state images, framing, placement, locking, visual preview and alpha hit area. | Existing commands: `POST /admin/world-builder/maps/{map_id}/assets`, `PATCH`/`DELETE /admin/world-builder/assets/{asset_id}`, asset versions, export and export-package. Rust field names and numeric bounds must be mapped once at the Inertia adapter; do not recreate the fields in a new form. |
-| `features/settings/map-asset-history-dialog.tsx` and `map-layout-history-dialog.tsx` | Source-owned loading, empty/error, pagination, preview/restore confirmation and map-layout history affordances. | Existing scoped asset-version and layout-version/preview/restore routes are candidates. The lift must prove unavailable and stale/restore responses rather than retaining custom dialogs. |
-| `features/admin-worlds/hex-grid-geometry.ts`, `ImageAlphaHitArea`, `MapAssetVisual`, `map-asset-image`, `map-asset-interaction`, `theme` | Exact axial geometry, insertion controls, hit testing, visual state resolution and preview rules. | These must be lifted or directly shared after a source identity check; current bespoke geometry and visual helpers cannot be treated as parity merely because the endpoints exist. |
-| Node lifecycle within `EditWorldMap` | Create, update, insert between, delete, drag/move, adjacent swap, reset learner unlocks and related source error/confirmation flows. | Existing commands: map-node create, node PATCH/DELETE, node insert, position, swap, and reset-unlocks. Their source payload/response/error mapping must be written before replacing `router.post/patch/delete`. |
-| `ConfigImageInput`, `SoundAssetInput`, `uploadMediaFile` | Map-scoped image upload/select/download and sound upload/select/preview with source error states. Source node sound fields are `{ enabled, url }`, not a select-only sound UUID. | The scoped image upload/temporary preview adapter from Map Configuration is reusable only if its final persisted URL remains the map-reference-safe URL. Pinned Laravel requires `sounds.ru` for sound upload; Rust's existing `POST /admin/sounds/media` has the same grant and the map document already returns eligible sounds. Rust now accepts an exact managed-audio URL in node sound fields, verifies audio content, synchronizes it as a node media reference and projects its learner-safe URL; the legacy published sound-ID representation remains accepted. The lift must adapt the temporary sound-preview URL to that persisted URL and prove unavailable uploads without broadening map-editor authority. |
-| `ContentAuthoringDialog`, templates and activity handoff | The source offers its existing authoring dialog from the MapAsset editor and hands a created result into the selected node/activity graph. | Existing Rust content-authoring and typed activity routes may be adapter candidates, but this must be verified field-by-field. Do not expose a partial launcher or invent a generic activity editor. |
-
-The committed implementation includes the import-by-import adapter matrix and
-browser evidence at 1440×900 and 390×844 for an empty map, one MapAsset,
-selected MapAsset, selected tile/node, toggle-state preview, layout-history
-loading/empty/error, editor error and map-scoped media failure. It does not
-route around an unavailable source dependency by keeping the bespoke surface in
-its place. The only original layout-operation controls are inside the pinned
-source's `hidden` legacy hex-grid section, so they are deliberately not exposed
-as a Rust-specific browser workflow.
-
-| Pinned import / source seam | Rust adapter | Retained source behavior | Contract and current evidence |
-| --- | --- | --- | --- |
-| `@inertiajs/react`: `Head`, `Link`, `router` and `usePage` | `LiftedWorldBuilderEditMapDocument` maps `AdminEditableMap` wire fields to the source prop shape; `Link` uses React Router and `LiftedWorldMapTransport` owns the only request boundary. | The 5,290-line `EditWorldMap` route hierarchy, embedded dialog sizing, source URLs and lifecycle callbacks remain intact. | `GET /admin/world-builder/maps/{map_id}`; mutating source-shaped URLs are exhaustively dispatched only to typed Rust endpoints. Browser fixture proves the mounted route at 1440×900 and 390×844. |
-| `features/settings/map-asset-editor.tsx` and `MapAssetFields` | Whole copied source component, UUID type adapter, and direct callbacks for add/import/image upload. The missing source toast runtime is replaced only at this transport boundary by its bounded inline error announcement. | Canvas, empty state, selectable MapAssets, field sections and source interaction-state UI. | `POST /maps/{map_id}/assets`, `PATCH /assets/{asset_id}`, multipart `asset-exports/import`, and scoped visual media. Fixture proves empty/selected MapAsset+node, toggle-state preview, 201 add, 503 add failure and 503 image-upload failure. |
-| `features/admin-worlds/hex-grid-geometry`, `features/world/{image-alpha-mask,map-asset-image,map-asset-interaction,map-asset-visual,theme}` | Direct lifted modules with import-only substitutions. | Source axial placement, hit area, state resolution, visual composition and themes. | The fixture proves a selected source node/tile, toggle preview and bounded layout-history loading, empty and unavailable states. Pinned `edit-map.tsx` itself marks the legacy hex-grid `<section>` `hidden`, so drag/move and adjacent-swap controls have no source-visible browser path to compare. They remain bound only through the typed adapter and focused Rust command tests; the standalone UI must not unhide or redesign them. MapAsset history empty/list/restore is browser-proven against the typed restore response. |
-| Node `router.post/patch/delete` paths | `useRustTransport` resolves source paths to node create/update/insert/delete/reset/swap endpoints with CSRF, UUID paths and a document reload. | Source dialogs, confirmations, form reset and source payload construction. | `POST /maps/{map_id}/nodes`, `PATCH`/`DELETE /nodes/{node_id}`, node insert/reset/swap. The visible selected-node save is browser-proven; the hidden source hex-grid-only lifecycle commands retain focused Rust application/API coverage rather than fabricated browser controls. |
-| Map, MapAsset and history writer paths | `useRustTransport`; lifted source history dialogs use their typed list/preview/restore endpoints. | Source map visual/details/access saves, MapAsset saves, history/list/restore affordances and exports. | Map visuals/details/access, `PATCH /assets/{asset_id}`, asset and layout version endpoints. Export links use `/api/v1/admin/world-builder/assets/{asset_id}/{export,export-package}`. Asset-history empty/list/restore plus layout-history loading, empty and 503 UI are browser-proven. |
-| `uploadMediaFile`, `ConfigImageInput` and `SoundAssetInput` | Map-scoped visual multipart upload and reusable sound multipart upload. Sound staging is normalized from `/admin/sounds/media/{id}/content` to `/admin/media-assets/{id}/content` before node save. | Source image/sound controls and managed media references. | `POST /maps/{map_id}/visual-media` and `POST /admin/sounds/media`, both CSRF-protected. The fixture proves the MapAsset image-upload `503` fallback plus a successful sound upload, CSRF propagation, managed URL normalization and the subsequent asset/node save payload. |
-| `ContentAuthoringDialog` | Existing full source-adapted typed content-authoring dialog remains mounted from the source toolbar and reloads the selected map on apply. | Existing authoring launch, source-record selection, draft review and activity handoff. | Existing AI/content-plan Rust endpoints; retain its own focused coverage while completing this editor slice. |
-
-### Selected-node Activity Editor exact-source parity audit — 15 November 2026
-
-**Status: direct route mounted; parity remains incomplete.** The source route
-is now mounted through `LiftedNodeActivityEditorDocument` in both Graph and
-Structural workspaces. This audit remains the authoritative closure backlog;
-it is not an acceptance claim for the remaining state/transport evidence.
-
-**Pinned source baseline:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-The source destination is
-`resources/js/pages/settings/worlds/edit-node-activities.tsx`, whose complete
-default `EditNodeActivities` route is 3,850 lines. It is mounted by
-`resources/js/pages/settings/index.tsx` within `WorldBuilderMapWorkspace` for
-a selected map/node. It is not the MapAsset editor, the Graph inspector, or a
-generic activity form. The current Rust path is the `ActivityGraph` and its
-related dialogs in `frontend/src/original-world-builder.tsx`; that bespoke
-implementation must not be incrementally restyled or used as a partial source
-replacement.
-
-#### Exact source composition and dependencies
-
-The eventual lift must begin with the whole source route and retain these
-named dependencies as components/modules, not copied field fragments:
-
-| Source role | Exact pinned-source paths / components | Required retained behavior |
-| --- | --- | --- |
-| Route frame and activity graph | `pages/settings/worlds/edit-node-activities.tsx`: `EditNodeActivities`, source header/back link, review banner, empty state, `ReactFlow`, `Background`, `Controls`, `MiniMap`, graph key handling and dirty-state warning | Selected node orientation, **Add activity**, empty-graph guidance, source graph fit/drag/connect/selection and desktop/narrow overflow boundary. |
-| Graph construction | `pages/settings/worlds/activity-graph-elements.tsx`: `activityNodeTypes`, `buildGraphNodes`, `buildGraphEdges`, `routeActivityTitle`; `activity-scene-preview.tsx` | Source Start/End/activity nodes, handles/connectors, route labels, review affordances and graph preview behavior. |
-| Activity create/edit forms | `activity-form-fields.tsx`, `activity-form-state.ts`, `activity-form-payload.ts`, `activity-config-fields.tsx`, `item-activity-fields.tsx`, `tool-grant-activity-fields.tsx`, `obstacle-activity-fields.tsx`, `portal-activity-fields.tsx`, `markdown-activity-fields.tsx`, `message-activity-fields.tsx`, `shared-task-activity-fields.tsx`, `activity-ambient-sound-fields.tsx`, `activity-source-reference-fields.tsx` | The source type chooser, source defaults, type-specific fields, validation placement, draft/reset behavior and source payload construction. A Rust adapter must not collapse them into one generic JSON form. |
-| Activity dialogs and reuse | `features/ai/activity-review-dialog.tsx`, `features/settings/activity-history-dialog.tsx`, `activity-template-context.ts`, `activity-template-media.ts`, `use-node-image-upload.ts` | AI-review handoff, immutable activity history/restore, private/shared template handling, safe media substitutions and scoped image upload. |
-| Shared primitives / seams | `components/{color-input,input-error,pagination-controls,reusable-image-picker,settings-configuration-dialog,settings-configuration-section}.tsx`, `components/ui/{button,dialog,input,label}.tsx`, `hooks/{use-appearance,use-dirty-state,use-platform-translation}.tsx`, `lib/utils.ts` | Existing source classes, focus/dialog semantics, pagination, appearance and translation behavior. Only Inertia `Head`, `Link`, `router`, `usePage`, Laravel paths and form transport may be adapted. |
-
-The source route plus the direct activity-form, graph, template, review and
-history dependencies above account for **12,097** source lines before their
-shared primitive dependency trees. This is one atomic route lift, not a
-candidate for a header/canvas/form-by-form migration. The source
-`edit-node-activity-types.ts` declares Laravel numeric identifiers for
-activities, starts, transitions, templates and source records; the generated
-Rust contract deliberately returns opaque UUID strings. The standalone lift
-must generalize those *TypeScript data declarations* once at its adapter
-boundary and preserve the source JSX/component hierarchy. It must never
-coerce UUIDs through `Number`, manufacture numeric aliases, or make a second
-browser lookup only to preserve a Laravel-only identifier type.
-
-#### State and contract backlog
-
-| Pinned-source state | Current Rust path / mismatch | Severity | Required complete Rust read or command boundary | Required evidence before closure |
-| --- | --- | --- | --- | --- |
-| Selected-node graph: populated, empty, selection, Start/End and narrow layout | The direct source `EditNodeActivities` route and `activity-graph-elements` tree replace the mounted `ActivityGraph` workspace path. The UUID adapter maps the scoped Rust document once; the retained bespoke component is not mounted. | P0 | `GET /api/v1/admin/world-builder/nodes/{node_id}` maps world/map/node context, activities, transitions, connectors, starts, graph layout, portal candidates, items, sounds, tools, source records and authoring options through `adaptRustActivityEditorDocument`. | The focused source harness proves populated/empty, selection dialogs, Start/End and bounded desktop/narrow controls. Its explicit Tailwind source scan gives the React Flow parent a real measured canvas, rather than treating zero-height DOM handles as interaction evidence. Direct live source-vs-Rust fitting evidence remains incomplete. |
-| Create/edit every currently supported type | The mounted source form tree replaces the Rust-specific composition, but dedicated Markdown/NPC cards hand off to their direct source editors and the remaining source-state matrix is not a route-family completion claim. | P0 | Type-specific create/update endpoints for Open Practice, Reflection, Review, Markdown, Portal, NPC dialogue, Question, Message, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base Obstacle; each keeps CSRF, scoped authoring, validation and optimistic concurrency server-owned. | The focused source harness captures defaults plus Rust validation/stale/successful-reload behavior for the covered families. Remaining direct-page and authenticated matrix evidence must be retained separately. |
-| Connections, ordered learner starts and position/layout saves | The mounted source graph dispatches its source handlers only to the existing typed command client. A rejected newly drawn connection no longer triggers a false parent reload; only an accepted command does. | P0 | Existing typed commands for activity graph layout, activity position, starts, start-route update/reorder/delete, transitions and transition update/delete. They are mapped only through the adapted source `router` seams after UUID payload identity is verified. | `activity-editor-harness.spec.ts` now proves source start-route update/reorder/delete and transition update/delete requests, their source-dialog failure placement, successful parent reloads, bounded desktop/narrow controls, an actual handle-to-handle connection request, and real activity/Start/End drag requests. The application command tests deny connection creation and activity-card drag before persistence without `world_activities.ru`; existing Start/End command tests carry the same gate. `world-builder-cross-node-scope.spec.ts` additionally authenticates against the local Compose Rust/PostgreSQL stack, submits the direct source transition command using persisted activities from two different nodes, requires `404`, then re-reads the source node and proves its persisted transition IDs are unchanged. |
-| History, AI review, templates, citations and media | The mounted source route owns their launch order, loading/empty/error behavior and return-to-edit lifecycle; its only substitutions are typed Rust adapters. | P1 evidence complete | Existing activity versions/restore, AI review, template, source-record and scoped upload contracts are mapped individually; no source dialog falls back to an untyped Laravel request. | The mounted source `ActivityHistoryDialog` has desktop Rust-409 restore-error and narrow Rust-204 restore/reload browser evidence. The direct source `ActivityReviewDialog` has desktop no-review Rust-503 and narrow completed-Rust-review evidence, including bounded controls and its structured result. The source template paginator has desktop typed-Rust page-2 `503` coverage, and source-record paginator has narrow typed-Rust page-2 `503` coverage; both retain their source dialog, error copy and bounded control. The direct source portal `ConfigImageInput` has desktop and narrow typed-Rust multipart `503` evidence, including CSRF propagation, source error copy and a re-enabled bounded upload control. |
-| Transport unavailable/read denial | Complete. `WorldBuilderContent` now keeps the direct source `UnavailableWorldBuilder` panel in the lifted Settings workspace while a selected-node read is pending or unavailable; it does not expose the map editor behind an unresolved node request. | P0 closed | The existing selected-node read returns 401/403/404/503 or network failure. The transport seam supplies no authoring controls or replacement copy without a successful document. | `world-builder-status-localization.spec.ts` mocks pending, 401, 403, 404, 503 and network failure and proves the pinned source panel is visible and bounded at 1440×900 and 390×844, distinct from the source empty-activity state. |
-
-**Observed pinned-source responsive limitation — 16 November 2026:** a
-read-only authenticated local-Compose probe mounted the direct selected-node
-route with a populated local graph. At desktop, the source default React Flow
-minimum zoom could not contain a 71-activity graph: an activity card had a
-measured right edge of 16,255px while the canvas ended at 1,419px. For a
-single-activity node at 390×844, the embedded React Flow application had no
-measured visible height. The containing `WorldBuilderMapWorkspace` grid and
-its narrow stack classes are a direct pinned-source lift from
-`world-builder-settings-panel.tsx`; no Rust-only CSS or zoom change is
-authorized to mask this source behavior. A live Laravel capture is still
-unavailable, so this is mounted-Rust/source-code evidence rather than proof
-that the original Laravel runtime behaves identically. The narrow selected-node
-fit requirement remains open and must be resolved in `main` before a corrected
-source component is lifted and accepted here.
-
-**History contract prerequisite — complete:** pinned `ActivityHistoryDialog`
-requires each inspected snapshot to expose `companionConfig`, `config`,
-`graphPositionX`, `graphPositionY` and optional `transitions` under its source
-names. `AdminActivityVersionDetails.snapshot` now projects exactly those fields
-with UUID version IDs. The projection keeps object-only configuration, nullable
-positions and object-only transition rows; missing or malformed legacy snapshot
-fields become empty objects or absent optional fields. It does not expose
-arbitrary stored JSON and must not be replaced by a broad client-side cast.
-This unblocks a direct source-dialog lift, but does not itself make the existing
-bespoke Rust history dialog a parity proof.
-
-#### Required implementation order
-
-1. Record a field-by-field `AdminEditableNode` to source
-   `ActivityGraphPayload` adapter matrix, including all type discriminators and
-   nullable/empty fields, before copying JSX.
-2. Lift the whole `EditNodeActivities` route and the source modules above into
-   the standalone frontend. Replace only the documented Inertia/Laravel seams
-   with React Router and the typed Rust client.
-3. Keep the existing bespoke `ActivityGraph` only as an implementation/contract
-   reference until the direct lift replaces it atomically. Do not combine a
-   lifted header or graph canvas with the existing bespoke forms as a claimed
-   migration.
-4. Close only after the source-state browser matrix and focused Rust
-   authorization/contract tests pass. Direct live Laravel capture remains
-   unavailable in this environment, so evidence must be accurately described
-   as pinned-source-code-to-Rust-browser comparison rather than a screenshot
-   side-by-side claim.
-
-#### First Activity Editor implementation prerequisite: UUID contract adapter — 15 November 2026
-
-This narrow prerequisite lifts the whole pinned-source
-`edit-node-activity-types.ts` into
-`frontend/src/lifted-world-builder-edit-node-activity-types.ts` and adds the
-sole selected-node adapter in
-`frontend/src/lifted-world-builder-activity-editor-adapter.ts`. It does **not**
-mount any Activity Editor JSX, replace `ActivityGraph`, or claim a migrated
-selected-node route. Its purpose is to prove the data boundary before the
-atomic source route lift.
-
-| Pinned source value | Rust `AdminEditableNode` projection | Adapter rule | Evidence |
-| --- | --- | --- | --- |
-| Numeric activity, map, node, transition, start-route, template and source-record IDs | Opaque UUID strings in `AdminEditableNode`, `AdminActivityGraph` and all nested records | The lifted type declarations generalize these IDs to `string`; no conversion to `Number` and no alias lookup occurs. | `world-builder-activity-editor-adapter.spec.ts` retains UUIDs through node/start/transition/portal/source/template-target shapes. |
-| Source camel-case graph props | OpenAPI snake-case graph/read projection | `adaptRustActivityEditorDocument` is the one name-only map for graph metadata, activity type/template data, starts, transitions, catalog items/tools/sounds, source-record pagination and optional World graph. | The focused fixture asserts casing, UUID identities and nullable source citation defaults. |
-| Question/configuration graph fields | Authoring `config`/`question` JSON objects from the selected-node read | The adapter validates only the source display form's record/array/string/finite-number shapes; absent optional values resolve to the source empty/null presentation, never client authorization or a fabricated activity. | Fixture retains question options/outcome weights and Start/End/activity layout positions. |
-| Source AI-review helper | `POST /api/v1/admin/world-builder/activities/{activity_id}/ai-review` with typed CSRF request and response | `lifted-activity-review-client.ts` preserves the source client type/function boundary, replacing only Laravel `fetch` and numeric IDs with the generated Rust client and UUID path/body fields. | Frontend typecheck/build and existing focused Rust authoring scope tests. |
-
-Focused verification: `npx playwright test
-e2e/world-builder-activity-editor-adapter.spec.ts --project=chromium` (one
-adapter regression), `npm run build`, `cargo test -p
-wicked-learning-application admin_world_node` (10 passed), and `cargo test -p
-wicked-learning-api admin_world_node` (4 passed). This evidence is a contract
-prerequisite only; the route remains parity-blocked until the complete source
-component tree is mounted and receives the browser matrix above.
-
-#### Second Activity Editor implementation prerequisite: graph elements and previews — 15 November 2026
-
-The whole pinned-source `activity-graph-elements.tsx` and
-`activity-scene-preview.tsx` modules are now lifted into
-`frontend/src/lifted-world-builder-activity-graph-elements.tsx` and
-`frontend/src/lifted-world-builder-activity-scene-preview.tsx`. Their source
-React Flow nodes, handles, Start/End fallback graph, source graph edges,
-review badge, activity-card controls and scene-preview presentation remain
-whole modules. The only seams are source Inertia `Link` → React Router `Link`,
-source `cn` → the existing lifted `classNames`, source Button → the already
-lifted source Button, and source media normalization → the existing Rust
-authoring URL representation.
-
-The graph lift changes its source numeric-only type assumptions only where the
-first prerequisite generalized IDs to UUID strings: the legacy fallback start
-route uses the opaque sentinel `legacy-start`, and graph lookup/edge data
-remains string-ID based. It is intentionally **not mounted** while the larger
-source form/dialog dependency tree remains unlifted; therefore its retained
-source navigation hrefs are not presented as a live Rust destination or
-accepted browser behavior yet.
-
-Focused regression coverage extends
-`world-builder-activity-editor-adapter.spec.ts`: a selected-node fixture now
-passes through the adapter and the direct lifted `buildGraphNodes` /
-`buildGraphEdges` helpers, proving source Start/End/activity nodes, start-route
-and terminal transition edges retain their exact UUID identities. `npm run
-build` passes. This is dependency-level evidence only; the complete Activity
-Editor browser matrix remains required before the route can be called
-source-visible or migrated.
-
-#### Third Activity Editor implementation prerequisite: template context and media helpers — 15 November 2026
-
-The whole pinned-source `activity-template-context.ts` and
-`activity-template-media.ts` modules are lifted into the standalone frontend.
-They preserve the source rule that copied Message activities retain an explicit
-message-topic review marker, copied Portals retain an explicit destination
-review marker, and nested template media references are replaced structurally
-rather than by shallow form-field guessing. There is no Laravel transport seam
-in either helper; only the import of the already UUID-generalized source
-`ActivityForm` types changes. The focused adapter spec now covers both source
-context cases and nested media replacement; `npm run build` passes. These
-helpers are still unmounted until the complete source editor is mounted.
-
-#### Fourth Activity Editor implementation prerequisite: source form state and payload — 15 November 2026
-
-The complete pinned-source `activity-form-state.ts` (1,054 lines) and
-`activity-form-payload.ts` modules are lifted into the standalone frontend.
-They preserve source defaults, form hydration and the source's deliberate
-per-activity payload field sets for Open Practice, Reflection/Review, Markdown,
-Portal, Message, Shared Task, Item Grant, Tool Grant, Item Obstacle and Base
-Obstacle. The only adaptation is their type import, which points at the
-already-lifted UUID-safe source type declarations; no values, defaults, field
-sets or payload policy were reimplemented.
-
-The focused Activity Editor adapter spec now proves Portal defaults and
-type-scoped payload omission, plus source Question hydration including its
-numeric option-weight and outcome-key behavior. It deliberately asserts the
-source result rather than normalizing it into a Rust-specific form model.
-`npm run build`, the three focused Playwright regressions, and the selected-node
-Rust application/API tests pass. The modules remain unmounted until the full
-source component tree replaces the bespoke editor.
-
-#### Fifth Activity Editor implementation prerequisite: ambience field — 15 November 2026
-
-The whole pinned-source `activity-ambient-sound-fields.tsx` module is lifted
-into `frontend/src/lifted-world-builder-activity-ambient-sound-fields.tsx`.
-Its sole import seams are the existing lifted source Button/Label and the
-already typed Rust reusable-sound picker; its `LearningSound` identity remains
-an opaque UUID string. The field retains the source selected-sound lookup,
-enable/clear semantics and picker lifecycle. It is not mounted until the full
-source form tree is mounted, so `npm run build` is the current verification;
-live browser acceptance remains part of the complete Activity Editor slice.
-
-#### Sixth Activity Editor implementation prerequisite: Activity History dialog — 15 November 2026
-
-The complete pinned-source
-`resources/js/features/settings/activity-history-dialog.tsx` is now lifted to
-`frontend/src/lifted-world-builder-activity-history-dialog.tsx`. Its component
-tree, dialog lifecycle, loading/error/empty/inspect/restore states, pagination,
-and source formatting remain intact. The only seams are existing lifted source
-primitives and one typed Rust transport adapter: UUID identity replaces numeric
-Laravel IDs; Rust `created_at`, `activity_type`, and pagination names are
-mapped once to the source names; and the source restore request uses the
-existing same-origin CSRF client. The adapter consumes the typed snapshot
-projection above, without a broad JSON cast.
-
-The focused Activity Editor adapter spec proves that UUID summary/detail values,
-nullable graph positions, configuration objects, companion configuration and
-transition rows reach the exact source dialog shape. `npm run build` passes.
-The component deliberately remains unmounted until the whole pinned Activity
-Editor replaces the bespoke editor; this is dependency/contract evidence, not
-live source-dialog browser acceptance.
-
-#### Seventh Activity Editor implementation prerequisite: typed AI Review result — 15 November 2026
-
-The guarded Rust Activity Review response and selected-node document now expose
-one strict, source-shaped review record rather than arbitrary stored JSON. It
-contains the reviewed body, SDT and learning-design dimensions, feedback
-guidance, provider/model, contract version and bounded token usage. The stored
-reviewer is deliberately `reviewedByPrincipalId` as an opaque UUID: the pinned
-Laravel source's numeric `reviewedByUserId` has no equivalent Rust identity,
-so a future direct source-dialog adapter must make that one identity seam
-explicit rather than inventing a numeric alias. Malformed legacy stored review
-records are omitted from the selected-node projection.
-
-The already-lifted source review client now consumes the generated type without
-a broad assertion. The complete pinned-source
-`resources/js/features/ai/activity-review-dialog.tsx` is lifted beside it,
-along with the exact source Radix Select primitive it requires. The user
-approved adding the source project's existing `@radix-ui/react-select`
-dependency to the standalone frontend; the Select lift changes only the shared
-class-name import. The dialog changes only Inertia Link, UUID identity and
-typed Rust transport seams. Persistence tests prove the typed record's UUID
-JSON shape and reject unexpected stored fields; the API and frontend builds
-pass. These components remain unmounted until the complete Activity Editor
-replaces the bespoke route.
-
-#### Eighth Activity Editor implementation prerequisite: checkbox primitive — 15 November 2026
-
-The complete pinned-source `resources/js/components/ui/checkbox.tsx` is now
-lifted to `frontend/src/lifted-checkbox.tsx`. The user approved adding the
-source lockfile's resolved `@radix-ui/react-checkbox` `1.3.4` dependency to
-the standalone frontend. Apart from the standalone class-name utility import
-and the exported `LiftedCheckbox` name, its Radix root, indicator, slot and
-classes are unchanged from pinned `main`.
-
-It is a shared dependency prerequisite for the source `activity-config-fields`
-module and the item, message, obstacle, portal and shared-task field modules;
-it is deliberately not mounted independently. `npm ls`, generated API check
-and the standalone TypeScript/Vite build verify the dependency boundary. Live
-checkbox interaction remains part of the complete, mounted Activity Editor
-browser matrix rather than evidence of a partial editor migration.
-
-#### Ninth Activity Editor implementation prerequisite: configuration fields — 15 November 2026
-
-The complete pinned-source `resources/js/components/number-field.tsx` and
-`resources/js/pages/settings/worlds/activity-config-fields.tsx` are now lifted
-to `frontend/src/lifted-number-field.tsx` and
-`frontend/src/lifted-world-builder-activity-config-fields.tsx`. Their only
-seams replace source import aliases with the already lifted Input, Label,
-ColorField, ConfigImageInput and Checkbox primitives. Number input IDs,
-string-valued updates, optional suffixes, color configuration and the exact
-boolean-only mirror-image rule remain source-owned behavior.
-
-They are shared prerequisites for the direct source item, obstacle, portal and
-tool activity fields and remain unmounted pending the complete Activity Editor
-lift. Standalone API/type/build verification establishes that this is a
-dependency lift, not browser acceptance for a partial editor.
-
-#### Tenth Activity Editor implementation prerequisite: Shared Task fields — 15 November 2026
-
-The complete pinned-source
-`resources/js/pages/settings/worlds/shared-task-activity-fields.tsx` is now
-lifted to `frontend/src/lifted-world-builder-shared-task-activity-fields.tsx`.
-Only source imports are redirected to the lifted Button, Checkbox, Input,
-Label, Select, InputError, translation hook and UUID-safe activity types; no
-form behavior, task-step limits, configuration fields or validation handling
-is recreated. It remains unmounted until the complete source Activity Editor
-replaces the bespoke route; build evidence is dependency verification, not
-partial-editor browser acceptance.
-
-#### Eleventh Activity Editor implementation prerequisite: Message fields — 15 November 2026
-
-The complete pinned-source
-`resources/js/pages/settings/worlds/message-activity-fields.tsx` is now lifted
-to `frontend/src/lifted-world-builder-message-activity-fields.tsx`. Its import
-seams use existing lifted form primitives, the source configuration fields and
-UUID-safe activity types. `frontend/src/lifted-use-appearance.ts` is a narrow
-platform adapter: the standalone App remains the sole preference owner and the
-adapter observes the document's resolved light/dark class, which is the only
-source appearance contract these fields consume. No form defaults, topic
-selection, message visual behavior or validation is reconstructed.
-
-Both modules remain unmounted until the complete source Activity Editor is
-mounted. The passing build/API/Rust checks establish the dependency boundary;
-they do not replace the required source-derived browser matrix.
-
-#### Twelfth Activity Editor implementation prerequisite: Tool Grant fields — 15 November 2026
-
-The complete pinned-source
-`resources/js/pages/settings/worlds/tool-grant-activity-fields.tsx` is now
-lifted to `frontend/src/lifted-world-builder-tool-grant-activity-fields.tsx`.
-Only UI imports are redirected to the lifted Select, Label, InputError,
-configuration-field, scene-preview, UUID-type and document-appearance
-adapters. Tool selection, source visual preview, image-upload handoff and
-mirror/color/position behavior remain the source module unchanged. It remains
-unmounted pending the complete Activity Editor source route lift.
-
-#### Thirteenth Activity Editor implementation prerequisite: Base Obstacle fields — 15 November 2026
-
-The complete pinned-source
-`resources/js/pages/settings/worlds/obstacle-activity-fields.tsx` is lifted to
-`frontend/src/lifted-world-builder-obstacle-activity-fields.tsx`, with only
-the established lifted UI/configuration/scene/appearance/type imports changed.
-The one identity seam is explicit: its source comma-separated numeric tool ID
-form value now retains comma-separated opaque Rust UUIDs, with no numeric
-conversion or client aliasing. The module remains unmounted pending the
-complete source Activity Editor lift.
-
-#### Fourteenth Activity Editor implementation prerequisite: Item Grant and Item Obstacle fields — 15 November 2026
-
-The complete pinned-source
-`resources/js/pages/settings/worlds/item-activity-fields.tsx` is lifted to
-`frontend/src/lifted-world-builder-item-activity-fields.tsx`, retaining the
-source grant/obstacle forms and visual previews. Its one UUID seam is localized
-to the source item lookup: a selected opaque item ID is matched directly rather
-than first coerced to a numeric Laravel ID. The module remains unmounted until
-the full source Activity Editor is mounted.
-
-#### Fifteenth Activity Editor implementation prerequisite: Portal fields and scene — 15 November 2026
-
-The complete pinned-source `resources/js/features/world/portal-scene.tsx` and
-`resources/js/pages/settings/worlds/portal-activity-fields.tsx` are lifted to
-`frontend/src/lifted-portal-scene.tsx` and
-`frontend/src/lifted-world-builder-portal-activity-fields.tsx`. Source layers,
-asset ordering, mirroring, swirl, portal target selection and visual form
-behavior remain whole components; only imports point to the lifted primitives,
-appearance adapter and UUID-safe types. They remain unmounted until the
-complete source Activity Editor replaces the bespoke route.
-
-#### Sixteenth Activity Editor implementation prerequisite: source references — 15 November 2026
-
-The full pinned-source `activity-source-reference-fields.tsx` is lifted with a
-single Rust adapter for the existing source-record catalog endpoints. The
-adapter maps source record/version pagination and nullable fields once, uses
-CSRF for all writers, and retains opaque source/version UUIDs without numeric
-coercion. The UI remains unmounted pending the complete source editor route.
-
-#### Seventeenth Activity Editor implementation prerequisite: parent form — 15 November 2026
-
-The complete pinned-source `activity-form-fields.tsx` is lifted with all named
-source field modules. Inertia links are the sole navigation seam, replaced by
-React Router links; source-reference callback IDs are opaque UUID strings.
-The source configuration shell's content-pane/sidebar helpers were retained in
-the existing extracted shell. The form remains unmounted pending the complete
-source editor route and its browser matrix.
-
-#### Eighteenth Activity Editor implementation prerequisite: complete source route and typed transport seams — 15 November 2026
-
-`frontend/src/lifted-world-builder-edit-node-activities.tsx` is the complete
-pinned-source route lift. Its source record, template-library, scoped-image,
-activity-type, graph-layout, start-route and transition interactions cross only
-the following generated Rust client boundaries:
-
-| Source concern | Typed Rust boundary |
-| --- | --- |
-| Selected activity reads | `GET /admin/world-builder/nodes/{node_id}` through `adaptRustActivityEditorDocument` |
-| Activity creates and updates | Type-specific `/admin/world-builder/nodes/{node_id}/*-activities` and `/admin/world-builder/activities/{activity_id}/*` commands |
-| Activity delete, graph layout/position, starts and transitions | `/admin/world-builder/activities/{activity_id}`, node `activity-graph-layout`, `graph-position`, `start-routes` and `activity-transitions` commands |
-| Reusable templates, revisions and sharing | `/admin/activity-templates*` and `/admin/world-builder/activities/{activity_id}/templates` |
-| Source citations | `/admin/source-records*` |
-| Node-scoped visual upload | `/admin/world-builder/maps/{map_id}/visual-media` |
-
-The selected-node route is now mounted through
-`LiftedNodeActivityEditorDocument` in both the normal Graph and Structural
-workspaces. It maps the Rust scoped node document once, calls the parent
-refetch rather than reloading the page, and sends the source card's Markdown
-and NPC dialogue controls only to their already-lifted dedicated documents.
-It replaces the retained reconstructed `ActivityGraph` at those two workspace
-mount points; it does not claim full route-family parity. The required
-source-derived browser matrix still needs the remaining template/citation/media
-and read-denial/unavailable states at both 1440×900 and 390×844.
-
-#### Nineteenth Activity Editor implementation prerequisite: isolated source-route browser harness — 15 November 2026
-
-`frontend/e2e/activity-editor-harness.html` and
-`frontend/e2e/activity-editor-harness.tsx` are a test-only Vite entrypoint for
-the complete lifted route. They render the pinned source component beneath its
-translation and React Router providers, using a UUID-shaped source document;
-they are not imported by the Rust frontend application. The dedicated
-`playwright.activity-editor.config.ts` starts that entrypoint only for the
-focused test, so it cannot become a product route or silently replace the
-existing `ActivityGraph`.
-
-`activity-editor-harness.spec.ts` currently browser-proves the populated graph
-at 1440×900 (source card, Start route and completed-to-End connection) and the
-empty state at 390×844 (source empty copy, Start/End nodes and bounded Add
-activity control). It also renders the source activity-card delete confirmation,
-transition editor and Start-route visuals dialog at both viewports. The
-test-only shell supplies the same current-user provider that the Start-route
-image controls require. This is source-component browser evidence for the
-mounted lift. The source Add-activity dialog now has its pinned first type,
-Open practice, browser-proven with its blank title default at both viewports
-and a bounded narrow type control. The populated narrow graph now proves a
-nonzero source React Flow renderer and bounded primary activity/Start-route
-control. A desktop source activity-node click is also proven to select the card
-before its source keyboard-delete action opens the confirmation dialog. The
-pinned source uses the same default React Flow minimum-zoom configuration, so
-the complete three-card fixture cannot fit inside 390px without source-divergent
-zoom behavior; all-node narrow fitting is deliberately still unproven.
-Reflection's source type switch and its `What feels clearer now?` default are
-browser-proven at both viewports. Its source Review/Revisit variant, including
-the same default, is browser-proven at both viewports. The harness declares every
-remaining source type and browser-proves that Markdown, Portal, Question, Message
-Prompt/Wall, Shared Task and Item Grant each
-reach their distinct lifted Flow section at both viewports. This is structural
-type-family evidence only: their per-field defaults, validation, stale-save and
-successful Rust command/reload behavior remain unproven, as do templates,
-citations, media, read denial and unavailable states.
-
-Open practice is a limited exception: its source-derived browser coverage
-captures the UUID node create command body, a Rust `400` rendered in the source
-Basics error placement, and a Rust `201` followed by the source route reload at
-the narrow viewport. Its desktop stale-edit case sends the original `updated_at`
-and the source default learner invitation to the typed Rust `409` route, keeps
-the source edit dialog open, and renders that source error placement without
-overwriting the activity. The same update reaches its typed Rust `200` response
-and source reload at the narrow viewport. Reflection create now has matching
-desktop Rust `400` source-error and narrow Rust `201` source-reload coverage,
-including its full source-shaped prompt, note, topic and subtopic command body;
-its selected source record also sends its complete stored fields and original
-`updated_at` to the desktop Rust `409` conflict state, retains the source editor
-and error placement, then reaches the Rust `200` source reload at narrow width.
-Review / revisit has the equivalent source-form create and selected-record update
-evidence: desktop Rust `400` and `409` source error states, plus narrow Rust
-`201` and `200` source reloads with its complete reflection-shaped body and
-optimistic timestamp. Markdown create now captures its complete default page
-graph, page visuals, Start/page/End edges and layout through a desktop Rust
-`400` source error and narrow Rust `201` source reload; Markdown update and
-stale-save now likewise preserve that full graph plus its original timestamp
-through desktop Rust `409` and narrow Rust `200` source reload states. The
-dedicated Markdown page-editor route remains a separate unproven parity slice.
-Portal create now captures its complete source scene settings and nullable
-same-World target through desktop Rust `400` and narrow Rust `201` source
-reload states; its selected existing Portal also maps the source candidate link
-into a desktop Rust `409` conflict and narrow Rust `200` source reload with the
-complete scene body and optimistic timestamp. Question create now captures its
-complete two-answer source default through desktop Rust `400` and narrow Rust
-`201` source reload states; its selected existing Question preserves both
-option outcomes, feedback, weights and the multiple-answer flag through desktop
-Rust `409` and narrow Rust `200` source reload states. Message Prompt
-and Message Wall each now prove their distinct source defaults and complete
-existing-topic forms through desktop Rust `400`/`409` failures and narrow Rust
-`201`/`200` reloads: Prompt retains its support audience and prompt fields,
-while Wall retains its peer-only optional-response setting. It therefore does
-not close the P0 Activity Editor parity matrix, despite the route now being
-mounted.
-Shared Task now captures its complete source default and its selected-record
-project, peer-review, contribution, validation, repeat and cycle controls
-through desktop Rust `400`/`409` failures and narrow Rust `201`/`200` reloads.
-Item Grant now captures its empty source default and selected catalog item,
-numeric probability and presentation fields through the same desktop failure
-and narrow successful-reload states. Tool Grant now captures the selected
-source tool plus its complete scene, bubble, motion and placement payload
-through desktop Rust `400`/`409` failures and narrow Rust `201`/`200` reloads.
-The pinned source defaults its slide and fade durations to `0.6` and `0.4` but
-leaves the native number-input step at the browser default of `1`; a normal
-submit therefore rejects those untouched decimal defaults before the Rust
-transport is called. The harness explicitly proves that source validity state,
-then sets both values to `1` to exercise the source's valid authoring path. It
-does not normalize or alter the lifted component. The other remaining type
-command behavior and all other listed states remain unproven. Item Obstacle
-now captures its default slot, lockout, completed-scene and sound fields plus
-the selected existing item's UUID and all three configured catalog-sound UUIDs
-through desktop Rust `400`/`409` failures and narrow Rust `201`/`200` reloads.
-Base Obstacle now captures its no-tool default plus the selected tool UUID,
-blocking and cleared scenes, bubbles, colors, placement, persistence and
-animation fields through the same desktop failure and narrow successful-reload
-states. All other listed states remain unproven.
+Map-owned reusable-media references are synchronized on save, copied when a
+map is duplicated, removed when it is deleted, and delivered to learners only
+for a published role-visible map. The copied Map Configuration route remains
+unavailable until its complete canonical source projection is verified.
+
+### Canonical direct-editor route rule
+
+Historical reconstructed Map Configuration, MapAsset, and Activity Editor
+implementation notes were removed with the old frontend plan. Their Rust
+endpoints, application modules, persistence tests, and OpenAPI operations
+remain backend evidence only. Each copied direct editor route is activated only
+under the canonical World Builder plan: mount its whole copied source module,
+record its complete contract matrix, and leave it unavailable until every
+required read, write, media, history, and error seam is verified.
 
 ### Item-obstacle sound-effect slice — 6 November 2026
 
@@ -2579,16 +1449,11 @@ single-letter replacement, source tags/default behavior, normalized media
 references and authenticated learner delivery. Bundled URLs deliberately remain
 valid until an author replaces the corresponding letter.
 
-The World Builder now also owns the matching source-adapted NPC dialogue graph
-editor. It creates a dedicated dialogue activity and default end node, preserves
-independent graph layout and transitions, exposes source node types and scene
-settings, resolves tool slugs and typing-sound sets server-side, and permits
-same-world answer hide/unlock events only. Real end-node outputs are projected
-into the surrounding activity graph by opaque end-node ID, so an author cannot
-connect a stale placeholder exit. Node, transition and layout mutations record
-bounded activity-history snapshots and synchronize reusable-media references.
-The local browser flow covers activity creation, dialogue-node save, authored
-graph transitions and the resulting outer exit connector.
+The Rust NPC dialogue graph contract creates a dedicated dialogue activity and
+default end node, preserves independent graph layout and transitions, resolves
+tool slugs and typing-sound sets server-side, and permits same-world answer
+hide/unlock events only. Its copied canonical editor route remains unavailable
+until the route-level activation matrix is verified.
 
 Transport-only loading, unavailable and authorization-error branches may be
 introduced where the original page received server props synchronously. They
@@ -3445,25 +2310,15 @@ author-selected tool/item UUIDs to verified learner-safe slugs, validates node
 and role references, canonicalizes source `datetime-local` schedules to UTC
 RFC 3339, and rejects empty, self-referential, or mandatory cyclic locked-node
 unlock requirements. The typed contract and disposable browser proof cover the
-lifecycle. The standalone World Builder now lifts the source tile dialog's
-identity, description, state, hex-position and destructive lifecycle controls.
-Its presentation section writes source-compatible label/hover text, visibility,
-dark/light colors, image placement and opacity, and selects reusable visuals
-through the established media picker. Its availability section writes the
-source discovery, prerequisite, AND/OR grouping and UTC schedule controls,
-using the existing server-authoritative catalog resolution, cycle validation
-and schedule canonicalization. Its four source interaction-sound controls now
-select and preview reusable published sounds; the writer authorizes and
-verifies each sound UUID before persistence, and the learner projection exposes
-only resolved public URLs. The existing writer synchronizes visual-media
-references transactionally without discarding the selected sound configuration.
+lifecycle. The Rust node lifecycle and authoring contracts are reusable backend evidence.
+They do not activate the World Builder frontend. The copied source MapAsset
+editor stays unavailable until the canonical direct-editor route rule is met.
 
 The node's source `Lock for all users` backend action is also now available
 through a scoped typed command. It removes only existing learner tool-unlock
 rows for the selected editable node, never learner discovery or support-issued
-manual overrides. The lifted source-styled dialog exposes the `Lock for all
-users` confirmation alongside metadata, tile-presentation, availability and
-interaction-sound edits.
+manual overrides. Its copied source control remains unavailable pending the
+complete canonical MapAsset-editor route projection.
 
 The Learning Support panel now lifts the source manual override control. Its
 scoped read contract projects only locked nodes on maps the current support
@@ -3616,203 +2471,14 @@ scope configuration. A disposable authenticated browser check updates the
 platform setting, saves a graph, assigns a target and deletes the graph at
 desktop and narrow viewport sizes.
 
-### Dedicated NPC dialogue editor parity audit and source-contract prerequisite — 16 November 2026
+### Canonical activity-editor route rule
 
-**Status: direct editor page lifted; route-family parity remains incomplete.**
-NPC creation remains in the lifted pinned-source node-activity form: selecting
-its source `NPC dialogue` type maps only that form submission to Rust's
-dedicated typed creation endpoint. `frontend/src/original-npc-dialogue-editor.tsx`
-is not mounted as a substitute creation/editor surface. Once the source graph
-card exists, its pinned `Edit dialogue` action mounts the direct page through
-`LiftedNpcDialogueDocument`; it no longer opens a reconstructed canvas/editor.
-
-**Pinned source baseline:** `main`
-`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-
-The exact source route is the 2,547-line
-`resources/js/pages/settings/worlds/edit-npc-dialogue.tsx`, reached from
-`activity-graph-elements.tsx` through
-`/settings/worlds/activities/{activity}/npc-dialogue`. It owns the header and
-back destination, React Flow canvas with Background/Controls/MiniMap, source
-Start and dialogue-node cards, create/edit/delete dialogs, the four-section
-Basics/Content/Flow/Visuals configuration dialog, end connector presentation,
-scene preview/layer editor, scoped media upload, and desktop/narrow overflow.
-It is not an activity-card form in `edit-node-activities.tsx` and must not be
-added to that route's type registry as a substitute.
-
-The complete direct-lift dependency set is:
-
-| Source dependency | Required use in the future Rust route |
-| --- | --- |
-| `edit-npc-dialogue.tsx` (`EditNpcDialogue`, `DialogueNodeCard`, `StartNode`, `DialogueNodeDialog`, the four configuration sections, graph builders and scene helpers) | Lift as one route tree; retain JSX hierarchy, controls, labels, layout and source responsive behavior. |
-| `activity-config-fields.tsx`, `activity-scene-preview.tsx`, `color-input.tsx`, `number-field.tsx`, `input-error.tsx` | Reuse the already lifted source primitives/modules; do not substitute field or preview controls. |
-| `settings-configuration-{dialog,shell,section}.tsx`, source `Button`/Dialog/Input/Label/Select primitives and `useAppearance` | Retain source focus, dialog, section-navigation and appearance behavior. |
-| Inertia `Head`, `Link`, `router`; `uploadMediaFile` | Replace only with the existing document title/React Router navigation, typed Rust command client and scoped Rust media upload adapter. |
-
-The source page's Laravel `AdminNpcDialogueGraphSerializer` requires `world`,
-`map`, `node`, activity graph layout, dialogue nodes (including nullable end
-connector metadata), transitions and same-world target nodes. The existing
-Rust graph read previously omitted the first three context objects and the
-connector; that made an exact lift impossible without client invention.
-
-| Source requirement | Rust contract now required | Adapter rule |
-| --- | --- | --- |
-| Header/back context and map-scoped upload context: world/map/node `id`, `slug`, `title` | `GET /api/v1/admin/world-builder/activities/{activity_id}/npc-dialogue` now returns bounded `world`, `map` and `node` objects alongside the graph. | Rename snake-case wire names once at the route boundary; do not infer context from URL or make a second lookup. |
-| End-card connector `id`, `label`, `color`, `symbol` | Each dialogue node now returns nullable `connector`; the persistence projection creates it only for `end` nodes using the source connector ID/default/order policy. | Retain the source card and graph-handle code; do not recompute connector metadata in JSX. |
-| Same-world answer-event targets and typing-sound choices | Existing bounded `world_nodes` and `typing_sound_sets` remain in the graph response. The parent selected-node document remains the existing typed source for editable tools until the direct route adapter is lifted. | Preserve UUID identities and map only field casing. |
-| Source generic creation (`type: npc_dialogue`) | The lifted node-activity form submits its existing title, optional slug and optional introduction to `POST /api/v1/admin/world-builder/nodes/{node_id}/npc-dialogue-activities`. | The adapter replaces only the source Laravel post seam; it must not fall through to a different activity writer or present a replacement creation form. The returned graph card retains the source `Edit dialogue` action into the direct document. |
-| Graph/node/transition/layout commands | Existing typed create, update, delete, transition and layout endpoints remain the sole mutation seam, with CSRF and server-side scope checks. | Map source `router` calls only after the direct page is present; do not add bespoke canvas controls. |
-
-Focused contract evidence is the domain serialization test
-`npc_dialogue_graph_serializes_the_source_editor_context`, which asserts the
-three source context objects and end connector are present in the JSON shape.
-The OpenAPI contract and generated TypeScript client include the same required
-fields. `frontend/src/lifted-world-builder-edit-npc-dialogue.tsx` is the
-complete pinned 2,547-line page and named dependency tree; its only changes are
-the document-title/back-navigation and typed transport seams.
-`frontend/src/lifted-world-builder-edit-npc-dialogue-adapter.tsx` maps the
-single graph read and every source route-shaped write to the Rust contract,
-preserves UUID identity, turns a source partial drag patch into the Rust
-contract's required full-node replacement using the current graph document,
-and reuses the scoped map visual-media upload endpoint. It does not add editor
-policy or replacement controls. The back control returns to the existing
-selected-node activity graph state, which is the React application's equivalent
-of the source Inertia destination.
-
-The focused browser journey uses the lifted source Add activity dialog's
-`NPC dialogue` type, verifies its scoped typed Rust creation request, then
-uses the source graph card's `Edit dialogue` action to enter the lifted heading
-and source back control. It retains the source default end card and keeps the
-Add node control visible and bounded at 390×844 before continuing the graph
-authoring flow at 1440×900. Its current local execution requires the disposable
-administrator credentials; a credential-less run is intentionally skipped rather
-than treated as browser evidence. The direct Rust read's
-pending, 401, 403, 404, 503 and network-failure states now render the exact
-pinned-source `UnavailableWorldBuilder` panel at both 1440×900 and 390×844;
-`npc-dialogue-direct-editor-unavailable.spec.ts` proves its copy and bounds.
-`npc-dialogue-authoring.spec.ts` enters that direct document in the real
-local-Compose World Builder workspace. It proves the persisted source default
-Start/end graph and bounded React Flow renderer at 1440×900. At 390×844, it
-intentionally treats the source canvas's non-visible responsive state as
-source behavior and instead proves the source Add-node control and every
-configuration-section control remain visible and bounded. It does not
-reopen a fabricated empty direct graph. This is Rust
-browser/source-component evidence, not an unavailable Laravel-runtime
-side-by-side capture. The mounted source Add-dialog's Basics, Content, Flow,
-and Visuals navigation and their primary source controls are browser-proven at
-both viewports in that same authenticated journey. It also opens the source
-edit dialog for a persisted monologue, proves its existing field value and
-narrow bounds, submits the typed Rust PATCH, and observes the dialog close and
-the reloaded card title. The same journey creates a disposable source node,
-opens the source deletion confirmation at narrow width, submits the typed Rust
-DELETE, and observes its card disappear after reload. The direct source Visuals
-upload failure is browser-proven: a scoped Rust media-upload `503` retains the
-source error message, re-enables the upload input, sends the CSRF header, and
-keeps both the upload affordance and error bounded at 1440×900 and 390×844.
-This closes the specifically recorded direct-page form and upload-failure
-evidence; it remains Rust browser/source-component evidence, not an unavailable
-Laravel-runtime side-by-side capture or a claim that the broader route family
-is complete. The source Start handle retains its pinned visual `start`
-identifier, while the adapter alone maps that Laravel-facing value to the Rust
-contract's persisted `out` connector. The Rust route now mounts the unchanged
-source document at the source-shaped
-`/settings/worlds/activities/{activity_id}/npc-dialogue` URL rather than inside
-the World Builder inspector. Its only additional navigation seam is the
-selected `map`/`node` query pair: Rust reads that already-scoped node document
-to supply the source page's typed tool list, verifies that the requested
-activity is its NPC dialogue activity, and returns the Back control to that
-source-equivalent activity graph. It does not retain the World Builder React
-Flow provider across the route boundary.
-
-`source-npc-dialogue-parity.spec.ts` mounts the exact pinned source page below
-its real Inertia router and proves a physical Start-to-monologue drag emits the
-original transition visit. The equivalent isolated Rust document proves the
-adapter maps the source `start` connector to Rust `out` at 1440×900.
-`npc-dialogue-authoring.spec.ts` then enters the dedicated URL through the
-real lifted source activity card and, at 1440×900, proves physical
-Start-to-monologue and monologue-to-End connections emit the typed Rust
-creation commands, clicking the rendered Start edge emits the typed delete,
-and dragging the dialogue card emits its required full-node Rust PATCH. The
-same journey retains the source document's narrow 390×844 controls, dialogs,
-form sections and scoped upload-failure state. This closes the direct-route
-pointer/edge/drag evidence gap without changing a source graph component or
-adding a substitute canvas control. The generic source node-activity route
-that owns NPC dialogue creation remains mounted through
-`LiftedNodeActivityEditorDocument`; its source card delegates only to this
-direct NPC page. No temporary prompt is a parity replacement or may regain
-routing ownership.
-
-### Markdown special-graph layout contract prerequisite — 16 November 2026
-
-**Status: complete and consumed by the direct-page lift.** The pinned source
-`main` baseline is `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
-`resources/js/pages/settings/worlds/markdown-activity-fields.tsx` calls
-`PATCH /settings/worlds/activities/{activity}/graph-layout` whenever the
-Markdown Start or End node is dragged. It rounds the position, writes only the
-corresponding `markdownGraphLayout.start` or `.end` value, records a version,
-and does not submit the editor's unsaved page content. Reusing the full
-Markdown update command for that interaction would have changed source
-semantics by overwriting unrelated in-progress form edits.
-
-Rust now provides the scoped, CSRF-protected
-`PATCH /api/v1/admin/world-builder/activities/{activity_id}/markdown/graph-layout`
-contract with an explicit `start`/`end` enum and finite position. It locks the
-editable Markdown activity, rounds and changes only that special-node layout,
-records the same activity-history boundary on a change, and returns the normal
-typed update timestamp. The generated API schema records the narrow request.
-The direct source `edit-markdown-activity.tsx` route and its
-`markdown-activity-fields.tsx` tree now use this endpoint only for the source
-special-node drag path. Their remaining route-family parity evidence is tracked
-in the direct editor section below.
-
-### Direct Markdown editor page lift — 16 November 2026
-
-**Status: existing Markdown activity editing and the generic source
-node-activity route are directly mounted; route-family parity remains
-incomplete.** The pinned
-`main` baseline is `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. The Rust route
-now mounts the complete source
-`resources/js/pages/settings/worlds/edit-markdown-activity.tsx` page and
-`resources/js/pages/settings/worlds/markdown-activity-fields.tsx` tree when
-an author edits an existing Markdown card. This retains the source header,
-Back to MapAsset control, Start/page/End React Flow graph, page drawer,
-add/delete/connect/drag behavior, reusable-image picker and upload control,
-light/dark page preview, colors, footer, and source error placement. Markdown
-creation remains in the mounted source node-activity route; the source card's
-`Edit pages` control opens this dedicated document rather than a recreated
-generic form.
-
-The Rust adapter maps only the selected-node graph's scoped Markdown activity
-and its world/map/node context into the source page prop shape. It replaces
-only the source Laravel/Inertia seams: document title, back destination,
-map-scoped media upload, `PATCH /settings/worlds/activities/{activity}` with
-the complete typed Markdown writer, and `PATCH .../graph-layout` with the
-narrow Start/End layout writer. A failed Rust write is surfaced through the
-source footer's `updated_at` error slot; no substitute control or error layout
-is introduced. The adapter rejects a missing/non-Markdown selected activity as
-unavailable rather than inventing a document.
-
-The document now owns the source-shaped
-`/settings/worlds/activities/{activity_id}/markdown` route rather than being
-mounted in the selected-node inspector. The Rust navigation adapter preserves
-the selected `map`/`node` UUIDs as query state solely to read the already
-scoped `AdminEditableNode` graph the source page requires, verifies the
-requested activity is Markdown, and returns the source Back control to that
-selected activity graph. The page is outside the World Builder React Flow
-provider, matching the source route's independent canvas ownership.
-
-Focused browser evidence is
-`frontend/e2e/markdown-direct-editor-harness.spec.ts`: it proves the scoped
-contract mapping, source controls/page card and bounded controls at 1440×900
-and 390×844, and the Rust save-unavailable footer state. The authenticated
-`markdown-authoring.spec.ts` now enters the direct page after source-shaped
-creation, saves through its source `Save pages` control, and returns through
-the source back control. It asserts the dedicated source URL, opens the source
-page drawer before editing its Markdown field, and still requires the
-disposable administrator credentials for local execution. A direct
-side-by-side running-current-main capture and the remaining
-template/citation/media and read-error evidence are still required before
-declaring the route family fully parity-complete.
+The historical reconstructed NPC and Markdown editor lift records have been
+removed. Rust typed authoring, AI, and Content API contracts remain backend
+evidence. The copied NPC and Markdown editor routes must be activated only by
+the canonical World Builder plan: whole source route, documented page
+projection, narrow typed transport seams, explicit unavailable behavior, and
+source-derived browser evidence at both required viewports.
 
 ### Content API map foundation slice — 12 November 2026
 
@@ -3848,12 +2514,9 @@ start and linear transitions in one transaction before marking the run applied.
 Markdown media references are synchronized in that transaction; any failure
 rolls all writes back. Source attributions use opaque Rust source-record UUIDs;
 Laravel's numeric record identities are not a greenfield compatibility target.
-The source-derived standalone World Builder now exposes that authoring dialog
-from an editable map only after the full draft lifecycle is present: authors
-choose an enabled scoped content-authoring template, select bounded source
-context, review or edit the validated plan, and explicitly approve one atomic
-application. The browser remains a typed client and refreshes its map only
-after the server reports the apply transaction successful.
+The ContentPlan dialog is not currently activated in the standalone frontend.
+It remains unavailable until its complete copied source route and Rust contract
+matrix are admitted under the canonical World Builder plan.
 
 The standalone Settings API surface now also lifts the source API Console and
 API Documentation views inside the shared source Settings and Content API

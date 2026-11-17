@@ -4932,13 +4932,10 @@ in one transaction before marking the run applied. Markdown application also
 synchronizes managed-media references. Selected source records are named by the
 platform's opaque UUIDs rather than Laravel's retired numeric IDs.
 
-**Frontend status:** The existing source-derived standalone World Builder map
-surface now lifts the ContentPlan dialog after the draft lifecycle reached this
-gate. It obtains only enabled `content_authoring` templates from the scoped AI
-settings projection, keeps source selection and draft editing client-local
-until the existing CSRF-protected commands are requested, and reloads map data
-only after a successful server-side apply. Provider execution and every content
-write remain Rust-owned.
+**Frontend status:** This ContentPlan capability has no activated World Builder
+frontend yet. The copied canonical source route remains unavailable until its
+complete page projection, scoped command mapping, and source-derived browser
+evidence are verified under the canonical World Builder activation plan.
 
 The standalone Settings API Console and API Documentation views likewise load
 the live contract before presenting an operation. The console accepts only
@@ -4958,36 +4955,11 @@ into the standalone package with their component structure, markup and styles
 intact when the separate package roots would otherwise load a second React
 runtime. Only framework seams (Inertia navigation/page props and Laravel
 requests) may be adapted. A source-inspired replacement is not a lifted UI.
-The World Builder shell also retains the source Settings corner navigation
-(desk, current map, bookmarks, logout, source and legal destinations), with
-React Router and the existing CSRF-protected Rust session logout as its only
-standalone seams. Its desktop and narrow layouts remain browser-covered.
-The copied Settings navigation retains every source child destination and its
-resource visibility gate, so the source search continues to discover completed
-subsections (such as guardrails, structural maps and asset catalogues) without
-inventing a separate standalone navigation model.
-The copied top bar also retains the source notification bell through a bounded
-Rust summary: it returns pending Journal-feedback and organization-icon-report
-counts only where the current administrator already has the corresponding
-queue capability, plus no more than four organization names and authenticated
-report-snapshot image URLs. It never returns journal text, reporter identity,
-storage paths or permission scopes, and its links lead back to the existing
-independently authorized Learning Support queues.
-The source World Builder Review queue is a URL-selected Settings section, not
-a standalone substitute modal: it consumes the existing bounded scoped Rust
-review-queue projection and opens an item only through the existing authored
-map/node graph selection.
-The source Structural section likewise retains its map list, selected-map
-summary, map-configuration entry and MapAsset list. It uses the graph's
-already-scoped map/node summaries and opens only the pre-existing scoped map
-and activity editors; switching Settings sections never broadens map access.
-The lifted World Builder section tabs retain the source visibility projection:
-Graph and Review require one of the readable map, MapAsset/node or activity
-resources, while Structural requires readable maps. A deep link to an
-unavailable section resolves to the first visible source section; no visible
-section renders the source unavailable state without issuing a World Builder
-read. This remains navigation-only evidence and does not replace endpoint
-authorization.
+World Builder frontend activation is governed exclusively by the canonical
+World Builder activation plan. Existing navigation, graph, Review, Structural,
+and notification contracts remain reusable backend evidence; none authorizes
+an active source route until its complete copied source projection, scoped
+transport mapping, and browser evidence have been verified.
 
 **Template-test extension:** Rust now preserves Laravel's explicit saved-agent
 test boundary. A principal with `ai.ru` submits one bounded prompt with CSRF;

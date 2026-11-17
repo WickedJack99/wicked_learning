@@ -59,6 +59,23 @@ approved migration slice. Do not direct those Rust writers at production data,
 or give Rust production traffic or routing ownership, without explicit user
 approval at that phase boundary.
 
+### Canonical frontend migration rule
+
+`frontend/canonical-source/**` is the byte-identical copy of the pinned
+`main` React/CSS source and is the only presentation source for the standalone
+frontend. Do not use, restore, or treat `original-*`, `lifted-*`,
+`extracted-*`, or other reconstructed frontend files as a migration target or
+as parity evidence.
+
+Activate one complete copied route family at a time through a narrow typed
+Rust adapter. Before activation, record the exact source files, required page
+props, navigation/forms/media seams, Rust/OpenAPI evidence, and explicit
+unavailable behavior. Preserve source JSX, styles, URLs, controls, responsive
+behavior, and local interaction state; replace only verified Laravel/Inertia
+and Wayfinder transport seams. A missing contract keeps the copied route
+unavailable—it never authorizes substitute UI, fabricated props, generic
+Inertia emulation, or a partial success state.
+
 ## Repository Git workflow
 
 - Use the Git CLI for repository operations. Do not depend on the optional GitHub CLI or another Git-specific tool.
