@@ -594,6 +594,18 @@ submission, request shape, 503 visibility, and bounded submit controls at
 for this standalone route; it does not activate registration, recovery, MFA
 or a generic Laravel/Inertia form mechanism.
 
+### Canonical Registration activation — 17 November 2026
+
+The exact copied `pages/auth/register.tsx` is mounted in the copied auth
+layout. Its name, email, invitation token, appearance, password and password
+confirmation fields use only `GET /api/v1/security/csrf` then the existing
+typed `POST /api/v1/registration` contract (`identity_registration.rs` and
+`IdentityRegistrationRequest`). The narrow form facade admits only this
+explicit action in addition to Login; it is not generic Inertia transport.
+`canonical-register.spec.ts` proves the invitation submission and bounded
+Create account control at 1440×900 and 390×844. Recovery and other auth pages
+remain unavailable pending their own audited contracts.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not

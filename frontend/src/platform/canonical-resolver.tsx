@@ -6,6 +6,7 @@ import { WelcomeRoute } from './welcome-route';
 import { PublicInformationRoute } from './public-information-route';
 import { SourceCodeRoute } from './source-code-route';
 import { LoginRoute } from './login-route';
+import { RegisterRoute } from './register-route';
 
 /**
  * The only presentation import in this bootstrap is copied from the pinned
@@ -25,6 +26,9 @@ export function CanonicalSourceResolver() {
 
     if (location.pathname === '/login') {
         return <LoginRoute />;
+    }
+    if (location.pathname === '/register') {
+        return <RegisterRoute />;
     }
 
     if (

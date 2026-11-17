@@ -12,6 +12,10 @@ export default defineConfig({
                 replacement: resolve(import.meta.dirname, 'src/platform/auth-routes.ts'),
             },
             {
+                find: '@/routes/register',
+                replacement: resolve(import.meta.dirname, 'src/platform/register-routes.ts'),
+            },
+            {
                 find: '@/routes/password',
                 replacement: resolve(import.meta.dirname, 'src/platform/auth-routes.ts'),
             },
