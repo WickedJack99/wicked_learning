@@ -939,6 +939,26 @@ the copied source byte-identical; the only new presentation code is the
 narrow `frontend/src/platform/security-route.tsx` and its named transport
 facades.
 
+### Canonical Personal Settings workspace activation — 17 November 2026
+
+The copied `pages/settings/personal.tsx` is now mounted only at its canonical
+`/settings?panel=personal&personal={section}` branch, before the incomplete
+root Settings index is activated. Its complete source workspace (Profile,
+Appearance, Language, Notifications, Feedback, Sound, Security and Delete
+account sections) receives one aggregate from the already audited profile,
+security, language, translation, sound and feedback reads plus `GET /me` and
+`GET /public/welcome`. Any failed required read renders the bounded Personal
+unavailable state; no root administration prop is fabricated.
+
+The adapter preserves the source tab URL selection and admits only three added
+source transport seams: sound preferences to `PATCH /learner/sound-preferences`,
+feedback invitations to `PATCH /learner/feedback-prompt-preference`, and the
+copied destructive confirmation form to `DELETE /account/profile`. Existing
+Profile, Appearance, Language and Security facades are reused unchanged.
+`canonical-settings-personal.spec.ts` records URL selection and source tabs at
+1440×900/390×844, the sound request mapping, and read unavailability. Root
+`pages/settings/index.tsx` and every administration panel remain unavailable.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not

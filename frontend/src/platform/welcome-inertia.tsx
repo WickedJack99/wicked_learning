@@ -58,6 +58,7 @@ export function usePage<TProps extends object = WelcomePageProps>(): {
 
 type RouterPatchOptions = {
     onFinish?: () => void;
+    onStart?: () => void;
     preserveScroll?: boolean;
 };
 
@@ -72,25 +73,44 @@ export const router = {
     },
     patch(
         url: string,
-        data: { locale?: unknown },
+        data: unknown,
         options?: RouterPatchOptions,
     ): void {
-        const locale = data.locale;
-
-        if (url !== '/settings/language' || typeof locale !== 'string') {
+        const payload = data as Record<string, unknown>;
+        const locale = payload.locale;
+        const isLanguage = url === '/settings/language' && typeof locale === 'string';
+        const isSound = url === '/settings/sound-preferences'
+            && typeof payload.muted === 'boolean'
+            && typeof payload.effectsVolume === 'number'
+            && typeof payload.ambienceVolume === 'number';
+        const isFeedback = url === '/settings/feedback-prompt'
+            && (payload.action === 'enable' || payload.action === 'decline');
+        if (!isLanguage && !isSound && !isFeedback) {
             unavailableSourceOperation('Settings form submission');
         }
 
         void (async () => {
+            options?.onStart?.();
             try {
                 const csrfToken = await getCsrfToken();
-                const { response } = await apiClient.PATCH(
-                    '/learner/language-preference',
-                    {
+                const { response } = isLanguage
+                    ? await apiClient.PATCH('/learner/language-preference', {
                         body: { locale },
                         params: { header: { 'X-CSRF-Token': csrfToken } },
-                    },
-                );
+                    })
+                    : isSound
+                        ? await apiClient.PATCH('/learner/sound-preferences', {
+                            body: {
+                                ambience_volume: payload.ambienceVolume as number,
+                                effects_volume: payload.effectsVolume as number,
+                                muted: payload.muted as boolean,
+                            },
+                            params: { header: { 'X-CSRF-Token': csrfToken } },
+                        })
+                        : await apiClient.PATCH('/learner/feedback-prompt-preference', {
+                            body: { action: payload.action as 'decline' | 'enable' },
+                            params: { header: { 'X-CSRF-Token': csrfToken } },
+                        });
 
                 if (response.ok) {
                     // A source Inertia visit refreshes the source page props;
@@ -186,7 +206,7 @@ type AuthFormProps = {
     method: 'post';
     resetOnError?: string[] | boolean;
     resetOnSuccess?: string[] | boolean;
-    children: (state: { errors: Record<string, string>; processing: boolean; clearErrors: () => void; isDirty: boolean }) => ReactNode;
+    children: (state: { errors: Record<string, string>; processing: boolean; clearErrors: () => void; isDirty: boolean; resetAndClearErrors: () => void }) => ReactNode;
     className?: string;
     disableWhileProcessing?: boolean;
     id?: string;
@@ -197,8 +217,8 @@ type AuthFormProps = {
 };
 
 type ProfileFormProps = {
-    action: 'profile-update';
-    method: 'patch';
+    action: 'profile-update' | 'profile-delete';
+    method: 'delete' | 'patch';
     children: AuthFormProps['children'];
     className?: string;
     id?: string;
@@ -206,7 +226,7 @@ type ProfileFormProps = {
     onSuccess?: () => void;
     resetOnError?: string[] | boolean;
     options?: SourceFormOptions;
-    resetOnSuccess?: never;
+    resetOnSuccess?: string[] | boolean;
     transform?: never;
 };
 
@@ -247,6 +267,34 @@ export function Form({ action, children, className, resetOnSuccess, transform, i
         setErrors({});
         const form = event.currentTarget;
         const values = new FormData(form);
+
+        if (action === 'profile-delete') {
+            try {
+                const csrfToken = await getCsrfToken();
+                const { response } = await apiClient.DELETE('/account/profile', {
+                    body: { password: String(values.get('password') ?? '') },
+                    params: { header: { 'X-CSRF-Token': csrfToken } },
+                });
+                if (!response.ok) {
+                    const nextErrors = {
+                        password: response.status === 503
+                            ? 'Account deletion is currently unavailable.'
+                            : 'The password could not be confirmed.',
+                    };
+                    setErrors(nextErrors);
+                    onError?.(nextErrors);
+                    return;
+                }
+                window.location.assign('/');
+            } catch {
+                const nextErrors = { password: 'Account deletion is currently unavailable.' };
+                setErrors(nextErrors);
+                onError?.(nextErrors);
+            } finally {
+                setProcessing(false);
+            }
+            return;
+        }
 
         if (isSecurityFormAction(action)) {
             try {
@@ -425,7 +473,11 @@ export function Form({ action, children, className, resetOnSuccess, transform, i
         }
     };
 
-    return <form className={className} id={id} onChange={() => setIsDirty(true)} onSubmit={submit}>{children({ errors, processing, isDirty, clearErrors: () => setErrors({}) })}</form>;
+    return <form className={className} id={id} onChange={() => setIsDirty(true)} onSubmit={submit}>{children({ errors, processing, isDirty, clearErrors: () => setErrors({}), resetAndClearErrors: () => { formReset(document.getElementById(id ?? '') as HTMLFormElement | null); setErrors({}); } })}</form>;
+}
+
+function formReset(form: HTMLFormElement | null): void {
+    form?.reset();
 }
 
 function isSecurityFormAction(action: string): action is SecurityFormAction {

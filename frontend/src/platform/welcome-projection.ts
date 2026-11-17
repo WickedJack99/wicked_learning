@@ -11,6 +11,11 @@ export type WelcomePageProps = {
         translations: Record<string, string>;
     };
     publicPresentation: PublicPresentationSettings;
+    soundPreferences?: {
+        ambienceVolume: number;
+        effectsVolume: number;
+        muted: boolean;
+    };
 };
 
 /**

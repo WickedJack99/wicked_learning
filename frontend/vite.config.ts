@@ -15,6 +15,7 @@ export default defineConfig({
             { find: '@/routes/password/confirm', replacement: resolve(import.meta.dirname, 'src/platform/password-confirm-routes.ts') },
             { find: '@/routes/two-factor/login', replacement: resolve(import.meta.dirname, 'src/platform/two-factor-routes.ts') },
             { find: '@/routes/two-factor', replacement: resolve(import.meta.dirname, 'src/platform/two-factor-management-routes.ts') },
+            { find: '@/routes/settings/sound-preferences', replacement: resolve(import.meta.dirname, 'src/platform/sound-preferences-routes.ts') },
             {
                 find: '@/routes/login',
                 replacement: resolve(import.meta.dirname, 'src/platform/auth-routes.ts'),
