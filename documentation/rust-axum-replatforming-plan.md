@@ -905,6 +905,40 @@ read-only/no-Edit state, and failure of the authenticated page projection.
 changed. The dedicated adapter is
 `frontend/src/platform/settings-information-route.tsx`.
 
+### Canonical direct Security Settings activation — 17 November 2026
+
+The unchanged copied `resources/js/pages/settings/security.tsx` is mounted at
+its source `/settings/security` URL, together with the complete tree it
+directly renders: `security-settings-panel.tsx`, password controls,
+`manage-two-factor.tsx`, `two-factor-{setup-modal,recovery-codes}.tsx`,
+`manage-passkeys.tsx`, `passkey-{item,register}.tsx`, source Settings shell,
+translation/appearance hooks and source styling. The source controller and
+`LoadSecuritySettings` query at pinned main
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f` establish that both security
+features and confirmation are enabled; neither source feature tree is hidden
+to make this page easier to mount.
+
+| Source dependency / behavior | Rust contract / adapter | Rule |
+| --- | --- | --- |
+| Complete direct-page read props | New `GET /api/v1/account/security`, `account_security.rs`, `AccountSecuritySettings` OpenAPI schema | The bounded owner-only projection supplies only source-consumed non-secret fields: enabled Rust capabilities, `minlength: 12`, confirmation requirement, confirmed TOTP state, and passkey labels/relative usage text. It never returns credentials, setup secrets or recovery codes. It exists because the existing separate `/passkeys` list requires a recent confirmation and uses opaque UUID/timestamp fields, while the source direct-page read does not. |
+| Source settings chrome and localized text | Existing `GET /api/v1/me`, `GET /api/v1/public/welcome`, `GET /api/v1/learner/platform-translations` | Every required read must succeed before the copied page mounts. Rust appearance, palette and catalog are mapped once through the existing typed projections; no legacy numeric user identity is supplied. |
+| Source password form and its field slots | `GET /api/v1/security/csrf`; `PATCH /api/v1/account/password`; `PasswordValidationProblem` | The narrow `security-password-update` facade sends exactly `{current_password,password,password_confirmation}`. Rust now returns the matching source field key for missing/invalid current password, replacement-length, or confirmation failures; the copied source `InputError` owns rendering. Successful replacement reloads only this direct document. |
+| Source TOTP setup, confirmation, disable and recovery codes | Existing typed `/account/two-factor{,/setup,/confirm,/recovery-codes}` operations | The source’s Form actions are individually admitted, not generically emulated. The TOTP transport seam retains an unconfirmed setup secret only in module memory between the source enable form and copied modal, derives its QR SVG from Rust’s provisioning URL, and never persists it. Rust's recent-password requirement redirects only the exact source flow to the existing copied confirmation route with `/settings/security` as its bounded return target. |
+| Source passkey list, register and removal controls | Existing `/account/passkeys{,/options,/{passkey_id}}` and `@simplewebauthn/browser` | The dedicated passkey compatibility seam accepts only this owner-scoped registration ceremony. The copied source’s Laravel numeric passkey type is not fabricated: its runtime opaque Rust UUID is carried unchanged through the exact delete facade. Registration uses Rust WebAuthn options/assertion endpoints and sets the source confirmation request's same-origin CSRF meta token only in the live document. |
+| Read/write/security-service failure | Rust `401`/`403`/`422`/`429`/`503` contracts | Failed mandatory page reads render `Security settings are unavailable.` The source visible password and setup error slots remain dirty/retryable; a confirmation-required sensitive command uses the copied password-confirmation journey rather than treating it as success. |
+
+`frontend/e2e/canonical-settings-security.spec.ts` proves the exact copied
+password form and field validation, complete TOTP setup/confirmation/recovery
+surface, passkey UUID deletion and WebAuthn registration request, explicit
+read unavailability, and source controls at 1440×900 and 390×844. At 390px
+the pinned source `SettingsConfigurationShell` retains its desktop-width grid
+and clips the footer Save control beyond the viewport. This is a recorded
+**known source defect** (also preserved in browser evidence), not a Rust
+adapter redesign or a migration parity claim. `check:canonical-source` keeps
+the copied source byte-identical; the only new presentation code is the
+narrow `frontend/src/platform/security-route.tsx` and its named transport
+facades.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not

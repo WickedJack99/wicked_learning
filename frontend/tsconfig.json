@@ -18,7 +18,10 @@
         "baseUrl": ".",
         "paths": {
             "@laravel/passkeys/react": ["src/platform/passkey-react.ts"],
+            "@/actions/Laravel/Passkeys/Http/Controllers/PasskeyRegistrationController": ["src/platform/passkey-management-actions.ts"],
             "@/actions/Laravel/Passkeys/Http/Controllers/PasskeyConfirmationController": ["src/platform/passkey-confirmation-actions.ts"],
+            "@/actions/App/Http/Controllers/Settings/SecurityController": ["src/platform/security-actions.ts"],
+            "@/hooks/use-two-factor-auth": ["src/platform/security-two-factor-auth.ts"],
             "@/routes/password/confirm": ["src/platform/password-confirm-routes.ts"],
             "@/routes/two-factor/login": ["src/platform/two-factor-routes.ts"],
             "@/routes/two-factor": ["src/platform/two-factor-management-routes.ts"],

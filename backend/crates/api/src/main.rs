@@ -7,6 +7,7 @@ mod account_password;
 mod account_password_confirmation;
 mod account_profile;
 mod account_profile_image;
+mod account_security;
 mod account_two_factor;
 mod admin_activity_ambient_sound;
 mod admin_activity_completion_choice;
@@ -725,6 +726,7 @@ fn router(state: AppState) -> Router {
                 .post(account_password_confirmation::confirm),
         )
         .route("/api/v1/account/password", patch(account_password::update))
+        .route("/api/v1/account/security", get(account_security::show))
         .route(
             "/api/v1/account/profile",
             get(account_profile::show)

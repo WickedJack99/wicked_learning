@@ -106,14 +106,6 @@ impl ApiError {
         }
     }
 
-    pub fn password_update_rejected() -> Self {
-        Self {
-            code: "password_update_rejected",
-            status: StatusCode::UNPROCESSABLE_ENTITY,
-            title: "The password could not be updated with these details.",
-        }
-    }
-
     pub fn password_reset_request_rejected() -> Self {
         Self {
             code: "password_reset_request_rejected",

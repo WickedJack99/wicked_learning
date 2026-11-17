@@ -7,6 +7,7 @@ import { unavailableSourceOperation } from './inertia-facade';
 import { apiClient, getCsrfToken } from './api/client';
 import { setTwoFactorLayoutProps } from './two-factor-layout';
 import { profileImageIdForSourceUrl } from './profile-media-upload';
+import { rememberPendingTwoFactorSetup } from './security-two-factor-auth';
 import type { WelcomePageProps } from './welcome-projection';
 
 type WelcomeLinkHref = string | { url: string };
@@ -60,6 +61,11 @@ type RouterPatchOptions = {
     preserveScroll?: boolean;
 };
 
+type RouterDeleteOptions = {
+    onError?: () => void;
+    preserveScroll?: boolean;
+};
+
 export const router = {
     visit(url: string): void {
         window.location.assign(url);
@@ -95,6 +101,38 @@ export const router = {
                 options?.onFinish?.();
             }
         })();
+    },
+    delete(url: string, options?: RouterDeleteOptions): void {
+        const match = url.match(/^\/api\/v1\/account\/passkeys\/([0-9a-f-]{36})$/i);
+        if (!match) {
+            unavailableSourceOperation('Passkey deletion');
+        }
+
+        void (async () => {
+            try {
+                const csrfToken = await getCsrfToken();
+                const { response } = await apiClient.DELETE(
+                    '/account/passkeys/{passkey_id}',
+                    {
+                        params: {
+                            header: { 'X-CSRF-Token': csrfToken },
+                            path: { passkey_id: match[1] },
+                        },
+                    },
+                );
+                if (!response.ok) {
+                    options?.onError?.();
+
+                    return;
+                }
+                window.location.reload();
+            } catch {
+                options?.onError?.();
+            }
+        })();
+    },
+    reload(): void {
+        window.location.reload();
     },
 };
 
@@ -146,12 +184,15 @@ export function useForm<TData extends SourceFormData>(initialData: TData): {
 type AuthFormProps = {
     action: '/api/v1/session/login' | '/api/v1/registration' | '/api/v1/password/forgot' | '/api/v1/password/reset' | '/api/v1/session/two-factor' | '/api/v1/account/password/confirmation';
     method: 'post';
-    resetOnError?: boolean;
+    resetOnError?: string[] | boolean;
     resetOnSuccess?: string[] | boolean;
     children: (state: { errors: Record<string, string>; processing: boolean; clearErrors: () => void; isDirty: boolean }) => ReactNode;
     className?: string;
     disableWhileProcessing?: boolean;
     id?: string;
+    onError?: (errors: Record<string, string>) => void;
+    onSuccess?: () => void;
+    options?: SourceFormOptions;
     transform?: (data: Record<string, string>) => Record<string, string>;
 };
 
@@ -161,9 +202,33 @@ type ProfileFormProps = {
     children: AuthFormProps['children'];
     className?: string;
     id?: string;
+    onError?: (errors: Record<string, string>) => void;
+    onSuccess?: () => void;
+    resetOnError?: string[] | boolean;
     options?: SourceFormOptions;
     resetOnSuccess?: never;
     transform?: never;
+};
+
+type SecurityFormAction =
+    | 'security-password-update'
+    | 'two-factor-confirm'
+    | 'two-factor-disable'
+    | 'two-factor-regenerate-codes'
+    | 'two-factor-start-setup';
+
+type SecurityFormProps = {
+    action: SecurityFormAction;
+    method: 'delete' | 'patch' | 'post';
+    children: AuthFormProps['children'];
+    className?: string;
+    id?: string;
+    onError?: (errors: Record<string, string>) => void;
+    onSuccess?: () => void;
+    options?: SourceFormOptions;
+    resetOnError?: string[] | boolean;
+    transform?: never;
+    resetOnSuccess?: string[] | boolean;
 };
 
 /**
@@ -171,7 +236,7 @@ type ProfileFormProps = {
  * adapter obtains Rust's CSRF cookie/token and calls only its matching typed
  * Rust command; it is not an Inertia form emulator or fallback transport.
  */
-export function Form({ action, children, className, resetOnSuccess, transform, id }: AuthFormProps | ProfileFormProps) {
+export function Form({ action, children, className, resetOnSuccess, transform, id, onError, onSuccess, resetOnError }: AuthFormProps | ProfileFormProps | SecurityFormProps) {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
@@ -182,6 +247,50 @@ export function Form({ action, children, className, resetOnSuccess, transform, i
         setErrors({});
         const form = event.currentTarget;
         const values = new FormData(form);
+
+        if (isSecurityFormAction(action)) {
+            try {
+                const csrfToken = await getCsrfToken();
+                const securityResult = await submitSecurityForm(
+                    action,
+                    values,
+                    csrfToken,
+                );
+                if (!securityResult.ok) {
+                    if (securityResult.passwordConfirmationRequired) {
+                        window.location.assign(
+                            '/user/confirm-password?return_to=/settings/security',
+                        );
+                        return;
+                    }
+                    const nextErrors = securityResult.errors;
+                    setErrors(nextErrors);
+                    onError?.(nextErrors);
+                    resetFormFields(
+                        form,
+                        Array.isArray(resetOnError) ? resetOnError : [],
+                    );
+                    return;
+                }
+                onSuccess?.();
+                if (
+                    action === 'security-password-update' ||
+                    action === 'two-factor-confirm' ||
+                    action === 'two-factor-disable'
+                ) {
+                    window.location.reload();
+                }
+            } catch {
+                const nextErrors = {
+                    form: 'Security settings are currently unavailable.',
+                };
+                setErrors(nextErrors);
+                onError?.(nextErrors);
+            } finally {
+                setProcessing(false);
+            }
+            return;
+        }
 
         if (action === 'profile-update') {
             const profileImage = String(values.get('profile_image') ?? '');
@@ -317,6 +426,125 @@ export function Form({ action, children, className, resetOnSuccess, transform, i
     };
 
     return <form className={className} id={id} onChange={() => setIsDirty(true)} onSubmit={submit}>{children({ errors, processing, isDirty, clearErrors: () => setErrors({}) })}</form>;
+}
+
+function isSecurityFormAction(action: string): action is SecurityFormAction {
+    return [
+        'security-password-update',
+        'two-factor-confirm',
+        'two-factor-disable',
+        'two-factor-regenerate-codes',
+        'two-factor-start-setup',
+    ].includes(action);
+}
+
+type SecurityFormResult =
+    | { ok: true }
+    | { errors: Record<string, string>; ok: false; passwordConfirmationRequired?: boolean };
+
+async function submitSecurityForm(
+    action: SecurityFormAction,
+    values: FormData,
+    csrfToken: string,
+): Promise<SecurityFormResult> {
+    if (action === 'security-password-update') {
+        const { error, response } = await apiClient.PATCH('/account/password', {
+            body: {
+                current_password: String(values.get('current_password') ?? ''),
+                password: String(values.get('password') ?? ''),
+                password_confirmation: String(
+                    values.get('password_confirmation') ?? '',
+                ),
+            },
+            params: { header: { 'X-CSRF-Token': csrfToken } },
+        });
+        if (response.ok) {
+            return { ok: true };
+        }
+        const problem = error as { errors?: Record<string, string> } | undefined;
+        return {
+            errors:
+                response.status === 422 && problem?.errors
+                    ? problem.errors
+                    : {
+                          current_password:
+                              response.status === 503
+                                  ? 'Security settings are currently unavailable.'
+                                  : 'The password could not be updated with these details.',
+                      },
+            ok: false,
+        };
+    }
+
+    if (action === 'two-factor-start-setup') {
+        const { data, response } = await apiClient.POST('/account/two-factor/setup', {
+            params: { header: { 'X-CSRF-Token': csrfToken } },
+        });
+        if (response.ok && data) {
+            rememberPendingTwoFactorSetup({
+                manualSetupKey: data.manual_setup_key,
+                provisioningUrl: data.provisioning_url,
+            });
+            return { ok: true };
+        }
+        return {
+            errors: { form: 'Two-factor authentication is currently unavailable.' },
+            ok: false,
+            passwordConfirmationRequired: response.status === 403,
+        };
+    }
+
+    if (action === 'two-factor-confirm') {
+        const { response } = await apiClient.POST('/account/two-factor/confirm', {
+            body: { code: String(values.get('code') ?? '') },
+            params: { header: { 'X-CSRF-Token': csrfToken } },
+        });
+        return response.ok
+            ? { ok: true }
+            : {
+                  errors: {
+                      code:
+                          response.status === 422
+                              ? 'The authentication code is invalid or expired.'
+                              : 'Two-factor authentication is currently unavailable.',
+                  },
+                  ok: false,
+                  passwordConfirmationRequired: response.status === 403,
+              };
+    }
+
+    if (action === 'two-factor-disable') {
+        const { response } = await apiClient.DELETE('/account/two-factor', {
+            params: { header: { 'X-CSRF-Token': csrfToken } },
+        });
+        return response.ok
+            ? { ok: true }
+            : {
+                  errors: { form: 'Two-factor authentication is currently unavailable.' },
+                  ok: false,
+                  passwordConfirmationRequired: response.status === 403,
+              };
+    }
+
+    const { response } = await apiClient.POST('/account/two-factor/recovery-codes', {
+        params: { header: { 'X-CSRF-Token': csrfToken } },
+    });
+    return response.ok
+        ? { ok: true }
+        : {
+              errors: { form: 'Recovery codes are currently unavailable.' },
+              ok: false,
+              passwordConfirmationRequired: response.status === 403,
+          };
+}
+
+function resetFormFields(form: HTMLFormElement, fields: string[]): void {
+    for (const field of fields) {
+        const input = form.elements.namedItem(field);
+        if (input instanceof HTMLInputElement) {
+            input.value = '';
+        }
+    }
 }
 
 function passwordConfirmationDestination(): string {

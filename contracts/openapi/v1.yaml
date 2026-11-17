@@ -1229,7 +1229,11 @@ paths:
                 $ref: '#/components/schemas/SessionStatus'
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '422': { description: The current password, replacement password, or confirmation was rejected. }
+        '422':
+          description: The current password, replacement password, or confirmation was rejected.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasswordValidationProblem' }
         '503': { description: The identity database is unavailable. }
   /account/password/confirmation:
     get:
@@ -1481,6 +1485,19 @@ paths:
         '403': { description: A valid same-origin CSRF request and recent password confirmation are required. }
         '422': { description: The code is malformed, invalid, expired, or no pending enrollment exists. }
         '429': { description: Too many two-factor confirmation attempts were made. }
+        '503': { description: The identity database is unavailable. }
+  /account/security:
+    get:
+      operationId: getAccountSecuritySettings
+      summary: Read the current subject's complete non-secret canonical Security page projection.
+      description: This source-shaped display projection includes capability flags, passkey labels and relative usage text, password advisory rules, and confirmed authenticator status. Sensitive passkey, authenticator, recovery-code, and password commands remain separately confirmation-gated.
+      responses:
+        '200':
+          description: Owner-scoped Security page props without credential, authenticator secret, or recovery-code material.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountSecuritySettings' }
+        '401': { description: Authentication is required. }
         '503': { description: The identity database is unavailable. }
   /account/profile:
     get:
@@ -8624,6 +8641,21 @@ components:
           format: password
           minLength: 12
           maxLength: 1024
+    PasswordValidationProblem:
+      type: object
+      additionalProperties: false
+      required: [code, errors, title]
+      properties:
+        code:
+          type: string
+          enum: [password_update_rejected]
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          minProperties: 1
+        title:
+          type: string
     ConfirmAccountPasswordRequest:
       type: object
       additionalProperties: false
@@ -8713,6 +8745,48 @@ components:
         enabled:
           type: boolean
           description: Whether the authenticated subject has a confirmed authenticator-app factor.
+    AccountSecurityPasskey:
+      type: object
+      additionalProperties: false
+      required: [authenticator, created_at_diff, id, last_used_at_diff, name]
+      properties:
+        authenticator:
+          type: [string, 'null']
+        created_at_diff:
+          type: string
+          description: Source-compatible owner-visible relative creation time.
+        id:
+          type: string
+          format: uuid
+        last_used_at_diff:
+          type: [string, 'null']
+          description: Source-compatible owner-visible relative last-use time.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+    AccountSecuritySettings:
+      type: object
+      additionalProperties: false
+      required: [can_manage_passkeys, can_manage_two_factor, passkeys, password_rules, requires_confirmation, two_factor_enabled]
+      properties:
+        can_manage_passkeys:
+          type: boolean
+          const: true
+        can_manage_two_factor:
+          type: boolean
+          const: true
+        passkeys:
+          type: array
+          items: { $ref: '#/components/schemas/AccountSecurityPasskey' }
+        password_rules:
+          type: string
+          const: 'minlength: 12'
+        requires_confirmation:
+          type: boolean
+          const: true
+        two_factor_enabled:
+          type: boolean
     PendingTwoFactorSetup:
       type: object
       additionalProperties: false

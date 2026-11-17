@@ -1184,6 +1184,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/account/security": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the current subject's complete non-secret canonical Security page projection.
+         * @description This source-shaped display projection includes capability flags, passkey labels and relative usage text, password advisory rules, and confirmed authenticator status. Sensitive passkey, authenticator, recovery-code, and password commands remain separately confirmation-gated.
+         */
+        get: operations["getAccountSecuritySettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/profile": {
         parameters: {
             query?: never;
@@ -6802,6 +6822,14 @@ export interface components {
             /** Format: password */
             password_confirmation: string;
         };
+        PasswordValidationProblem: {
+            /** @enum {string} */
+            code: "password_update_rejected";
+            errors: {
+                [key: string]: string;
+            };
+            title: string;
+        };
         ConfirmAccountPasswordRequest: {
             /** Format: password */
             password: string;
@@ -6852,6 +6880,28 @@ export interface components {
         TwoFactorStatus: {
             /** @description Whether the authenticated subject has a confirmed authenticator-app factor. */
             enabled: boolean;
+        };
+        AccountSecurityPasskey: {
+            authenticator: string | null;
+            /** @description Source-compatible owner-visible relative creation time. */
+            created_at_diff: string;
+            /** Format: uuid */
+            id: string;
+            /** @description Source-compatible owner-visible relative last-use time. */
+            last_used_at_diff: string | null;
+            name: string;
+        };
+        AccountSecuritySettings: {
+            /** @constant */
+            can_manage_passkeys: true;
+            /** @constant */
+            can_manage_two_factor: true;
+            passkeys: components["schemas"]["AccountSecurityPasskey"][];
+            /** @constant */
+            password_rules: "minlength: 12";
+            /** @constant */
+            requires_confirmation: true;
+            two_factor_enabled: boolean;
         };
         PendingTwoFactorSetup: {
             /** @description A Base32 authenticator secret. It is returned once for the current pending enrollment and must not be persisted by a client. */
@@ -15033,12 +15083,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The current password */
+            /** @description The current password, replacement password, or confirmation was rejected. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PasswordValidationProblem"];
+                };
             };
             /** @description The identity database is unavailable. */
             503: {
@@ -15743,6 +15795,40 @@ export interface operations {
             };
             /** @description Too many two-factor confirmation attempts were made. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAccountSecuritySettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner-scoped Security page props without credential, authenticator secret, or recovery-code material. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountSecuritySettings"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

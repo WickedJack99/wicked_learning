@@ -15,6 +15,7 @@ import { AppearanceRoute } from './appearance-route';
 import { LanguageRoute } from './language-route';
 import { ProfileRoute } from './profile-route';
 import { SettingsInformationRoute } from './settings-information-route';
+import { SecurityRoute } from './security-route';
 
 /**
  * The only presentation import in this bootstrap is copied from the pinned
@@ -43,6 +44,9 @@ export function CanonicalSourceResolver() {
     }
     if (location.pathname === '/settings/profile') {
         return <ProfileRoute />;
+    }
+    if (location.pathname === '/settings/security') {
+        return <SecurityRoute />;
     }
     if (
         location.pathname === '/settings/about' ||

@@ -1,4 +1,8 @@
-import { browserSupportsWebAuthn, startAuthentication } from '@simplewebauthn/browser';
+import {
+    browserSupportsWebAuthn,
+    startAuthentication,
+    startRegistration,
+} from '@simplewebauthn/browser';
 import { useCallback, useState } from 'react';
 
 import { apiClient, getCsrfToken } from './api/client';
@@ -62,6 +66,74 @@ export function usePasskeyVerify({ onSuccess, routes }: UsePasskeyVerifyOptions 
     }, [onSuccess, routes]);
 
     return { verify, isLoading, error, isSupported };
+}
+
+type UsePasskeyRegisterOptions = {
+    onSuccess?: () => void;
+};
+
+/**
+ * Compatibility for the copied Security page's registration component only.
+ * Its two Rust requests are fixed owner-scoped WebAuthn ceremony operations;
+ * this does not expose Laravel's generic passkey client to other routes.
+ */
+export function usePasskeyRegister({ onSuccess }: UsePasskeyRegisterOptions = {}) {
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const isSupported = browserSupportsWebAuthn();
+
+    const register = useCallback(async (name: string): Promise<void> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const csrfToken = await getCsrfToken();
+            setCsrfMetaToken(csrfToken);
+            const options = await apiClient.POST('/account/passkeys/options', {
+                params: { header: { 'X-CSRF-Token': csrfToken } },
+            });
+            if (!options.response.ok || !options.data) {
+                throw new Error(
+                    options.response.status === 403
+                        ? 'Password confirmation is required before registering a passkey.'
+                        : problemTitle(options.error, options.response.status),
+                );
+            }
+            const credential = await startRegistration({
+                optionsJSON: options.data.options as unknown as Parameters<
+                    typeof startRegistration
+                >[0]['optionsJSON'],
+            });
+            const completed = await apiClient.POST('/account/passkeys', {
+                body: { credential: credential as never, name },
+                params: { header: { 'X-CSRF-Token': csrfToken } },
+            });
+            if (!completed.response.ok || !completed.data) {
+                throw new Error(problemTitle(completed.error, completed.response.status));
+            }
+            onSuccess?.();
+        } catch (reason) {
+            setError(
+                reason instanceof Error
+                    ? reason.message
+                    : 'Passkey registration could not be completed.',
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }, [onSuccess]);
+
+    return { register, isLoading, error, isSupported };
+}
+
+function setCsrfMetaToken(token: string): void {
+    let element = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]');
+    if (!element) {
+        element = document.createElement('meta');
+        element.name = 'csrf-token';
+        document.head.appendChild(element);
+    }
+    element.content = token;
 }
 
 function passwordConfirmationDestination(): string {
