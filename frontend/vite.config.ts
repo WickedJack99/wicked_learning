@@ -7,6 +7,8 @@ export default defineConfig({
     plugins: [react(), tailwindcss()],
     resolve: {
         alias: [
+            { find: '@/routes/two-factor/login', replacement: resolve(import.meta.dirname, 'src/platform/two-factor-routes.ts') },
+            { find: '@/routes/two-factor', replacement: resolve(import.meta.dirname, 'src/platform/two-factor-management-routes.ts') },
             {
                 find: '@/routes/login',
                 replacement: resolve(import.meta.dirname, 'src/platform/auth-routes.ts'),

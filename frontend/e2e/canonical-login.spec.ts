@@ -46,6 +46,19 @@ test('copied Login keeps the Rust-session unavailable state explicit', async ({ 
     await expect(page.getByText('Login is currently unavailable.')).toBeVisible();
 });
 
+test('copied Login enters the canonical two-factor challenge when Rust requires it', async ({ page }) => {
+    await page.route('**/api/v1/public/welcome', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(welcome()) }));
+    await page.route('**/api/v1/security/csrf', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ token: 'csrf-token' }) }));
+    await page.route('**/api/v1/session/login', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ authenticated: false, subject_id: null, two_factor_required: true }) }));
+    await page.route('**/api/v1/session/two-factor', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }));
+    await page.goto('/login');
+    await page.getByLabel('Email address').fill('learner@example.test');
+    await page.locator('input[name="password"]').fill('correct horse battery staple');
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/two-factor-challenge$/);
+    await expect(page.getByRole('heading', { name: 'Authentication code' })).toBeVisible();
+});
+
 function welcome() {
     const theme = { background_color: '#07111f', background_image: null, background_overlay: 'none', border_line_color: '#ffffff', button_text_color: '#ffffff', input_background: '#07111f', panel_background: '#07111f' };
     const palette = { accent_text: '#5eead4', accent_text_opacity: 100, body_text: '#e2e8f0', body_text_opacity: 100, control_border: '#ffffff', control_border_opacity: 100, control_text: '#ffffff', control_text_opacity: 100, heading_text: '#f8fafc', heading_text_opacity: 100, muted_text: '#94a3b8', muted_text_opacity: 100, welcome_overlay: '#020617', welcome_overlay_opacity: 62 };

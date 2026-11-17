@@ -16,7 +16,13 @@ type LoginState =
     | { kind: 'unavailable' }
     | { kind: 'ready'; props: WelcomePageProps };
 
-export function LoginRoute({ render }: { render?: (props: WelcomePageProps) => ReactNode } = {}) {
+export function LoginRoute({
+    render,
+    component = 'auth/login',
+}: {
+    render?: (props: WelcomePageProps) => ReactNode;
+    component?: string;
+} = {}) {
     const [state, setState] = useState<LoginState>({ kind: 'loading' });
 
     useEffect(() => {
@@ -33,5 +39,5 @@ export function LoginRoute({ render }: { render?: (props: WelcomePageProps) => R
     if (state.kind === 'unavailable') {
         return <main className="flex min-h-svh items-center justify-center p-6"><AlertError title="Login is unavailable." errors={['The public Login projection is currently unavailable.']} /></main>;
     }
-    return <SourcePageProjectionProvider value={{ component: render ? 'auth/register' : 'auth/login', props: state.props }}>{render ? render(state.props) : <AuthLayout title="Log in to your account" description="Enter your email and password below to log in"><Login canResetPassword={false} /></AuthLayout>}</SourcePageProjectionProvider>;
+    return <SourcePageProjectionProvider value={{ component, props: state.props }}>{render ? render(state.props) : <AuthLayout title="Log in to your account" description="Enter your email and password below to log in"><Login canResetPassword={false} /></AuthLayout>}</SourcePageProjectionProvider>;
 }

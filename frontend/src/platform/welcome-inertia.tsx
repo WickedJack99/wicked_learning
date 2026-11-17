@@ -5,6 +5,7 @@ import { Link as RouterLink } from 'react-router';
 import { useSourcePageProjection } from './page-props';
 import { unavailableSourceOperation } from './inertia-facade';
 import { apiClient, getCsrfToken } from './api/client';
+import { setTwoFactorLayoutProps } from './two-factor-layout';
 import type { WelcomePageProps } from './welcome-projection';
 
 type WelcomeLinkHref = string | { url: string };
@@ -57,6 +58,21 @@ export const router = {
     },
 };
 
+export function setLayoutProps(props: Record<string, unknown>): void {
+    setTwoFactorLayoutProps({
+        ...(typeof props.title === 'string' ? { title: props.title } : {}),
+        ...(typeof props.description === 'string'
+            ? { description: props.description }
+            : {}),
+    });
+}
+
+export function useHttp(): { submit: (_operation: unknown) => Promise<never> } {
+    return {
+        submit: async () => unavailableSourceOperation('two-factor enrollment'),
+    };
+}
+
 type SourceFormData = Record<string, unknown>;
 
 type SourceFormOptions = {
@@ -88,10 +104,11 @@ export function useForm<TData extends SourceFormData>(initialData: TData): {
 }
 
 type AuthFormProps = {
-    action: '/api/v1/session/login' | '/api/v1/registration' | '/api/v1/password/forgot' | '/api/v1/password/reset';
+    action: '/api/v1/session/login' | '/api/v1/registration' | '/api/v1/password/forgot' | '/api/v1/password/reset' | '/api/v1/session/two-factor';
     method: 'post';
-    resetOnSuccess?: string[];
-    children: (state: { errors: Record<string, string>; processing: boolean }) => ReactNode;
+    resetOnError?: boolean;
+    resetOnSuccess?: string[] | boolean;
+    children: (state: { errors: Record<string, string>; processing: boolean; clearErrors: () => void }) => ReactNode;
     className?: string;
     disableWhileProcessing?: boolean;
     transform?: (data: Record<string, string>) => Record<string, string>;
@@ -111,7 +128,8 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
         event.preventDefault();
         setProcessing(true);
         setErrors({});
-        const values = new FormData(event.currentTarget);
+        const form = event.currentTarget;
+        const values = new FormData(form);
 
         try {
             const csrfToken = await getCsrfToken();
@@ -137,24 +155,44 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
                 })
                 : action === '/api/v1/registration'
                     ? await apiClient.POST('/registration', { body: body as never, params: { header: { 'X-CSRF-Token': csrfToken } } })
-                    : action === '/api/v1/password/forgot' ? await apiClient.POST('/password/forgot', { body: { email: body.email }, params: { header: { 'X-CSRF-Token': csrfToken } } }) : await apiClient.POST('/password/reset', { body: transformed as never, params: { header: { 'X-CSRF-Token': csrfToken } } });
+                    : action === '/api/v1/password/forgot' ? await apiClient.POST('/password/forgot', { body: { email: body.email }, params: { header: { 'X-CSRF-Token': csrfToken } } }) : action === '/api/v1/password/reset' ? await apiClient.POST('/password/reset', { body: transformed as never, params: { header: { 'X-CSRF-Token': csrfToken } } }) : await apiClient.POST('/session/two-factor', { body: transformed as never, params: { header: { 'X-CSRF-Token': csrfToken } } });
 
+            const sessionStatus = data as { authenticated?: boolean; two_factor_required?: boolean } | undefined;
+            const challengeRequired = action === '/api/v1/session/login'
+                && response.ok
+                && sessionStatus?.two_factor_required === true;
             const succeeded = action === '/api/v1/password/reset'
                 ? response.ok
                 : action === '/api/v1/password/forgot'
                     ? response.ok && Boolean(data)
-                : response.ok && Boolean((data as { authenticated?: boolean } | undefined)?.authenticated);
+                    : response.ok && Boolean(sessionStatus?.authenticated);
+            if (challengeRequired) {
+                window.location.assign('/two-factor-challenge');
+                return;
+            }
             if (!succeeded) {
+                const errorField = action === '/api/v1/session/two-factor'
+                    ? (values.get('recovery_code') ? 'recovery_code' : 'code')
+                    : 'email';
                 setErrors({
-                    email: response.status === 503
-                        ? 'Login is currently unavailable.'
-                        : 'The provided credentials are invalid.',
+                    [errorField]: response.status === 503
+                        ? action === '/api/v1/session/two-factor'
+                            ? 'Two-factor authentication is currently unavailable.'
+                            : 'Login is currently unavailable.'
+                        : action === '/api/v1/session/two-factor'
+                            ? 'The authentication code is invalid or expired.'
+                            : 'The provided credentials are invalid.',
                 });
                 return;
             }
 
-            for (const field of resetOnSuccess ?? []) {
-                const input = event.currentTarget.elements.namedItem(field);
+            const resetFields = resetOnSuccess === true
+                ? Array.from(form.elements)
+                    .filter((element): element is HTMLInputElement => element instanceof HTMLInputElement && Boolean(element.name))
+                    .map((input) => input.name)
+                : resetOnSuccess === false ? [] : resetOnSuccess ?? [];
+            for (const field of resetFields) {
+                const input = form.elements.namedItem(field);
                 if (input instanceof HTMLInputElement) {
                     input.value = '';
                 }
@@ -166,11 +204,15 @@ export function Form({ action, children, className, resetOnSuccess, transform }:
                 window.location.assign('/world');
             }
         } catch {
-            setErrors({ form: 'Login is currently unavailable.' });
+            setErrors({
+                form: action === '/api/v1/session/two-factor'
+                    ? 'Two-factor authentication is currently unavailable.'
+                    : 'Login is currently unavailable.',
+            });
         } finally {
             setProcessing(false);
         }
     };
 
-    return <form className={className} onSubmit={submit}>{children({ errors, processing })}</form>;
+    return <form className={className} onSubmit={submit}>{children({ errors, processing, clearErrors: () => setErrors({}) })}</form>;
 }

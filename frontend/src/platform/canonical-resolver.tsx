@@ -9,6 +9,7 @@ import { LoginRoute } from './login-route';
 import { RegisterRoute } from './register-route';
 import { ForgotPasswordRoute } from './forgot-password-route';
 import { ResetPasswordRoute } from './reset-password-route';
+import { TwoFactorRoute } from './two-factor-route';
 
 /**
  * The only presentation import in this bootstrap is copied from the pinned
@@ -35,6 +36,7 @@ export function CanonicalSourceResolver() {
     if (location.pathname === '/forgot-password') {
         return <ForgotPasswordRoute />;
     }
+    if (location.pathname === '/two-factor-challenge') return <TwoFactorRoute />;
     const resetMatch = location.pathname.match(/^\/reset-password\/([a-zA-Z0-9-]+)$/);
     if (resetMatch) {
         return <ResetPasswordRoute token={resetMatch[1]} />;

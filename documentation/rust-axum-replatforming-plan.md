@@ -615,6 +615,32 @@ source route with its source status message. `canonical-forgot-password.spec.ts`
 proves this source behavior and bounded submit control at both required
 viewports. Reset-token consumption remains a separately audited route.
 
+### Canonical two-factor challenge activation — 17 November 2026
+
+**Pinned source verified:** `main` resolves to
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. This slice mounts the exact copied
+`pages/auth/two-factor-challenge.tsx`, its whole directly-used dependency tree
+`layouts/auth-layout.tsx`, `layouts/auth/auth-simple-layout.tsx`,
+`components/{one-time-code-input,input-error}.tsx`, `components/ui/{button,input}.tsx`,
+and `hooks/use-two-factor-auth.ts`. Those files remain byte-identical under
+`frontend/canonical-source/**`.
+
+| Source dependency / behavior | Rust evidence | Activation rule |
+| --- | --- | --- |
+| Pending password-login state | `POST /api/v1/session/login`, `GET /api/v1/session`, `session_commands.rs`, `session_status.rs`, and OpenAPI `SessionStatus` | A `two_factor_required: true` login response is the only successful transition into `/two-factor-challenge`; it does not create an authenticated session. The destination is otherwise source-unavailable at the command boundary. |
+| Authenticator and recovery-code submit | `GET /api/v1/security/csrf`, `POST /api/v1/session/two-factor`, `session_commands::complete_two_factor`, and OpenAPI `TwoFactorChallengeRequest` | The restricted auth form facade admits exactly this action, preserves the source `code`/`recovery_code` field names and sends one same-origin CSRF header plus one typed request. It is not generic Inertia transport. |
+| Challenge expiry/rejection/rate-limit and identity outage | OpenAPI `401`/`429`/`503` responses and the pending-challenge freshness/verification tests in `session_commands.rs` | Rejection is placed in the copied source field-error region as “The authentication code is invalid or expired.” A `503` is visibly “Two-factor authentication is currently unavailable.” The adapter fabricates neither an authenticated state nor a replacement recovery path. |
+| Source mode switch and source layout copy | Exact copied `setLayoutProps`, `OneTimeCodeInput`, recovery-code toggle, and auth layout | `two-factor-layout.tsx` is a narrow presentation bridge only: it carries the copied component’s title/description update into the unchanged copied auth layout. The account enrollment/recovery-management route descriptors are import-only facades and reject explicitly; Settings TOTP management is not mounted by this login slice. |
+
+`frontend/e2e/canonical-two-factor-challenge.spec.ts` records the source
+authentication-code and recovery-code modes, digit filtering, request shapes,
+success navigation, rejection and `503` state at 1440×900 and 390×844, with
+bounded visible controls. `canonical-login.spec.ts` additionally proves that a
+Rust `two_factor_required` response enters the copied challenge rather than
+being rendered as an invalid-password error. No TOTP enrollment/settings,
+passkey, email verification, generic Inertia transport, or World route is
+activated by this slice.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not
