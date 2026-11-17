@@ -6,3 +6,7 @@ export function login(): string {
 export function register(): string {
     return '/register';
 }
+
+export function home(): string {
+    return '/';
+}
