@@ -45,5 +45,5 @@ export function LoginRoute({
     if (state.kind === 'unavailable') {
         return <main className="flex min-h-svh items-center justify-center p-6"><AlertError title="Login is unavailable." errors={['The public Login projection is currently unavailable.']} /></main>;
     }
-    return <SourcePageProjectionProvider value={{ component, props: state.props }}>{render ? render(state.props) : <AuthLayout title="Log in to your account" description="Enter your email and password below to log in"><Login canResetPassword={false} status={status} /></AuthLayout>}</SourcePageProjectionProvider>;
+    return <SourcePageProjectionProvider value={{ component, props: state.props }}>{render ? render(state.props) : <AuthLayout title="Log in to your account" description="Enter your email and password below to log in"><Login canResetPassword status={status} /></AuthLayout>}</SourcePageProjectionProvider>;
 }

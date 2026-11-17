@@ -20,6 +20,7 @@ for (const viewport of [
             await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ authenticated: true, subject_id: 'f6b13b8b-2df8-4c5c-8b30-5d6dfecf8fa7', two_factor_required: false }) });
         });
         await page.goto('/login');
+        await expect(page.getByRole('link', { name: 'Forgot your password?' })).toHaveAttribute('href', '/forgot-password');
         await page.getByLabel('Email address').fill('learner@example.test');
         await page.locator('input[name="password"]').fill('correct horse battery staple');
         await page.getByLabel('Remember me').click();
