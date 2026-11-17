@@ -825,6 +825,31 @@ controls at 1440×900 and 390×844, and current-user dependency-unavailable
 state. `check:canonical-source`, generated OpenAPI/type/build checks and the
 focused Rust current-user tests must remain green for this slice.
 
+### Canonical direct Language Settings activation — 17 November 2026
+
+The unchanged copied `resources/js/pages/settings/language.tsx` is mounted at
+its source `/settings/language` URL with its whole direct source tree:
+`features/settings/language-settings-panel.tsx`, source Select/button/form
+layout, `settings-configuration-shell.tsx`, translation and appearance hooks,
+and source styling. It remains a direct source document; it does not activate
+the root Settings workspace, Personal nested panel, or any other Settings
+writer.
+
+| Source dependency / behavior | Rust contract / adapter | Rule |
+| --- | --- | --- |
+| Enabled locales and current locale | `GET /api/v1/learner/language-preference`, `getLearnerLanguagePreference`, `LearnerLanguagePreference`, `learner_language_preference.rs` | The adapter maps only `available_languages.{code,name,native_name}` to the source camel-case prop and passes its returned locale verbatim. It does not invent a locale list. |
+| Platform-control translation catalog | `GET /api/v1/learner/platform-translations`, `getLearnerPlatformTranslations` | The source translation hook receives the server-selected locale/catalog instead of a default-English substitute. This preserves source fallback strings only for absent individual catalog keys. |
+| Shared authenticated chrome/theme | Existing `GET /api/v1/me` and `GET /api/v1/public/welcome` mappings from the Appearance slice | Current appearance, source Settings palette and authenticated admission use the same bounded read rules; every one of the four required reads must succeed. |
+| Source `router.patch('/settings/language')` save | `GET /api/v1/security/csrf`; `PATCH /api/v1/learner/language-preference`, `updateLearnerLanguagePreference` | The Inertia facade recognizes exactly this URL and this `{locale}` body, obtains a same-origin CSRF token, then invokes the typed Rust command. A successful command reloads this exact route so the copied stateful panel receives refreshed source props, equivalent to its source Inertia visit. It is not a generic router/form implementation. |
+| Invalid/unauthorized/unavailable write and read | OpenAPI `400`/`401`/`403`/`503` | A failed page read is explicit unavailable. The copied source panel has no inline save-error slot; on a failed write its source selection remains dirty/retryable and no success flash or fabricated error banner is added. |
+
+`frontend/e2e/canonical-settings-language.spec.ts` covers source headings and
+bounded controls at 1440×900 and 390×844, source Select/save behavior, the
+typed `{locale:'de'}` request, refresh after success, source-preserved retry
+after a `503`, and read-unavailable behavior. The source back target remains
+`/settings`, which is deliberately unavailable until the separately audited
+root document is activated.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not

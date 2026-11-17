@@ -12,6 +12,7 @@ import { ResetPasswordRoute } from './reset-password-route';
 import { TwoFactorRoute } from './two-factor-route';
 import { ConfirmPasswordRoute } from './confirm-password-route';
 import { AppearanceRoute } from './appearance-route';
+import { LanguageRoute } from './language-route';
 
 /**
  * The only presentation import in this bootstrap is copied from the pinned
@@ -34,6 +35,9 @@ export function CanonicalSourceResolver() {
     }
     if (location.pathname === '/settings/appearance') {
         return <AppearanceRoute />;
+    }
+    if (location.pathname === '/settings/language') {
+        return <LanguageRoute />;
     }
     if (location.pathname === '/register') {
         return <RegisterRoute />;

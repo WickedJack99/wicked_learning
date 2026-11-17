@@ -52,9 +52,46 @@ export function usePage<TProps extends object = WelcomePageProps>(): {
     return { component: projection.component, props: projection.props };
 }
 
+type RouterPatchOptions = {
+    onFinish?: () => void;
+    preserveScroll?: boolean;
+};
+
 export const router = {
     visit(url: string): void {
         window.location.assign(url);
+    },
+    patch(
+        url: string,
+        data: { locale?: unknown },
+        options?: RouterPatchOptions,
+    ): void {
+        const locale = data.locale;
+
+        if (url !== '/settings/language' || typeof locale !== 'string') {
+            unavailableSourceOperation('Settings form submission');
+        }
+
+        void (async () => {
+            try {
+                const csrfToken = await getCsrfToken();
+                const { response } = await apiClient.PATCH(
+                    '/learner/language-preference',
+                    {
+                        body: { locale },
+                        params: { header: { 'X-CSRF-Token': csrfToken } },
+                    },
+                );
+
+                if (response.ok) {
+                    // A source Inertia visit refreshes the source page props;
+                    // this exact route may do the same after its typed write.
+                    window.location.reload();
+                }
+            } finally {
+                options?.onFinish?.();
+            }
+        })();
     },
 };
 
