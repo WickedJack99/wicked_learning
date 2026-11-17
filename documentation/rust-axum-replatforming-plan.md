@@ -542,6 +542,37 @@ source-owned navigation, the published-page `404` unavailable state, and the
 unprojected configured-page no-request unavailable state. No inherited clipping
 or other source defect was observed for that tested visible control at 390×844.
 
+### Canonical Source Code activation contract matrix — 17 November 2026
+
+**Pinned source verified:** `main` resolves to
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. This slice mounts the exact copied
+`resources/js/pages/source.tsx`, including its whole named dependency set:
+`hooks/use-appearance.tsx`, `hooks/use-platform-cursors.ts`,
+`theme/platform-theme.ts`, `theme/presentation.ts`, `theme/appearance*.ts`,
+`theme/cursors.ts`, the copied source style tree and its Lucide icons. The
+source page itself, including link filtering, external-link controls, browser
+history Back behavior, styling and responsive classes, is unchanged.
+
+| Source dependency / behavior | Rust evidence | Classification | Activation rule |
+| --- | --- | --- | --- |
+| Shared `auth`, resolved `appearance`, public palette, welcome background and cursors | `GET /api/v1/public/welcome`; `backend/crates/api/src/public_welcome.rs`; public-presentation application/persistence read modules | Reusable | Reuse the existing bounded public Welcome read and its audited source-prop mapper. It carries only the authenticated marker and resolved appearance needed by the copied page, not an account or session emulation. |
+| `publicPresentation.sourceLinks.origin` and `.custom` | `GET /api/v1/public/source-links`; `backend/crates/api/src/public_source_links.rs`; `backend/crates/application/src/public_source_links.rs`; `backend/crates/persistence/src/public_source_links.rs`; `PublicSourceLinks` in `contracts/openapi/v1.yaml` | Reusable | Map Rust `origin` directly and `modified_sources` only to the source field name `custom`. The endpoint requires an origin link; any unavailable dependency produces the explicit unavailable state, never a made-up attribution link. |
+| Source-page custom-link filtering and “Modified sources” group | Exact copied `visibleSourceLinks` and `SourceButton` implementation | Reusable | Preserve the copied source behavior: blank source links are hidden by the page and the group is absent when there are no custom links. External links retain their source `target="_blank"` and `rel="noreferrer"`. |
+| Back control | Exact copied `goBack` browser-history function | Reusable source behavior | Do not replace it with a router-specific abstraction. Browser evidence enters from Welcome, verifies the bounded Back control and confirms it returns to the copied Welcome route. |
+
+**Adapter boundary:** `frontend/src/platform/source-code-route.tsx` makes only
+the existing two read calls. `source-code-projection.ts` performs the sole
+source-shaped transport mapping; it does not add a Laravel session, generic
+Inertia transport, source-link editing or any Rust writer. The resolver mounts
+only `/source`; all other unprojected destinations retain the canonical
+unavailable state.
+
+**Source-browser evidence:** `frontend/e2e/canonical-source-code.spec.ts`
+proves the origin and modified-source controls, no-custom grouping behavior,
+source-owned Back navigation and the source-links unavailable state at
+1440×900 and 390×844. The tested visible controls are bounded at both
+viewports; no source defect was observed for this route.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not
