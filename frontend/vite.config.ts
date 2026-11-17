@@ -25,6 +25,10 @@ export default defineConfig({
                 replacement: resolve(import.meta.dirname, 'src/platform/auth-routes.ts'),
             },
             {
+                find: '@/theme/appearance-persistence',
+                replacement: resolve(import.meta.dirname, 'src/platform/appearance-persistence.ts'),
+            },
+            {
                 find: '@inertiajs/react',
                 replacement: resolve(import.meta.dirname, 'src/platform/welcome-inertia.tsx'),
             },

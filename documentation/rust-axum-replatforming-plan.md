@@ -796,6 +796,35 @@ dependency-unavailable behavior; source-derived browser proof at 1440×900 and
 focused frontend, Rust, OpenAPI and browser verification. This audit changes no
 canonical UI or endpoint.
 
+### Canonical direct Appearance Settings activation — 17 November 2026
+
+The first Settings activation mounts the unchanged copied
+`resources/js/pages/settings/appearance.tsx` at its source
+`/settings/appearance` path. It includes the complete directly rendered source
+tree: `features/settings/appearance-settings-panel.tsx`,
+`components/{appearance-tabs,settings-configuration-shell}.tsx`,
+`hooks/{use-appearance,use-platform-translation}.tsx`,
+`theme/{appearance,presentation}.ts`, and the copied stylesheet. The root
+`pages/settings/index.tsx`, Personal workspace and every administration panel
+remain inactive; `/settings` itself remains explicitly unavailable until its
+complete page document exists.
+
+| Source dependency / behavior | Rust contract / adapter | Rule |
+| --- | --- | --- |
+| Authenticated appearance and route admission | `GET /api/v1/me`, `getCurrentUser`, `CurrentUser.appearance`, `api/src/current_user.rs` | The adapter requires a successful authenticated current-user read. `401`, `403`, `503`, network failure or a missing payload render the explicit Appearance unavailable state; no guest/default account is presented as Settings. |
+| Source Settings palette | `GET /api/v1/public/welcome`, `WelcomePageProjection.publicPresentation.settings_palette` | The adapter reads the existing bounded public presentation projection and maps every snake-case Settings palette field once to the copied `PublicPresentationSettings` shape. A failed presentation read is unavailable, not a copied default palette. |
+| Source Light/Dark controls | `GET /api/v1/security/csrf`, `PATCH /api/v1/learner/appearance`, `updateLearnerAppearance`, `learner_appearance_preference.rs` | `appearance-persistence.ts` is the sole narrow seam for copied `theme/appearance-persistence.ts`. It batches the source’s resolved light/dark mode and submits one CSRF-protected typed Rust write. It does not emulate an Inertia form or any unrelated settings write. |
+| Write outage behavior | Existing copied `useAppearance`/appearance persistence behavior | The source applies the requested display mode locally and exposes no save-status/error control. The adapter deliberately preserves that inherited behavior after a failed Rust write; it neither claims persistence succeeded nor substitutes an invented banner. The route-load dependency failure remains explicitly visible. |
+| Back destination | Copied `SettingsConfigurationShell` link to `/settings` | The source URL remains intact. Since the root Settings document is not activated, following it reaches the global explicit unavailable state rather than a reconstructed workspace. |
+
+Focused regression evidence is
+`frontend/e2e/canonical-settings-appearance.spec.ts`: it proves the exact
+copied headings, source Light/Dark controls, public Settings palette mapping,
+typed Rust request body, source-preserved write-outage behavior, bounded
+controls at 1440×900 and 390×844, and current-user dependency-unavailable
+state. `check:canonical-source`, generated OpenAPI/type/build checks and the
+focused Rust current-user tests must remain green for this slice.
+
 ### World Builder exact-source parity audit — 15 November 2026
 
 **Status: parity blocked.** This is a documentation-only audit; it does not

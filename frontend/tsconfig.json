@@ -25,6 +25,7 @@
             "@/routes/login": ["src/platform/auth-routes.ts"],
             "@/routes/register": ["src/platform/register-routes.ts"],
             "@/routes/password": ["src/platform/auth-routes.ts"],
+            "@/theme/appearance-persistence": ["src/platform/appearance-persistence.ts"],
             "@inertiajs/react": ["src/platform/welcome-inertia.tsx"],
             "@/routes": ["src/platform/welcome-routes.ts"],
             "@/*": ["canonical-source/resources/js/*"]

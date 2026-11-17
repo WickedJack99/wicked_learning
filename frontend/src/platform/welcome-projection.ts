@@ -60,6 +60,10 @@ export function toWelcomePageProps(
                 dark: publicPalette(presentation.public_palette.dark),
                 light: publicPalette(presentation.public_palette.light),
             },
+            settingsPalette: {
+                dark: settingsPalette(presentation.settings_palette.dark),
+                light: settingsPalette(presentation.settings_palette.light),
+            },
             welcome: {
                 pages: presentation.welcome.pages.map((page) => ({
                     backgrounds: images(page.backgrounds),
@@ -120,5 +124,48 @@ function publicPalette(value: components['schemas']['PublicPalette']) {
         mutedTextOpacity: value.muted_text_opacity,
         welcomeOverlay: value.welcome_overlay,
         welcomeOverlayOpacity: value.welcome_overlay_opacity,
+    };
+}
+
+function settingsPalette(value: components['schemas']['SettingsPalette']) {
+    return {
+        accent: value.accent,
+        accentOpacity: value.accent_opacity,
+        accentForeground: value.accent_foreground,
+        accentForegroundOpacity: value.accent_foreground_opacity,
+        activeBackground: value.active_background,
+        activeBackgroundOpacity: value.active_background_opacity,
+        appearanceSwitchActiveBackground:
+            value.appearance_switch_active_background,
+        appearanceSwitchActiveBackgroundOpacity:
+            value.appearance_switch_active_background_opacity,
+        appearanceSwitchActiveText: value.appearance_switch_active_text,
+        appearanceSwitchActiveTextOpacity:
+            value.appearance_switch_active_text_opacity,
+        appearanceSwitchBackground: value.appearance_switch_background,
+        appearanceSwitchBackgroundOpacity:
+            value.appearance_switch_background_opacity,
+        appearanceSwitchInactiveText:
+            value.appearance_switch_inactive_text,
+        appearanceSwitchInactiveTextOpacity:
+            value.appearance_switch_inactive_text_opacity,
+        borderColor: value.border_color,
+        borderColorOpacity: value.border_color_opacity,
+        contentBackground: value.content_background,
+        contentBackgroundOpacity: value.content_background_opacity,
+        inputBackground: value.input_background,
+        inputBackgroundOpacity: value.input_background_opacity,
+        inputBorderColor: value.input_border_color,
+        inputBorderColorOpacity: value.input_border_color_opacity,
+        mutedText: value.muted_text,
+        mutedTextOpacity: value.muted_text_opacity,
+        nestedSidebarBackground: value.nested_sidebar_background,
+        nestedSidebarBackgroundOpacity: value.nested_sidebar_background_opacity,
+        panelBackground: value.panel_background,
+        panelBackgroundOpacity: value.panel_background_opacity,
+        scrollbarThumb: value.scrollbar_thumb,
+        scrollbarThumbOpacity: value.scrollbar_thumb_opacity,
+        sidebarBackground: value.sidebar_background,
+        sidebarBackgroundOpacity: value.sidebar_background_opacity,
     };
 }
