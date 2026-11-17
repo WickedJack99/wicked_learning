@@ -6910,6 +6910,17 @@ export interface components {
             /** @description Password verification succeeded, but this browser must complete the server-side two-factor challenge before a session is authenticated. */
             two_factor_required: boolean;
         };
+        PasskeyLoginResponse: {
+            authenticated: boolean;
+            /**
+             * @description The source passkey configuration's default post-login destination.
+             * @constant
+             */
+            redirect: "/";
+            /** Format: uuid */
+            subject_id: string | null;
+            two_factor_required: boolean;
+        };
         CurrentUser: {
             /**
              * @description The authenticated learner's private visual preference.
@@ -14263,7 +14274,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionStatus"];
+                    "application/json": components["schemas"]["PasskeyLoginResponse"];
                 };
             };
             /** @description The passkey assertion */

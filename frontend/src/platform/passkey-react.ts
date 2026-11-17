@@ -54,7 +54,7 @@ export function usePasskeyVerify({ onSuccess, routes }: UsePasskeyVerifyOptions 
                 throw new Error(problemTitle(completion.error, completion.response.status));
             }
 
-            onSuccess?.({});
+            onSuccess?.({ redirect: completion.data.redirect });
         } catch (reason) {
             setError(reason instanceof Error ? reason.message : 'Passkey authentication could not be completed.');
         } finally {

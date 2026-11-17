@@ -17,7 +17,7 @@ for (const viewport of [
                 id: 'credential-id', rawId: 'AQID', type: 'public-key',
                 response: { authenticatorData: 'BAUG', clientDataJSON: 'BwgJ', signature: 'CgsM' },
             });
-            await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ authenticated: true, subject_id: 'f6b13b8b-2df8-4c5c-8b30-5d6dfecf8fa7', two_factor_required: false }) });
+            await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ authenticated: true, redirect: '/', subject_id: 'f6b13b8b-2df8-4c5c-8b30-5d6dfecf8fa7', two_factor_required: false }) });
         });
 
         await page.goto('/login');
@@ -28,7 +28,7 @@ for (const viewport of [
         expect(bounds!.x).toBeGreaterThanOrEqual(0);
         expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
         await passkey.click();
-        await expect(page).toHaveURL(/\/world$/);
+        await expect(page).toHaveURL(/\/$/);
     });
 
     test(`${viewport.name} copied Login keeps Rust passkey unavailability visible`, async ({ page }) => {

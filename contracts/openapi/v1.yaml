@@ -948,7 +948,7 @@ paths:
           description: The browser is signed in with its opaque server-side session.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/SessionStatus' }
+              schema: { $ref: '#/components/schemas/PasskeyLoginResponse' }
         '401': { description: The passkey assertion, account state or ceremony is invalid. }
         '403': { description: A valid same-origin CSRF request is required, or this browser is already signed in. }
         '429': { description: Too many passkey ceremony attempts were made. }
@@ -8838,6 +8838,22 @@ components:
         two_factor_required:
           type: boolean
           description: Password verification succeeded, but this browser must complete the server-side two-factor challenge before a session is authenticated.
+    PasskeyLoginResponse:
+      type: object
+      additionalProperties: false
+      required: [authenticated, redirect, subject_id, two_factor_required]
+      properties:
+        authenticated:
+          type: boolean
+        redirect:
+          type: string
+          const: /
+          description: The source passkey configuration's default post-login destination.
+        subject_id:
+          type: [string, 'null']
+          format: uuid
+        two_factor_required:
+          type: boolean
     CurrentUser:
       type: object
       additionalProperties: false

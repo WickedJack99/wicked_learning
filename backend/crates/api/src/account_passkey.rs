@@ -58,6 +58,14 @@ pub struct PasskeyOptionsResponse {
 }
 
 #[derive(Serialize)]
+pub struct PasskeyLoginResponse {
+    pub authenticated: bool,
+    pub redirect: &'static str,
+    pub subject_id: Option<Uuid>,
+    pub two_factor_required: bool,
+}
+
+#[derive(Serialize)]
 pub struct PasskeySummary {
     pub authenticator: Option<String>,
     pub created_at: String,
@@ -204,7 +212,7 @@ pub async fn login(
     csrf_token: axum_csrf::CsrfToken,
     mut auth_session: AuthSession<IdentityBackend>,
     Json(credential): Json<PublicKeyCredential>,
-) -> Result<Json<crate::session_status::SessionStatusResponse>, ApiError> {
+) -> Result<Json<PasskeyLoginResponse>, ApiError> {
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     if auth_session.user.is_some() {
         return Err(ApiError::forbidden());
@@ -260,8 +268,9 @@ pub async fn login(
         .login(&subject)
         .await
         .map_err(|_| ApiError::service_unavailable())?;
-    Ok(Json(crate::session_status::SessionStatusResponse {
+    Ok(Json(PasskeyLoginResponse {
         authenticated: true,
+        redirect: "/",
         subject_id: Some(subject_id),
         two_factor_required: false,
     }))
@@ -498,8 +507,8 @@ fn require_discoverable_credential(challenge: &mut CreationChallengeResponse) {
 #[cfg(test)]
 mod tests {
     use super::{
-        CEREMONY_TIMEOUT_SECONDS, MAX_PASSKEY_NAME_CHARACTERS, ceremony_is_fresh,
-        require_discoverable_credential,
+        CEREMONY_TIMEOUT_SECONDS, MAX_PASSKEY_NAME_CHARACTERS, PasskeyLoginResponse,
+        ceremony_is_fresh, require_discoverable_credential,
     };
     use webauthn_rs::prelude::WebauthnBuilder;
     use webauthn_rs_proto::options::ResidentKeyRequirement;
@@ -543,5 +552,17 @@ mod tests {
             selection.resident_key,
             Some(ResidentKeyRequirement::Required)
         );
+    }
+
+    #[test]
+    fn discoverable_login_returns_the_source_default_destination() {
+        let response = PasskeyLoginResponse {
+            authenticated: true,
+            redirect: "/",
+            subject_id: None,
+            two_factor_required: false,
+        };
+
+        assert_eq!(response.redirect, "/");
     }
 }
