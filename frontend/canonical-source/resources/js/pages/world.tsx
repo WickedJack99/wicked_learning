@@ -1,0 +1,610 @@
+import { Head, router, usePage } from '@inertiajs/react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLayeredSoundPlayer } from '@/features/sounds/sound-player';
+import {
+    selectLearningTool,
+    useSelectedLearningTool,
+} from '@/features/tools/tool-selection';
+import { persistActiveActivity } from '@/features/world/active-activity';
+import { deleteJson, getJson, postJson } from '@/features/world/api';
+import { GroupControl } from '@/features/world/group-control';
+import type {
+    LearningGroup,
+    LearningGroupPagination,
+} from '@/features/world/group-control';
+import { mapControlCssVariables } from '@/features/world/map-control-theme';
+import type { MapControlCssVars } from '@/features/world/map-control-theme';
+import { NodeDetailDrawer } from '@/features/world/node-detail-drawer';
+import type { PanelSwipe } from '@/features/world/node-detail-drawer';
+import { resolveThemeVariant } from '@/features/world/theme';
+import { worldHref } from '@/features/world/types';
+import { soundFromNode, WorldMap } from '@/features/world/world-map';
+import { WorldSearch } from '@/features/world/world-search';
+import type {
+    SearchResponse,
+    SearchPagination,
+    SearchResult,
+} from '@/features/world/world-search';
+import { useAppearance } from '@/hooks/use-appearance';
+import type {
+    LearningActivity,
+    LearningMap,
+    LearningNode,
+    LearningProgress,
+    LearningWorld,
+} from '@/types';
+
+type WorldProps = {
+    bookmarkedNodeIds: number[];
+    groups: LearningGroup[];
+    groupsPagination: LearningGroupPagination;
+    world: LearningWorld | null;
+    progress: LearningProgress;
+};
+
+export default function World({
+    bookmarkedNodeIds: initialBookmarkedNodeIds,
+    groups: initialGroups,
+    groupsPagination,
+    world,
+    progress,
+}: WorldProps) {
+    const { props, url } = usePage();
+    const isAuthenticated = Boolean(props.auth.user);
+    const { resolvedAppearance } = useAppearance();
+    const selectedTool = useSelectedLearningTool();
+    const soundPlayer = useLayeredSoundPlayer();
+    const mapSlug = useMemo(
+        () => new URL(url, 'http://learning.local').searchParams.get('map'),
+        [url],
+    );
+    const urlMap = useMemo(() => findMap(world, mapSlug), [mapSlug, world]);
+    const [currentMapId, setCurrentMapId] = useState<number | null>(
+        urlMap?.id ?? world?.maps[0]?.id ?? null,
+    );
+    const map = useMemo(
+        () =>
+            world?.maps.find((candidate) => candidate.id === currentMapId) ??
+            urlMap ??
+            world?.maps[0] ??
+            null,
+        [currentMapId, urlMap, world],
+    );
+    const mapTheme = useMemo(
+        () =>
+            map
+                ? resolveThemeVariant(map.backgroundConfig, resolvedAppearance)
+                : null,
+        [map, resolvedAppearance],
+    );
+    const mapControlVariables = useMemo<MapControlCssVars>(
+        () => mapControlCssVariables(map?.backgroundConfig, resolvedAppearance),
+        [map?.backgroundConfig, resolvedAppearance],
+    );
+    const mapShellStyle: MapControlCssVars = {
+        background: mapTheme?.pageBackground,
+        color: mapTheme?.sidePanelTextColor,
+        ...mapControlVariables,
+    };
+
+    useEffect(() => {
+        const root = document.documentElement;
+        const variables = mapControlVariables;
+
+        for (const [name, value] of Object.entries(variables)) {
+            if (value) {
+                root.style.setProperty(name, value);
+            } else {
+                root.style.removeProperty(name);
+            }
+        }
+
+        return () => {
+            for (const name of Object.keys(variables)) {
+                root.style.removeProperty(name);
+            }
+        };
+    }, [mapControlVariables]);
+    const focusedNodeSlug = useMemo(
+        () => new URL(url, 'http://learning.local').searchParams.get('focused'),
+        [url],
+    );
+    const focusedNode = useMemo(() => {
+        if (!map || !focusedNodeSlug) {
+            return null;
+        }
+
+        return (
+            map.nodes.find(
+                (node) =>
+                    node.slug === focusedNodeSlug ||
+                    node.id.toString() === focusedNodeSlug,
+            ) ?? null
+        );
+    }, [focusedNodeSlug, map]);
+    const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null);
+    const [panelSwipe, setPanelSwipe] = useState<PanelSwipe | null>(null);
+    const activityProgress = progress.activities;
+    const [bookmarkedNodeIds, setBookmarkedNodeIds] = useState(
+        initialBookmarkedNodeIds,
+    );
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [searchPage, setSearchPage] = useState(1);
+    const [searchPagination, setSearchPagination] = useState<SearchPagination>({
+        currentPage: 1,
+        lastPage: 1,
+        perPage: 5,
+        total: 0,
+    });
+    const [isSearchLoading, setIsSearchLoading] = useState(false);
+    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+    const [isGroupsOpen, setIsGroupsOpen] = useState(false);
+
+    const selectedNode = useMemo(() => {
+        if (!map) {
+            return null;
+        }
+
+        return map.nodes.find((node) => node.id === selectedNodeId) ?? null;
+    }, [map, selectedNodeId]);
+    const selectedNodeIsCompleted = selectedNode
+        ? nodeHasCompletedActivity(selectedNode, activityProgress)
+        : false;
+    useEffect(() => {
+        const query = searchTerm.trim();
+
+        if (query.length === 0) {
+            return;
+        }
+
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => {
+            setIsSearchLoading(true);
+
+            void getJson<SearchResponse>(
+                `/learning/search?query=${encodeURIComponent(query)}&page=${searchPage}&per_page=5`,
+                controller.signal,
+            )
+                .then((response) => {
+                    setSearchResults(response.results);
+                    setSearchPagination(response.pagination);
+                    setSearchPage(response.pagination.currentPage);
+                })
+                .catch((error: unknown) => {
+                    if (
+                        error instanceof DOMException &&
+                        error.name === 'AbortError'
+                    ) {
+                        return;
+                    }
+
+                    setSearchResults([]);
+                })
+                .finally(() => {
+                    if (!controller.signal.aborted) {
+                        setIsSearchLoading(false);
+                    }
+                });
+        }, 180);
+
+        return () => {
+            controller.abort();
+            window.clearTimeout(timer);
+        };
+    }, [searchPage, searchTerm]);
+
+    useEffect(() => {
+        if (!focusedNodeSlug) {
+            return;
+        }
+
+        if (
+            !focusedNode ||
+            focusedNode.state === 'locked' ||
+            focusedNode.state === 'hidden'
+        ) {
+            clearFocusedQueryParam();
+
+            return;
+        }
+
+        const animationFrame = window.requestAnimationFrame(() => {
+            setSelectedNodeId(focusedNode.id);
+            setPanelSwipe(null);
+        });
+
+        return () => window.cancelAnimationFrame(animationFrame);
+    }, [focusedNode, focusedNodeSlug]);
+
+    const openNode = useCallback((node: LearningNode) => {
+        if (node.state === 'locked' || node.state === 'hidden') {
+            return;
+        }
+
+        setSelectedNodeId(node.id);
+    }, []);
+    const useToolOnMapNode = useCallback(
+        async (node: LearningNode) => {
+            if (!selectedTool) {
+                return;
+            }
+
+            const endpoint =
+                node.state === 'locked'
+                    ? `/learning/nodes/${node.id}/unlock-tool`
+                    : `/learning/nodes/${node.id}/reveal-tool`;
+            const response = await postJson<{
+                result: {
+                    discovered?: boolean;
+                    isUnlocked?: boolean;
+                    isUseful: boolean;
+                };
+            }>(endpoint, {
+                tool_id: selectedTool.id,
+            });
+
+            if (response.result.discovered || response.result.isUnlocked) {
+                if (response.result.isUnlocked) {
+                    const unlockSound = soundFromNode(node, 'unlock');
+
+                    if (unlockSound) {
+                        soundPlayer.play(unlockSound, `node-${node.id}-unlock`);
+                    }
+                }
+
+                router.reload({
+                    only: ['world'],
+                });
+            }
+        },
+        [selectedTool, soundPlayer],
+    );
+    const focusNode = useCallback(
+        (node: LearningNode, targetMap: LearningMap) => {
+            setCurrentMapId(targetMap.id);
+            setSelectedNodeId(node.id);
+            setPanelSwipe(null);
+
+            replaceWorldQuery({
+                focused: node.slug,
+                map: targetMap.slug,
+            });
+        },
+        [],
+    );
+    const clearNodeFocus = useCallback(() => {
+        setSelectedNodeId(null);
+        setPanelSwipe(null);
+        clearFocusedQueryParam();
+    }, []);
+
+    const goToSearchResult = useCallback(
+        (result: SearchResult) => {
+            setIsMobileSearchOpen(false);
+
+            if (result.kind === 'topic') {
+                router.visit(result.href);
+
+                return;
+            }
+
+            if (result.kind === 'map') {
+                const resultMap = findMap(world, result.mapSlug);
+
+                if (!resultMap) {
+                    window.location.assign(
+                        `/world?map=${encodeURIComponent(result.mapSlug)}`,
+                    );
+
+                    return;
+                }
+
+                setCurrentMapId(resultMap.id);
+                setSelectedNodeId(null);
+                setPanelSwipe(null);
+                replaceWorldQuery({
+                    map: resultMap.slug,
+                });
+
+                return;
+            }
+
+            const resultMap = findMap(world, result.mapSlug);
+            const resultNode =
+                resultMap?.nodes.find(
+                    (candidate) =>
+                        candidate.id === result.nodeId ||
+                        candidate.slug === result.nodeSlug,
+                ) ?? null;
+
+            if (!resultMap || !resultNode) {
+                window.location.assign(
+                    `/world?map=${encodeURIComponent(result.mapSlug)}&focused=${encodeURIComponent(result.nodeSlug)}`,
+                );
+
+                return;
+            }
+
+            focusNode(resultNode, resultMap);
+        },
+        [focusNode, world],
+    );
+
+    useEffect(() => {
+        if (!isMobileSearchOpen) {
+            return;
+        }
+
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsMobileSearchOpen(false);
+            }
+        };
+
+        window.addEventListener('keydown', closeOnEscape);
+
+        return () => window.removeEventListener('keydown', closeOnEscape);
+    }, [isMobileSearchOpen]);
+
+    const toggleBookmark = useCallback(
+        async (node: LearningNode) => {
+            if (!isAuthenticated) {
+                return;
+            }
+
+            const isBookmarked = bookmarkedNodeIds.includes(node.id);
+            const response = isBookmarked
+                ? await deleteJson<{ bookmarkedNodeIds: number[] }>(
+                      `/learning/nodes/${node.id}/bookmark`,
+                  )
+                : await postJson<{ bookmarkedNodeIds: number[] }>(
+                      `/learning/nodes/${node.id}/bookmark`,
+                      {},
+                  );
+
+            setBookmarkedNodeIds(response.bookmarkedNodeIds);
+        },
+        [bookmarkedNodeIds, isAuthenticated],
+    );
+
+    const updateSearchTerm = useCallback((value: string) => {
+        setSearchTerm(value);
+
+        if (value.trim().length === 0) {
+            setSearchResults([]);
+            setSearchPagination({
+                currentPage: 1,
+                lastPage: 1,
+                perPage: 5,
+                total: 0,
+            });
+            setSearchPage(1);
+            setIsSearchLoading(false);
+        } else {
+            setSearchPage(1);
+        }
+    }, []);
+
+    const startNode = useCallback(
+        (
+            node: LearningNode,
+            activityId: number | null,
+            routeId?: number | null,
+        ) => {
+            if (node.state === 'locked' || node.state === 'hidden') {
+                return;
+            }
+
+            const firstActivity =
+                getActivityById(node, activityId) ?? getStartActivity(node);
+
+            if (firstActivity) {
+                persistActiveActivity(node, firstActivity, { routeId });
+            }
+
+            const query = new URLSearchParams();
+
+            if (firstActivity) {
+                query.set('activity', firstActivity.id.toString());
+            }
+
+            if (routeId) {
+                query.set('route', routeId.toString());
+            }
+
+            router.visit(
+                `/learning/nodes/${node.id}/play${query.toString() ? `?${query.toString()}` : ''}`,
+            );
+        },
+        [],
+    );
+
+    if (!world || !map) {
+        return (
+            <>
+                <Head title="World" />
+                <main
+                    id="learner-main-content"
+                    tabIndex={-1}
+                    className="flex min-h-[70vh] flex-col justify-center gap-3 p-6 focus:outline-none"
+                >
+                    <p className="text-sm text-muted-foreground">
+                        No learning world has been seeded yet.
+                    </p>
+                    <p className="max-w-xl text-2xl font-semibold">
+                        Run the demo seeder to create the first explorable map.
+                    </p>
+                </main>
+            </>
+        );
+    }
+
+    return (
+        <>
+            <Head title={world.title} />
+            <main
+                id="learner-main-content"
+                tabIndex={-1}
+                className="relative min-h-svh overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
+                data-world-appearance={resolvedAppearance}
+                style={mapShellStyle}
+            >
+                <section className="absolute inset-0 overflow-hidden">
+                    <WorldMap
+                        map={map}
+                        mode={resolvedAppearance}
+                        selectedNode={selectedNode}
+                        activityProgress={activityProgress}
+                        onClearFocus={clearNodeFocus}
+                        onClearEquippedTool={() => selectLearningTool(null)}
+                        onSelectNode={openNode}
+                        onUseToolOnNode={useToolOnMapNode}
+                        selectedTool={selectedTool}
+                    />
+                </section>
+
+                <WorldSearch
+                    isMobilePanelOpen={isMobileSearchOpen}
+                    onClear={() => updateSearchTerm('')}
+                    onMobilePanelClose={() => setIsMobileSearchOpen(false)}
+                    onMobilePanelOpen={() => setIsMobileSearchOpen(true)}
+                    onPageChange={setSearchPage}
+                    onSearchTermChange={updateSearchTerm}
+                    onSelectResult={goToSearchResult}
+                    results={searchResults}
+                    pagination={searchPagination}
+                    searchTerm={searchTerm}
+                    isLoading={isSearchLoading}
+                />
+
+                {isAuthenticated ? (
+                    <GroupControl
+                        groups={initialGroups}
+                        pagination={groupsPagination}
+                        isOpen={isGroupsOpen}
+                        onClose={() => setIsGroupsOpen(false)}
+                        onOpen={() => setIsGroupsOpen(true)}
+                    />
+                ) : null}
+
+                <NodeDetailDrawer
+                    canBookmark={isAuthenticated}
+                    isBookmarked={
+                        selectedNode
+                            ? bookmarkedNodeIds.includes(selectedNode.id)
+                            : false
+                    }
+                    isCompleted={selectedNodeIsCompleted}
+                    node={selectedNode}
+                    onClose={clearNodeFocus}
+                    onStart={startNode}
+                    onSwipeChange={setPanelSwipe}
+                    onToggleBookmark={(node) => void toggleBookmark(node)}
+                    swipe={panelSwipe}
+                    theme={mapTheme}
+                />
+            </main>
+        </>
+    );
+}
+
+World.layout = {
+    breadcrumbs: [
+        {
+            title: 'World',
+            href: worldHref,
+        },
+    ],
+};
+
+function findMap(
+    world: LearningWorld | null,
+    mapSlug: string | null,
+): LearningMap | null {
+    if (!world || !mapSlug) {
+        return null;
+    }
+
+    return (
+        world.maps.find(
+            (map) => map.slug === mapSlug || map.id.toString() === mapSlug,
+        ) ?? null
+    );
+}
+
+function nodeHasCompletedActivity(
+    node: LearningNode,
+    activityProgress: LearningProgress['activities'],
+): boolean {
+    return node.activities.some(
+        (activity) => activityProgress[activity.id]?.status === 'completed',
+    );
+}
+
+function getStartActivity(node: LearningNode): LearningActivity | null {
+    return (
+        getActivityById(node, node.startRoutes[0]?.activityId ?? null) ??
+        node.activities.find(
+            (activity) => activity.id === node.startActivityId,
+        ) ??
+        node.activities[0] ??
+        null
+    );
+}
+
+function getActivityById(
+    node: LearningNode,
+    activityId: number | null,
+): LearningActivity | null {
+    if (!activityId) {
+        return null;
+    }
+
+    return (
+        node.activities.find((activity) => activity.id === activityId) ?? null
+    );
+}
+
+function replaceWorldQuery(params: { focused?: string; map?: string }): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+
+    if (params.map) {
+        url.searchParams.set('map', params.map);
+    }
+
+    if (!params.focused) {
+        url.searchParams.delete('focused');
+    }
+
+    if (params.focused) {
+        url.searchParams.set('focused', params.focused);
+    }
+
+    window.history.replaceState(
+        window.history.state,
+        '',
+        `${url.pathname}${url.search}${url.hash}`,
+    );
+}
+
+function clearFocusedQueryParam(): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+
+    if (!url.searchParams.has('focused')) {
+        return;
+    }
+
+    url.searchParams.delete('focused');
+    const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+
+    window.history.replaceState(window.history.state, '', nextUrl);
+}

@@ -1,0 +1,2096 @@
+import { Link } from '@inertiajs/react';
+import {
+    FileText,
+    GitBranch,
+    Info,
+    Music2,
+    Palette,
+    SlidersHorizontal,
+    Star,
+    Trash2,
+} from 'lucide-react';
+import type { Dispatch, SetStateAction } from 'react';
+import { useState } from 'react';
+import InputError from '@/components/input-error';
+import {
+    SettingsConfigurationSection,
+    SettingsEmptyStateSection,
+} from '@/components/settings-configuration-section';
+import {
+    SettingsConfigurationLayout,
+    SettingsContentPane,
+    SettingsSectionNavigation,
+    SettingsSidebar,
+} from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import { ActivityAmbientSoundFields } from './activity-ambient-sound-fields';
+import { ActivitySourceReferenceFields } from './activity-source-reference-fields';
+import type {
+    ActivityForm,
+    ActivityQuestionOptionForm,
+    ActivityTypeDefinition,
+    EditableItem,
+    EditableSourceRecord,
+    EditableSound,
+    EditableTool,
+    MessageTopicOption,
+    PortalCandidate,
+    SourceRecordVersionPage,
+    SourceRecordPage,
+    SourceReferenceForm,
+} from './edit-node-activity-types';
+import {
+    ItemGrantFlowFields,
+    ItemGrantVisualFields,
+    ItemObstacleFlowFields,
+    ItemObstacleVisualFields,
+} from './item-activity-fields';
+import {
+    MessageActivityFlowFields,
+    MessageActivityVisualFields,
+} from './message-activity-fields';
+import {
+    ObstacleFlowFields,
+    ObstacleVisualFields,
+} from './obstacle-activity-fields';
+import {
+    PortalModeField,
+    PortalTargetField,
+    PortalVisualFields,
+} from './portal-activity-fields';
+import { SharedTaskFlowFields } from './shared-task-activity-fields';
+import {
+    ToolGrantFlowFields,
+    ToolGrantVisualFields,
+} from './tool-grant-activity-fields';
+
+type ActivitySettingsSection =
+    | 'basics'
+    | 'sound'
+    | 'flow'
+    | 'visuals'
+    | 'competence'
+    | 'sources'
+    | 'details';
+
+export function ActivityFormFields({
+    activityTypes,
+    competenceTopicOptions,
+    evidenceConceptOptions,
+    errors,
+    editingActivityId = null,
+    form,
+    imageUploadErrors,
+    messageTopics,
+    onChange,
+    onDeleteSourceRecord,
+    onLoadSourceRecordVersions,
+    onLoadSourceRecords,
+    onUploadPortalImage,
+    onRestoreSourceRecordVersion,
+    onSaveSourceRecord,
+    onUpdateSourceRecord,
+    portalCandidates,
+    selectedType,
+    sounds,
+    sourceRecords,
+    sourceRecordsPagination,
+    items,
+    tools,
+    uploadingImageKey,
+}: {
+    activityTypes: ActivityTypeDefinition[];
+    competenceTopicOptions: string[];
+    evidenceConceptOptions: string[];
+    editingActivityId?: number | null;
+    errors: Record<string, string>;
+    form: ActivityForm;
+    imageUploadErrors: Record<string, string>;
+    messageTopics: MessageTopicOption[];
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+    onDeleteSourceRecord: (id: number) => Promise<void>;
+    onLoadSourceRecordVersions: (
+        id: number,
+        page: number,
+    ) => Promise<SourceRecordVersionPage>;
+    onLoadSourceRecords: (
+        page: number,
+        search: string,
+        concept: string,
+    ) => Promise<SourceRecordPage>;
+    onRestoreSourceRecordVersion: (
+        sourceId: number,
+        versionId: number,
+    ) => Promise<EditableSourceRecord>;
+    onUploadPortalImage: (
+        key: string,
+        file: File,
+        onUploaded: (url: string) => void,
+    ) => void;
+    portalCandidates: PortalCandidate[];
+    selectedType: ActivityTypeDefinition | undefined;
+    sounds: EditableSound[];
+    sourceRecords: EditableSourceRecord[];
+    sourceRecordsPagination: SourceRecordPage['pagination'];
+    items: EditableItem[];
+    tools: EditableTool[];
+    uploadingImageKey: string | null;
+    onSaveSourceRecord: (reference: SourceReferenceForm) => Promise<void>;
+    onUpdateSourceRecord: (
+        id: number,
+        reference: SourceReferenceForm,
+    ) => Promise<void>;
+}) {
+    const t = usePlatformTranslation();
+    const [activeSection, setActiveSection] =
+        useState<ActivitySettingsSection>('basics');
+    const hasFlowSettings =
+        form.type === 'portal' ||
+        form.type === 'markdown' ||
+        form.type === 'item_grant' ||
+        form.type === 'item_obstacle' ||
+        form.type === 'obstacle' ||
+        form.type === 'tool_grant' ||
+        form.type === 'shared_task' ||
+        form.type === 'reflection' ||
+        form.type === 'review' ||
+        form.type === 'message_prompt' ||
+        form.type === 'message_wall' ||
+        form.type === 'open_practice' ||
+        form.type === 'question';
+    const hasPresentationSettings =
+        form.type === 'portal' ||
+        form.type === 'item_grant' ||
+        form.type === 'item_obstacle' ||
+        form.type === 'obstacle' ||
+        form.type === 'tool_grant' ||
+        form.type === 'message_prompt' ||
+        form.type === 'message_wall';
+
+    return (
+        <SettingsConfigurationLayout
+            className="h-full max-h-[calc(90svh-14rem)] min-h-[32rem]"
+            sidebar={
+                <SettingsSidebar>
+                    <ActivitySettingsSwitcher
+                        activeSection={activeSection}
+                        onChange={setActiveSection}
+                    />
+                </SettingsSidebar>
+            }
+        >
+            <SettingsContentPane>
+                <div className="grid gap-4">
+                    {activeSection === 'basics' ? (
+                        <SettingsConfigurationSection
+                            description="Name the activity and choose the renderer that will play it."
+                            title="Core activity"
+                        >
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="activity-title">
+                                        Title
+                                    </Label>
+                                    <Input
+                                        id="activity-title"
+                                        onChange={(event) =>
+                                            onChange((current) => ({
+                                                ...current,
+                                                title: event.target.value,
+                                            }))
+                                        }
+                                        value={form.title}
+                                    />
+                                    <InputError message={errors.title} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="activity-type">Type</Label>
+                                    <Select
+                                        onValueChange={(value) =>
+                                            onChange((current) => ({
+                                                ...current,
+                                                type: value,
+                                            }))
+                                        }
+                                        value={form.type}
+                                    >
+                                        <SelectTrigger
+                                            className="w-full"
+                                            id="activity-type"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {activityTypes.map((type) => (
+                                                <SelectItem
+                                                    key={type.key}
+                                                    value={type.key}
+                                                >
+                                                    {type.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.type} />
+                                </div>
+                            </div>
+                            {selectedType ? (
+                                <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                    {selectedType.description}
+                                </p>
+                            ) : null}
+                        </SettingsConfigurationSection>
+                    ) : null}
+
+                    {activeSection === 'flow' ? (
+                        <>
+                            {!hasFlowSettings ? (
+                                <ActivityEmptySection
+                                    description="This activity type currently has no extra flow settings."
+                                    title="No flow settings"
+                                />
+                            ) : null}
+
+                            {form.type === 'portal' ? (
+                                <SettingsConfigurationSection
+                                    description="Choose whether this portal starts travel or receives a traveller."
+                                    title="Portal route"
+                                >
+                                    <PortalModeField
+                                        errors={errors}
+                                        form={form}
+                                        onChange={onChange}
+                                    />
+                                    <PortalTargetField
+                                        candidates={portalCandidates}
+                                        errors={errors}
+                                        form={form}
+                                        onChange={onChange}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'question' ? (
+                                <SettingsConfigurationSection
+                                    description="Write a retrieval question, explain the answer, and connect each option to the route outcome it should open."
+                                    title="Question and answers"
+                                >
+                                    <div className="grid gap-5">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="question-prompt">
+                                                Question prompt
+                                            </Label>
+                                            <textarea
+                                                className="min-h-28 rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-white/10 dark:bg-slate-950/40"
+                                                id="question-prompt"
+                                                onChange={(event) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        question_prompt:
+                                                            event.target.value,
+                                                    }))
+                                                }
+                                                value={form.question_prompt}
+                                            />
+                                            <InputError
+                                                message={errors.question_prompt}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <QuestionTextField
+                                                error={
+                                                    errors.question_feedback_correct
+                                                }
+                                                id="question-feedback-correct"
+                                                label="Correct feedback"
+                                                onChange={(value) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        question_feedback_correct:
+                                                            value,
+                                                    }))
+                                                }
+                                                value={
+                                                    form.question_feedback_correct
+                                                }
+                                            />
+                                            <QuestionTextField
+                                                error={
+                                                    errors.question_feedback_incorrect
+                                                }
+                                                id="question-feedback-incorrect"
+                                                label="Incorrect feedback"
+                                                onChange={(value) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        question_feedback_incorrect:
+                                                            value,
+                                                    }))
+                                                }
+                                                value={
+                                                    form.question_feedback_incorrect
+                                                }
+                                            />
+                                        </div>
+
+                                        <QuestionTextField
+                                            error={errors.question_explanation}
+                                            id="question-explanation"
+                                            label="Explanation shown after answering"
+                                            onChange={(value) =>
+                                                onChange((current) => ({
+                                                    ...current,
+                                                    question_explanation: value,
+                                                }))
+                                            }
+                                            value={form.question_explanation}
+                                        />
+
+                                        <label className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
+                                            <input
+                                                checked={
+                                                    form.question_allow_multiple
+                                                }
+                                                className="size-4 accent-[var(--settings-accent)]"
+                                                onChange={(event) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        question_allow_multiple:
+                                                            event.target
+                                                                .checked,
+                                                    }))
+                                                }
+                                                type="checkbox"
+                                            />
+                                            Allow selecting more than one answer
+                                        </label>
+
+                                        <div className="grid gap-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                                                        Answers
+                                                    </p>
+                                                    <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                                        Mark the correct answer
+                                                        and optionally connect
+                                                        an outcome key to a
+                                                        matching graph edge.
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    disabled={
+                                                        form.question_options
+                                                            .length >= 12
+                                                    }
+                                                    onClick={() =>
+                                                        onChange((current) => ({
+                                                            ...current,
+                                                            question_options: [
+                                                                ...current.question_options,
+                                                                emptyQuestionOption(
+                                                                    String.fromCharCode(
+                                                                        65 +
+                                                                            current
+                                                                                .question_options
+                                                                                .length,
+                                                                    ),
+                                                                ),
+                                                            ],
+                                                        }))
+                                                    }
+                                                    type="button"
+                                                    variant="outline"
+                                                >
+                                                    Add answer
+                                                </Button>
+                                            </div>
+                                            <InputError
+                                                message={
+                                                    errors.question_options
+                                                }
+                                            />
+                                            <div className="grid gap-4">
+                                                {form.question_options.map(
+                                                    (option, index) => (
+                                                        <QuestionOptionFields
+                                                            canRemove={
+                                                                form
+                                                                    .question_options
+                                                                    .length > 2
+                                                            }
+                                                            errors={errors}
+                                                            index={index}
+                                                            key={`question-option-${index}`}
+                                                            onChange={(
+                                                                update,
+                                                            ) =>
+                                                                onChange(
+                                                                    (
+                                                                        current,
+                                                                    ) => ({
+                                                                        ...current,
+                                                                        question_options:
+                                                                            current.question_options.map(
+                                                                                (
+                                                                                    currentOption,
+                                                                                    currentIndex,
+                                                                                ) =>
+                                                                                    currentIndex ===
+                                                                                    index
+                                                                                        ? update(
+                                                                                              currentOption,
+                                                                                          )
+                                                                                        : currentOption,
+                                                                            ),
+                                                                    }),
+                                                                )
+                                                            }
+                                                            onRemove={() =>
+                                                                onChange(
+                                                                    (
+                                                                        current,
+                                                                    ) => ({
+                                                                        ...current,
+                                                                        question_options:
+                                                                            current.question_options.filter(
+                                                                                (
+                                                                                    _,
+                                                                                    optionIndex,
+                                                                                ) =>
+                                                                                    optionIndex !==
+                                                                                    index,
+                                                                            ),
+                                                                    }),
+                                                                )
+                                                            }
+                                                            option={option}
+                                                        />
+                                                    ),
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'markdown' ? (
+                                <SettingsConfigurationSection
+                                    description="Markdown activities use a dedicated page editor because their internal page route needs room."
+                                    title="Markdown pages"
+                                >
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                                                    Page graph editor
+                                                </p>
+                                                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                                    Create or save this
+                                                    activity, then open the full
+                                                    editor to connect pages, add
+                                                    media and tune page colors.
+                                                </p>
+                                            </div>
+                                            {editingActivityId ? (
+                                                <Button asChild type="button">
+                                                    <Link
+                                                        href={`/settings/worlds/activities/${editingActivityId}/markdown`}
+                                                    >
+                                                        <FileText className="size-4" />
+                                                        Edit markdown pages
+                                                    </Link>
+                                                </Button>
+                                            ) : (
+                                                <Button disabled type="button">
+                                                    <FileText className="size-4" />
+                                                    Save activity first
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'obstacle' ? (
+                                <SettingsConfigurationSection
+                                    description="Choose which tools can solve this obstacle and what happens on replay."
+                                    title="Obstacle behavior"
+                                >
+                                    <ObstacleFlowFields
+                                        errors={errors}
+                                        form={form}
+                                        onChange={onChange}
+                                        tools={tools}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'item_grant' ? (
+                                <SettingsConfigurationSection
+                                    description="Choose consumable items and the server-side probability roll."
+                                    title="Item grant behavior"
+                                >
+                                    <ItemGrantFlowFields
+                                        errors={errors}
+                                        form={form}
+                                        items={items}
+                                        onChange={onChange}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'item_obstacle' ? (
+                                <SettingsConfigurationSection
+                                    description="Define item slots and optional replay lockout."
+                                    title="Item obstacle behavior"
+                                >
+                                    <ItemObstacleFlowFields
+                                        errors={errors}
+                                        form={form}
+                                        items={items}
+                                        onChange={onChange}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'item_grant' ? (
+                                <SettingsConfigurationSection
+                                    description="Theme-specific grant backgrounds and a preview of the granted item display."
+                                    title="Grant item scene"
+                                >
+                                    <ItemGrantVisualFields
+                                        errors={errors}
+                                        form={form}
+                                        imageUploadErrors={imageUploadErrors}
+                                        items={items}
+                                        onChange={onChange}
+                                        onUpload={onUploadPortalImage}
+                                        uploadingImageKey={uploadingImageKey}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'tool_grant' ? (
+                                <SettingsConfigurationSection
+                                    description="Choose which existing tool this activity gives the learner."
+                                    title="Tool grant behavior"
+                                >
+                                    <ToolGrantFlowFields
+                                        errors={errors}
+                                        form={form}
+                                        onChange={onChange}
+                                        tools={tools}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'reflection' ||
+                            form.type === 'review' ? (
+                                <SettingsConfigurationSection
+                                    description={
+                                        form.type === 'review' ||
+                                        form.learning_intent === 'review'
+                                            ? 'Invite a learner to revisit earlier material and notice what feels clearer, more connected, or still open.'
+                                            : 'Ask a learner-owned question and optionally file its journal entry under a topic.'
+                                    }
+                                    title={
+                                        form.type === 'review' ||
+                                        form.learning_intent === 'review'
+                                            ? 'Review / revisit prompt'
+                                            : 'Reflection prompt'
+                                    }
+                                >
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-2 md:col-span-2">
+                                            <Label htmlFor="reflection-prompt">
+                                                Question
+                                            </Label>
+                                            <textarea
+                                                className="min-h-28 rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-white/10 dark:bg-slate-950/40"
+                                                id="reflection-prompt"
+                                                onChange={(event) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        reflection_prompt:
+                                                            event.target.value,
+                                                    }))
+                                                }
+                                                value={form.reflection_prompt}
+                                            />
+                                            <InputError
+                                                message={
+                                                    errors.reflection_prompt
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="reflection-topic">
+                                                Journal topic
+                                            </Label>
+                                            <Input
+                                                id="reflection-topic"
+                                                onChange={(event) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        reflection_topic:
+                                                            event.target.value,
+                                                    }))
+                                                }
+                                                value={form.reflection_topic}
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="reflection-subtopic">
+                                                Optional subtopic
+                                            </Label>
+                                            <Input
+                                                id="reflection-subtopic"
+                                                onChange={(event) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        reflection_subtopic:
+                                                            event.target.value,
+                                                    }))
+                                                }
+                                                value={form.reflection_subtopic}
+                                            />
+                                        </div>
+                                        <div className="grid gap-2 md:col-span-2">
+                                            <Label htmlFor="reflection-note">
+                                                Supporting note
+                                            </Label>
+                                            <Input
+                                                id="reflection-note"
+                                                onChange={(event) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        reflection_note:
+                                                            event.target.value,
+                                                    }))
+                                                }
+                                                value={form.reflection_note}
+                                            />
+                                        </div>
+                                    </div>
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'shared_task' ? (
+                                <SettingsConfigurationSection
+                                    description="Collect learner contributions toward one activity-wide threshold."
+                                    title="Shared task"
+                                >
+                                    <SharedTaskFlowFields
+                                        errors={errors}
+                                        form={form}
+                                        onChange={onChange}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'open_practice' ? (
+                                <SettingsConfigurationSection
+                                    description="Give the learner a clear invitation for the self-directed step before they continue."
+                                    title="Open practice prompt"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="open-practice-next-step">
+                                            Learner invitation
+                                        </Label>
+                                        <textarea
+                                            className="min-h-28 rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-white/10 dark:bg-slate-950/40"
+                                            id="open-practice-next-step"
+                                            onChange={(event) =>
+                                                onChange((current) => ({
+                                                    ...current,
+                                                    open_practice_next_step:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            value={form.open_practice_next_step}
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.open_practice_next_step
+                                            }
+                                        />
+                                    </div>
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'message_prompt' ||
+                            form.type === 'message_wall' ? (
+                                <SettingsConfigurationSection
+                                    description="Link prompt and wall activities through a reusable topic inside this MapAsset."
+                                    title="Learner messages"
+                                >
+                                    <MessageActivityFlowFields
+                                        errors={errors}
+                                        form={form}
+                                        onChange={onChange}
+                                        topics={messageTopics}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+                        </>
+                    ) : null}
+
+                    {activeSection === 'visuals' ? (
+                        <>
+                            {!hasPresentationSettings ? (
+                                <ActivityEmptySection
+                                    description="This activity type currently keeps its visual settings inside its specialized editor."
+                                    title="No separate visual settings"
+                                />
+                            ) : null}
+
+                            {form.type === 'portal' ? (
+                                <SettingsConfigurationSection
+                                    description="Theme-specific portal images, timing and motion."
+                                    title="Portal visuals"
+                                >
+                                    <PortalVisualFields
+                                        errors={errors}
+                                        form={form}
+                                        imageUploadErrors={imageUploadErrors}
+                                        onChange={onChange}
+                                        onUpload={onUploadPortalImage}
+                                        uploadingImageKey={uploadingImageKey}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'obstacle' ? (
+                                <SettingsConfigurationSection
+                                    description="Scene backgrounds, obstacle images, placement, bubble text, bubble styling and completion animation."
+                                    title="Obstacle scene"
+                                >
+                                    <ObstacleVisualFields
+                                        errors={errors}
+                                        form={form}
+                                        imageUploadErrors={imageUploadErrors}
+                                        onChange={onChange}
+                                        onUpload={onUploadPortalImage}
+                                        uploadingImageKey={uploadingImageKey}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'item_obstacle' ? (
+                                <SettingsConfigurationSection
+                                    description="Scene backgrounds, completed-state overlay and optional sounds."
+                                    title="Item obstacle scene"
+                                >
+                                    <ItemObstacleVisualFields
+                                        errors={errors}
+                                        form={form}
+                                        imageUploadErrors={imageUploadErrors}
+                                        items={items}
+                                        onChange={onChange}
+                                        onUpload={onUploadPortalImage}
+                                        sounds={sounds}
+                                        uploadingImageKey={uploadingImageKey}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'tool_grant' ? (
+                                <SettingsConfigurationSection
+                                    description="Grant scene backgrounds, tool placement, motion and speech bubble presentation."
+                                    title="Grant tool scene"
+                                >
+                                    <ToolGrantVisualFields
+                                        errors={errors}
+                                        form={form}
+                                        imageUploadErrors={imageUploadErrors}
+                                        onChange={onChange}
+                                        onUpload={onUploadPortalImage}
+                                        tools={tools}
+                                        uploadingImageKey={uploadingImageKey}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'message_prompt' ||
+                            form.type === 'message_wall' ? (
+                                <SettingsConfigurationSection
+                                    description="Colors are stored with this activity and previewed in the current appearance."
+                                    title="Message surface"
+                                >
+                                    <MessageActivityVisualFields
+                                        form={form}
+                                        onChange={onChange}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
+                        </>
+                    ) : null}
+
+                    {activeSection === 'competence' ? (
+                        <SettingsConfigurationSection
+                            description="Describe the learning evidence this activity is meant to invite, then connect it to one or more competence topics."
+                            title="Learning evidence"
+                        >
+                            <div className="grid gap-6">
+                                <LearningIntentField
+                                    errors={errors}
+                                    form={form}
+                                    onChange={onChange}
+                                />
+                                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)] lg:items-start">
+                                    <div className="grid gap-6">
+                                        <EvidenceObjectiveField
+                                            errors={errors}
+                                            form={form}
+                                            onChange={onChange}
+                                        />
+                                        <EvidenceConceptsField
+                                            evidenceConceptOptions={
+                                                evidenceConceptOptions
+                                            }
+                                            errors={errors}
+                                            form={form}
+                                            onChange={onChange}
+                                        />
+                                    </div>
+                                    <EvidenceContextPreview form={form} />
+                                </div>
+                                <FeedbackGuidanceFields
+                                    errors={errors}
+                                    form={form}
+                                    onChange={onChange}
+                                />
+                                <CompletionChoiceField
+                                    errors={errors}
+                                    form={form}
+                                    onChange={onChange}
+                                />
+                                <CompetenceTopicFields
+                                    competenceTopicOptions={
+                                        competenceTopicOptions
+                                    }
+                                    errors={errors}
+                                    form={form}
+                                    onChange={onChange}
+                                />
+                            </div>
+                        </SettingsConfigurationSection>
+                    ) : null}
+
+                    {activeSection === 'sound' ? (
+                        <SettingsConfigurationSection
+                            description="Choose optional reusable ambience for this learner-facing activity."
+                            title="Scene sound"
+                        >
+                            <ActivityAmbientSoundFields
+                                form={form}
+                                onChange={onChange}
+                                sounds={sounds}
+                            />
+                        </SettingsConfigurationSection>
+                    ) : null}
+
+                    {activeSection === 'sources' ? (
+                        <SettingsConfigurationSection
+                            description="Make the factual basis of this activity inspectable to learners."
+                            title="Source references"
+                        >
+                            <ActivitySourceReferenceFields
+                                evidenceConceptOptions={evidenceConceptOptions}
+                                errors={errors}
+                                form={form}
+                                onChange={onChange}
+                                onDeleteSourceRecord={onDeleteSourceRecord}
+                                onLoadSourceRecordVersions={
+                                    onLoadSourceRecordVersions
+                                }
+                                onLoadSourceRecords={onLoadSourceRecords}
+                                onRestoreSourceRecordVersion={
+                                    onRestoreSourceRecordVersion
+                                }
+                                onSaveSourceRecord={onSaveSourceRecord}
+                                onUpdateSourceRecord={onUpdateSourceRecord}
+                                sourceRecords={sourceRecords}
+                                sourceRecordsPagination={
+                                    sourceRecordsPagination
+                                }
+                            />
+                        </SettingsConfigurationSection>
+                    ) : null}
+
+                    {activeSection === 'details' ? (
+                        <SettingsConfigurationSection
+                            description="Optional text and stable URL-friendly naming."
+                            title="Advanced details"
+                        >
+                            <div className="grid gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="activity-slug">Slug</Label>
+                                    <Input
+                                        id="activity-slug"
+                                        onChange={(event) =>
+                                            onChange((current) => ({
+                                                ...current,
+                                                slug: event.target.value,
+                                            }))
+                                        }
+                                        placeholder="Generated from the title if empty"
+                                        value={form.slug}
+                                    />
+                                    <InputError message={errors.slug} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="activity-introduction">
+                                        Introduction
+                                    </Label>
+                                    <textarea
+                                        className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                                        id="activity-introduction"
+                                        onChange={(event) =>
+                                            onChange((current) => ({
+                                                ...current,
+                                                introduction:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        value={form.introduction}
+                                    />
+                                    <InputError message={errors.introduction} />
+                                </div>
+
+                                <div className="grid gap-2 md:max-w-xs">
+                                    <Label htmlFor="activity-time-guide">
+                                        {t(
+                                            'settings.activity.time_guide.label',
+                                            'Suggested time (minutes)',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="activity-time-guide"
+                                        max={180}
+                                        min={1}
+                                        onChange={(event) =>
+                                            onChange((current) => ({
+                                                ...current,
+                                                time_guide_minutes:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder={t(
+                                            'settings.activity.time_guide.optional',
+                                            'Optional',
+                                        )}
+                                        type="number"
+                                        value={form.time_guide_minutes}
+                                    />
+                                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                        {t(
+                                            'settings.activity.time_guide.helper',
+                                            'A quiet estimate to help learners plan; it is not a timer or deadline.',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.time_guide_minutes}
+                                    />
+                                </div>
+                            </div>
+                        </SettingsConfigurationSection>
+                    ) : null}
+                </div>
+            </SettingsContentPane>
+        </SettingsConfigurationLayout>
+    );
+}
+
+const activitySettingsSections: SettingsNavigationItem<ActivitySettingsSection>[] =
+    [
+        {
+            description: 'Activity title, type and renderer summary.',
+            icon: Info,
+            key: 'basics',
+            label: 'Basics',
+        },
+        {
+            description: 'Flow, route and specialized behavior settings.',
+            icon: GitBranch,
+            key: 'flow',
+            label: 'Flow',
+        },
+        {
+            description: 'Theme-specific images, colors and motion.',
+            icon: Palette,
+            key: 'visuals',
+            label: 'Visuals',
+        },
+        {
+            description: 'Optional reusable scene ambience during playback.',
+            icon: Music2,
+            key: 'sound',
+            label: 'Sound',
+        },
+        {
+            description: 'Learning purpose and competence evidence.',
+            icon: Star,
+            key: 'competence',
+            label: 'Learning evidence',
+        },
+        {
+            description: 'Inspectable references for factual content.',
+            icon: FileText,
+            key: 'sources',
+            label: 'Sources',
+        },
+        {
+            description: 'Slug and optional introductory text.',
+            icon: SlidersHorizontal,
+            key: 'details',
+            label: 'Details',
+        },
+    ];
+
+function ActivitySettingsSwitcher({
+    activeSection,
+    onChange,
+}: {
+    activeSection: ActivitySettingsSection;
+    onChange: (section: ActivitySettingsSection) => void;
+}) {
+    return (
+        <SettingsSectionNavigation
+            activeSection={activeSection}
+            ariaLabel="Activity settings sections"
+            items={activitySettingsSections}
+            onChange={onChange}
+        />
+    );
+}
+
+function ActivityEmptySection({
+    description,
+    title,
+}: {
+    description: string;
+    title: string;
+}) {
+    return (
+        <SettingsEmptyStateSection description={description} title={title} />
+    );
+}
+
+function CompetenceTopicFields({
+    competenceTopicOptions,
+    errors,
+    form,
+    onChange,
+}: {
+    competenceTopicOptions: string[];
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    function updateTopic(
+        index: number,
+        field: 'topic' | 'weight',
+        value: string,
+    ) {
+        onChange((current) => ({
+            ...current,
+            competence_topics: current.competence_topics.map(
+                (topic, topicIndex) =>
+                    topicIndex === index ? { ...topic, [field]: value } : topic,
+            ),
+        }));
+    }
+
+    function addTopic() {
+        onChange((current) => ({
+            ...current,
+            competence_topics: [
+                ...current.competence_topics,
+                { topic: '', weight: '1' },
+            ],
+        }));
+    }
+
+    function removeTopic(index: number) {
+        onChange((current) => {
+            const nextTopics = current.competence_topics.filter(
+                (_, topicIndex) => topicIndex !== index,
+            );
+
+            return {
+                ...current,
+                competence_topics:
+                    nextTopics.length > 0
+                        ? nextTopics
+                        : [{ topic: '', weight: '1' }],
+            };
+        });
+    }
+
+    return (
+        <div className="grid gap-4">
+            <div className="grid gap-3">
+                {form.competence_topics.map((topic, index) => (
+                    <div
+                        className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[minmax(0,1fr)_8rem_auto] md:items-start dark:border-white/10 dark:bg-white/5"
+                        key={index}
+                    >
+                        <div className="grid gap-2">
+                            <Label htmlFor={`competence-topic-${index}`}>
+                                Topic
+                            </Label>
+                            <Input
+                                id={`competence-topic-${index}`}
+                                list={`competence-topic-options-${index}`}
+                                onChange={(event) =>
+                                    updateTopic(
+                                        index,
+                                        'topic',
+                                        event.target.value,
+                                    )
+                                }
+                                placeholder="e.g. Algebra"
+                                value={topic.topic}
+                            />
+                            <datalist id={`competence-topic-options-${index}`}>
+                                {competenceTopicOptions.map((option) => (
+                                    <option key={option} value={option} />
+                                ))}
+                            </datalist>
+                            <InputError
+                                message={
+                                    errors[`competence_topics.${index}.topic`]
+                                }
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor={`competence-weight-${index}`}>
+                                Contribution
+                            </Label>
+                            <Input
+                                id={`competence-weight-${index}`}
+                                min="0"
+                                onChange={(event) =>
+                                    updateTopic(
+                                        index,
+                                        'weight',
+                                        event.target.value,
+                                    )
+                                }
+                                step="0.1"
+                                type="number"
+                                value={topic.weight}
+                            />
+                            <InputError
+                                message={
+                                    errors[`competence_topics.${index}.weight`]
+                                }
+                            />
+                        </div>
+                        <Button
+                            aria-label="Remove topic"
+                            className="md:mt-7"
+                            onClick={() => removeTopic(index)}
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                        >
+                            <Trash2 className="size-4" />
+                        </Button>
+                    </div>
+                ))}
+            </div>
+            <InputError message={errors.competence_topics} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    Reuse an existing topic label when it fits. New labels are
+                    allowed when the learning design needs one. Contribution is
+                    an internal signal; learners see the result through the star
+                    map, not as a score.
+                </p>
+                <Button onClick={addTopic} type="button" variant="secondary">
+                    <Star className="size-4" />
+                    Add topic
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+function LearningIntentField({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    const t = usePlatformTranslation();
+    const intents = [
+        {
+            description:
+                'Return to an idea and notice what is clearer or more connected now.',
+            label: 'Review / revisit',
+            value: 'review',
+        },
+        {
+            description:
+                'Bring an idea back from memory before looking at an answer.',
+            label: 'Retrieve',
+            value: 'retrieve',
+        },
+        {
+            description:
+                'Put an idea into your own words or make it understandable to someone else.',
+            label: 'Explain',
+            value: 'explain',
+        },
+        {
+            description: 'Use an idea to work through a situation or obstacle.',
+            label: 'Apply',
+            value: 'apply',
+        },
+        {
+            description:
+                'Notice thinking, uncertainty, emotion, or connections to prior experience.',
+            label: 'Reflect',
+            value: 'reflect',
+        },
+        {
+            description:
+                'Take part in a guided learning moment without assigning a narrower purpose.',
+            label: 'Participate',
+            value: 'participate',
+        },
+        {
+            description:
+                'Use an idea in a new context or with a changed surface problem.',
+            label: 'Transfer',
+            value: 'transfer',
+        },
+    ];
+
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor="activity-learning-intent">Learning purpose</Label>
+            <Select
+                onValueChange={(value) =>
+                    onChange((current) => ({
+                        ...current,
+                        learning_intent: value === 'default' ? '' : value,
+                    }))
+                }
+                value={form.learning_intent || 'default'}
+            >
+                <SelectTrigger
+                    className="w-full md:max-w-xl"
+                    id="activity-learning-intent"
+                >
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="default">
+                        Use the activity type's usual purpose
+                    </SelectItem>
+                    {intents.map((intent) => (
+                        <SelectItem key={intent.value} value={intent.value}>
+                            {intent.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                This is a teaching intention, not a grade. Leave it on the
+                default when the renderer's usual purpose is a good fit.
+            </p>
+            {form.learning_intent ? (
+                <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    {
+                        intents.find(
+                            (intent) => intent.value === form.learning_intent,
+                        )?.description
+                    }
+                </p>
+            ) : null}
+            {(form.learning_intent === 'explain' ||
+                form.learning_intent === 'transfer') &&
+            form.feedback_evidence.trim() === '' ? (
+                <p
+                    className="max-w-2xl rounded-md border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-950 dark:border-amber-200/20 dark:bg-amber-950/30 dark:text-amber-100"
+                    role="status"
+                >
+                    {t(
+                        'settings.world_builder.activity.learning_intent.evidence_warning',
+                        'Add “What to notice” guidance below to support this as explanation or transfer evidence. Until then, the activity is recorded as participation evidence.',
+                    )}
+                </p>
+            ) : null}
+            <InputError message={errors.learning_intent} />
+        </div>
+    );
+}
+
+function EvidenceObjectiveField({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor="activity-evidence-objective">
+                Evidence objective
+            </Label>
+            <Input
+                id="activity-evidence-objective"
+                maxLength={600}
+                onChange={(event) =>
+                    onChange((current) => ({
+                        ...current,
+                        evidence_objective: event.target.value,
+                    }))
+                }
+                placeholder="e.g. Connect the observation to a reason."
+                value={form.evidence_objective}
+            />
+            <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                A concise, observable objective copied into future evidence
+                records. It is context for reflection, not a grade.
+            </p>
+            <InputError message={errors.evidence_objective} />
+        </div>
+    );
+}
+
+function FeedbackGuidanceFields({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    const t = usePlatformTranslation();
+    const fields = [
+        {
+            description:
+                'Name the capability or understanding this activity invites.',
+            id: 'activity-feedback-purpose',
+            label: 'Purpose',
+            name: 'feedback_purpose' as const,
+            placeholder: 'e.g. Notice how the pattern changes when…',
+        },
+        {
+            description:
+                form.learning_intent === 'explain' ||
+                form.learning_intent === 'transfer'
+                    ? 'Required to represent this as explanation or transfer evidence: point to something observable in the learner’s response or action.'
+                    : 'Point to something observable in the learner’s response or action.',
+            id: 'activity-feedback-evidence',
+            label: 'What to notice',
+            name: 'feedback_evidence' as const,
+            placeholder: 'e.g. Look for a reason that connects…',
+        },
+        {
+            description:
+                'Offer one small direction the learner could try next.',
+            id: 'activity-feedback-next-action',
+            label: 'Next action',
+            name: 'feedback_next_action' as const,
+            placeholder: 'e.g. Try the same idea with…',
+        },
+        {
+            description:
+                'Optional: add a short comparison note to show after the learner responds. This is explanatory guidance, not automated critique or a grade.',
+            id: 'activity-feedback-response',
+            label: 'Response feedback',
+            name: 'feedback_response' as const,
+            placeholder:
+                'e.g. Compare your explanation with the observation and notice whether the reason accounts for the change.',
+        },
+        {
+            description:
+                form.learning_intent === 'explain' ||
+                form.learning_intent === 'transfer'
+                    ? 'Optional: add up to three observable cues, one per line. These guide noticing; they do not produce a grade.'
+                    : 'Optional: add up to three observable cues, one per line, for later review.',
+            id: 'activity-feedback-rubric',
+            label: 'Observable rubric cues',
+            name: 'feedback_rubric' as const,
+            placeholder:
+                'e.g. Names the observation\nConnects it to a reason\nUses the idea in the changed context',
+        },
+    ];
+
+    return (
+        <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <div>
+                <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                    Feedback guidance
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    Optional guidance keeps feedback anchored in the task and
+                    the learner’s work.
+                </p>
+            </div>
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.72fr)] lg:items-start">
+                <div className="grid gap-3">
+                    {fields.map((field) => (
+                        <div className="grid gap-2" key={field.name}>
+                            <Label htmlFor={field.id}>{field.label}</Label>
+                            <textarea
+                                className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                                id={field.id}
+                                onChange={(event) =>
+                                    onChange((current) => ({
+                                        ...current,
+                                        [field.name]: event.target.value,
+                                    }))
+                                }
+                                placeholder={field.placeholder}
+                                value={form[field.name]}
+                            />
+                            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                {field.description}
+                            </p>
+                            <InputError message={errors[field.name]} />
+                        </div>
+                    ))}
+                    {form.learning_intent === 'explain' ||
+                    form.learning_intent === 'transfer' ? (
+                        <>
+                            <div className="grid gap-2">
+                                <Label htmlFor="activity-feedback-independent-check">
+                                    {t(
+                                        'settings.world_builder.activity.feedback.independent_check_label',
+                                        'Independent check (optional)',
+                                    )}
+                                </Label>
+                                <textarea
+                                    className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                                    id="activity-feedback-independent-check"
+                                    onChange={(event) =>
+                                        onChange((current) => ({
+                                            ...current,
+                                            feedback_independent_check:
+                                                event.target.value,
+                                        }))
+                                    }
+                                    placeholder={t(
+                                        'settings.world_builder.activity.feedback.independent_check_placeholder',
+                                        'e.g. Without looking back, explain how the idea works in a new example.',
+                                    )}
+                                    value={form.feedback_independent_check}
+                                />
+                                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                    {t(
+                                        'settings.world_builder.activity.feedback.independent_check_description',
+                                        'After the feedback pause, invite a fresh response. Learners can skip it; the response is recorded separately from the first attempt.',
+                                    )}
+                                </p>
+                                <InputError
+                                    message={errors.feedback_independent_check}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="activity-feedback-independent-check-feedback">
+                                    {t(
+                                        'settings.world_builder.activity.feedback.independent_check_feedback_label',
+                                        'Independent check feedback (optional)',
+                                    )}
+                                </Label>
+                                <textarea
+                                    className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                                    id="activity-feedback-independent-check-feedback"
+                                    onChange={(event) =>
+                                        onChange((current) => ({
+                                            ...current,
+                                            feedback_independent_check_feedback:
+                                                event.target.value,
+                                        }))
+                                    }
+                                    placeholder={t(
+                                        'settings.world_builder.activity.feedback.independent_check_feedback_placeholder',
+                                        'e.g. Compare the new example with the original observation and notice what stayed true.',
+                                    )}
+                                    value={
+                                        form.feedback_independent_check_feedback
+                                    }
+                                />
+                                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                    {t(
+                                        'settings.world_builder.activity.feedback.independent_check_feedback_description',
+                                        'Shown after a learner saves the fresh response. This is explanatory guidance, not automated critique or a grade.',
+                                    )}
+                                </p>
+                                <InputError
+                                    message={
+                                        errors.feedback_independent_check_feedback
+                                    }
+                                />
+                            </div>
+                        </>
+                    ) : null}
+                </div>
+                <FeedbackGuidancePreview form={form} />
+            </div>
+        </div>
+    );
+}
+
+function FeedbackGuidancePreview({ form }: { form: ActivityForm }) {
+    const t = usePlatformTranslation();
+    const rubricCues = form.feedback_rubric
+        .split(/\r?\n/)
+        .map((cue) => cue.trim())
+        .filter(Boolean)
+        .slice(0, 3);
+    const sections = [
+        {
+            label: t('learning.reflection.feedback_purpose_label', 'Purpose'),
+            value: form.feedback_purpose.trim(),
+        },
+        {
+            label: t(
+                'learning.reflection.feedback_evidence_label',
+                'What to notice',
+            ),
+            value: form.feedback_evidence.trim(),
+        },
+        {
+            label: t(
+                'learning.reflection.feedback_response_label',
+                'Compare your response',
+            ),
+            value: form.feedback_response.trim(),
+        },
+        {
+            label: t(
+                'learning.reflection.feedback_next_action_label',
+                'A possible next action',
+            ),
+            value: form.feedback_next_action.trim(),
+        },
+    ].filter((section) => section.value);
+    const hasIndependentCheck =
+        form.feedback_independent_check.trim() ||
+        form.feedback_independent_check_feedback.trim();
+
+    return (
+        <aside
+            aria-labelledby="activity-feedback-preview-title"
+            className="grid content-start gap-3 rounded-lg border border-cyan-500/25 bg-white/70 p-4 dark:border-teal-200/20 dark:bg-slate-950/55"
+        >
+            <div>
+                <p className="text-xs font-medium tracking-[0.14em] text-cyan-800 uppercase dark:text-teal-200">
+                    {t(
+                        'settings.world_builder.activity.feedback.preview_label',
+                        'Learner preview',
+                    )}
+                </p>
+                <h3
+                    className="mt-1 text-sm font-semibold text-slate-950 dark:text-white"
+                    id="activity-feedback-preview-title"
+                >
+                    {t(
+                        'settings.world_builder.activity.feedback.preview_title',
+                        'After the response',
+                    )}
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {t(
+                        'settings.world_builder.activity.feedback.preview_description',
+                        'A quiet comparison pause uses the guidance you provide here.',
+                    )}
+                </p>
+            </div>
+            {sections.length || rubricCues.length || hasIndependentCheck ? (
+                <div className="grid gap-2">
+                    {sections.map((section) => (
+                        <div
+                            className="rounded-md border border-cyan-500/15 bg-cyan-50/50 p-3 dark:border-teal-100/15 dark:bg-teal-100/5"
+                            key={section.label}
+                        >
+                            <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                {section.label}
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                                {section.value}
+                            </p>
+                        </div>
+                    ))}
+                    {rubricCues.length ? (
+                        <div className="rounded-md border border-cyan-500/15 bg-cyan-50/50 p-3 dark:border-teal-100/15 dark:bg-teal-100/5">
+                            <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                {t(
+                                    'learning.reflection.feedback_rubric_label',
+                                    'Observable cues',
+                                )}
+                            </p>
+                            <ul className="mt-1 grid gap-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                                {rubricCues.map((cue) => (
+                                    <li
+                                        className="pl-4 before:mr-2 before:text-cyan-700 before:content-['•'] dark:before:text-teal-200"
+                                        key={cue}
+                                    >
+                                        {cue}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : null}
+                    {hasIndependentCheck ? (
+                        <div className="rounded-md border border-cyan-500/15 bg-cyan-50/50 p-3 dark:border-teal-100/15 dark:bg-teal-100/5">
+                            <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                {t(
+                                    'learning.reflection.independent_check_label',
+                                    'Independent check (optional)',
+                                )}
+                            </p>
+                            {form.feedback_independent_check.trim() ? (
+                                <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                                    {form.feedback_independent_check.trim()}
+                                </p>
+                            ) : null}
+                            {form.feedback_independent_check_feedback.trim() ? (
+                                <p className="mt-2 border-t border-cyan-500/15 pt-2 text-sm leading-6 text-cyan-950/80 dark:border-teal-100/15 dark:text-teal-50/80">
+                                    {form.feedback_independent_check_feedback.trim()}
+                                </p>
+                            ) : null}
+                        </div>
+                    ) : null}
+                </div>
+            ) : (
+                <p className="rounded-md border border-dashed border-slate-300 p-3 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
+                    {t(
+                        'settings.world_builder.activity.feedback.preview_empty',
+                        'Add guidance above to preview the pause a learner will see after responding.',
+                    )}
+                </p>
+            )}
+            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                {t(
+                    'settings.world_builder.activity.feedback.preview_note',
+                    'This is explanatory guidance, not automated critique or a grade.',
+                )}
+            </p>
+        </aside>
+    );
+}
+
+function EvidenceConceptsField({
+    evidenceConceptOptions,
+    errors,
+    form,
+    onChange,
+}: {
+    evidenceConceptOptions: string[];
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    const t = usePlatformTranslation();
+    const [selectedConcept, setSelectedConcept] = useState('');
+
+    function addSelectedConcept() {
+        const concept = selectedConcept.trim();
+
+        if (!concept) {
+            return;
+        }
+
+        const concepts = form.evidence_concepts
+            .split(/\r?\n/)
+            .map((value) => value.trim())
+            .filter(Boolean);
+
+        if (
+            concepts.some(
+                (value) => value.toLowerCase() === concept.toLowerCase(),
+            ) ||
+            concepts.length >= 8
+        ) {
+            return;
+        }
+
+        onChange((current) => ({
+            ...current,
+            evidence_concepts: [...concepts, concept].join('\n'),
+        }));
+        setSelectedConcept('');
+    }
+
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor="activity-evidence-concepts">Concepts</Label>
+            {evidenceConceptOptions.length > 0 ? (
+                <div className="flex flex-wrap items-end gap-2">
+                    <div className="grid min-w-56 flex-1 gap-2">
+                        <Label htmlFor="activity-evidence-concept-library">
+                            {t(
+                                'settings.learning_concepts.add_from_library',
+                                'Add from concept library',
+                            )}
+                        </Label>
+                        <select
+                            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-950/40"
+                            id="activity-evidence-concept-library"
+                            onChange={(event) =>
+                                setSelectedConcept(event.target.value)
+                            }
+                            value={selectedConcept}
+                        >
+                            <option value="">
+                                {t(
+                                    'settings.learning_concepts.choose',
+                                    'Choose a concept',
+                                )}
+                            </option>
+                            {evidenceConceptOptions.map((concept) => (
+                                <option key={concept} value={concept}>
+                                    {concept}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <Button
+                        disabled={!selectedConcept}
+                        onClick={addSelectedConcept}
+                        type="button"
+                        variant="secondary"
+                    >
+                        {t('settings.learning_concepts.add', 'Add concept')}
+                    </Button>
+                </div>
+            ) : null}
+            <textarea
+                className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                id="activity-evidence-concepts"
+                maxLength={1000}
+                onChange={(event) =>
+                    onChange((current) => ({
+                        ...current,
+                        evidence_concepts: event.target.value,
+                    }))
+                }
+                placeholder="e.g. Working memory\nCognitive load"
+                value={form.evidence_concepts}
+            />
+            <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Add up to eight concepts, one per line. They are copied into
+                future evidence records as context, not treated as grades.
+            </p>
+            <InputError message={errors.evidence_concepts} />
+        </div>
+    );
+}
+
+function EvidenceContextPreview({ form }: { form: ActivityForm }) {
+    const t = usePlatformTranslation();
+    const objective = form.evidence_objective.trim();
+    const concepts = form.evidence_concepts
+        .split(/\r?\n/)
+        .map((concept) => concept.trim())
+        .filter(Boolean)
+        .slice(0, 8);
+
+    return (
+        <aside
+            aria-labelledby="activity-evidence-preview-title"
+            className="grid content-start gap-3 rounded-lg border border-cyan-500/25 bg-white/70 p-4 dark:border-teal-200/20 dark:bg-slate-950/55"
+        >
+            <div>
+                <p className="text-xs font-medium tracking-[0.14em] text-cyan-800 uppercase dark:text-teal-200">
+                    {t(
+                        'settings.world_builder.activity.evidence.preview_label',
+                        'Learner orientation preview',
+                    )}
+                </p>
+                <h3
+                    className="mt-1 text-sm font-semibold text-slate-950 dark:text-white"
+                    id="activity-evidence-preview-title"
+                >
+                    {t(
+                        'learning.activity.evidence_context.title',
+                        'Learning focus',
+                    )}
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {t(
+                        'settings.world_builder.activity.evidence.preview_description',
+                        'This is the orientation learners will see before the activity.',
+                    )}
+                </p>
+            </div>
+            {objective || concepts.length > 0 ? (
+                <div className="grid gap-3">
+                    {objective ? (
+                        <div>
+                            <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                {t(
+                                    'learning.activity.evidence_context.objective',
+                                    'What this activity invites',
+                                )}
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                                {objective}
+                            </p>
+                        </div>
+                    ) : null}
+                    {concepts.length > 0 ? (
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                            <span className="font-medium">
+                                {t(
+                                    'learning.activity.evidence_context.concepts',
+                                    'Concepts',
+                                )}
+                            </span>
+                            {concepts.map((concept) => (
+                                <span
+                                    className="rounded-full border border-cyan-500/20 px-2 py-0.5 text-slate-700 dark:border-teal-100/20 dark:text-teal-50"
+                                    key={concept}
+                                >
+                                    {concept}
+                                </span>
+                            ))}
+                        </div>
+                    ) : null}
+                </div>
+            ) : (
+                <p className="rounded-md border border-dashed border-slate-300 p-3 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
+                    {t(
+                        'settings.world_builder.activity.evidence.preview_empty',
+                        'Add an evidence objective or concept above to preview the learner orientation.',
+                    )}
+                </p>
+            )}
+            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                {t(
+                    'settings.world_builder.activity.evidence.preview_note',
+                    'This is context for reflection, not a grade.',
+                )}
+            </p>
+        </aside>
+    );
+}
+
+function CompletionChoiceField({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    return (
+        <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <Label htmlFor="activity-completion-choice-prompt">
+                Choice context
+            </Label>
+            <textarea
+                className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                id="activity-completion-choice-prompt"
+                onChange={(event) =>
+                    onChange((current) => ({
+                        ...current,
+                        completion_choice_prompt: event.target.value,
+                    }))
+                }
+                placeholder="e.g. Choose the kind of continuation that would support your next step."
+                value={form.completion_choice_prompt}
+            />
+            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                Optional: explain why a learner might choose a direction after
+                this activity. The three directions remain short and optional.
+            </p>
+            <InputError message={errors.completion_choice_prompt} />
+        </div>
+    );
+}
+
+function emptyQuestionOption(label: string): ActivityQuestionOptionForm {
+    return {
+        body: '',
+        feedback: '',
+        is_correct: false,
+        label,
+        outcome_key: '',
+        weights: {},
+    };
+}
+
+function QuestionTextField({
+    error,
+    id,
+    label,
+    onChange,
+    value,
+}: {
+    error?: string;
+    id: string;
+    label: string;
+    onChange: (value: string) => void;
+    value: string;
+}) {
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor={id}>{label}</Label>
+            <textarea
+                className="min-h-24 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                id={id}
+                onChange={(event) => onChange(event.target.value)}
+                value={value}
+            />
+            <InputError message={error} />
+        </div>
+    );
+}
+
+function QuestionOptionFields({
+    canRemove,
+    errors,
+    index,
+    onChange,
+    onRemove,
+    option,
+}: {
+    canRemove: boolean;
+    errors: Record<string, string>;
+    index: number;
+    onChange: (
+        update: (
+            option: ActivityQuestionOptionForm,
+        ) => ActivityQuestionOptionForm,
+    ) => void;
+    onRemove: () => void;
+    option: ActivityQuestionOptionForm;
+}) {
+    const fieldError = (field: string): string | undefined =>
+        errors[`question_options.${index}.${field}`];
+
+    return (
+        <div className="grid gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                    Answer {option.label || index + 1}
+                </p>
+                <Button
+                    disabled={!canRemove}
+                    onClick={onRemove}
+                    type="button"
+                    variant="ghost"
+                >
+                    <Trash2 className="size-4" />
+                    Remove
+                </Button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-[8rem_1fr]">
+                <div className="grid gap-2">
+                    <Label htmlFor={`question-option-${index}-label`}>
+                        Label
+                    </Label>
+                    <Input
+                        id={`question-option-${index}-label`}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                label: event.target.value,
+                            }))
+                        }
+                        value={option.label}
+                    />
+                    <InputError message={fieldError('label')} />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor={`question-option-${index}-body`}>
+                        Answer text
+                    </Label>
+                    <textarea
+                        className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                        id={`question-option-${index}-body`}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                body: event.target.value,
+                            }))
+                        }
+                        value={option.body}
+                    />
+                    <InputError message={fieldError('body')} />
+                </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                    <Label htmlFor={`question-option-${index}-outcome`}>
+                        Outcome key (optional)
+                    </Label>
+                    <Input
+                        id={`question-option-${index}-outcome`}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                outcome_key: event.target.value,
+                            }))
+                        }
+                        placeholder="e.g. review-source-distribution"
+                        value={option.outcome_key}
+                    />
+                    <InputError message={fieldError('outcome_key')} />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor={`question-option-${index}-feedback`}>
+                        Answer feedback (optional)
+                    </Label>
+                    <Input
+                        id={`question-option-${index}-feedback`}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                feedback: event.target.value,
+                            }))
+                        }
+                        value={option.feedback}
+                    />
+                    <InputError message={fieldError('feedback')} />
+                </div>
+            </div>
+            <label className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
+                <input
+                    checked={option.is_correct}
+                    className="size-4 accent-[var(--settings-accent)]"
+                    onChange={(event) =>
+                        onChange((current) => ({
+                            ...current,
+                            is_correct: event.target.checked,
+                        }))
+                    }
+                    type="checkbox"
+                />
+                Correct answer
+            </label>
+            <InputError message={fieldError('is_correct')} />
+        </div>
+    );
+}

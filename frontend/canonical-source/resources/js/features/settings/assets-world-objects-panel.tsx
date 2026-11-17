@@ -1,0 +1,194 @@
+import {
+    Hammer,
+    Image,
+    MessageCircle,
+    MousePointer2,
+    Music,
+    Package,
+} from 'lucide-react';
+import {
+    SettingsNestedWorkspace,
+    SettingsSectionNavigation,
+} from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
+import { CursorImageSettingsPanel } from '@/features/settings/cursor-image-settings-panel';
+import AdminDialogueSoundSetsPage from '@/pages/settings/assets/dialogue-sound-sets';
+import AdminItemsPage from '@/pages/settings/assets/items';
+import type { AdminItem } from '@/pages/settings/assets/items';
+import AdminMediaAssets from '@/pages/settings/assets/media';
+import type { ReusableMediaAsset } from '@/pages/settings/assets/media';
+import AdminSoundsPage from '@/pages/settings/assets/sounds';
+import AdminToolsPage from '@/pages/settings/assets/tools';
+import type { AdminTool } from '@/pages/settings/assets/tools';
+import type { PublicPresentationSettings } from '@/theme/presentation';
+import type { LearningSound } from '@/types';
+
+export type DialogueSoundSetSummary = {
+    id: number;
+    isDefault: boolean;
+    letters: string[];
+    name: string;
+    slug: string;
+    soundCount: number;
+    tags: string[];
+};
+
+export type AssetsWorldObjectsSection =
+    | 'cursors'
+    | 'items'
+    | 'dialogue-sounds'
+    | 'sounds'
+    | 'tools'
+    | 'visuals';
+
+export type AssetsWorldObjectsSettings = {
+    items: AdminItem[];
+    dialogueSoundSets: DialogueSoundSetSummary[];
+    sounds: LearningSound[];
+    tools: AdminTool[];
+    visuals: ReusableMediaAsset[];
+};
+
+type Props = {
+    activeSection: AssetsWorldObjectsSection;
+    assets: AssetsWorldObjectsSettings;
+    canViewAssets: boolean;
+    canViewCursors: boolean;
+    canViewSounds: boolean;
+    onSelectSection: (section: AssetsWorldObjectsSection) => void;
+    publicPresentation: PublicPresentationSettings | null;
+};
+
+const sections = [
+    {
+        description: 'Reusable images, animations and uploaded media.',
+        icon: Image,
+        key: 'visuals',
+        label: 'Visuals',
+    },
+    {
+        description: 'Ambience, music, UI sounds and voice clips.',
+        icon: Music,
+        key: 'sounds',
+        label: 'Sounds',
+    },
+    {
+        description: 'Letter-keyed speech bubble sounds for dialogue typing.',
+        icon: MessageCircle,
+        key: 'dialogue-sounds',
+        label: 'Dialogue typing',
+    },
+    {
+        description: 'Inspectable tools and map interaction helpers.',
+        icon: Hammer,
+        key: 'tools',
+        label: 'Tools',
+    },
+    {
+        description: 'Consumable or collectible inventory objects.',
+        icon: Package,
+        key: 'items',
+        label: 'Items',
+    },
+    {
+        description: 'Normal, action, grab, text and denied cursor images.',
+        icon: MousePointer2,
+        key: 'cursors',
+        label: 'Cursor images',
+    },
+] satisfies SettingsNavigationItem<AssetsWorldObjectsSection>[];
+
+export function AssetsWorldObjectsPanel({
+    activeSection,
+    assets,
+    canViewAssets,
+    canViewCursors,
+    canViewSounds,
+    onSelectSection,
+    publicPresentation,
+}: Props) {
+    const visibleSections = sections.filter((section) => {
+        if (section.key === 'sounds') {
+            return canViewSounds;
+        }
+
+        if (section.key === 'dialogue-sounds') {
+            return canViewSounds;
+        }
+
+        if (section.key === 'cursors') {
+            return canViewCursors && publicPresentation !== null;
+        }
+
+        return canViewAssets;
+    });
+    const resolvedSection = visibleSections.some(
+        (section) => section.key === activeSection,
+    )
+        ? activeSection
+        : visibleSections[0]?.key;
+
+    if (!resolvedSection) {
+        return (
+            <section className="grid h-full place-items-center p-6 text-center">
+                <p className="max-w-lg text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    No asset libraries are available with the current
+                    permissions.
+                </p>
+            </section>
+        );
+    }
+
+    const assetsItem: SettingsNavigationItem<'assets-world-objects'> = {
+        description:
+            'Media, sounds, cursor images, reusable tools and consumable items.',
+        icon: Package,
+        key: 'assets-world-objects',
+        label: 'Assets & World Objects',
+    };
+    const activeSectionItem =
+        visibleSections.find((section) => section.key === resolvedSection) ??
+        assetsItem;
+
+    return (
+        <SettingsNestedWorkspace
+            contentClassName="h-full overflow-hidden"
+            item={activeSectionItem}
+            sidebar={
+                <SettingsSectionNavigation
+                    activeSection={resolvedSection}
+                    ariaLabel="Assets and world objects sections"
+                    items={visibleSections}
+                    onChange={onSelectSection}
+                />
+            }
+        >
+            {resolvedSection === 'visuals' ? (
+                <AdminMediaAssets assets={assets.visuals} embedded />
+            ) : null}
+
+            {resolvedSection === 'sounds' ? (
+                <AdminSoundsPage embedded sounds={assets.sounds} />
+            ) : null}
+
+            {resolvedSection === 'dialogue-sounds' ? (
+                <AdminDialogueSoundSetsPage
+                    embedded
+                    soundSets={assets.dialogueSoundSets}
+                />
+            ) : null}
+
+            {resolvedSection === 'cursors' && publicPresentation ? (
+                <CursorImageSettingsPanel presentation={publicPresentation} />
+            ) : null}
+
+            {resolvedSection === 'tools' ? (
+                <AdminToolsPage embedded tools={assets.tools} />
+            ) : null}
+
+            {resolvedSection === 'items' ? (
+                <AdminItemsPage embedded items={assets.items} />
+            ) : null}
+        </SettingsNestedWorkspace>
+    );
+}

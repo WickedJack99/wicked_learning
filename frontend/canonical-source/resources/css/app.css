@@ -1,0 +1,624 @@
+@import 'tailwindcss';
+
+@import 'tw-animate-css';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+    --font-sans:
+        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+
+    --text-xs: 0.8125rem;
+    --text-xs--line-height: 1.25rem;
+
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) - 4px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.87 0 0);
+    --chart-1: oklch(0.646 0.222 41.116);
+    --chart-2: oklch(0.6 0.118 184.704);
+    --chart-3: oklch(0.398 0.07 227.392);
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.87 0 0);
+    --map-floating-accent-color: #0e7490;
+    --map-floating-background: rgba(255, 255, 255, 0.88);
+    --map-floating-border-color: rgb(226, 232, 240);
+    --map-floating-muted-text-color: rgb(100, 116, 139);
+    --map-floating-text-color: rgb(15, 23, 42);
+    --map-side-control-active-background: #06b6d4;
+    --map-side-control-active-text-color: #020617;
+    --map-side-control-background: rgba(255, 255, 255, 0.88);
+    --map-side-control-border-color: rgb(226, 232, 240);
+    --map-side-control-text-color: rgb(71, 85, 105);
+    /* The learner shell has its own palette; maps may still override their visuals. */
+    --learner-accent: #6d28d9;
+    --learner-action-accent: #0e7490;
+    --learner-border-color: #cbd5e1;
+    --learner-body-text: #334155;
+    --learner-header-background: rgb(248 250 252 / 0.94);
+    --learner-heading-text: #0f172a;
+    --learner-muted-text: #475569;
+    --learner-page-background: #f8fafc;
+    --learner-panel-background: #ffffff;
+    --learner-panel-muted-background: #f1f5f9;
+    --platform-action-cursor: pointer;
+    --platform-cursor: default;
+    --platform-denied-cursor: not-allowed;
+    --platform-grab-cursor: grab;
+    --platform-text-cursor: text;
+}
+
+.dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.145 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.145 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.985 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.396 0.141 25.723);
+    --destructive-foreground: oklch(0.637 0.237 25.331);
+    --border: oklch(0.269 0 0);
+    --input: oklch(0.269 0 0);
+    --ring: oklch(0.439 0 0);
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.985 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(0.269 0 0);
+    --sidebar-ring: oklch(0.439 0 0);
+    --map-floating-accent-color: #ccfbf1;
+    --map-floating-background: rgba(2, 6, 23, 0.82);
+    --map-floating-border-color: rgba(255, 255, 255, 0.12);
+    --map-floating-muted-text-color: rgb(203, 213, 225);
+    --map-floating-text-color: rgb(248, 250, 252);
+    --map-side-control-active-background: #5eead4;
+    --map-side-control-active-text-color: #020617;
+    --map-side-control-background: rgba(2, 6, 23, 0.82);
+    --map-side-control-border-color: rgba(255, 255, 255, 0.12);
+    --map-side-control-text-color: rgb(203, 213, 225);
+    --learner-accent: #a78bfa;
+    --learner-action-accent: #5eead4;
+    --learner-border-color: rgb(255 255 255 / 0.1);
+    --learner-body-text: #cbd5e1;
+    --learner-header-background: rgb(8 17 27 / 0.94);
+    --learner-heading-text: #f8fafc;
+    --learner-muted-text: #94a3b8;
+    --learner-page-background: #08111b;
+    --learner-panel-background: #111820;
+    --learner-panel-muted-background: #0b1521;
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        cursor: var(--platform-cursor, default);
+    }
+
+    html:has(.settings-surface),
+    body:has(.settings-surface) {
+        overflow: hidden;
+    }
+
+    #app {
+        cursor: var(--platform-cursor, default);
+    }
+
+    * {
+        scrollbar-color: color-mix(
+                in srgb,
+                var(--settings-scrollbar-thumb, rgb(100 116 139)) 100%,
+                transparent
+            )
+            transparent;
+        scrollbar-width: thin;
+    }
+
+    *::-webkit-scrollbar {
+        width: 0.65rem;
+        height: 0.65rem;
+    }
+
+    *::-webkit-scrollbar-button {
+        display: none;
+        height: 0;
+        width: 0;
+    }
+
+    *::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        border: 0.2rem solid transparent;
+        border-radius: 999px;
+        background: color-mix(
+            in srgb,
+            var(--settings-scrollbar-thumb, rgb(100 116 139)) 100%,
+            transparent
+        );
+        background-clip: content-box;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+        background: color-mix(
+            in srgb,
+            var(--settings-accent, rgb(14 116 144)) 72%,
+            transparent
+        );
+        background-clip: content-box;
+    }
+}
+
+@layer utilities {
+    .settings-surface {
+        --settings-accent: #0f766e;
+        --settings-accent-foreground: #f8fafc;
+        --settings-active-background: rgba(15, 118, 110, 0.1);
+        --settings-border-color: #e2e8f0;
+        --settings-content-background: #f1f5f9;
+        --settings-input-background: #ffffff;
+        --settings-input-border-color: #cbd5e1;
+        --settings-control-border: color-mix(
+            in srgb,
+            var(--settings-input-border-color) 50%,
+            var(--settings-muted-text) 50%
+        );
+        --settings-muted-text: #64748b;
+        --settings-nested-sidebar-background: rgb(248 250 252 / 0.96);
+        --settings-panel-background: #ffffff;
+        --settings-scrollbar-thumb: rgb(100 116 139 / 0.54);
+        --settings-sidebar-background: rgba(255, 255, 255, 0.9);
+        --background: var(--settings-content-background);
+        --border: var(--settings-border-color);
+        --card: var(--settings-panel-background);
+        --card-foreground: var(--foreground);
+        --input: var(--settings-input-border-color);
+        --muted-foreground: var(--settings-muted-text);
+        --primary: var(--settings-accent);
+        --primary-foreground: var(--settings-accent-foreground);
+        --ring: var(--settings-accent);
+    }
+
+    .dark .settings-surface {
+        --settings-accent: #2dd4bf;
+        --settings-accent-foreground: #042f2e;
+        --settings-active-background: rgba(45, 212, 191, 0.1);
+        --settings-border-color: rgba(255, 255, 255, 0.1);
+        --settings-content-background: #0b1117;
+        --settings-input-background: rgb(2 6 23 / 0.38);
+        --settings-input-border-color: rgba(255, 255, 255, 0.42);
+        --settings-muted-text: #94a3b8;
+        --settings-nested-sidebar-background: rgb(2 6 23 / 0.96);
+        --settings-panel-background: #111820;
+        --settings-scrollbar-thumb: rgb(148 163 184 / 0.54);
+        --settings-sidebar-background: rgba(17, 24, 32, 0.95);
+    }
+
+    .dark .settings-surface [data-slot='button'][data-variant='default'] {
+        border: 1px solid
+            color-mix(in srgb, var(--settings-accent, #2dd4bf) 42%, transparent);
+        background: color-mix(
+            in srgb,
+            var(--settings-accent, #2dd4bf) 34%,
+            var(--settings-content-background, #0b1117)
+        );
+        color: rgb(226 232 240);
+        box-shadow: none;
+    }
+
+    .dark
+        .settings-surface
+        [data-slot='button'][data-variant='default']:hover:not(:disabled) {
+        background: color-mix(
+            in srgb,
+            var(--settings-accent, #2dd4bf) 44%,
+            var(--settings-content-background, #0b1117)
+        );
+        color: rgb(248 250 252);
+    }
+
+    .settings-surface
+        :is(
+            [data-slot='input'],
+            [data-slot='select-trigger'],
+            input:not([type='checkbox']):not([type='color']):not(
+                    [type='radio']
+                ):not([type='range']):not([type='file']),
+            textarea,
+            select
+        ) {
+        border-color: var(--settings-control-border);
+        background-color: var(--settings-input-background);
+    }
+
+    .settings-surface [data-slot='checkbox'] {
+        border-color: var(--settings-control-border);
+        background-color: var(--settings-input-background);
+        box-shadow: none;
+    }
+
+    .settings-surface [data-slot='checkbox'][data-state='checked'] {
+        border-color: var(--settings-accent);
+        background-color: var(--settings-accent);
+        color: var(--settings-accent-foreground);
+    }
+
+    .settings-surface
+        :is(
+            [data-slot='input'],
+            [data-slot='select-trigger'],
+            [data-slot='checkbox'],
+            input:not([type='color']):not([type='range']):not([type='file']),
+            textarea,
+            select
+        ):focus-visible {
+        border-color: var(--settings-accent);
+    }
+
+    .settings-surface .settings-topbar-control {
+        background-color: var(--settings-active-background);
+        border-color: var(--settings-border-color);
+    }
+
+    /* Long configuration dialogs keep their context and actions visible while only the body scrolls. */
+    .settings-surface[data-slot='dialog-content'] [data-slot='dialog-header'] {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--settings-content-background);
+    }
+
+    .settings-surface[data-slot='dialog-content'] [data-slot='dialog-footer'] {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        margin-top: 0.5rem;
+        border-top: 1px solid var(--settings-border-color);
+        background: var(--settings-content-background);
+        padding-block: 1rem;
+    }
+
+    /* Settings use borders and spacing to communicate hierarchy, rather than card-like rounded groups. */
+    .settings-surface
+        :is(
+            section,
+            article,
+            aside,
+            div,
+            form,
+            label
+        )[class*='rounded'][class*='border']:not(
+            [data-slot='dialog-content']
+        ):not(.settings-topbar-control):not(.settings-floating-panel):not(
+            .settings-rounded-control
+        ) {
+        border-radius: 0;
+    }
+
+    @keyframes nav-inserted-item {
+        0%,
+        82% {
+            opacity: 0;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+
+    @keyframes map-surface-in {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes portal-swirl {
+        from {
+            transform: translate(-50%, -50%) rotate(0deg);
+        }
+
+        to {
+            transform: translate(-50%, -50%) rotate(360deg);
+        }
+    }
+
+    @keyframes obstacle-resolved-zoom {
+        50% {
+            transform: scale(1.12);
+        }
+
+        100% {
+            transform: scale(0.92);
+            opacity: 0.72;
+        }
+    }
+
+    @keyframes obstacle-resolved-shake {
+        0%,
+        100% {
+            transform: translateX(0);
+        }
+
+        20% {
+            transform: translateX(-10px);
+        }
+
+        40% {
+            transform: translateX(10px);
+        }
+
+        60% {
+            transform: translateX(-6px);
+        }
+
+        80% {
+            transform: translateX(6px);
+        }
+    }
+
+    @keyframes obstacle-resolved-rotate {
+        100% {
+            transform: rotate(360deg) scale(0.92);
+            opacity: 0.76;
+        }
+    }
+
+    @keyframes item-grant-fly {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.92);
+        }
+
+        12% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        78% {
+            opacity: 1;
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(calc(50vw - 4.5rem), -50%) scale(0.16);
+        }
+    }
+
+    .animate-map-surface-in {
+        animation: map-surface-in 500ms ease-out both;
+    }
+
+    .animate-item-grant-fly {
+        animation: item-grant-fly 1250ms cubic-bezier(0.2, 0.78, 0.2, 1) both;
+    }
+
+    .animate-nav-inserted-item {
+        animation: nav-inserted-item 1150ms ease-out both;
+    }
+
+    .animate-portal-swirl {
+        animation: portal-swirl 1800ms linear infinite;
+        transform-origin: center;
+    }
+
+    .animate-obstacle-resolved-rotate {
+        animation: obstacle-resolved-rotate 900ms ease-in-out both;
+    }
+
+    .animate-obstacle-resolved-shake {
+        animation: obstacle-resolved-shake 760ms ease-in-out both;
+    }
+
+    .animate-obstacle-resolved-zoom {
+        animation: obstacle-resolved-zoom 820ms ease-out both;
+    }
+
+    .route-options-scroll {
+        scrollbar-color: var(--settings-scrollbar-thumb, rgb(14 116 144 / 0.68))
+            transparent;
+        scrollbar-width: thin;
+    }
+
+    /* Learner document pages live inside a fixed app frame and may contain any number of items. */
+    .learner-scroll-pane {
+        min-height: 0;
+        min-width: 0;
+        flex: 1 1 auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        scrollbar-gutter: stable;
+    }
+
+    /* Keep long learner-owned lists inside their surface without shifting the layout when a thumb appears. */
+    .learner-scroll-region {
+        min-height: 0;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+    }
+
+    .route-options-scroll::-webkit-scrollbar {
+        width: 0.45rem;
+    }
+
+    .route-options-scroll::-webkit-scrollbar-thumb {
+        border: 0.12rem solid transparent;
+        border-radius: 999px;
+        background: var(--settings-scrollbar-thumb, rgb(14 116 144 / 0.68));
+        background-clip: content-box;
+    }
+
+    .platform-shell {
+        cursor: var(--platform-cursor, default);
+    }
+
+    :is(a, button, [role='button'], summary, select) {
+        cursor: var(--platform-action-cursor, pointer);
+    }
+
+    :is(
+        input:not([type='checkbox']):not([type='radio']),
+        textarea,
+        [contenteditable='true']
+    ) {
+        cursor: var(--platform-text-cursor, text);
+    }
+
+    :is(:disabled, [aria-disabled='true'], .cursor-not-allowed) {
+        cursor: var(--platform-denied-cursor, not-allowed) !important;
+    }
+
+    .platform-shell
+        :is(
+            .react-flow__pane,
+            .react-flow__node,
+            [data-draggable-surface='true']
+        ) {
+        cursor: var(--platform-cursor, default);
+    }
+
+    .platform-shell
+        :is(
+            .react-flow__pane.dragging,
+            .react-flow__node.dragging,
+            [data-dragging='true']
+        ) {
+        cursor: var(--platform-grab-cursor, grab);
+    }
+
+    .platform-shell
+        :is(
+            a,
+            button,
+            [role='button'],
+            summary,
+            select,
+            input[type='checkbox'],
+            input[type='radio']
+        ) {
+        cursor: var(--platform-action-cursor, pointer);
+    }
+
+    .platform-shell
+        :is(input:not([type='checkbox']):not([type='radio']), textarea) {
+        cursor: var(--platform-text-cursor, text);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .animate-map-surface-in,
+        .animate-item-grant-fly,
+        .animate-nav-inserted-item,
+        .animate-obstacle-resolved-rotate,
+        .animate-obstacle-resolved-shake,
+        .animate-obstacle-resolved-zoom,
+        .animate-portal-swirl {
+            animation: none;
+        }
+    }
+}

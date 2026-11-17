@@ -1,0 +1,604 @@
+import { Link } from '@inertiajs/react';
+import {
+    ArrowRight,
+    Bot,
+    CheckCircle2,
+    ChevronDown,
+    Pencil,
+    Sparkles,
+} from 'lucide-react';
+import { useState } from 'react';
+import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import type {
+    ActivityReviewTemplate,
+    ActivitySummary,
+} from '@/pages/settings/worlds/edit-node-activity-types';
+import { reviewActivity } from './activity-review-client';
+import type {
+    ActivityReviewAlignment,
+    ActivityReview,
+    ActivityReviewDimension,
+    ActivityReviewMetadataSuggestions,
+    ActivityReviewResult,
+} from './activity-review-client';
+
+export function ActivityReviewDialog({
+    activity,
+    canManageAiReview,
+    nextActivity,
+    onClose,
+    onEdit,
+    onReviewNext,
+    onReviewed,
+    onUseMetadata,
+    templates,
+}: {
+    activity: ActivitySummary | null;
+    canManageAiReview: boolean;
+    nextActivity: ActivitySummary | null;
+    onClose: () => void;
+    onEdit: (activityId: number) => void;
+    onReviewNext: (activity: ActivitySummary) => void;
+    onReviewed: (result: ActivityReviewResult) => void;
+    onUseMetadata: (
+        activityId: number,
+        suggestions: ActivityReviewMetadataSuggestions,
+    ) => void;
+    templates: ActivityReviewTemplate[];
+}) {
+    const t = usePlatformTranslation();
+    const [processing, setProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [selectedTemplateId, setSelectedTemplateId] = useState('');
+    const [lastResult, setLastResult] = useState<ActivityReviewResult | null>(
+        null,
+    );
+    const [showHistory, setShowHistory] = useState(false);
+    const latestResult =
+        activity && lastResult?.activityId === activity.id ? lastResult : null;
+    const result = activity
+        ? (latestResult?.aiReview ?? activity.aiReview)
+        : null;
+    const templateId = selectedTemplateId || templates[0]?.id.toString() || '';
+
+    const runReview = async () => {
+        if (!activity || templateId === '') {
+            return;
+        }
+
+        setProcessing(true);
+        setError(null);
+
+        try {
+            const nextResult = await reviewActivity(
+                activity.id,
+                Number(templateId),
+            );
+            setLastResult(nextResult);
+            onReviewed(nextResult);
+        } catch (requestError) {
+            setError(
+                requestError instanceof Error
+                    ? requestError.message
+                    : 'The activity review request failed.',
+            );
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    return (
+        <Dialog
+            onOpenChange={(open) => {
+                if (!open && !processing) {
+                    onClose();
+                }
+            }}
+            open={activity !== null}
+        >
+            <SettingsConfigurationDialog className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Bot className="size-5 text-[var(--settings-accent)]" />
+                        Review activity with AI
+                    </DialogTitle>
+                    <DialogDescription>
+                        The review looks at this activity and its immediate
+                        route connections only. It does not inspect learner data
+                        or change the activity.
+                    </DialogDescription>
+                </DialogHeader>
+
+                {activity ? (
+                    <div className="grid gap-5">
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
+                                    {activity.type}
+                                </p>
+                                <span
+                                    className={
+                                        (latestResult?.aiReviewStatus ??
+                                            activity.aiReviewStatus) ===
+                                        'reviewed'
+                                            ? 'text-xs font-medium text-emerald-700 dark:text-emerald-300'
+                                            : 'text-xs font-medium text-amber-700 dark:text-amber-300'
+                                    }
+                                >
+                                    {reviewStatusLabel(
+                                        latestResult?.aiReviewStatus ??
+                                            activity.aiReviewStatus,
+                                    )}
+                                </span>
+                            </div>
+                            <p className="mt-1 text-sm font-semibold">
+                                {activity.title}
+                            </p>
+                            <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                {activity.updatedAt
+                                    ? `Edited ${formatReviewDate(activity.updatedAt)}`
+                                    : 'Edit time unavailable'}{' '}
+                                ·{' '}
+                                {(latestResult?.aiReviewedAt ??
+                                activity.aiReviewedAt)
+                                    ? `AI reviewed ${formatReviewDate(latestResult?.aiReviewedAt ?? activity.aiReviewedAt ?? '')}`
+                                    : 'AI review not run yet'}
+                            </p>
+                        </div>
+
+                        {activity.aiReviewHistory.length > 0 ? (
+                            <div className="rounded-lg border border-slate-200 dark:border-white/10">
+                                <button
+                                    aria-controls="activity-review-history"
+                                    aria-expanded={showHistory}
+                                    className="flex w-full items-center justify-between gap-3 p-3 text-left text-sm font-medium"
+                                    onClick={() =>
+                                        setShowHistory((visible) => !visible)
+                                    }
+                                    type="button"
+                                >
+                                    <span>
+                                        {t(
+                                            'settings.ai.activity_review.previous_reviews',
+                                            'Previous reviews (:count)',
+                                            {
+                                                count: activity.aiReviewHistory
+                                                    .length,
+                                            },
+                                        )}
+                                    </span>
+                                    <ChevronDown
+                                        className={`size-4 transition-transform ${showHistory ? 'rotate-180' : ''}`}
+                                    />
+                                </button>
+                                {showHistory ? (
+                                    <div
+                                        className="grid gap-2 border-t border-slate-200 p-3 dark:border-white/10"
+                                        id="activity-review-history"
+                                    >
+                                        {activity.aiReviewHistory.map(
+                                            (entry) => (
+                                                <div
+                                                    className="rounded-md bg-slate-50 p-3 dark:bg-white/5"
+                                                    key={entry.id}
+                                                >
+                                                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                                        <span>
+                                                            {entry.reviewedAt
+                                                                ? formatReviewDate(
+                                                                      entry.reviewedAt,
+                                                                  )
+                                                                : t(
+                                                                      'settings.ai.activity_review.review_date_unavailable',
+                                                                      'Review date unavailable',
+                                                                  )}
+                                                        </span>
+                                                        <span>
+                                                            {entry.provider}
+                                                            {entry.model
+                                                                ? ` · ${entry.model}`
+                                                                : ''}
+                                                        </span>
+                                                    </div>
+                                                    {entry.summary ? (
+                                                        <p className="mt-1 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                                                            {entry.summary}
+                                                        </p>
+                                                    ) : null}
+                                                </div>
+                                            ),
+                                        )}
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : null}
+
+                        {result ? (
+                            <ActivityReviewResultView
+                                activityId={activity.id}
+                                onEdit={(activityId) => {
+                                    onClose();
+                                    onEdit(activityId);
+                                }}
+                                onUseMetadata={onUseMetadata}
+                                review={result}
+                            />
+                        ) : (
+                            <div className="grid gap-4">
+                                {templates.length === 0 ? (
+                                    <div className="grid gap-3 rounded-lg border border-amber-200/70 bg-amber-50 p-3 text-amber-950 dark:border-amber-200/20 dark:bg-amber-300/10 dark:text-amber-100">
+                                        <p className="text-sm leading-6">
+                                            No activity-review helper is
+                                            configured yet, so this activity
+                                            cannot be reviewed.
+                                        </p>
+                                        {canManageAiReview ? (
+                                            <Button
+                                                asChild
+                                                className="w-fit border-amber-300/70 bg-white/70 text-xs text-amber-950 hover:bg-white dark:border-amber-200/30 dark:bg-slate-950/30 dark:text-amber-100 dark:hover:bg-slate-950/60"
+                                                variant="outline"
+                                            >
+                                                <Link href="/settings?panel=admin-ai-integrations&ai=templates&purpose=activity_review">
+                                                    Set up review helper
+                                                    <ArrowRight className="size-3.5" />
+                                                </Link>
+                                            </Button>
+                                        ) : (
+                                            <p className="text-xs leading-5 text-amber-900/70 dark:text-amber-100/70">
+                                                Ask an administrator to set up a
+                                                review helper.
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : null}
+                                {templates.length > 1 ? (
+                                    <div className="grid gap-2">
+                                        <label
+                                            className="text-sm font-medium"
+                                            htmlFor="activity-review-template"
+                                        >
+                                            Review helper
+                                        </label>
+                                        <Select
+                                            onValueChange={
+                                                setSelectedTemplateId
+                                            }
+                                            value={templateId}
+                                        >
+                                            <SelectTrigger id="activity-review-template">
+                                                <SelectValue placeholder="Choose a review helper" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {templates.map((template) => (
+                                                    <SelectItem
+                                                        key={template.id}
+                                                        value={template.id.toString()}
+                                                    >
+                                                        {template.name}
+                                                        {template.providerLabel
+                                                            ? ` · ${template.providerLabel}`
+                                                            : ''}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                ) : null}
+                                <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                    Ask for a structured reading of the
+                                    activity&apos;s learning purpose, strengths,
+                                    possible adjustments, and autonomy,
+                                    competence, and relatedness support.
+                                </p>
+                            </div>
+                        )}
+                        {error ? (
+                            <p className="border-l-2 border-red-500 pl-3 text-sm text-red-600 dark:text-red-300">
+                                {error}
+                            </p>
+                        ) : null}
+                    </div>
+                ) : null}
+
+                <DialogFooter>
+                    <Button
+                        disabled={processing}
+                        onClick={onClose}
+                        type="button"
+                        variant="outline"
+                    >
+                        Close
+                    </Button>
+                    {activity && result && nextActivity ? (
+                        <Button
+                            disabled={processing}
+                            onClick={() => onReviewNext(nextActivity)}
+                            type="button"
+                            variant="outline"
+                        >
+                            Review next
+                            <ArrowRight className="size-4" />
+                        </Button>
+                    ) : null}
+                    {activity ? (
+                        <Button
+                            disabled={processing || templateId === ''}
+                            onClick={runReview}
+                            type="button"
+                        >
+                            <Sparkles className="size-4" />
+                            {processing
+                                ? 'Reviewing…'
+                                : result
+                                  ? 'Review again'
+                                  : 'Review activity'}
+                        </Button>
+                    ) : null}
+                </DialogFooter>
+            </SettingsConfigurationDialog>
+        </Dialog>
+    );
+}
+
+function reviewStatusLabel(status: string): string {
+    return status === 'reviewed' ? 'AI review current' : 'Needs AI review';
+}
+
+function formatReviewDate(value: string): string {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat(undefined, {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+          }).format(date);
+}
+
+function ActivityReviewResultView({
+    activityId,
+    onEdit,
+    onUseMetadata,
+    review,
+}: {
+    activityId: number;
+    onEdit: (activityId: number) => void;
+    onUseMetadata: (
+        activityId: number,
+        suggestions: ActivityReviewMetadataSuggestions,
+    ) => void;
+    review: ActivityReview;
+}) {
+    const dimensions = [
+        ['Autonomy', review.review.sdt.autonomy],
+        ['Competence', review.review.sdt.competence],
+        ['Relatedness', review.review.sdt.relatedness],
+    ] as const;
+
+    return (
+        <div className="grid gap-5">
+            <div>
+                <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">
+                    {review.review.summary}
+                </p>
+            </div>
+            <ReviewList items={review.review.strengths} title="Strengths" />
+            <ReviewList
+                items={review.review.suggestions}
+                title="Possible adjustments"
+            />
+            <Button
+                className="w-fit"
+                onClick={() => onEdit(activityId)}
+                type="button"
+                variant="outline"
+            >
+                <Pencil className="size-4" />
+                Open activity editor
+            </Button>
+            {review.review.learningDesign ? (
+                <div className="grid gap-3">
+                    <p className="text-sm font-semibold">
+                        Learning design alignment
+                    </p>
+                    <div className="grid gap-3">
+                        <AlignmentView
+                            alignment={review.review.learningDesign.purpose}
+                            label="Learning purpose"
+                        />
+                        <AlignmentView
+                            alignment={review.review.learningDesign.topics}
+                            label="Competence topics"
+                        />
+                        <MetadataSuggestions
+                            learningDesign={review.review.learningDesign}
+                            onUseMetadata={(suggestions) =>
+                                onUseMetadata(activityId, suggestions)
+                            }
+                        />
+                    </div>
+                </div>
+            ) : null}
+            {review.review.feedbackGuidance ? (
+                <div className="grid gap-3">
+                    <p className="text-sm font-semibold">Feedback guidance</p>
+                    <div className="grid gap-3">
+                        <ReviewDimensionView
+                            dimension={review.review.feedbackGuidance.purpose}
+                            label="Purpose"
+                        />
+                        <ReviewDimensionView
+                            dimension={review.review.feedbackGuidance.evidence}
+                            label="What to notice"
+                        />
+                        <ReviewDimensionView
+                            dimension={
+                                review.review.feedbackGuidance.nextAction
+                            }
+                            label="Next action"
+                        />
+                    </div>
+                </div>
+            ) : null}
+            <div className="grid gap-3">
+                <p className="text-sm font-semibold">SDT support signals</p>
+                <div className="grid gap-3">
+                    {dimensions.map(([label, dimension]) => (
+                        <div
+                            className="rounded-lg border border-slate-200 p-3 dark:border-white/10"
+                            key={label}
+                        >
+                            <div className="flex items-center justify-between gap-3">
+                                <p className="text-sm font-medium">{label}</p>
+                                <span className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                    {dimension.signal}
+                                </span>
+                            </div>
+                            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                {dimension.note}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <p className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <CheckCircle2 className="size-3.5" />
+                This is a suggestion for the tutor. No activity changes were
+                applied.
+            </p>
+        </div>
+    );
+}
+
+function ReviewDimensionView({
+    dimension,
+    label,
+}: {
+    dimension: ActivityReviewDimension;
+    label: string;
+}) {
+    return (
+        <div className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
+            <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">{label}</p>
+                <span className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                    {dimension.signal}
+                </span>
+            </div>
+            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                {dimension.note}
+            </p>
+        </div>
+    );
+}
+
+function MetadataSuggestions({
+    learningDesign,
+    onUseMetadata,
+}: {
+    learningDesign: ActivityReviewMetadataSuggestions;
+    onUseMetadata: (suggestions: ActivityReviewMetadataSuggestions) => void;
+}) {
+    const suggestions = [
+        learningDesign.suggestedLearningIntent
+            ? `Learning purpose: ${learningDesign.suggestedLearningIntent}`
+            : null,
+        learningDesign.suggestedCompetenceTopics.length > 0
+            ? `Competence topics: ${learningDesign.suggestedCompetenceTopics.join(', ')}`
+            : null,
+    ].filter((suggestion): suggestion is string => suggestion !== null);
+
+    return (
+        <div className="rounded-lg border border-dashed border-slate-300 p-3 dark:border-white/20">
+            <p className="text-sm font-medium">Optional metadata suggestions</p>
+            {suggestions.length > 0 ? (
+                <>
+                    <ul className="mt-2 grid gap-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        {suggestions.map((suggestion) => (
+                            <li key={suggestion}>{suggestion}</li>
+                        ))}
+                    </ul>
+                    <Button
+                        className="mt-3"
+                        onClick={() => onUseMetadata(learningDesign)}
+                        type="button"
+                        variant="outline"
+                    >
+                        <ArrowRight className="size-4" />
+                        Edit with these suggestions
+                    </Button>
+                    <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        This only opens the editor with a draft. Nothing changes
+                        until you save.
+                    </p>
+                </>
+            ) : (
+                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    No metadata change suggested.
+                </p>
+            )}
+        </div>
+    );
+}
+
+function AlignmentView({
+    alignment,
+    label,
+}: {
+    alignment: ActivityReviewAlignment;
+    label: string;
+}) {
+    return (
+        <div className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
+            <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">{label}</p>
+                <span className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                    {alignment.signal}
+                </span>
+            </div>
+            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                {alignment.note}
+            </p>
+        </div>
+    );
+}
+
+function ReviewList({ items, title }: { items: string[]; title: string }) {
+    return (
+        <div className="grid gap-2">
+            <p className="text-sm font-semibold">{title}</p>
+            {items.length > 0 ? (
+                <ul className="grid gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    {items.map((item, index) => (
+                        <li className="flex gap-2" key={`${title}-${index}`}>
+                            <span className="text-[var(--settings-accent)]">
+                                •
+                            </span>
+                            <span>{item}</span>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                    None recorded.
+                </p>
+            )}
+        </div>
+    );
+}

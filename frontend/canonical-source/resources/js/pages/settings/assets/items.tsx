@@ -1,0 +1,543 @@
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import {
+    ArrowLeft,
+    Download,
+    Image,
+    LoaderCircle,
+    Package,
+    Plus,
+    Save,
+    Search,
+    Upload,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import InputError from '@/components/input-error';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
+import { ReusableImagePicker } from '@/components/reusable-image-picker';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { AssetLibraryWorkspace } from '@/features/settings/asset-library-workspace';
+import { useDirtyState } from '@/hooks/use-dirty-state';
+import { uploadMediaFile } from '@/lib/media-upload';
+import { cn } from '@/lib/utils';
+import type { Auth } from '@/types';
+
+export type AdminItem = {
+    description: string | null;
+    id: number;
+    imageDark: string | null;
+    imageLight: string | null;
+    slug: string;
+    title: string;
+};
+
+type ItemForm = {
+    description: string;
+    image_dark: string;
+    image_light: string;
+    slug: string;
+    title: string;
+};
+
+const emptyForm: ItemForm = {
+    description: '',
+    image_dark: '',
+    image_light: '',
+    slug: '',
+    title: '',
+};
+
+export default function AdminItemsPage({
+    embedded = false,
+    items,
+}: {
+    embedded?: boolean;
+    items: AdminItem[];
+}) {
+    const page = usePage<{ auth: Auth }>();
+    const { auth } = page.props;
+    const { url } = page;
+    const canViewPath = auth.canViewMediaPaths;
+    const selectedFromUrl = useMemo(() => selectedItemIdFromUrl(url), [url]);
+    const [selectedItemId, setSelectedItemId] = useState<number | null>(
+        () => selectedFromUrl ?? items[0]?.id ?? null,
+    );
+    const [search, setSearch] = useState('');
+    const selectedItem =
+        items.find((item) => item.id === selectedItemId) ?? null;
+    const filteredItems = useMemo(() => {
+        const needle = search.trim().toLowerCase();
+
+        return needle
+            ? items.filter((item) =>
+                  [item.title, item.slug, item.description ?? '']
+                      .join(' ')
+                      .toLowerCase()
+                      .includes(needle),
+              )
+            : items;
+    }, [items, search]);
+
+    return (
+        <>
+            {!embedded ? <Head title="Edit items" /> : null}
+            <main
+                className={cn(
+                    'h-full overflow-hidden text-slate-950 dark:text-slate-100',
+                    embedded
+                        ? 'bg-transparent'
+                        : 'bg-slate-100 dark:bg-[#0b1117]',
+                )}
+            >
+                <div
+                    className={cn(
+                        'mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24',
+                        embedded && 'max-w-none px-0 pt-0 pb-0',
+                    )}
+                >
+                    {!embedded ? (
+                        <header className="shrink-0 pb-5">
+                            <Button asChild className="mb-4" variant="ghost">
+                                <Link href="/settings/assets">
+                                    <ArrowLeft className="size-4" />
+                                    Tools, items and currencies
+                                </Link>
+                            </Button>
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                                Administration
+                            </p>
+                            <h1 className="mt-2 text-3xl font-semibold tracking-normal">
+                                Edit items
+                            </h1>
+                        </header>
+                    ) : null}
+
+                    <AssetLibraryWorkspace>
+                        <ItemFormPanel
+                            canViewPath={canViewPath}
+                            key={selectedItem?.id ?? 'new'}
+                            selectedItem={selectedItem}
+                        />
+                        <ItemListPanel
+                            filteredItems={filteredItems}
+                            onCreate={() => setSelectedItemId(null)}
+                            onSearch={setSearch}
+                            onSelect={setSelectedItemId}
+                            search={search}
+                            selectedItemId={selectedItemId}
+                        />
+                    </AssetLibraryWorkspace>
+                </div>
+            </main>
+        </>
+    );
+}
+
+function ItemFormPanel({
+    canViewPath,
+    selectedItem,
+}: {
+    canViewPath: boolean;
+    selectedItem: AdminItem | null;
+}) {
+    const [form, setForm] = useState<ItemForm>(() =>
+        selectedItem ? formFromItem(selectedItem) : emptyForm,
+    );
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [uploadErrors, setUploadErrors] = useState<Record<string, string>>(
+        {},
+    );
+    const [saving, setSaving] = useState(false);
+    const [uploadingField, setUploadingField] = useState<keyof ItemForm | null>(
+        null,
+    );
+    const baseline = selectedItem ? formFromItem(selectedItem) : emptyForm;
+    const hasChanges = useDirtyState(form, baseline);
+    const updateField = (field: keyof ItemForm, value: string) =>
+        setForm((current) => ({ ...current, [field]: value }));
+
+    const saveItem = () => {
+        if (!hasChanges) {
+            return;
+        }
+
+        setSaving(true);
+        setErrors({});
+
+        const options = {
+            onError: (nextErrors: Record<string, string>) =>
+                setErrors(nextErrors),
+            onFinish: () => setSaving(false),
+            preserveScroll: true,
+            preserveState: false,
+        };
+
+        if (selectedItem) {
+            router.patch(
+                `/settings/assets/items/${selectedItem.id}`,
+                form,
+                options,
+            );
+
+            return;
+        }
+
+        router.post('/settings/assets/items', form, options);
+    };
+
+    const uploadMedia = async (field: keyof ItemForm, file: File) => {
+        setUploadingField(field);
+        setUploadErrors((current) => ({ ...current, [field]: '' }));
+
+        try {
+            const payload = await uploadMediaFile({
+                endpoint: '/settings/assets/item-media',
+                file,
+            });
+
+            updateField(field, payload.url);
+        } catch (error) {
+            setUploadErrors((current) => ({
+                ...current,
+                [field]:
+                    error instanceof Error
+                        ? error.message
+                        : 'The file could not be uploaded.',
+            }));
+        } finally {
+            setUploadingField(null);
+        }
+    };
+
+    return (
+        <div className="min-h-0 overflow-hidden">
+            <div className="flex h-full flex-col">
+                <div className="shrink-0 border-b border-slate-200 p-4 dark:border-white/10">
+                    <div className="flex items-center gap-3">
+                        <span className="flex size-10 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
+                            <Package className="size-5" />
+                        </span>
+                        <div>
+                            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                                {selectedItem ? selectedItem.title : 'New item'}
+                            </h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Consumable inventory object.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                    <div className="grid gap-4">
+                        <TextField
+                            error={errors.title}
+                            label="Name"
+                            onChange={(value) => updateField('title', value)}
+                            value={form.title}
+                        />
+                        <TextField
+                            error={errors.slug}
+                            label="Slug"
+                            onChange={(value) => updateField('slug', value)}
+                            value={form.slug}
+                        />
+                        <TextField
+                            error={errors.description}
+                            label="Description"
+                            onChange={(value) =>
+                                updateField('description', value)
+                            }
+                            value={form.description}
+                        />
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <MediaField
+                                error={
+                                    errors.image_dark ?? uploadErrors.image_dark
+                                }
+                                label="Dark image"
+                                onChange={(value) =>
+                                    updateField('image_dark', value)
+                                }
+                                onUpload={(file) =>
+                                    uploadMedia('image_dark', file)
+                                }
+                                uploading={uploadingField === 'image_dark'}
+                                value={form.image_dark}
+                                canViewPath={canViewPath}
+                            />
+                            <MediaField
+                                error={
+                                    errors.image_light ??
+                                    uploadErrors.image_light
+                                }
+                                label="Light image"
+                                onChange={(value) =>
+                                    updateField('image_light', value)
+                                }
+                                onUpload={(file) =>
+                                    uploadMedia('image_light', file)
+                                }
+                                uploading={uploadingField === 'image_light'}
+                                value={form.image_light}
+                                canViewPath={canViewPath}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <footer className="flex shrink-0 justify-end border-t border-slate-200 p-4 dark:border-white/10">
+                    <Button
+                        disabled={saving || !hasChanges}
+                        onClick={saveItem}
+                        type="button"
+                    >
+                        {saving ? (
+                            <LoaderCircle className="size-4 animate-spin" />
+                        ) : (
+                            <Save className="size-4" />
+                        )}
+                        Save item
+                    </Button>
+                </footer>
+            </div>
+        </div>
+    );
+}
+
+function ItemListPanel({
+    filteredItems,
+    onCreate,
+    onSearch,
+    onSelect,
+    search,
+    selectedItemId,
+}: {
+    filteredItems: AdminItem[];
+    onCreate: () => void;
+    onSearch: (value: string) => void;
+    onSelect: (id: number) => void;
+    search: string;
+    selectedItemId: number | null;
+}) {
+    return (
+        <aside className="min-h-0 overflow-hidden">
+            <div className="flex h-full flex-col">
+                <div className="shrink-0 border-b border-slate-200 p-4 dark:border-white/10">
+                    <div className="relative">
+                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+                        <Input
+                            className="pl-9"
+                            onChange={(event) =>
+                                onSearch(event.currentTarget.value)
+                            }
+                            placeholder="Search items"
+                            value={search}
+                        />
+                    </div>
+                </div>
+                <div className="min-h-0 flex-1 p-3">
+                    <LearnerPaginatedItems
+                        className="grid gap-2"
+                        emptyState={
+                            <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                                No items match this search.
+                            </p>
+                        }
+                        items={filteredItems}
+                        key={search}
+                        pageSize={4}
+                        paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
+                        paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
+                        paginationTextClassName="text-xs text-[var(--settings-muted-text)]"
+                        renderItem={(item) => (
+                            <button
+                                className={cn(
+                                    'flex items-center gap-3 rounded-lg border p-3 text-left transition',
+                                    selectedItemId === item.id
+                                        ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)]'
+                                        : 'border-slate-200 bg-slate-50 hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/5',
+                                )}
+                                key={item.id}
+                                onClick={() => onSelect(item.id)}
+                                type="button"
+                            >
+                                <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-md bg-white dark:bg-slate-950/80">
+                                    {item.imageDark || item.imageLight ? (
+                                        <img
+                                            alt=""
+                                            className="h-full w-full object-contain"
+                                            src={
+                                                item.imageDark ??
+                                                item.imageLight ??
+                                                ''
+                                            }
+                                        />
+                                    ) : (
+                                        <Package className="size-5 text-[var(--settings-accent)]" />
+                                    )}
+                                </span>
+                                <span className="min-w-0">
+                                    <span className="block truncate text-sm font-semibold">
+                                        {item.title}
+                                    </span>
+                                    <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
+                                        {item.slug}
+                                    </span>
+                                </span>
+                            </button>
+                        )}
+                    />
+                </div>
+                <div className="shrink-0 border-t border-slate-200 p-4 dark:border-white/10">
+                    <Button className="w-full" onClick={onCreate} type="button">
+                        <Plus className="size-4" />
+                        Create item
+                    </Button>
+                </div>
+            </div>
+        </aside>
+    );
+}
+
+function TextField({
+    error,
+    label,
+    onChange,
+    value,
+}: {
+    error?: string;
+    label: string;
+    onChange: (value: string) => void;
+    value: string;
+}) {
+    return (
+        <div className="grid gap-2">
+            <Label>{label}</Label>
+            <Input
+                onChange={(event) => onChange(event.currentTarget.value)}
+                value={value}
+            />
+            <InputError message={error} />
+        </div>
+    );
+}
+
+function MediaField({
+    canViewPath,
+    error,
+    label,
+    onChange,
+    onUpload,
+    uploading,
+    value,
+}: {
+    canViewPath: boolean;
+    error?: string;
+    label: string;
+    onChange: (value: string) => void;
+    onUpload: (file: File) => void;
+    uploading: boolean;
+    value: string;
+}) {
+    const [pickerOpen, setPickerOpen] = useState(false);
+
+    return (
+        <div className="grid gap-3 rounded-lg bg-slate-100 p-4 dark:bg-white/5">
+            <div className="flex items-center gap-3">
+                <span className="flex size-8 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
+                    <Image className="size-4" />
+                </span>
+                <Label>{label}</Label>
+            </div>
+            {canViewPath ? (
+                <Input
+                    onChange={(event) => onChange(event.currentTarget.value)}
+                    value={value}
+                />
+            ) : value ? (
+                <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-400">
+                    Path hidden by role permissions.
+                </p>
+            ) : null}
+            {value ? (
+                <div className="grid h-28 place-items-center overflow-hidden rounded-md bg-white dark:bg-slate-950/70">
+                    <img
+                        alt=""
+                        className="max-h-full max-w-full object-contain"
+                        src={value}
+                    />
+                </div>
+            ) : null}
+            <InputError message={error} />
+            <div className="flex flex-wrap gap-2">
+                <Button asChild disabled={uploading} variant="secondary">
+                    <label>
+                        {uploading ? (
+                            <LoaderCircle className="size-4 animate-spin" />
+                        ) : (
+                            <Upload className="size-4" />
+                        )}
+                        Upload
+                        <input
+                            className="sr-only"
+                            onChange={(event) => {
+                                const file = event.currentTarget.files?.[0];
+
+                                if (file) {
+                                    onUpload(file);
+                                }
+                            }}
+                            type="file"
+                        />
+                    </label>
+                </Button>
+                <Button
+                    disabled={!value}
+                    onClick={() => window.open(value, '_blank', 'noopener')}
+                    type="button"
+                    variant="ghost"
+                >
+                    <Download className="size-4" />
+                    Download
+                </Button>
+                <Button
+                    onClick={() => setPickerOpen(true)}
+                    type="button"
+                    variant="ghost"
+                >
+                    Select existing
+                </Button>
+            </div>
+            {pickerOpen ? (
+                <ReusableImagePicker
+                    currentValue={value}
+                    onClear={() => onChange('')}
+                    onClose={() => setPickerOpen(false)}
+                    onSelect={(url) => {
+                        onChange(url);
+                        setPickerOpen(false);
+                    }}
+                />
+            ) : null}
+        </div>
+    );
+}
+
+function formFromItem(item: AdminItem): ItemForm {
+    return {
+        description: item.description ?? '',
+        image_dark: item.imageDark ?? '',
+        image_light: item.imageLight ?? '',
+        slug: item.slug,
+        title: item.title,
+    };
+}
+
+function selectedItemIdFromUrl(url: string): number | null {
+    const item = new URL(url, window.location.origin).searchParams.get('item');
+    const id = item ? Number(item) : null;
+
+    return id && Number.isFinite(id) ? id : null;
+}

@@ -1,0 +1,906 @@
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import {
+    ArrowLeft,
+    Download,
+    Hammer,
+    Image,
+    Images,
+    LoaderCircle,
+    Plus,
+    Save,
+    Search,
+    Upload,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import type { CSSProperties, MouseEvent } from 'react';
+import InputError from '@/components/input-error';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
+import { ReusableImagePicker } from '@/components/reusable-image-picker';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { AssetLibraryWorkspace } from '@/features/settings/asset-library-workspace';
+import { ToolCursorImage } from '@/features/tools/tool-cursor-overlay';
+import { toolAnimationWidthStyle } from '@/features/tools/tool-visuals';
+import { useAppearance } from '@/hooks/use-appearance';
+import { useDirtyState } from '@/hooks/use-dirty-state';
+import { uploadMediaFile } from '@/lib/media-upload';
+import { cn } from '@/lib/utils';
+import type { Auth } from '@/types';
+
+export type AdminTool = {
+    animationDark: string | null;
+    animationDurationSeconds: number | null;
+    animationLight: string | null;
+    animationWidthPercent: number | null;
+    createdAt: string | null;
+    description: string | null;
+    id: number;
+    imageDark: string | null;
+    imageLight: string | null;
+    imageWidthPercent: number | null;
+    slug: string;
+    title: string;
+    updatedAt: string | null;
+};
+
+type ToolForm = {
+    animation_dark: string;
+    animation_duration_seconds: string;
+    animation_light: string;
+    animation_width_percent: string;
+    description: string;
+    image_dark: string;
+    image_light: string;
+    image_width_percent: string;
+    slug: string;
+    title: string;
+};
+
+const emptyForm: ToolForm = {
+    animation_dark: '',
+    animation_duration_seconds: '',
+    animation_light: '',
+    animation_width_percent: '',
+    description: '',
+    image_dark: '',
+    image_light: '',
+    image_width_percent: '16',
+    slug: '',
+    title: '',
+};
+
+export default function AdminToolsPage({
+    embedded = false,
+    tools,
+}: {
+    embedded?: boolean;
+    tools: AdminTool[];
+}) {
+    const page = usePage<{ auth: Auth }>();
+    const { auth } = page.props;
+    const { url } = page;
+    const canViewPath = auth.canViewMediaPaths;
+    const querySelectedToolId = useMemo(
+        () => selectedToolIdFromUrl(url),
+        [url],
+    );
+    const [selectedToolId, setSelectedToolId] = useState<number | null>(
+        () => querySelectedToolId ?? tools[0]?.id ?? null,
+    );
+    const selectedTool =
+        tools.find((tool) => tool.id === selectedToolId) ?? null;
+    const [search, setSearch] = useState('');
+
+    const filteredTools = useMemo(() => {
+        const needle = search.trim().toLowerCase();
+
+        if (!needle) {
+            return tools;
+        }
+
+        return tools.filter((tool) =>
+            [tool.title, tool.slug, tool.description ?? '']
+                .join(' ')
+                .toLowerCase()
+                .includes(needle),
+        );
+    }, [search, tools]);
+
+    const createNewTool = () => {
+        setSelectedToolId(null);
+    };
+
+    return (
+        <>
+            {!embedded ? <Head title="Edit tools" /> : null}
+            <main
+                className={cn(
+                    'h-full overflow-hidden text-slate-950 dark:text-slate-100',
+                    embedded
+                        ? 'bg-transparent'
+                        : 'bg-slate-100 dark:bg-[#0b1117]',
+                )}
+            >
+                <div
+                    className={cn(
+                        'mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24',
+                        embedded && 'max-w-none px-0 pt-0 pb-0',
+                    )}
+                >
+                    {!embedded ? (
+                        <header className="flex shrink-0 items-start justify-between gap-4 pb-5">
+                            <div>
+                                <Button
+                                    asChild
+                                    className="mb-4"
+                                    variant="ghost"
+                                >
+                                    <Link href="/settings/assets">
+                                        <ArrowLeft className="size-4" />
+                                        Tools, items and currencies
+                                    </Link>
+                                </Button>
+                                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                                    Administration
+                                </p>
+                                <h1 className="mt-2 text-3xl font-semibold tracking-normal">
+                                    Edit tools
+                                </h1>
+                            </div>
+                        </header>
+                    ) : null}
+
+                    <AssetLibraryWorkspace>
+                        <ToolFormPanel
+                            canViewPath={canViewPath}
+                            key={selectedTool?.id ?? 'new'}
+                            isNew={!selectedTool}
+                            selectedTool={selectedTool}
+                        />
+                        <ToolListPanel
+                            filteredTools={filteredTools}
+                            onCreate={createNewTool}
+                            onSearch={setSearch}
+                            onSelect={setSelectedToolId}
+                            search={search}
+                            selectedToolId={selectedToolId}
+                        />
+                    </AssetLibraryWorkspace>
+                </div>
+            </main>
+        </>
+    );
+}
+
+function ToolFormPanel({
+    canViewPath,
+    isNew,
+    selectedTool,
+}: {
+    canViewPath: boolean;
+    isNew: boolean;
+    selectedTool: AdminTool | null;
+}) {
+    const [form, setForm] = useState<ToolForm>(() =>
+        selectedTool ? formFromTool(selectedTool) : emptyForm,
+    );
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [saving, setSaving] = useState(false);
+    const [uploadingField, setUploadingField] = useState<keyof ToolForm | null>(
+        null,
+    );
+    const [uploadErrors, setUploadErrors] = useState<Record<string, string>>(
+        {},
+    );
+    const { resolvedAppearance } = useAppearance();
+    const baseline = selectedTool ? formFromTool(selectedTool) : emptyForm;
+    const hasChanges = useDirtyState(form, baseline);
+    const updateField = (field: keyof ToolForm, value: string) => {
+        setForm((current) => ({ ...current, [field]: value }));
+    };
+    const saveTool = () => {
+        if (!hasChanges) {
+            return;
+        }
+
+        setSaving(true);
+        setErrors({});
+
+        const options = {
+            onError: (nextErrors: Record<string, string>) =>
+                setErrors(nextErrors),
+            onFinish: () => setSaving(false),
+            preserveScroll: true,
+            preserveState: false,
+        };
+
+        if (selectedTool) {
+            router.patch(
+                `/settings/assets/tools/${selectedTool.id}`,
+                form,
+                options,
+            );
+
+            return;
+        }
+
+        router.post('/settings/assets/tools', form, options);
+    };
+    const uploadMedia = async (field: keyof ToolForm, file: File) => {
+        setUploadingField(field);
+        setUploadErrors((current) => ({ ...current, [field]: '' }));
+
+        try {
+            const payload = await uploadMediaFile({
+                endpoint: '/settings/assets/tool-media',
+                file,
+            });
+
+            updateField(field, payload.url);
+
+            if (
+                field.startsWith('animation_') &&
+                payload.durationSeconds !== null &&
+                payload.durationSeconds !== undefined
+            ) {
+                updateField(
+                    'animation_duration_seconds',
+                    String(payload.durationSeconds),
+                );
+            }
+        } catch (error) {
+            setUploadErrors((current) => ({
+                ...current,
+                [field]:
+                    error instanceof Error
+                        ? error.message
+                        : 'The file could not be uploaded.',
+            }));
+        } finally {
+            setUploadingField(null);
+        }
+    };
+
+    return (
+        <div className="min-h-0 overflow-hidden">
+            <div className="flex h-full flex-col">
+                <div className="shrink-0 border-b border-slate-200 p-4 dark:border-white/10">
+                    <div className="flex items-center gap-3">
+                        <span className="flex size-10 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
+                            <Hammer className="size-5" />
+                        </span>
+                        <div>
+                            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                                {isNew ? 'Create tool' : form.title}
+                            </h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                {isNew
+                                    ? 'Define a reusable tool for learner interactions.'
+                                    : `Last updated ${formatDate(selectedTool?.updatedAt ?? null)}`}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                    <div className="grid gap-5">
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <TextField
+                                error={errors.title}
+                                id="tool-title"
+                                label="Unique name"
+                                onChange={(value) =>
+                                    updateField('title', value)
+                                }
+                                value={form.title}
+                            />
+                            <TextField
+                                error={errors.slug}
+                                id="tool-slug"
+                                label="Slug"
+                                onChange={(value) => updateField('slug', value)}
+                                placeholder="Generated from the name when empty"
+                                value={form.slug}
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="tool-description">
+                                Description
+                            </Label>
+                            <textarea
+                                className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                                id="tool-description"
+                                onChange={(event) =>
+                                    updateField(
+                                        'description',
+                                        event.currentTarget.value,
+                                    )
+                                }
+                                value={form.description}
+                            />
+                            <InputError message={errors.description} />
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <MediaField
+                                error={
+                                    errors.image_dark ?? uploadErrors.image_dark
+                                }
+                                field="image_dark"
+                                label="Dark tool image"
+                                onChange={updateField}
+                                onUpload={uploadMedia}
+                                uploading={uploadingField === 'image_dark'}
+                                value={form.image_dark}
+                                canViewPath={canViewPath}
+                            />
+                            <MediaField
+                                error={
+                                    errors.image_light ??
+                                    uploadErrors.image_light
+                                }
+                                field="image_light"
+                                label="Light tool image"
+                                onChange={updateField}
+                                onUpload={uploadMedia}
+                                uploading={uploadingField === 'image_light'}
+                                value={form.image_light}
+                                canViewPath={canViewPath}
+                            />
+                            <MediaField
+                                error={
+                                    errors.animation_dark ??
+                                    uploadErrors.animation_dark
+                                }
+                                field="animation_dark"
+                                label="Dark animation GIF/WebP"
+                                onChange={updateField}
+                                onUpload={uploadMedia}
+                                uploading={uploadingField === 'animation_dark'}
+                                value={form.animation_dark}
+                                canViewPath={canViewPath}
+                            />
+                            <MediaField
+                                error={
+                                    errors.animation_light ??
+                                    uploadErrors.animation_light
+                                }
+                                field="animation_light"
+                                label="Light animation GIF/WebP"
+                                onChange={updateField}
+                                onUpload={uploadMedia}
+                                uploading={uploadingField === 'animation_light'}
+                                value={form.animation_light}
+                                canViewPath={canViewPath}
+                            />
+                        </div>
+
+                        <TextField
+                            error={errors.animation_duration_seconds}
+                            id="animation-duration"
+                            label="Animation duration in seconds"
+                            onChange={(value) =>
+                                updateField('animation_duration_seconds', value)
+                            }
+                            placeholder="Specify manually for now"
+                            type="number"
+                            value={form.animation_duration_seconds}
+                        />
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <TextField
+                                error={errors.image_width_percent}
+                                id="tool-image-width"
+                                label="Tool image width"
+                                onChange={(value) =>
+                                    updateField('image_width_percent', value)
+                                }
+                                placeholder="16"
+                                suffix="%"
+                                type="number"
+                                value={form.image_width_percent}
+                            />
+                            <TextField
+                                error={errors.animation_width_percent}
+                                id="tool-animation-width"
+                                label="Animation width"
+                                onChange={(value) =>
+                                    updateField(
+                                        'animation_width_percent',
+                                        value,
+                                    )
+                                }
+                                placeholder="Defaults to image width"
+                                suffix="%"
+                                type="number"
+                                value={form.animation_width_percent}
+                            />
+                        </div>
+
+                        <ToolCursorPreview
+                            form={form}
+                            mode={resolvedAppearance}
+                        />
+                    </div>
+                </div>
+
+                <div className="shrink-0 border-t border-slate-200 p-4 dark:border-white/10">
+                    <Button disabled={saving || !hasChanges} onClick={saveTool}>
+                        {saving ? (
+                            <LoaderCircle className="size-4 animate-spin" />
+                        ) : (
+                            <Save className="size-4" />
+                        )}
+                        {isNew ? 'Create tool' : 'Save tool'}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+type PreviewAnimation = {
+    durationMs: number;
+    id: number;
+    imageUrl: string;
+    widthPercent: number;
+    x: number;
+    y: number;
+};
+
+type PreviewCursorPosition = {
+    x: number;
+    y: number;
+};
+
+function ToolCursorPreview({
+    form,
+    mode,
+}: {
+    form: ToolForm;
+    mode: 'dark' | 'light';
+}) {
+    const [animation, setAnimation] = useState<PreviewAnimation | null>(null);
+    const [cursorPosition, setCursorPosition] =
+        useState<PreviewCursorPosition | null>(null);
+    const cursorImage = themedAsset(form.image_dark, form.image_light, mode);
+    const animationImage =
+        themedAsset(form.animation_dark, form.animation_light, mode) ||
+        cursorImage;
+    const imageWidth = clamp(
+        numericValue(form.image_width_percent, 16),
+        1,
+        100,
+    );
+    const durationMs = Math.max(
+        0,
+        numericValue(
+            form.animation_duration_seconds,
+            animationImage ? 0.75 : 0,
+        ) * 1000,
+    );
+    const animationWidth = clamp(
+        numericValue(form.animation_width_percent, imageWidth),
+        1,
+        100,
+    );
+    const cursorStyle = cursorImage ? 'none' : 'var(--platform-action-cursor)';
+
+    const playAnimation = (event: MouseEvent<HTMLDivElement>) => {
+        if (!animationImage) {
+            return;
+        }
+
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const nextAnimation = {
+            durationMs,
+            id: Date.now(),
+            imageUrl: animationImage,
+            widthPercent: animationWidth,
+            x: event.clientX - bounds.left,
+            y: event.clientY - bounds.top,
+        };
+
+        setAnimation(nextAnimation);
+        window.setTimeout(
+            () => setAnimation(null),
+            Math.max(nextAnimation.durationMs, 120),
+        );
+    };
+
+    return (
+        <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+            <div>
+                <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                    Tool cursor preview
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    Move inside the area to preview the cursor. Click anywhere
+                    inside to replay the configured animation.
+                </p>
+            </div>
+            <div
+                className="relative grid min-h-44 overflow-hidden rounded-lg border border-dashed border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-white text-center text-sm text-slate-500 select-none dark:bg-slate-950/70 dark:text-slate-400"
+                onClick={playAnimation}
+                onPointerLeave={() => setCursorPosition(null)}
+                onPointerMove={(event) =>
+                    setCursorPosition({
+                        x: event.nativeEvent.offsetX,
+                        y: event.nativeEvent.offsetY,
+                    })
+                }
+                style={{ cursor: cursorStyle }}
+            >
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_12%,transparent),transparent_55%)]" />
+                <div className="pointer-events-none relative z-10 m-auto grid gap-1">
+                    <span>
+                        {cursorImage
+                            ? 'Hover here with the tool cursor'
+                            : 'Add a tool image to preview the cursor'}
+                    </span>
+                    <span className="text-xs">
+                        {animationImage
+                            ? 'Click to play the animation'
+                            : 'Add an animation or image to test playback'}
+                    </span>
+                </div>
+                {animation ? (
+                    <img
+                        alt=""
+                        className="pointer-events-none absolute z-20 h-auto max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+                        draggable={false}
+                        src={cacheBustedUrl(animation.imageUrl, animation.id)}
+                        style={
+                            {
+                                left: animation.x,
+                                top: animation.y,
+                                width: toolAnimationWidthStyle(
+                                    animation.widthPercent,
+                                ),
+                            } satisfies CSSProperties
+                        }
+                    />
+                ) : null}
+                {cursorImage && cursorPosition && !animation ? (
+                    <ToolCursorImage
+                        imageUrl={cursorImage}
+                        position={cursorPosition}
+                        widthPercent={imageWidth}
+                    />
+                ) : null}
+            </div>
+        </div>
+    );
+}
+
+function ToolListPanel({
+    filteredTools,
+    onCreate,
+    onSearch,
+    onSelect,
+    search,
+    selectedToolId,
+}: {
+    filteredTools: AdminTool[];
+    onCreate: () => void;
+    onSearch: (value: string) => void;
+    onSelect: (toolId: number) => void;
+    search: string;
+    selectedToolId: number | null;
+}) {
+    return (
+        <aside className="flex min-h-0 flex-col overflow-hidden">
+            <div className="shrink-0 border-b border-slate-200 p-3 dark:border-white/10">
+                <div className="relative">
+                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                        className="pl-9"
+                        onChange={(event) =>
+                            onSearch(event.currentTarget.value)
+                        }
+                        placeholder="Search tools"
+                        value={search}
+                    />
+                </div>
+            </div>
+
+            <div className="min-h-0 flex-1 p-2">
+                <LearnerPaginatedItems
+                    className="grid gap-2"
+                    emptyState={
+                        <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                            No tools match this search.
+                        </p>
+                    }
+                    items={filteredTools}
+                    key={search}
+                    pageSize={4}
+                    paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
+                    paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
+                    paginationTextClassName="text-xs text-[var(--settings-muted-text)]"
+                    renderItem={(tool) => (
+                        <ToolListItem
+                            isSelected={selectedToolId === tool.id}
+                            key={tool.id}
+                            onSelect={() => onSelect(tool.id)}
+                            tool={tool}
+                        />
+                    )}
+                />
+            </div>
+
+            <div className="shrink-0 border-t border-slate-200 p-3 dark:border-white/10">
+                <Button
+                    className="w-full"
+                    onClick={onCreate}
+                    variant="secondary"
+                >
+                    <Plus className="size-4" />
+                    Create new tool
+                </Button>
+            </div>
+        </aside>
+    );
+}
+
+function ToolListItem({
+    isSelected,
+    onSelect,
+    tool,
+}: {
+    isSelected: boolean;
+    onSelect: () => void;
+    tool: AdminTool;
+}) {
+    const image = tool.imageDark ?? tool.imageLight;
+
+    return (
+        <button
+            className={cn(
+                'flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:border-white/8 dark:bg-white/5',
+                isSelected &&
+                    'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)]',
+            )}
+            onClick={onSelect}
+            type="button"
+        >
+            <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-white dark:bg-slate-950">
+                {image ? (
+                    <img
+                        alt=""
+                        className="size-full object-contain"
+                        draggable={false}
+                        src={image}
+                    />
+                ) : (
+                    <Hammer className="size-5 text-slate-400" />
+                )}
+            </span>
+            <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold text-slate-950 dark:text-white">
+                    {tool.title}
+                </span>
+                <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                    {tool.slug}
+                </span>
+            </span>
+        </button>
+    );
+}
+
+function TextField({
+    error,
+    id,
+    label,
+    onChange,
+    placeholder,
+    suffix,
+    type = 'text',
+    value,
+}: {
+    error?: string;
+    id: string;
+    label: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    suffix?: string;
+    type?: string;
+    value: string;
+}) {
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor={id}>{label}</Label>
+            <div className="grid grid-cols-[1fr_auto] items-center gap-2">
+                <Input
+                    id={id}
+                    min={type === 'number' ? 0 : undefined}
+                    onChange={(event) => onChange(event.currentTarget.value)}
+                    placeholder={placeholder}
+                    step={type === 'number' ? 0.1 : undefined}
+                    type={type}
+                    value={value}
+                />
+                {suffix ? (
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {suffix}
+                    </span>
+                ) : null}
+            </div>
+            <InputError message={error} />
+        </div>
+    );
+}
+
+function MediaField({
+    canViewPath,
+    error,
+    field,
+    label,
+    onChange,
+    onUpload,
+    uploading,
+    value,
+}: {
+    canViewPath: boolean;
+    error?: string;
+    field: keyof ToolForm;
+    label: string;
+    onChange: (field: keyof ToolForm, value: string) => void;
+    onUpload: (field: keyof ToolForm, file: File) => void;
+    uploading: boolean;
+    value: string;
+}) {
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor={field}>{label}</Label>
+            <div className="flex gap-2">
+                {canViewPath ? (
+                    <Input
+                        className="min-w-0"
+                        id={field}
+                        onChange={(event) =>
+                            onChange(field, event.currentTarget.value)
+                        }
+                        value={value}
+                    />
+                ) : null}
+                <label className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-slate-200">
+                    {uploading ? (
+                        <LoaderCircle className="size-4 animate-spin" />
+                    ) : (
+                        <Upload className="size-4" />
+                    )}
+                    <input
+                        className="sr-only"
+                        onChange={(event) => {
+                            const file = event.currentTarget.files?.[0];
+
+                            if (file) {
+                                onUpload(field, file);
+                            }
+
+                            event.currentTarget.value = '';
+                        }}
+                        accept=".gif,.jpg,.jpeg,.png,.svg,.webp,image/gif,image/jpeg,image/png,image/svg+xml,image/webp"
+                        type="file"
+                    />
+                </label>
+                <Button
+                    aria-label={`Select existing ${label}`}
+                    onClick={() => setIsPickerOpen(true)}
+                    size="icon"
+                    type="button"
+                    variant="secondary"
+                >
+                    <Images className="size-4" />
+                </Button>
+                {value ? (
+                    <Button asChild size="icon" variant="secondary">
+                        <a download href={value}>
+                            <Download className="size-4" />
+                        </a>
+                    </Button>
+                ) : null}
+            </div>
+            {value ? (
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-white/5">
+                    <Image className="size-4 shrink-0 text-[var(--settings-accent)]" />
+                    <span className="truncate text-xs text-slate-500 dark:text-slate-400">
+                        {canViewPath
+                            ? value
+                            : 'Path hidden by role permissions.'}
+                    </span>
+                </div>
+            ) : null}
+            <InputError message={error} />
+            {isPickerOpen ? (
+                <ReusableImagePicker
+                    currentValue={value}
+                    onClear={() => {
+                        onChange(field, '');
+                        setIsPickerOpen(false);
+                    }}
+                    onClose={() => setIsPickerOpen(false)}
+                    onSelect={(url) => {
+                        onChange(field, url);
+                        setIsPickerOpen(false);
+                    }}
+                />
+            ) : null}
+        </div>
+    );
+}
+
+function formFromTool(tool: AdminTool): ToolForm {
+    return {
+        animation_dark: tool.animationDark ?? '',
+        animation_duration_seconds:
+            tool.animationDurationSeconds === null
+                ? ''
+                : String(tool.animationDurationSeconds),
+        animation_light: tool.animationLight ?? '',
+        animation_width_percent:
+            tool.animationWidthPercent === null
+                ? ''
+                : String(tool.animationWidthPercent),
+        description: tool.description ?? '',
+        image_dark: tool.imageDark ?? '',
+        image_light: tool.imageLight ?? '',
+        image_width_percent:
+            tool.imageWidthPercent === null
+                ? '16'
+                : String(tool.imageWidthPercent),
+        slug: tool.slug,
+        title: tool.title,
+    };
+}
+
+function selectedToolIdFromUrl(url: string): number | null {
+    const query = url.split('?')[1] ?? '';
+    const value = new URLSearchParams(query).get('tool');
+    const parsed = Number(value);
+
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function formatDate(value: string | null): string {
+    if (!value) {
+        return 'not saved yet';
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    }).format(new Date(value));
+}
+
+function themedAsset(
+    darkAsset: string,
+    lightAsset: string,
+    mode: 'dark' | 'light',
+): string {
+    if (mode === 'light') {
+        return lightAsset || darkAsset;
+    }
+
+    return darkAsset || lightAsset;
+}
+
+function numericValue(value: string, fallback: number): number {
+    const numeric = Number(value);
+
+    return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function cacheBustedUrl(url: string, id: number): string {
+    const separator = url.includes('?') ? '&' : '?';
+
+    return `${url}${separator}tool_preview=${id}`;
+}
+
+function clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+}

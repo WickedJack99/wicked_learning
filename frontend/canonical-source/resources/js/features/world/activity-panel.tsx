@@ -1,0 +1,1287 @@
+import { Link, router } from '@inertiajs/react';
+import {
+    ArrowRight,
+    Bookmark,
+    CheckCircle2,
+    ExternalLink,
+    PlayCircle,
+    RotateCcw,
+    X,
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { PaginationControls } from '@/components/pagination-controls';
+import { Button } from '@/components/ui/button';
+import { competenceTopicHref } from '@/features/competence/competence-links';
+import { useAppearance } from '@/hooks/use-appearance';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import { cn } from '@/lib/utils';
+import type {
+    ActivityCompletionOutcome,
+    ActivityTransition,
+    LearningActivity,
+    LearningNode,
+    LearningPortalLink,
+    LearningProgress,
+    QuestionConfidence,
+    QuestionCalibration,
+    QuestionAnswerProgress,
+    LearningUnlockRequirement,
+} from '@/types';
+import { ActivityAmbientSound } from './activity-ambient-sound';
+import { learningFocusLabel } from './activity-utils';
+import { postJson } from './api';
+import { ItemGrantActivity } from './item-grant-activity';
+import { ItemObstacleActivity } from './item-obstacle-activity';
+import { MarkdownActivity } from './markdown-activity';
+import {
+    MessagePromptActivity,
+    MessageWallActivity,
+} from './message-activities';
+import { NpcDialogueActivity } from './npc-dialogue-player';
+import { ObstacleActivity } from './obstacle-activity';
+import { SharedTaskActivity } from './shared-task-activity';
+import {
+    OpenPracticeActivity,
+    PortalActivity,
+    QuestionActivity,
+    ReflectionActivity,
+} from './standard-activities';
+import { ToolGrantActivity } from './tool-grant-activity';
+
+export function ActivityPanel({
+    canBookmark,
+    isCompleted,
+    node,
+    onClose,
+    onStart,
+    onToggleBookmark,
+    isBookmarked,
+}: {
+    canBookmark: boolean;
+    isBookmarked: boolean;
+    isCompleted: boolean;
+    node: LearningNode | null;
+    onClose: () => void;
+    onStart: (
+        node: LearningNode,
+        activityId: number | null,
+        routeId?: number | null,
+    ) => void;
+    onToggleBookmark: (node: LearningNode) => void;
+}) {
+    const translate = usePlatformTranslation();
+
+    if (!node) {
+        return null;
+    }
+
+    if (node.state === 'locked') {
+        return (
+            <PanelShell
+                eyebrow={translate('learning.map.location', 'Location')}
+                headerAction={
+                    <PanelNodeActions
+                        isBookmarked={isBookmarked}
+                        canBookmark={canBookmark}
+                        isCompleted={isCompleted}
+                        node={node}
+                        onToggleBookmark={onToggleBookmark}
+                    />
+                }
+                onClose={onClose}
+                title={node.title}
+            >
+                <NodeSummary node={node} />
+                <LockedActivityState node={node} />
+            </PanelShell>
+        );
+    }
+
+    return (
+        <PanelShell
+            eyebrow={translate('learning.map.location', 'Location')}
+            headerAction={
+                <PanelNodeActions
+                    isBookmarked={isBookmarked}
+                    canBookmark={canBookmark}
+                    isCompleted={isCompleted}
+                    node={node}
+                    onToggleBookmark={onToggleBookmark}
+                />
+            }
+            onClose={onClose}
+            title={node.title}
+        >
+            <NodeSummary node={node} />
+            {node.activities.length > 0 ? (
+                <RouteStartButtons node={node} onStart={onStart} />
+            ) : (
+                <EmptyActivityState />
+            )}
+        </PanelShell>
+    );
+}
+
+function RouteStartButtons({
+    node,
+    onStart,
+}: {
+    node: LearningNode;
+    onStart: (
+        node: LearningNode,
+        activityId: number | null,
+        routeId?: number | null,
+    ) => void;
+}) {
+    const [routePageState, setRoutePageState] = useState({
+        nodeId: node.id,
+        page: 1,
+    });
+    const { resolvedAppearance } = useAppearance();
+    const translate = usePlatformTranslation();
+
+    const routes =
+        node.startRoutes.length > 0
+            ? node.startRoutes
+            : ([
+                  {
+                      activityId: node.startActivityId,
+                      buttonBorderColorDark: null,
+                      buttonBorderColorLight: null,
+                      buttonColorDark: null,
+                      buttonColorLight: null,
+                      id: 0,
+                      imageDark: null,
+                      imageLight: null,
+                      label: translate('learning.map.start_node', 'Start node'),
+                      progress: null,
+                      sortOrder: 0,
+                  },
+              ].filter(
+                  (route) => route.activityId !== null,
+              ) as LearningNode['startRoutes']);
+
+    if (routes.length === 0) {
+        return <EmptyActivityState />;
+    }
+
+    const routePageCount = Math.max(
+        1,
+        Math.ceil(routes.length / ROUTE_PAGE_SIZE),
+    );
+    const routePage =
+        routePageState.nodeId === node.id ? routePageState.page : 1;
+    const currentPage = Math.min(routePage, routePageCount);
+    const visibleRoutes = routes.slice(
+        (currentPage - 1) * ROUTE_PAGE_SIZE,
+        currentPage * ROUTE_PAGE_SIZE,
+    );
+
+    return (
+        <div className="relative mt-auto flex shrink-0 flex-col pb-12 md:pb-14">
+            <div className="grid gap-2 px-1 pt-2 pb-1">
+                {visibleRoutes.map((route) => (
+                    <RouteStartOption
+                        key={`${route.id}:${route.activityId}`}
+                        mode={resolvedAppearance}
+                        node={node}
+                        onStart={onStart}
+                        route={route}
+                        translate={translate}
+                    />
+                ))}
+            </div>
+            <PaginationControls
+                className="mt-2 shrink-0 px-1 text-xs text-slate-500 dark:text-slate-400"
+                currentPage={currentPage}
+                onPageChange={(page) =>
+                    setRoutePageState({ nodeId: node.id, page })
+                }
+                pageCount={routePageCount}
+            />
+        </div>
+    );
+}
+
+const ROUTE_PAGE_SIZE = 3;
+
+function RouteStartOption({
+    mode,
+    node,
+    onStart,
+    route,
+    translate,
+}: {
+    mode: 'dark' | 'light';
+    node: LearningNode;
+    onStart: (
+        node: LearningNode,
+        activityId: number | null,
+        routeId?: number | null,
+    ) => void;
+    route: LearningNode['startRoutes'][number];
+    translate: ReturnType<typeof usePlatformTranslation>;
+}) {
+    const image = mode === 'light' ? route.imageLight : route.imageDark;
+    const buttonColor =
+        mode === 'light' ? route.buttonColorLight : route.buttonColorDark;
+    const buttonBorderColor =
+        mode === 'light'
+            ? route.buttonBorderColorLight
+            : route.buttonBorderColorDark;
+    const routeBorderColor =
+        buttonBorderColor ??
+        (mode === 'light' ? '#e2e8f0' : 'rgba(255, 255, 255, 0.1)');
+    const buttonStyle: CSSProperties = {
+        ...(buttonColor ? { backgroundColor: buttonColor } : {}),
+        backgroundClip: 'padding-box',
+        boxShadow: `inset 0 0 0 2px ${routeBorderColor}`,
+    };
+    const frameStyle: CSSProperties = {
+        boxShadow: `inset 0 0 0 2px ${routeBorderColor}`,
+    };
+
+    const resetRoute = async () => {
+        if (route.id <= 0) {
+            return;
+        }
+
+        const response = await postJson<{ url: string }>(
+            `/learning/activity-starts/${route.id}/reset`,
+            {},
+        );
+
+        router.visit(response.url);
+    };
+    const progressText = routeProgressText(route, translate);
+
+    if (image) {
+        return (
+            <div className="grid gap-1.5">
+                <button
+                    className="group relative overflow-hidden rounded-lg bg-slate-950 text-left transition duration-200 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:focus-visible:ring-teal-200"
+                    onClick={() => onStart(node, route.activityId, route.id)}
+                    type="button"
+                >
+                    <img
+                        alt=""
+                        className="h-32 w-full object-cover"
+                        decoding="async"
+                        loading="lazy"
+                        src={image}
+                    />
+                    <span
+                        className="absolute inset-x-0 top-0 z-[1] flex min-h-10 items-center justify-between gap-3 rounded-lg bg-white/90 px-3 py-2 text-sm font-semibold text-slate-950 backdrop-blur-md dark:bg-slate-950/82 dark:text-white"
+                        style={buttonStyle}
+                    >
+                        <span className="inline-flex min-w-0 items-center gap-2">
+                            <PlayCircle className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+                            <span className="truncate">{route.label}</span>
+                        </span>
+                        <ArrowRight className="size-4 shrink-0 text-cyan-700 transition group-hover:translate-x-0.5 dark:text-teal-200" />
+                    </span>
+                    <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 z-[2] rounded-lg"
+                        style={frameStyle}
+                    />
+                </button>
+                <RouteProgressActions
+                    onReset={() => void resetRoute()}
+                    progressText={progressText}
+                    route={route}
+                    resetLabel={translate('learning.map.reset', 'Reset')}
+                />
+                {route.description ? (
+                    <p className="px-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        {route.description}
+                    </p>
+                ) : null}
+            </div>
+        );
+    }
+
+    return (
+        <div className="grid gap-1.5">
+            <Button
+                className="h-10 justify-between border border-transparent bg-white/90 text-slate-950 shadow-none transition duration-200 hover:-translate-y-0.5 hover:bg-cyan-50 hover:text-slate-950 hover:shadow-none dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900 dark:hover:text-white"
+                onClick={() => onStart(node, route.activityId, route.id)}
+                style={buttonStyle}
+                variant="ghost"
+                type="button"
+            >
+                <span className="inline-flex min-w-0 items-center gap-2">
+                    <PlayCircle className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+                    <span className="truncate">{route.label}</span>
+                </span>
+                <ArrowRight className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+            </Button>
+            <RouteProgressActions
+                onReset={() => void resetRoute()}
+                progressText={progressText}
+                route={route}
+                resetLabel={translate('learning.map.reset', 'Reset')}
+            />
+            {route.description ? (
+                <p className="px-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {route.description}
+                </p>
+            ) : null}
+        </div>
+    );
+}
+
+function RouteProgressActions({
+    onReset,
+    progressText,
+    route,
+    resetLabel,
+}: {
+    onReset: () => void;
+    progressText: string | null;
+    route: LearningNode['startRoutes'][number];
+    resetLabel: string;
+}) {
+    if (!progressText && !route.progress) {
+        return null;
+    }
+
+    return (
+        <div className="flex items-center justify-between gap-2 px-1 text-xs text-slate-500 dark:text-slate-400">
+            <span className="min-w-0 truncate">{progressText}</span>
+            <button
+                className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 font-semibold text-cyan-700 transition hover:bg-cyan-50 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:text-teal-200 dark:hover:bg-teal-200/10 dark:focus-visible:ring-teal-200"
+                onClick={onReset}
+                type="button"
+            >
+                <RotateCcw className="size-3" />
+                {resetLabel}
+            </button>
+        </div>
+    );
+}
+
+export function routeProgressText(
+    route: LearningNode['startRoutes'][number],
+    translate: ReturnType<typeof usePlatformTranslation>,
+): string | null {
+    const progress = route.progress;
+
+    if (!progress) {
+        return null;
+    }
+
+    if (progress.completionCount > 0) {
+        return translate(
+            'learning.map.completed_count',
+            'Completed :count×:date',
+            {
+                count: progress.completionCount,
+                date: progress.lastCompletedAt
+                    ? ` · ${new Date(progress.lastCompletedAt).toLocaleDateString()}`
+                    : '',
+            },
+        );
+    }
+
+    if (progress.status === 'in_progress') {
+        return translate('learning.map.in_progress', 'In progress');
+    }
+
+    return null;
+}
+
+export function ActivityPlayer({
+    activity,
+    activityProgress,
+    answerProgress,
+    canRecall,
+    node,
+    onAnswer,
+    onRecallChange,
+    onComplete,
+    isRecall,
+    isRevisit,
+    onMoveToActivity,
+    onRestart,
+    playState,
+    playRunId,
+    recallQuestionIds,
+    onTravel,
+}: {
+    activity: LearningActivity | null;
+    activityProgress: LearningProgress['activities'];
+    answerProgress: LearningProgress['answers'];
+    canRecall: boolean;
+    node: LearningNode;
+    onAnswer: (questionId: number, answer: QuestionAnswerProgress) => void;
+    onRecallChange: (questionId: number, queued: boolean) => void;
+    onComplete: (
+        activity: LearningActivity,
+        options?: {
+            confidence?: QuestionConfidence;
+            confidenceAfterFeedback?: QuestionConfidence;
+            calibration?: QuestionCalibration;
+            endsRoute?: boolean;
+            attemptNumber?: number;
+            assistanceLevel?: string;
+            observedCues?: string[];
+            outcome?: ActivityCompletionOutcome;
+            progressAlreadyMarked?: boolean;
+            transitionLabel?: string | null;
+        },
+    ) => Promise<void>;
+    isRecall: boolean;
+    isRevisit: boolean;
+    onMoveToActivity: (activityId: number | null) => void;
+    onRestart: () => void;
+    playState: Record<string, unknown>;
+    playRunId: string | null;
+    recallQuestionIds: number[];
+    onTravel: (portalLink: LearningPortalLink) => void;
+}) {
+    const completedTransition = activity
+        ? completionTransitionFor(activity)
+        : null;
+    const completesRoute =
+        !completedTransition || completedTransition.toActivityId === null;
+    const completeActivity = useCallback(
+        (
+            completedActivity: LearningActivity,
+            options: {
+                confidence?: QuestionConfidence;
+                confidenceAfterFeedback?: QuestionConfidence;
+                calibration?: QuestionCalibration;
+                observedCues?: string[];
+                outcome?: ActivityCompletionOutcome;
+                attemptNumber?: number;
+                assistanceLevel?: string;
+                progressAlreadyMarked?: boolean;
+                transitionLabel?: string | null;
+            } = {},
+        ) =>
+            onComplete(completedActivity, {
+                confidence: options.confidence,
+                confidenceAfterFeedback: options.confidenceAfterFeedback,
+                calibration: options.calibration,
+                endsRoute: completesRoute,
+                attemptNumber: options.attemptNumber,
+                assistanceLevel: options.assistanceLevel,
+                observedCues: options.observedCues,
+                outcome: options.outcome,
+                progressAlreadyMarked: options.progressAlreadyMarked,
+                transitionLabel: options.transitionLabel,
+            }),
+        [completesRoute, onComplete],
+    );
+
+    if (!activity) {
+        return <EmptyActivityState />;
+    }
+
+    return (
+        <ActivityFrame
+            activity={activity}
+            onRestart={onRestart}
+            originTopicSlug={node.topic?.slug}
+        >
+            <ActivityAmbientSound activity={activity} />
+            {activity.type === 'question' && activity.question ? (
+                <QuestionActivity
+                    activity={activity}
+                    answer={answerProgress[activity.question.id]}
+                    canRecall={canRecall}
+                    isCompleted={
+                        activityProgress[activity.id]?.status === 'completed'
+                    }
+                    onAnswer={onAnswer}
+                    onComplete={completeActivity}
+                    onRecallChange={onRecallChange}
+                    isRecall={isRecall}
+                    isRevisit={isRevisit}
+                    onMoveToActivity={onMoveToActivity}
+                    playRunId={playRunId}
+                    recallQueued={recallQuestionIds.includes(
+                        activity.question.id,
+                    )}
+                />
+            ) : null}
+
+            {activity.type === 'npc_dialogue' ? (
+                <NpcDialogueActivity
+                    activity={activity}
+                    initialState={playState[activity.id]}
+                    key={`${activity.id}:${playRunId ?? 'local'}`}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    playRunId={playRunId}
+                />
+            ) : null}
+
+            {activity.type === 'markdown' ? (
+                <MarkdownActivity
+                    activity={activity}
+                    key={activity.id}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'reflection' || activity.type === 'review' ? (
+                <ReflectionActivity
+                    activity={activity}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    playRunId={playRunId}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'message_prompt' ? (
+                <MessagePromptActivity
+                    activity={activity}
+                    key={activity.id}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'message_wall' ? (
+                <MessageWallActivity
+                    activity={activity}
+                    key={activity.id}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'shared_task' ? (
+                <SharedTaskActivity
+                    activity={activity}
+                    initialState={playState[activity.id]}
+                    key={`${activity.id}:${playRunId ?? 'local'}`}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    playRunId={playRunId}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'obstacle' ? (
+                <ObstacleActivity
+                    activity={activity}
+                    progress={activityProgress[activity.id]}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'item_grant' ? (
+                <ItemGrantActivity
+                    activity={activity}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    playRunId={playRunId}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'item_obstacle' ? (
+                <ItemObstacleActivity
+                    activity={activity}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    progress={activityProgress[activity.id]}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'tool_grant' ? (
+                <ToolGrantActivity
+                    activity={activity}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'open_practice' ? (
+                <OpenPracticeActivity
+                    activity={activity}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'portal' ? (
+                <PortalActivity
+                    activity={activity}
+                    node={node}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    onTravel={onTravel}
+                    transition={completedTransition}
+                />
+            ) : null}
+        </ActivityFrame>
+    );
+}
+
+function completionTransitionFor(
+    activity: LearningActivity,
+): ActivityTransition | null {
+    return (
+        transitionFromConnectorOrTrigger(activity, 'completed') ??
+        transitionFromConnectorOrTrigger(activity, 'arrived') ??
+        null
+    );
+}
+
+function transitionFromConnectorOrTrigger(
+    activity: LearningActivity,
+    connector: string,
+): ActivityTransition | null {
+    return (
+        activity.transitions.find(
+            (transition) =>
+                transition.fromConnector === connector ||
+                transition.trigger === connector,
+        ) ?? null
+    );
+}
+
+function NodeSummary({ node }: { node: LearningNode }) {
+    return (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/6">
+            <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                {node.description}
+            </p>
+        </div>
+    );
+}
+
+function EmptyActivityState() {
+    const translate = usePlatformTranslation();
+
+    return (
+        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-white/15 dark:bg-slate-950/24">
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                {translate(
+                    'learning.map.empty_activity.title',
+                    'No activity configured yet',
+                )}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                {translate(
+                    'learning.map.empty_activity.body',
+                    'This panel is ready for future actions such as starting a first activity, opening a portal or showing unlock requirements.',
+                )}
+            </p>
+        </div>
+    );
+}
+
+function LockedActivityState({ node }: { node: LearningNode }) {
+    const t = usePlatformTranslation();
+    const requirements = node.visualConfig.unlock?.requirements;
+
+    return (
+        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-white/15 dark:bg-slate-950/24">
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                {t('world.locked.title', 'Locked for now')}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                {requirements
+                    ? t(
+                          'world.locked.requirements_intro',
+                          'This place opens when the following conditions are met.',
+                      )
+                    : t(
+                          'world.locked.generic',
+                          'This place is visible for orientation, but its activities are not open yet.',
+                      )}
+            </p>
+            {requirements ? (
+                <UnlockRequirementTree requirement={requirements} t={t} />
+            ) : null}
+        </div>
+    );
+}
+
+function UnlockRequirementTree({
+    requirement,
+    t,
+}: {
+    requirement: LearningUnlockRequirement;
+    t: ReturnType<typeof usePlatformTranslation>;
+}) {
+    if (requirement.type === 'group') {
+        return (
+            <div className="mt-3 grid gap-2">
+                <p className="text-xs font-medium tracking-[0.12em] text-cyan-700 uppercase dark:text-teal-200">
+                    {requirement.operator === 'or'
+                        ? t('world.locked.any_condition', 'Meet one of these')
+                        : t('world.locked.all_conditions', 'Meet all of these')}
+                </p>
+                <div className="grid gap-2 pl-3">
+                    {requirement.requirements?.map((child, index) => (
+                        <UnlockRequirementTree
+                            key={`${child.type}-${index}`}
+                            requirement={child}
+                            t={t}
+                        />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    const label =
+        requirement.type === 'node_completed'
+            ? t('world.locked.complete_place', 'Complete :title', {
+                  title:
+                      requirement.nodeTitle ??
+                      t('world.locked.prerequisite', 'the prerequisite place'),
+              })
+            : requirement.type === 'tool_used'
+              ? t('world.locked.use_tool', 'Use :title here', {
+                    title:
+                        requirement.toolTitle ??
+                        t('world.locked.required_tool', 'the required tool'),
+                })
+              : requirement.type === 'role_has'
+                ? t('world.locked.have_role', 'Have the :title role', {
+                      title:
+                          requirement.roleTitle ??
+                          requirement.roleSlug ??
+                          'required',
+                  })
+                : requirement.type === 'item_owned'
+                  ? t(
+                        'world.locked.have_item',
+                        'Have :title in your inventory',
+                        {
+                            title:
+                                requirement.itemTitle ??
+                                t(
+                                    'world.locked.required_item',
+                                    'the required item',
+                                ),
+                        },
+                    )
+                  : t('world.locked.available_after', 'Available after :time', {
+                        time: requirement.availableAt
+                            ? new Date(requirement.availableAt).toLocaleString()
+                            : t(
+                                  'world.locked.scheduled_time',
+                                  'the scheduled time',
+                              ),
+                    });
+
+    const prerequisiteHref =
+        requirement.type === 'node_completed' &&
+        requirement.mapSlug &&
+        requirement.nodeSlug
+            ? `/world?map=${encodeURIComponent(requirement.mapSlug)}&focused=${encodeURIComponent(requirement.nodeSlug)}`
+            : null;
+
+    return (
+        <p className="flex items-start gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            <span
+                aria-hidden="true"
+                className={cn(
+                    'mt-2 size-2 shrink-0 rounded-full',
+                    requirement.satisfied
+                        ? 'bg-emerald-500 dark:bg-emerald-300'
+                        : 'bg-slate-400 dark:bg-slate-500',
+                )}
+            />
+            <span>
+                {prerequisiteHref ? (
+                    <Link
+                        className="text-[var(--learner-action-accent)] underline-offset-2 hover:underline"
+                        href={prerequisiteHref}
+                    >
+                        {label}
+                    </Link>
+                ) : (
+                    label
+                )}
+            </span>
+        </p>
+    );
+}
+
+function ActivityFrame({
+    activity,
+    children,
+    originTopicSlug,
+    onRestart,
+}: {
+    activity: LearningActivity;
+    children: React.ReactNode;
+    originTopicSlug?: string | null;
+    onRestart: () => void;
+}) {
+    const relatedLearningAreas = learningAreaNames(activity);
+    const translate = usePlatformTranslation();
+    const activityHeadingRef = useRef<HTMLHeadingElement>(null);
+    const previousActivityIdRef = useRef(activity.id);
+
+    useEffect(() => {
+        if (previousActivityIdRef.current === activity.id) {
+            return;
+        }
+
+        previousActivityIdRef.current = activity.id;
+        activityHeadingRef.current?.focus();
+    }, [activity.id]);
+
+    return (
+        <section className="flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4">
+            <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--learner-action-accent)_12%,transparent)] text-[var(--learner-action-accent)]">
+                    <PlayCircle className="size-4" />
+                </span>
+                <div className="min-w-0">
+                    <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-action-accent)] uppercase">
+                        {learningFocusLabel(activity, translate)}
+                    </p>
+                    <h3
+                        className="mt-1 scroll-mt-4 rounded-sm text-base font-semibold text-[var(--learner-heading-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--learner-page-background)]"
+                        ref={activityHeadingRef}
+                        tabIndex={-1}
+                    >
+                        {activity.title}
+                    </h3>
+                    {activity.introduction ? (
+                        <p className="mt-2 text-sm leading-6 text-[var(--learner-muted-text)]">
+                            {activity.introduction}
+                        </p>
+                    ) : null}
+                    {activity.timeGuideMinutes ? (
+                        <p className="mt-2 text-xs leading-5 text-[var(--learner-muted-text)]">
+                            {translate(
+                                'learning.activity.time_guide',
+                                'Suggested time: :minutes minutes',
+                                { minutes: activity.timeGuideMinutes },
+                            )}
+                        </p>
+                    ) : null}
+                    <ActivityEvidenceContext
+                        context={activity.evidenceContext}
+                    />
+                    {relatedLearningAreas.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-5 text-[var(--learner-action-accent)]">
+                            <span className="font-medium">
+                                {translate(
+                                    'learning.activity.related_areas',
+                                    'Related learning areas:',
+                                )}
+                            </span>
+                            {relatedLearningAreas.map((area) =>
+                                area.slug ? (
+                                    <Link
+                                        className="rounded-sm underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)]"
+                                        href={competenceTopicHref(
+                                            area.slug,
+                                            originTopicSlug,
+                                        )}
+                                        key={area.slug}
+                                    >
+                                        {area.name}
+                                    </Link>
+                                ) : (
+                                    <span key={area.name}>{area.name}</span>
+                                ),
+                            )}
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+
+            <FeedbackGuidance guidance={activity.feedbackGuidance} />
+
+            <ActivitySources sources={activity.sources} />
+
+            {children}
+
+            <div className="mt-auto flex justify-end border-t border-[var(--learner-border-color)] pt-3">
+                <Button
+                    className="text-sm"
+                    onClick={onRestart}
+                    type="button"
+                    variant="ghost"
+                >
+                    {translate(
+                        'learning.activity.from_beginning',
+                        'From beginning',
+                    )}
+                </Button>
+            </div>
+        </section>
+    );
+}
+
+export function ActivityEvidenceContext({
+    context,
+    title,
+}: {
+    context: LearningActivity['evidenceContext'];
+    title?: string;
+}) {
+    const t = usePlatformTranslation();
+
+    if (!context.objective && context.concepts.length === 0) {
+        return null;
+    }
+
+    return (
+        <div
+            aria-label={t(
+                'learning.activity.evidence_context.title',
+                'Learning focus',
+            )}
+            className="mt-3 grid gap-2 rounded-md border border-[color-mix(in_srgb,var(--learner-action-accent)_20%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-action-accent)_5%,transparent)] px-3 py-2"
+        >
+            {title ? (
+                <p className="text-xs font-medium tracking-[0.12em] text-[var(--learner-action-accent)] uppercase">
+                    {title}
+                </p>
+            ) : null}
+            {context.objective ? (
+                <div>
+                    <p className="text-xs font-medium text-[var(--learner-action-accent)]">
+                        {t(
+                            'learning.activity.evidence_context.objective',
+                            'What this activity invites',
+                        )}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
+                        {context.objective}
+                    </p>
+                </div>
+            ) : null}
+            {context.concepts.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-1.5 text-xs leading-5 text-[var(--learner-muted-text)]">
+                    <span className="font-medium">
+                        {t(
+                            'learning.activity.evidence_context.concepts',
+                            'Concepts',
+                        )}
+                    </span>
+                    {context.concepts.map((concept) => (
+                        <span
+                            className="rounded-full border border-[var(--learner-border-color)] px-2 py-0.5 text-[var(--learner-body-text)]"
+                            key={concept}
+                        >
+                            {concept}
+                        </span>
+                    ))}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+function ActivitySources({
+    sources,
+}: {
+    sources: LearningActivity['sources'];
+}) {
+    const t = usePlatformTranslation();
+
+    if (sources.length === 0) {
+        return null;
+    }
+
+    return (
+        <details className="rounded-lg border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_78%,transparent)] p-3">
+            <summary className="cursor-pointer list-inside text-sm font-medium text-[var(--learner-heading-text)] outline-none marker:text-[var(--learner-action-accent)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--learner-panel-background)]">
+                {t('learning.activity.sources', 'Sources (:count)', {
+                    count: sources.length,
+                })}
+            </summary>
+            <ul className="mt-3 grid gap-3 border-t border-[var(--learner-border-color)] pt-3">
+                {sources.map((source) => (
+                    <li
+                        className="grid gap-1 text-sm"
+                        key={`${source.url}-${source.title}`}
+                    >
+                        <a
+                            className="inline-flex w-fit max-w-full items-start gap-1.5 font-medium text-[var(--learner-action-accent)] underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] underline-offset-2 hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none"
+                            href={source.url}
+                            rel="noreferrer noopener"
+                            target="_blank"
+                        >
+                            <span className="[overflow-wrap:anywhere]">
+                                {source.title}
+                            </span>
+                            <ExternalLink
+                                aria-hidden="true"
+                                className="mt-0.5 size-3.5 shrink-0"
+                            />
+                        </a>
+                        <p className="text-xs leading-5 [overflow-wrap:anywhere] text-[var(--learner-muted-text)]">
+                            {[
+                                source.publisher,
+                                source.publishedAt,
+                                source.rights,
+                                source.anchor,
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                        </p>
+                        {source.concepts?.length ? (
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-[var(--learner-muted-text)]">
+                                <span>
+                                    {t(
+                                        'learning.activity_sources.linked_concepts',
+                                        'Linked concepts:',
+                                    )}
+                                </span>
+                                {source.concepts.map((concept) => (
+                                    <span
+                                        className="rounded-full border border-[var(--learner-border-color)] px-2 py-0.5 text-[var(--learner-body-text)]"
+                                        key={concept}
+                                    >
+                                        {concept}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : null}
+                        {source.excerpt ? (
+                            <p className="border-l-2 border-[var(--learner-action-accent)]/50 pl-2 text-sm leading-6 [overflow-wrap:anywhere] text-[var(--learner-body-text)]">
+                                “{source.excerpt}”
+                            </p>
+                        ) : null}
+                    </li>
+                ))}
+            </ul>
+        </details>
+    );
+}
+
+function FeedbackGuidance({
+    guidance,
+}: {
+    guidance: LearningActivity['feedbackGuidance'];
+}) {
+    const t = usePlatformTranslation();
+
+    if (!guidance) {
+        return null;
+    }
+
+    const entries = [
+        [t('learning.activity.feedback.purpose', 'Purpose'), guidance.purpose],
+        [
+            t('learning.activity.feedback.evidence', 'What to notice'),
+            guidance.evidence,
+        ],
+        [
+            t('learning.activity.feedback.next_action', 'Next action'),
+            guidance.nextAction,
+        ],
+    ].filter((entry): entry is [string, string] => Boolean(entry[1]));
+
+    if (entries.length === 0 && !guidance.rubric?.length) {
+        return null;
+    }
+
+    return (
+        <div className="grid gap-3 rounded-lg border border-[color-mix(in_srgb,var(--learner-action-accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_6%,transparent)] p-3 md:grid-cols-3">
+            {entries.map(([label, value]) => (
+                <div key={label}>
+                    <p className="text-xs font-medium tracking-[0.12em] text-[var(--learner-action-accent)] uppercase">
+                        {label}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
+                        {value}
+                    </p>
+                </div>
+            ))}
+            {guidance.rubric?.length ? (
+                <div className="md:col-span-3">
+                    <p className="text-xs font-medium tracking-[0.12em] text-[var(--learner-action-accent)] uppercase">
+                        {t(
+                            'learning.activity.feedback.observable_cues',
+                            'Observable cues',
+                        )}
+                    </p>
+                    <ul className="mt-1 grid gap-1 text-sm leading-6 text-[var(--learner-body-text)]">
+                        {guidance.rubric.map((cue) => (
+                            <li
+                                className="pl-4 before:mr-2 before:text-[var(--learner-action-accent)] before:content-['•']"
+                                key={cue}
+                            >
+                                {cue}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+export function learningAreaNames(
+    activity: LearningActivity,
+): Array<{ name: string; slug: string | null }> {
+    const topics = activity.config.competenceTopics;
+
+    if (!Array.isArray(topics)) {
+        return [];
+    }
+
+    return topics.flatMap((topic) => {
+        if (
+            typeof topic !== 'object' ||
+            topic === null ||
+            !('topic' in topic) ||
+            typeof topic.topic !== 'string'
+        ) {
+            return [];
+        }
+
+        const name = topic.topic.trim();
+        const slug =
+            'slug' in topic && typeof topic.slug === 'string'
+                ? topic.slug
+                : null;
+
+        return name === '' ? [] : [{ name, slug }];
+    });
+}
+
+function PanelShell({
+    children,
+    eyebrow,
+    headerAction,
+    onClose,
+    title,
+}: {
+    children?: React.ReactNode;
+    eyebrow: string;
+    headerAction?: React.ReactNode;
+    onClose?: () => void;
+    title: string;
+}) {
+    const translate = usePlatformTranslation();
+
+    return (
+        <div className="flex h-full min-h-[44vh] flex-col gap-5 overflow-y-auto overscroll-contain p-5 md:p-7">
+            <div className="flex items-start gap-4">
+                <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium tracking-[0.18em] [color:var(--map-side-panel-heading-color)] text-cyan-700 uppercase dark:text-teal-200/78">
+                        {eyebrow}
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-normal text-slate-950 dark:text-white">
+                        {title}
+                    </h2>
+                </div>
+                {headerAction}
+                {onClose ? (
+                    <Button
+                        aria-label={translate(
+                            'learning.map.close_node_panel',
+                            'Close node panel',
+                        )}
+                        onClick={onClose}
+                        size="icon"
+                        variant="ghost"
+                    >
+                        <X className="size-4" />
+                    </Button>
+                ) : null}
+            </div>
+            {children}
+        </div>
+    );
+}
+
+function BookmarkButton({
+    isBookmarked,
+    node,
+    onToggleBookmark,
+}: {
+    isBookmarked: boolean;
+    node: LearningNode;
+    onToggleBookmark: (node: LearningNode) => void;
+}) {
+    const translate = usePlatformTranslation();
+
+    return (
+        <Button
+            aria-label={
+                isBookmarked
+                    ? translate(
+                          'learning.map.bookmark.remove',
+                          'Remove bookmark',
+                      )
+                    : translate(
+                          'learning.map.bookmark.add',
+                          'Bookmark this tile',
+                      )
+            }
+            onClick={() => onToggleBookmark(node)}
+            size="icon"
+            type="button"
+            variant="ghost"
+        >
+            <Bookmark
+                className={cn(
+                    'size-4',
+                    isBookmarked &&
+                        'fill-cyan-600 text-cyan-600 dark:fill-teal-200 dark:text-teal-200',
+                )}
+            />
+        </Button>
+    );
+}
+
+function PanelNodeActions({
+    canBookmark,
+    isBookmarked,
+    isCompleted,
+    node,
+    onToggleBookmark,
+}: {
+    canBookmark: boolean;
+    isBookmarked: boolean;
+    isCompleted: boolean;
+    node: LearningNode;
+    onToggleBookmark: (node: LearningNode) => void;
+}) {
+    const translate = usePlatformTranslation();
+
+    return (
+        <div className="flex shrink-0 items-center gap-1">
+            {isCompleted ? (
+                <span
+                    aria-label={translate(
+                        'learning.map.node_completed',
+                        'Node completed',
+                    )}
+                    className="grid size-9 place-items-center rounded-md text-emerald-600 dark:text-emerald-300"
+                    title={translate('learning.map.completed', 'Completed')}
+                >
+                    <CheckCircle2 className="size-4" />
+                </span>
+            ) : null}
+            {canBookmark ? (
+                <BookmarkButton
+                    isBookmarked={isBookmarked}
+                    node={node}
+                    onToggleBookmark={onToggleBookmark}
+                />
+            ) : null}
+        </div>
+    );
+}

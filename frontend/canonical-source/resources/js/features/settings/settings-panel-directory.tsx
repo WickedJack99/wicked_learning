@@ -1,0 +1,159 @@
+import { router } from '@inertiajs/react';
+import {
+    SettingsContentPane,
+    SettingsPanelHeader,
+} from '@/components/settings-configuration-shell';
+import {
+    canSeeSettingsLink,
+    settingsItemDescription,
+    settingsItemLabel,
+    settingsLinkLabel,
+} from '@/features/settings/settings-navigation';
+import type {
+    AccessCapability,
+    SettingsListItem,
+    SettingsNavigationSection,
+} from '@/features/settings/settings-navigation';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+
+type SettingsOverviewProps = {
+    accessCapabilities: Record<string, AccessCapability>;
+    onOpenItem: (item: SettingsListItem) => void;
+    sections: SettingsNavigationSection[];
+};
+
+type SettingsRouteGroupPanelProps = {
+    accessCapabilities: Record<string, AccessCapability>;
+    item: SettingsListItem;
+};
+
+export function SettingsOverview({
+    accessCapabilities,
+    onOpenItem,
+    sections,
+}: SettingsOverviewProps) {
+    return (
+        <div className="h-full overflow-y-auto p-5">
+            <div className="grid gap-5">
+                {sections.map((section) => (
+                    <section key={section.key}>
+                        <h2 className="mb-3 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
+                            {section.label}
+                        </h2>
+                        <div className="grid gap-3 xl:grid-cols-2">
+                            {section.items.map((item) => (
+                                <SettingsOverviewCard
+                                    accessCapabilities={accessCapabilities}
+                                    item={item}
+                                    key={item.key}
+                                    onOpen={onOpenItem}
+                                />
+                            ))}
+                        </div>
+                    </section>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+export function SettingsRouteGroupPanel({
+    accessCapabilities,
+    item,
+}: SettingsRouteGroupPanelProps) {
+    const t = usePlatformTranslation();
+    const Icon = item.icon;
+    const visibleChildren = (item.children ?? []).filter((child) =>
+        canSeeSettingsLink(child, accessCapabilities),
+    );
+
+    return (
+        <SettingsContentPane>
+            <div className="grid content-start gap-5 p-5">
+                <SettingsPanelHeader
+                    description={settingsItemDescription(item, t)}
+                    eyebrow={settingsItemLabel(item, t)}
+                    icon={Icon}
+                    title={settingsItemLabel(item, t)}
+                />
+
+                <div className="grid gap-3 xl:grid-cols-2">
+                    {visibleChildren.map((child) => (
+                        <button
+                            className="rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-4 text-left transition hover:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
+                            key={child.href}
+                            onClick={() => router.visit(child.href)}
+                            type="button"
+                        >
+                            <span className="block text-sm font-semibold text-slate-950 dark:text-white">
+                                {settingsLinkLabel(child, t)}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+
+                {visibleChildren.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-[var(--settings-border-color)] p-4 text-sm text-[var(--settings-muted-text)]">
+                        {t(
+                            'settings.no_options_available',
+                            'No settings are available here with the current permissions.',
+                        )}
+                    </p>
+                ) : null}
+            </div>
+        </SettingsContentPane>
+    );
+}
+
+function SettingsOverviewCard({
+    accessCapabilities,
+    item,
+    onOpen,
+}: {
+    accessCapabilities: Record<string, AccessCapability>;
+    item: SettingsListItem;
+    onOpen: (item: SettingsListItem) => void;
+}) {
+    const t = usePlatformTranslation();
+    const Icon = item.icon;
+    const visibleChildren = (item.children ?? []).filter((child) =>
+        canSeeSettingsLink(child, accessCapabilities),
+    );
+
+    return (
+        <article className="grid gap-3 rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-4 transition hover:border-[var(--settings-accent)]">
+            <button
+                className="flex min-w-0 items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
+                onClick={() => onOpen(item)}
+                type="button"
+            >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_16%,transparent)] text-[var(--settings-accent)]">
+                    <Icon className="size-4" />
+                </span>
+                <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-slate-950 dark:text-white">
+                        {settingsItemLabel(item, t)}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-[var(--settings-muted-text)]">
+                        {settingsItemDescription(item, t)}
+                    </span>
+                </span>
+            </button>
+
+            {visibleChildren.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                    {visibleChildren.map((child) => (
+                        <button
+                            className="inline-flex h-7 items-center rounded-md border border-[color-mix(in_srgb,var(--settings-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] px-2 text-xs font-medium whitespace-nowrap text-[var(--settings-accent)] transition hover:bg-[color-mix(in_srgb,var(--settings-accent)_16%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
+                            key={child.href}
+                            onClick={() => router.visit(child.href)}
+                            type="button"
+                        >
+                            {settingsLinkLabel(child, t)}
+                        </button>
+                    ))}
+                </div>
+            ) : null}
+        </article>
+    );
+}
