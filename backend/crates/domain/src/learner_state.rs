@@ -1567,6 +1567,8 @@ mod journal_theme_tests {
 /// separate server-authorized command.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerJournalCheckIn {
+    pub activity_id: uuid::Uuid,
+    pub node_id: uuid::Uuid,
     pub activity_slug: String,
     pub activity_title: String,
     pub feeling: Option<String>,
@@ -1592,6 +1594,8 @@ pub struct LearnerJournalCheckIn {
 /// itself authorize re-entry; a later command must create a server-owned run.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerRevisitInvitation {
+    pub activity_id: uuid::Uuid,
+    pub node_id: uuid::Uuid,
     pub activity_slug: String,
     pub activity_title: String,
     pub available_after_days: i16,
@@ -1736,6 +1740,9 @@ pub struct LearnerJournalFeedbackRequestDomain {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerJournalLearningContext {
+    pub activity_id: Option<uuid::Uuid>,
+    pub node_id: uuid::Uuid,
+    pub topic: Option<LearnerPathTopic>,
     pub activity_title: Option<String>,
     pub map_slug: String,
     pub map_title: String,

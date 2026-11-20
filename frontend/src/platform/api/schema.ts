@@ -9441,6 +9441,10 @@ export interface components {
         };
         LearnerJournalCheckIn: {
             /** Format: uuid */
+            activity_id: string;
+            /** Format: uuid */
+            node_id: string;
+            /** Format: uuid */
             id: string;
             activity_slug: string;
             activity_title: string;
@@ -9459,6 +9463,10 @@ export interface components {
             topics: components["schemas"]["LearnerCompetenceLearningArea"][];
         };
         LearnerRevisitInvitation: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: uuid */
+            node_id: string;
             /** Format: uuid */
             check_in_id: string;
             activity_slug: string;
@@ -9622,6 +9630,11 @@ export interface components {
             type: "journal" | "group";
         };
         LearnerJournalLearningContext: {
+            /** Format: uuid */
+            activity_id: string | null;
+            /** Format: uuid */
+            node_id: string;
+            topic: components["schemas"]["LearnerPathTopic"] | null;
             activity_title: string | null;
             map_slug: string;
             map_title: string;

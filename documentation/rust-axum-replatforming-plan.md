@@ -215,7 +215,7 @@ copied modules. Source shared props come from
 | `name`, learner palette, branding and cursors | `PublicPresentation`, `persistence/src/public_presentation.rs`; source `theme/presentation.ts` | Branding/cursors reused. `/learner/shell` now supplies deployment `APPLICATION_NAME` and typed learner palette with pinned-source defaults. The frontend source-shape mapping remains to be connected. |
 | `menuTheme` remembers the learner's preferred visible map | Source `app/Learning/Queries/LoadCurrentMenuMapTheme.php`, `Services/LearnerMapLocationService.php`; Rust visible World maps | Private preferred-map persistence and visibility revalidation now exist in `/learner/map-location` and `/learner/shell`. Managed menu-background URLs now use the existing learner media route. Connect source World navigation/reload semantics through the typed adapter. |
 | Journal initial theme without loading private notes | `persistence/src/learner_journal.rs`, table `application_journal_feedback_policy`, domain default theme | The shell now reuses the existing theme/policy read without loading journal content. Connect that real theme through the source page-prop adapter. |
-| On-demand complete Journal overlay | `/learner/journal`, `/learner/journal/pages`, page update/delete/feedback request, `/learner/journal/export`; `features/journal/journal-client.ts` | Reuse existing writes, owner scope, search, pagination and theme. Complete `LearnerJournalLearningContext` activity destination/topic and check-in/revisit real activity identities before mapping all source context links. Preserve export and feedback/revisit errors. |
+| On-demand complete Journal overlay | `/learner/journal`, `/learner/journal/pages`, page update/delete/feedback request, `/learner/journal/export`; `features/journal/journal-client.ts` | Reuse existing writes, owner scope, search, pagination and theme. `LearnerJournalLearningContext` now carries actual node/activity IDs and published topic context; check-ins/revisits carry actual activity/node IDs. Connect those contracts through the copied client and verify all context links. Preserve export and feedback/revisit errors. |
 | Companion visibility, context, authored dialogue and AI turn | `/learner/companion`, `/learner/companion/turn`; `domain/src/learning_companion.rs` | Map all source fields and 204 absence explicitly. Source `learning-companion-dialogue.tsx` calls direct fetch; provide an exact-module transport seam for that call, never global fetch interception or a replacement dialogue component. |
 | Feedback invitation once per authenticated session | Source `app/Settings/Services/PlatformFeedbackPrompt.php`; Rust `/learner/feedback-prompt-preference` | Native Rust session claim now exists as CSRF-protected `POST /learner/feedback-prompt/claim`, honoring enable/decline/14-day snooze and Settings/Feedback exclusions. Connect it during eligible route navigation; the shell GET remains read-only. |
 | Feedback dismiss, decline and failure recovery | Existing Rust preference PATCH; source `components/platform-feedback-prompt.tsx` | Current Inertia seam only accepts enable/decline and does not call source `onError`. Add the narrowly scoped dismiss and error lifecycle; failed writes must restore the source invitation. |
@@ -327,6 +327,54 @@ OpenAPI drift, workspace Rust check/fmt and affected learner/media tests passed.
 The shell PostgreSQL regression passed, and the combined source/live World,
 shell and media suite passed 29 checks. Desktop/narrow World comparison evidence
 remains valid; no new inventory UI parity claim is made before layout activation.
+
+### Journal context contract dependency
+
+Before adapting the copied overlay, inspect pinned
+`app/Http/Controllers/LearnerJournalController.php`,
+`app/Learning/Serializers/LearnerJournalSerializer.php`, and queries
+`LoadLearner{Journal,ActivityCheckIns,RevisitInvitations}.php` together with the
+complete `resources/js/features/journal/{journal-client.ts,journal-overlay.tsx}`.
+Reuse Rust's owned page CRUD/feedback/export and paginated reads.
+
+| Source requirement | Current evidence | Required bounded change |
+| --- | --- | --- |
+| Journal page activity/node destination and published map topic | `LearnerJournalLearningContext`, `persistence/src/learner_journal{,_page}.rs` retain only titles/slugs | Real node/activity UUIDs and optional published topic now travel in both list and write responses. The source adapter must preserve source `/learning/nodes/{id}/play?activity_id=...` destinations, not infer identities from titles. |
+| Check-in activity destinations and revisit actions | `LearnerJournalCheckIn` and `LearnerRevisitInvitation` have slugs and private check-in UUIDs | Actual activity/node identities are returned alongside private check-in IDs. The adapter must retain that association for existing Rust revisit commands; these IDs are not interchangeable. |
+| Private context and source page caching | Copied `journal-client.ts` owns cache/update lifecycle | Map the specific World transport calls to typed Rust operations while retaining that whole source module. A failed request rejects; do not cache fabricated empty payloads. |
+
+Implementation reuses the existing queries and page-write response loader; no
+new endpoint, table or per-page query was added. Published topic context reuses
+`LearnerPathTopic`. A deleted route start resolves through the activity's real,
+unique MapAsset/node relationship; a missing node yields null context while
+preserving private page text. Existing map admission still controls check-in
+and revisit visibility. Read identities never authorize a playback run.
+
+The explicit PostgreSQL regression `journal_context_retains_real_destinations_and_private_scope`
+uses connection-local temporary tables and verifies list/write consistency,
+real node/activity/check-in identities, unpublished-topic omission, deleted
+start/node behavior, other-principal isolation and revoked map access. Run it
+with the local `TEST_APPLICATION_DATABASE_URL` and
+`cargo test -p wicked-learning-persistence journal_context_retains -- --ignored`.
+`canonical-journal-context-contract.spec.ts` first failed against the old HTTP
+response's missing IDs. It exercises actual Rust page creation/list/update,
+wrong-user/CSRF rejection and private Markdown export with a test-owned
+reflection fixture. It records response duration and bytes. Fixture cleanup
+uses the existing page-delete endpoint and does not alter authored seed content.
+
+No Journal UI activation or acceptance is claimed by this backend dependency.
+The next adapter must retain the copied `journal-client.ts` cache/state code,
+map specific CRUD/feedback/revisit calls, preserve export navigation, and prove
+source controls and failure recovery as part of the complete shared layout.
+
+Frontend source identity, production type/build and generated-client drift checks
+pass. Focused Rust Journal/revisit/desk tests, workspace check/fmt and the
+explicit PostgreSQL regression pass. The live HTTP contract test passes against
+the rebuilt local Rust service; this is backend evidence, not a substitute for
+the pending whole-overlay browser acceptance.
+The final combined source/live World, shell, inventory-media and Journal
+contract run passed 30 checks, retaining desktop/narrow screenshots and request
+measurements in `frontend/playwright-report/`.
 
 ## Status and purpose
 

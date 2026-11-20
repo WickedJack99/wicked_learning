@@ -12789,8 +12789,10 @@ components:
     LearnerJournalCheckIn:
       type: object
       additionalProperties: false
-      required: [id, activity_slug, activity_title, feeling, note, next_direction, origin_topic_slug, recorded_at, map_slug, map_title, node_slug, node_title, topics]
+      required: [activity_id, node_id, id, activity_slug, activity_title, feeling, note, next_direction, origin_topic_slug, recorded_at, map_slug, map_title, node_slug, node_title, topics]
       properties:
+        activity_id: { type: string, format: uuid }
+        node_id: { type: string, format: uuid }
         id: { type: string, format: uuid }
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         activity_title: { type: string }
@@ -12810,8 +12812,10 @@ components:
     LearnerRevisitInvitation:
       type: object
       additionalProperties: false
-      required: [check_in_id, activity_slug, activity_title, available_after_days, available_at, available_since, revisit_reason, map_slug, map_title, node_slug, node_title]
+      required: [activity_id, node_id, check_in_id, activity_slug, activity_title, available_after_days, available_at, available_since, revisit_reason, map_slug, map_title, node_slug, node_title]
       properties:
+        activity_id: { type: string, format: uuid }
+        node_id: { type: string, format: uuid }
         check_in_id: { type: string, format: uuid }
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         activity_title: { type: string }
@@ -13014,8 +13018,14 @@ components:
     LearnerJournalLearningContext:
       type: object
       additionalProperties: false
-      required: [activity_title, map_slug, map_title, node_slug, node_title]
+      required: [activity_id, node_id, topic, activity_title, map_slug, map_title, node_slug, node_title]
       properties:
+        activity_id: { type: [string, 'null'], format: uuid }
+        node_id: { type: string, format: uuid }
+        topic:
+          anyOf:
+            - { $ref: '#/components/schemas/LearnerPathTopic' }
+            - { type: 'null' }
         activity_title: { type: [string, 'null'] }
         map_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         map_title: { type: string }

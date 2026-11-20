@@ -24,6 +24,10 @@ impl<'pool> PostgresLearnerJournalPageRepository<'pool> {
 
 #[derive(FromRow)]
 struct PageRow {
+    activity_id: Option<Uuid>,
+    node_id: Option<Uuid>,
+    topic_slug: Option<String>,
+    topic_title: Option<String>,
     activity_title: Option<String>,
     id: Uuid,
     expert_access_requested: bool,
@@ -182,7 +186,7 @@ pub async fn load_owned_page(
     page_id: Uuid,
 ) -> Result<Option<LearnerJournalPage>, sqlx::Error> {
     let page = sqlx::query_as::<_, PageRow>(
-        "SELECT pages.id, pages.title, pages.topic, pages.subtopic, pages.markdown, pages.preferred_mode, pages.expert_access_requested, to_char(pages.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, COUNT(reflections.id) AS reflection_count, activities.title AS activity_title, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, feedback_requests.id AS feedback_request_id, feedback_requests.domain_type AS feedback_domain_type, feedback_requests.domain_group_id AS feedback_domain_group_id, feedback_requests.domain_label AS feedback_domain_label, feedback_requests.feedback, to_char(feedback_requests.requested_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS feedback_requested_at, to_char(feedback_requests.responded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS feedback_responded_at FROM learner_journal_pages AS pages LEFT JOIN learner_journal_feedback_requests AS feedback_requests ON feedback_requests.learner_journal_page_id = pages.id LEFT JOIN learner_reflections AS reflections ON reflections.learner_journal_page_id = pages.id LEFT JOIN LATERAL (SELECT activity_start_id, activity_id FROM learner_reflections WHERE learner_journal_page_id = pages.id ORDER BY created_at DESC, id DESC LIMIT 1) AS latest ON TRUE LEFT JOIN learning_activity_starts AS starts ON starts.id = latest.activity_start_id LEFT JOIN learning_nodes AS nodes ON nodes.id = starts.node_id LEFT JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_activities AS activities ON activities.id = latest.activity_id WHERE pages.id = $1 AND pages.principal_id = $2 GROUP BY pages.id, feedback_requests.id, activities.title, maps.slug, maps.title, nodes.slug, nodes.title",
+        "SELECT pages.id, pages.title, pages.topic, pages.subtopic, pages.markdown, pages.preferred_mode, pages.expert_access_requested, to_char(pages.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, COUNT(reflections.id) AS reflection_count, activities.id AS activity_id, nodes.id AS node_id, topics.slug AS topic_slug, topics.title AS topic_title, activities.title AS activity_title, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, feedback_requests.id AS feedback_request_id, feedback_requests.domain_type AS feedback_domain_type, feedback_requests.domain_group_id AS feedback_domain_group_id, feedback_requests.domain_label AS feedback_domain_label, feedback_requests.feedback, to_char(feedback_requests.requested_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS feedback_requested_at, to_char(feedback_requests.responded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS feedback_responded_at FROM learner_journal_pages AS pages LEFT JOIN learner_journal_feedback_requests AS feedback_requests ON feedback_requests.learner_journal_page_id = pages.id LEFT JOIN learner_reflections AS reflections ON reflections.learner_journal_page_id = pages.id LEFT JOIN LATERAL (SELECT activity_start_id, activity_id FROM learner_reflections WHERE learner_journal_page_id = pages.id ORDER BY created_at DESC, id DESC LIMIT 1) AS latest ON TRUE LEFT JOIN learning_activity_starts AS starts ON starts.id = latest.activity_start_id LEFT JOIN learning_activities AS activities ON activities.id = latest.activity_id LEFT JOIN learning_routes AS context_routes ON context_routes.id = activities.route_id LEFT JOIN learning_nodes AS nodes ON nodes.id = starts.node_id OR (starts.node_id IS NULL AND nodes.map_asset_id = context_routes.map_asset_id) LEFT JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL WHERE pages.id = $1 AND pages.principal_id = $2 GROUP BY pages.id, feedback_requests.id, activities.id, nodes.id, topics.slug, topics.title, activities.title, maps.slug, maps.title, nodes.slug, nodes.title",
     )
     .bind(page_id)
     .bind(principal_id)
@@ -221,13 +225,23 @@ fn page_from_row(page: PageRow) -> LearnerJournalPage {
         preferred_mode: page.preferred_mode,
         reflection_count: page.reflection_count,
         learning_context: match (
+            page.node_id,
             page.map_slug,
             page.map_title,
             page.node_slug,
             page.node_title,
         ) {
-            (Some(map_slug), Some(map_title), Some(node_slug), Some(node_title)) => {
+            (Some(node_id), Some(map_slug), Some(map_title), Some(node_slug), Some(node_title)) => {
                 Some(LearnerJournalLearningContext {
+                    node_id,
+                    activity_id: page.activity_id,
+                    topic: page.topic_slug.zip(page.topic_title).map(|(slug, title)| {
+                        wicked_learning_domain::learner_state::LearnerPathTopic {
+                            href: format!("/topics/{slug}"),
+                            slug,
+                            title,
+                        }
+                    }),
                     activity_title: page.activity_title,
                     map_slug,
                     map_title,

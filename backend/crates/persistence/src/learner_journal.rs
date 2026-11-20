@@ -51,6 +51,10 @@ impl LearnerJournalRepositoryPort for PostgresLearnerJournalRepository<'_> {
 
 #[derive(FromRow)]
 struct PageRow {
+    activity_id: Option<Uuid>,
+    node_id: Option<Uuid>,
+    topic_slug: Option<String>,
+    topic_title: Option<String>,
     activity_title: Option<String>,
     id: Uuid,
     expert_access_requested: bool,
@@ -88,6 +92,8 @@ struct JournalSettingsRow {
 
 #[derive(FromRow)]
 struct CheckInRow {
+    activity_id: Uuid,
+    node_id: Uuid,
     activity_slug: String,
     activity_title: String,
     competence_topics: Option<Value>,
@@ -105,6 +111,8 @@ struct CheckInRow {
 
 #[derive(FromRow)]
 struct RevisitInvitationRow {
+    activity_id: Uuid,
+    node_id: Uuid,
     activity_slug: String,
     activity_title: String,
     available_at: String,
@@ -149,7 +157,7 @@ async fn load_page(
     .await?;
     let offset = (request.page - 1) * request.per_page;
     let pages = sqlx::query_as::<_, PageRow>(
-        "SELECT pages.id, pages.title, pages.topic, pages.subtopic, pages.markdown, pages.preferred_mode, pages.expert_access_requested, to_char(pages.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, COUNT(reflections.id) AS reflection_count, activities.title AS activity_title, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, feedback_requests.id AS feedback_request_id, feedback_requests.domain_type AS feedback_domain_type, feedback_requests.domain_group_id AS feedback_domain_group_id, feedback_requests.domain_label AS feedback_domain_label, feedback_requests.feedback, to_char(feedback_requests.requested_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS feedback_requested_at, to_char(feedback_requests.responded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS feedback_responded_at FROM learner_journal_pages AS pages LEFT JOIN learner_journal_feedback_requests AS feedback_requests ON feedback_requests.learner_journal_page_id = pages.id LEFT JOIN learner_reflections AS reflections ON reflections.learner_journal_page_id = pages.id LEFT JOIN LATERAL (SELECT activity_start_id, activity_id FROM learner_reflections WHERE learner_journal_page_id = pages.id ORDER BY created_at DESC, id DESC LIMIT 1) AS latest ON TRUE LEFT JOIN learning_activity_starts AS starts ON starts.id = latest.activity_start_id LEFT JOIN learning_nodes AS nodes ON nodes.id = starts.node_id LEFT JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_activities AS activities ON activities.id = latest.activity_id WHERE pages.principal_id = $1 AND ($2::text IS NULL OR pages.title ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.topic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.subtopic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.markdown ILIKE '%' || $2 || '%' ESCAPE E'\\\\') GROUP BY pages.id, feedback_requests.id, activities.title, maps.slug, maps.title, nodes.slug, nodes.title ORDER BY pages.updated_at DESC, pages.id DESC LIMIT $3 OFFSET $4",
+        "SELECT pages.id, pages.title, pages.topic, pages.subtopic, pages.markdown, pages.preferred_mode, pages.expert_access_requested, to_char(pages.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, COUNT(reflections.id) AS reflection_count, activities.id AS activity_id, nodes.id AS node_id, topics.slug AS topic_slug, topics.title AS topic_title, activities.title AS activity_title, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, feedback_requests.id AS feedback_request_id, feedback_requests.domain_type AS feedback_domain_type, feedback_requests.domain_group_id AS feedback_domain_group_id, feedback_requests.domain_label AS feedback_domain_label, feedback_requests.feedback, to_char(feedback_requests.requested_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS feedback_requested_at, to_char(feedback_requests.responded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS feedback_responded_at FROM learner_journal_pages AS pages LEFT JOIN learner_journal_feedback_requests AS feedback_requests ON feedback_requests.learner_journal_page_id = pages.id LEFT JOIN learner_reflections AS reflections ON reflections.learner_journal_page_id = pages.id LEFT JOIN LATERAL (SELECT activity_start_id, activity_id FROM learner_reflections WHERE learner_journal_page_id = pages.id ORDER BY created_at DESC, id DESC LIMIT 1) AS latest ON TRUE LEFT JOIN learning_activity_starts AS starts ON starts.id = latest.activity_start_id LEFT JOIN learning_activities AS activities ON activities.id = latest.activity_id LEFT JOIN learning_routes AS context_routes ON context_routes.id = activities.route_id LEFT JOIN learning_nodes AS nodes ON nodes.id = starts.node_id OR (starts.node_id IS NULL AND nodes.map_asset_id = context_routes.map_asset_id) LEFT JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL WHERE pages.principal_id = $1 AND ($2::text IS NULL OR pages.title ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.topic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.subtopic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR pages.markdown ILIKE '%' || $2 || '%' ESCAPE E'\\\\') GROUP BY pages.id, feedback_requests.id, activities.id, nodes.id, topics.slug, topics.title, activities.title, maps.slug, maps.title, nodes.slug, nodes.title ORDER BY pages.updated_at DESC, pages.id DESC LIMIT $3 OFFSET $4",
     )
     .bind(principal_id)
     .bind(&search)
@@ -198,20 +206,34 @@ async fn load_page(
                 preferred_mode: page.preferred_mode,
                 reflection_count: page.reflection_count,
                 learning_context: match (
+                    page.node_id,
                     page.map_slug,
                     page.map_title,
                     page.node_slug,
                     page.node_title,
                 ) {
-                    (Some(map_slug), Some(map_title), Some(node_slug), Some(node_title)) => {
-                        Some(LearnerJournalLearningContext {
-                            activity_title: page.activity_title,
-                            map_slug,
-                            map_title,
-                            node_slug,
-                            node_title,
-                        })
-                    }
+                    (
+                        Some(node_id),
+                        Some(map_slug),
+                        Some(map_title),
+                        Some(node_slug),
+                        Some(node_title),
+                    ) => Some(LearnerJournalLearningContext {
+                        node_id,
+                        activity_id: page.activity_id,
+                        topic: page.topic_slug.zip(page.topic_title).map(|(slug, title)| {
+                            wicked_learning_domain::learner_state::LearnerPathTopic {
+                                href: format!("/topics/{slug}"),
+                                slug,
+                                title,
+                            }
+                        }),
+                        activity_title: page.activity_title,
+                        map_slug,
+                        map_title,
+                        node_slug,
+                        node_title,
+                    }),
                     _ => None,
                 },
                 updated_at: page.updated_at,
@@ -273,7 +295,7 @@ async fn load_check_ins(
     roles: &[String],
 ) -> Result<Vec<LearnerJournalCheckIn>, sqlx::Error> {
     let rows = sqlx::query_as::<_, CheckInRow>(
-        "SELECT check_ins.id, activities.slug AS activity_slug, activities.title AS activity_title, activities.activity_config -> 'competenceTopics' AS competence_topics, check_ins.feeling, check_ins.note, check_ins.next_direction, topics.slug AS origin_topic_slug, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title FROM learner_activity_check_ins AS check_ins INNER JOIN learning_activities AS activities ON activities.id = check_ins.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL WHERE check_ins.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY check_ins.recorded_at DESC, check_ins.id DESC LIMIT $3",
+        "SELECT check_ins.id, activities.id AS activity_id, nodes.id AS node_id, activities.slug AS activity_slug, activities.title AS activity_title, activities.activity_config -> 'competenceTopics' AS competence_topics, check_ins.feeling, check_ins.note, check_ins.next_direction, topics.slug AS origin_topic_slug, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title FROM learner_activity_check_ins AS check_ins INNER JOIN learning_activities AS activities ON activities.id = check_ins.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id LEFT JOIN learning_topics AS topics ON topics.id = maps.topic_id AND topics.published_at IS NOT NULL WHERE check_ins.principal_id = $1 AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY check_ins.recorded_at DESC, check_ins.id DESC LIMIT $3",
     )
     .bind(principal_id)
     .bind(roles)
@@ -284,6 +306,8 @@ async fn load_check_ins(
     Ok(rows
         .into_iter()
         .map(|row| LearnerJournalCheckIn {
+            activity_id: row.activity_id,
+            node_id: row.node_id,
             activity_slug: row.activity_slug,
             activity_title: row.activity_title,
             feeling: row.feeling,
@@ -307,7 +331,7 @@ async fn load_revisit_invitations(
     roles: &[String],
 ) -> Result<Vec<LearnerRevisitInvitation>, sqlx::Error> {
     let rows = sqlx::query_as::<_, RevisitInvitationRow>(
-        "SELECT activities.slug AS activity_slug, activities.title AS activity_title, to_char(progress.revisit_available_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS available_at, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS available_since, check_ins.id AS check_in_id, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, progress.revisit_status FROM learner_activity_progress AS progress INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = progress.revisit_check_in_id INNER JOIN learning_activities AS activities ON activities.id = progress.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE progress.principal_id = $1 AND progress.status = 'completed' AND progress.revisit_status IN ('pending', 'snoozed') AND progress.revisit_available_at <= NOW() AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY progress.revisit_available_at DESC, progress.updated_at DESC, progress.activity_id DESC LIMIT $3",
+        "SELECT activities.id AS activity_id, nodes.id AS node_id, activities.slug AS activity_slug, activities.title AS activity_title, to_char(progress.revisit_available_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS available_at, to_char(check_ins.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS available_since, check_ins.id AS check_in_id, maps.slug AS map_slug, maps.title AS map_title, nodes.slug AS node_slug, nodes.title AS node_title, progress.revisit_status FROM learner_activity_progress AS progress INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = progress.revisit_check_in_id INNER JOIN learning_activities AS activities ON activities.id = progress.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE progress.principal_id = $1 AND progress.status = 'completed' AND progress.revisit_status IN ('pending', 'snoozed') AND progress.revisit_available_at <= NOW() AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($2))) ORDER BY progress.revisit_available_at DESC, progress.updated_at DESC, progress.activity_id DESC LIMIT $3",
     )
     .bind(principal_id)
     .bind(roles)
@@ -318,6 +342,8 @@ async fn load_revisit_invitations(
     Ok(rows
         .into_iter()
         .map(|row| LearnerRevisitInvitation {
+            activity_id: row.activity_id,
+            node_id: row.node_id,
             activity_slug: row.activity_slug,
             activity_title: row.activity_title,
             available_after_days: REVISIT_AVAILABLE_AFTER_DAYS,
@@ -344,6 +370,209 @@ fn revisit_reason(status: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{escape_like, learner_theme, revisit_reason};
+
+    #[tokio::test]
+    #[ignore = "requires TEST_APPLICATION_DATABASE_URL pointing to the migrated local test stack"]
+    async fn journal_context_retains_real_destinations_and_private_scope() {
+        use super::*;
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(1)
+            .idle_timeout(None)
+            .max_lifetime(None)
+            .connect(&std::env::var("TEST_APPLICATION_DATABASE_URL").expect("test database URL"))
+            .await
+            .unwrap();
+        for table in [
+            "application_principals",
+            "application_journal_feedback_policy",
+            "learner_journal_pages",
+            "learner_journal_feedback_requests",
+            "learner_reflections",
+            "learning_activity_starts",
+            "learning_nodes",
+            "learning_maps",
+            "learning_topics",
+            "learning_activities",
+            "learning_routes",
+            "learning_map_assets",
+            "learner_activity_check_ins",
+            "learner_activity_progress",
+            "learning_groups",
+            "learning_group_memberships",
+        ] {
+            sqlx::query(&format!(
+                "CREATE TEMP TABLE {table} AS SELECT * FROM public.{table} WITH NO DATA"
+            ))
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+        // PostgreSQL uses these primary keys to prove GROUP BY dependencies.
+        for table in ["learner_journal_pages", "learner_journal_feedback_requests"] {
+            sqlx::query(&format!("ALTER TABLE {table} ADD PRIMARY KEY (id)"))
+                .execute(&pool)
+                .await
+                .unwrap();
+        }
+        let principal_id = Uuid::new_v4();
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["learner".into()],
+            capabilities: vec![],
+        };
+        let peer = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["learner".into()],
+            capabilities: vec![],
+        };
+        let peer_id = Uuid::new_v4();
+        sqlx::query("INSERT INTO application_principals (id, identity_subject_id) VALUES ($1, $2), ($3, $4)")
+            .bind(principal_id).bind(principal.subject_id).bind(peer_id).bind(peer.subject_id).execute(&pool).await.unwrap();
+        let [
+            page_id,
+            map_id,
+            node_id,
+            asset_id,
+            route_id,
+            activity_id,
+            start_id,
+            topic_id,
+            check_in_id,
+        ] = std::array::from_fn(|_| Uuid::new_v4());
+        sqlx::query("INSERT INTO learner_journal_pages (id, principal_id, title, topic, subtopic, markdown, preferred_mode, expert_access_requested, updated_at) VALUES ($1, $2, 'Private page', 'General', '', 'Private words', 'edit', FALSE, NOW())")
+            .bind(page_id).bind(principal_id).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO learning_topics (id, slug, title, published_at) VALUES ($1, 'topic', 'Published topic', NOW())")
+            .bind(topic_id).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO learning_maps (id, slug, title, topic_id, access_roles, published_at) VALUES ($1, 'map', 'Map', $2, '[\"public\"]', NOW())")
+            .bind(map_id).bind(topic_id).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO learning_nodes (id, map_id, map_asset_id, slug, title, published_at) VALUES ($1, $2, $3, 'node', 'Node', NOW())")
+            .bind(node_id).bind(map_id).bind(asset_id).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO learning_map_assets (id, published_at) VALUES ($1, NOW())")
+            .bind(asset_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO learning_routes (id, map_asset_id, published_at) VALUES ($1, $2, NOW())",
+        )
+        .bind(route_id)
+        .bind(asset_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO learning_activities (id, route_id, slug, title, activity_config, published_at) VALUES ($1, $2, 'activity', 'Activity', '{}', NOW())")
+            .bind(activity_id).bind(route_id).execute(&pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO learning_activity_starts (id, node_id, activity_id) VALUES ($1, $2, $3)",
+        )
+        .bind(start_id)
+        .bind(node_id)
+        .bind(activity_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO learner_reflections (id, principal_id, learner_journal_page_id, activity_id, activity_start_id, created_at) VALUES ($1, $2, $3, $4, $5, NOW())")
+            .bind(Uuid::new_v4()).bind(principal_id).bind(page_id).bind(activity_id).bind(start_id).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO learner_activity_check_ins (id, principal_id, activity_id, note, next_direction, recorded_at) VALUES ($1, $2, $3, 'Private check-in', 'revisit', NOW() - INTERVAL '4 days')")
+            .bind(check_in_id).bind(principal_id).bind(activity_id).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO learner_activity_progress (principal_id, activity_id, status, revisit_status, revisit_available_at, revisit_check_in_id, updated_at) VALUES ($1, $2, 'completed', 'pending', NOW() - INTERVAL '1 day', $3, NOW())")
+            .bind(principal_id).bind(activity_id).bind(check_in_id).execute(&pool).await.unwrap();
+        let request = LearnerJournalRequest::parse(None, None, None).unwrap();
+        let document = load_page(&pool, &principal, &request)
+            .await
+            .unwrap()
+            .unwrap();
+        let context = document.pages[0].learning_context.as_ref().unwrap();
+        assert_eq!(context.node_id, node_id);
+        assert_eq!(context.activity_id, Some(activity_id));
+        assert_eq!(context.topic.as_ref().unwrap().href, "/topics/topic");
+        assert_eq!(context.topic.as_ref().unwrap().title, "Published topic");
+        assert_eq!(document.pages[0].reflection_count, 1);
+        assert_eq!(document.check_ins[0].activity_id, activity_id);
+        assert_eq!(document.check_ins[0].node_id, node_id);
+        assert_eq!(document.check_ins[0].id, check_in_id.to_string());
+        assert_eq!(document.revisit_invitations[0].activity_id, activity_id);
+        assert_eq!(document.revisit_invitations[0].node_id, node_id);
+        assert_eq!(
+            document.revisit_invitations[0].check_in_id,
+            check_in_id.to_string()
+        );
+        let owned = crate::learner_journal_page::load_owned_page(&pool, principal_id, page_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(owned.learning_context).unwrap(),
+            serde_json::to_value(&document.pages[0].learning_context).unwrap()
+        );
+        assert!(
+            crate::learner_journal_page::load_owned_page(&pool, peer_id, page_id)
+                .await
+                .unwrap()
+                .is_none()
+        );
+        let other = load_page(&pool, &peer, &request).await.unwrap().unwrap();
+        assert!(
+            other.pages.is_empty()
+                && other.check_ins.is_empty()
+                && other.revisit_invitations.is_empty()
+        );
+        // Topic unpublication removes only the public topic link, not the note.
+        sqlx::query("UPDATE learning_topics SET published_at = NULL WHERE id = $1")
+            .bind(topic_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let document = load_page(&pool, &principal, &request)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            document.pages[0]
+                .learning_context
+                .as_ref()
+                .unwrap()
+                .topic
+                .is_none()
+        );
+        assert!(document.check_ins[0].origin_topic_slug.is_none());
+        // Existing map admission still removes private navigation invitations.
+        sqlx::query("UPDATE learning_maps SET access_roles = '[\"administrator\"]' WHERE id = $1")
+            .bind(map_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let document = load_page(&pool, &principal, &request)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(document.check_ins.is_empty() && document.revisit_invitations.is_empty());
+        assert_eq!(document.pages[0].markdown, "Private words");
+        // A deleted start still has the real unique node attached to its activity.
+        sqlx::query("DELETE FROM learning_activity_starts WHERE id = $1")
+            .bind(start_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let owned = crate::learner_journal_page::load_owned_page(&pool, principal_id, page_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(owned.learning_context.unwrap().node_id, node_id);
+        // Only a genuinely missing node removes the context; never invent one.
+        sqlx::query("DELETE FROM learning_nodes WHERE id = $1")
+            .bind(node_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let owned = crate::learner_journal_page::load_owned_page(&pool, principal_id, page_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(owned.learning_context.is_none());
+        assert_eq!(owned.markdown, "Private words");
+        pool.close().await;
+    }
 
     #[test]
     fn private_journal_search_escapes_database_wildcards() {
