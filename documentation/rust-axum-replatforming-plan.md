@@ -1689,6 +1689,66 @@ fail explicitly. HTML evidence is in ignored
 `frontend/playwright-report/player-projection/`. These are adapter/native
 contract checks, not browser-rendered player parity or route acceptance.
 
+### Player reached-state command
+
+Audit before implementation: copied `node-play.tsx` posts `status: reached`
+on each authenticated active-activity change, before loading translation.
+Pinned `LearningWorldController::markActivity` and `LearnerProgressService::mark`
+authorize the activity/run and preserve existing completed progress. Rust
+`learner_route_run::{start_or_resume,reset}` currently updates only route state;
+`learner_playback::mark_activity_reached` is called only when advancing. There
+is no existing endpoint that records the initially displayed activity.
+
+Add only `POST /learner/play-runs/{run}/activities/{reference}/reach`, using
+the existing explicit `id:UUID`/legacy-slug reference convention. Resolve and
+lock the actual owner/run/current activity, check publication, map access and
+node availability, then upsert reached progress without downgrading completion.
+Return the existing typed persisted activity-state receipt. Source
+`LearnerRouteProgressService::enterActivity` also updates entry time and topic
+visits: reuse Rust's existing `record_topic_visit` (already called by playback
+reads), and refresh the ordinary run's entry time without changing its current
+activity. This matters for local source navigation that does not reload the run.
+No browser-supplied
+status, activity substitution, route advance, evidence, check-in, answer or
+completion is accepted. Recall only verifies its active question and returns
+actual nullable progress; it never writes ordinary progress (ADR-037).
+Stale, other-owner, inactive, unpublished and unavailable pairs return 404;
+missing authentication/CSRF retains 401/403; storage failures return 503.
+
+**Verified:** `persistence/src/learner_playback_reach.rs` implements this command
+through the application port and the authenticated/CSRF-protected API handler.
+It checks at most five native run tables, stops at the authorized current row,
+and reuses existing availability, topic-visit and activity-state helpers. It
+does not load the entire player graph merely to record entry.
+
+The initial endpoint regression failed against the previous backend. After
+implementation, canonical identity, production frontend type/build, generated
+OpenAPI client, Rust workspace check/format, three application playback tests,
+22 persistence playback tests and 20 real Rust/PostgreSQL checks passed (37.5
+seconds). `canonical-playback-reach-evidence.ts` covers all six playback paths
+and fourteen activity types, explicit/legacy references, duplicate entry,
+completion timestamp preservation, owner/CSRF/anonymous/stale/publication/map
+access and locked/hidden-node failures. Dedicated entry-context checks prove
+ordinary entry time/topic updates, no repeated topic transition, and Recall's
+absent ordinary progress/topic writes; entry creates no completion evidence
+or check-in. Measured local entry commands took 7–10 ms, not a production SLA.
+Report: ignored `frontend/playwright-report/player-reach/`. Expired disposable
+sessions were renewed through the existing local setup before the final run.
+No canonical UI, database migration or production ownership changed. Copied
+player command transport and full route/browser acceptance remain open.
+
+Separate observed authoring gap: `persistence/src/admin_world_map_delete.rs`
+relies on activity FK cascades; during the player message fixture cleanup it
+returned 503 with `learning_activity_transitions_endpoint_connector_unique`.
+Multiple edges from one source can transiently collapse to the same null target
+as destination activities are deleted (constraint introduced by
+`backend/migrations/application/0079_world_builder_transition_identity.sql`).
+Before authoring acceptance, reproduce a map with parallel outgoing destinations,
+then delete incident edges before cascading their owners, preserving unrelated
+maps and permission checks. Player fixture cleanup now removes only edges owned
+by its disposable map before calling the map-delete API; this is not a product
+fix or evidence that map deletion is accepted.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

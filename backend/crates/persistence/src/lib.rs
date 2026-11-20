@@ -112,6 +112,7 @@ mod learner_playback_graph;
 mod learner_playback_node;
 mod learner_playback_presentation;
 mod learner_playback_private_state;
+pub mod learner_playback_reach;
 mod learner_playback_reviews;
 pub mod learner_portal;
 pub mod learner_question;

@@ -1,3 +1,4 @@
+import { verifyPlaybackReach } from './canonical-playback-reach-evidence';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, test, type BrowserContext } from '@playwright/test';
@@ -91,6 +92,7 @@ for (const type of types) {
             const playbackResponse = await owner.request.get(`/api/v1/learner/play-runs/${run}`);
             expect(playbackResponse.status()).toBe(200);
             const playback = await playbackResponse.json();
+            await verifyPlaybackReach(owner, peer, run, activity, principal, node.node_id, false, info);
             const sourceProps = verifyPlaybackProjection(playback);
             expect(sourceProps.progress).toEqual({ activities: {}, answers: {}, recallQuestionIds: [] });
             const sourceActivity = sourceProps.node.activities.find((entry) => entry.id === activity)!;

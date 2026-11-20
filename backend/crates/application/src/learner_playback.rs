@@ -3,11 +3,50 @@ use std::future::Future;
 use uuid::Uuid;
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
-    learner_state::{LearnerPlaybackCompletionResult, LearnerPlaybackDocument},
+    learner_state::{
+        LearnerPlaybackActivityState, LearnerPlaybackCompletionResult, LearnerPlaybackDocument,
+    },
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LearnerPlaybackReadError;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LearnerPlaybackReachError;
+
+pub trait LearnerPlaybackReachRepository {
+    fn reach_current_activity(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_reference: &str,
+    ) -> impl Future<
+        Output = Result<Option<LearnerPlaybackActivityState>, LearnerPlaybackReachError>,
+    > + Send;
+}
+
+pub struct LearnerPlaybackReachCommand<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository: LearnerPlaybackReachRepository>
+    LearnerPlaybackReachCommand<'repository, Repository>
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_reference: &str,
+    ) -> Result<Option<LearnerPlaybackActivityState>, LearnerPlaybackReachError> {
+        self.repository
+            .reach_current_activity(principal, play_run_id, activity_reference)
+            .await
+    }
+}
 
 pub trait LearnerPlaybackRepository {
     fn load_active_run(

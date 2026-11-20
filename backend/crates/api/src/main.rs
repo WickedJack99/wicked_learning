@@ -1536,6 +1536,10 @@ fn router(state: AppState) -> Router {
             post(learner_shared_task::save_checklist),
         )
         .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/reach",
+            post(learner_playback::reach_current_activity),
+        )
+        .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete",
             post(learner_playback::complete_current_activity),
         )

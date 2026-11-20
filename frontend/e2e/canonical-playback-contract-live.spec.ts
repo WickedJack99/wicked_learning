@@ -1,3 +1,4 @@
+import { verifyPlaybackReach, verifyReachEntryContext } from './canonical-playback-reach-evidence';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
@@ -16,7 +17,9 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
         const anonymous = await browser.newContext({ baseURL });
         const csrf = await (await admin.request.get('/api/v1/security/csrf')).json();
         const headers = { Origin: new URL(baseURL!).origin, 'X-CSRF-Token': csrf.token };
-        const subject = uuid((await (await owner.request.get('/api/v1/me')).json()).subject_id);
+        const currentUser = await owner.request.get('/api/v1/me');
+        expect(currentUser.status(), 'The disposable learner session must be valid before testing playback.').toBe(200);
+        const subject = uuid((await currentUser.json()).subject_id);
         const principal = uuid(localSql(`SELECT id FROM application_principals WHERE identity_subject_id = '${subject}'`).trim());
         let mapId: string | undefined;
         try {
@@ -81,6 +84,8 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
             info.annotations.push({ type: 'native-playback-read', description: `${kind}: ${Math.round(performance.now() - readStarted)} ms; ${Buffer.byteLength(JSON.stringify(playback))} bytes` });
             expect(playback).toMatchObject({ run_kind: kind === 'message' ? 'route' : kind, play_run_id: runId, activity: { id: activityId }, context: { node_id: nodeId, map_id: mapId, node_slug: 'same-playback-place', node_title: 'Same playback place' } });
             expect.soft(playback.graph).toMatchObject({ node_id: nodeId, activities: [expect.objectContaining({ id: activityId, slug: 'same-activity', activity_type: type, transitions: [] })] });
+            await verifyPlaybackReach(owner, peer, runId, activityId, principal, nodeId, kind === 'recall', info);
+            if (kind === 'route' || kind === 'recall') await verifyReachEntryContext(owner, runId, activityId, principal, kind === 'recall');
             if (kind === 'route') await verifyPlaybackNode(owner, peer, path, nodeId, mapId);
             const authored = await (await admin.request.get(`/api/v1/admin/world-builder/nodes/${nodeId}`)).json();
             expect(authored.activity_graph.activities).toEqual(expect.arrayContaining([expect.objectContaining({ id: playback.activity.id })]));
@@ -147,8 +152,12 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
 
             expect((await peer.request.get(path)).status()).toBe(404);
             expect((await anonymous.request.get(path)).status()).toBe(401);
+            expect((await anonymous.request.post(`${path}/activities/${encodeURIComponent(`id:${activityId}`)}/reach`)).status()).toBe(401);
             localSql(`UPDATE learning_nodes SET state = 'locked' WHERE id = '${nodeId}'`);
             expect((await owner.request.get(path)).status()).toBe(404);
+            expect((await owner.request.post(`${path}/activities/${encodeURIComponent(`id:${activityId}`)}/reach`, {
+                headers: { Origin: new URL(baseURL!).origin, 'X-CSRF-Token': (await (await owner.request.get('/api/v1/security/csrf')).json()).token },
+            })).status()).toBe(404);
             localSql(`UPDATE learning_nodes SET state = 'available', visual_config = '{"schedule":{"lockAt":"2000-01-01T00:00:00Z"}}' WHERE id = '${nodeId}'`);
             expect((await owner.request.get(path)).status()).toBe(404);
             localSql(`UPDATE learning_nodes SET state = 'hidden', visual_config = '{}' WHERE id = '${nodeId}'`);
@@ -284,8 +293,17 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 expect((await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} })).status()).toBe(404);
             }
             expect((await owner.request.get(path)).status()).toBe(404);
+            expect((await owner.request.post(`${path}/activities/${encodeURIComponent(`id:${activityId}`)}/reach`, {
+                headers: { Origin: new URL(baseURL!).origin, 'X-CSRF-Token': (await (await owner.request.get('/api/v1/security/csrf')).json()).token },
+            })).status()).toBe(404);
         } finally {
-            if (mapId) expect((await admin.request.delete(`/api/v1/admin/world-builder/maps/${mapId}`, { headers })).status()).toBe(204);
+            if (mapId) {
+                // Fixture cleanup only: the separate map-delete cascade can
+                // collide when multiple destinations become null before their
+                // source is deleted. This is recorded in the migration register.
+                localSql(`DELETE FROM learning_activity_transitions WHERE from_activity_id IN (SELECT a.id FROM learning_activities a JOIN learning_routes r ON r.id=a.route_id JOIN learning_map_assets m ON m.id=r.map_asset_id WHERE m.map_id='${mapId}')`);
+                expect((await admin.request.delete(`/api/v1/admin/world-builder/maps/${mapId}`, { headers })).status()).toBe(204);
+            }
             await admin.close(); await owner.close(); await peer.close(); await anonymous.close();
         }
     });

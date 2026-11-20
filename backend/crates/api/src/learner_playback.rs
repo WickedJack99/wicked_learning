@@ -7,12 +7,13 @@ use axum_login::AuthSession;
 use serde::Deserialize;
 use uuid::Uuid;
 use wicked_learning_application::learner_playback::{
-    LearnerPlaybackCompletionCommand, LearnerPlaybackQuery,
+    LearnerPlaybackCompletionCommand, LearnerPlaybackQuery, LearnerPlaybackReachCommand,
 };
 use wicked_learning_domain::learner_state::{
-    LearnerPlaybackCompletionResult, LearnerPlaybackDocument,
+    LearnerPlaybackActivityState, LearnerPlaybackCompletionResult, LearnerPlaybackDocument,
 };
 use wicked_learning_persistence::learner_playback::PostgresLearnerPlaybackRepository;
+use wicked_learning_persistence::learner_playback_reach::PostgresLearnerPlaybackReachRepository;
 
 use crate::{
     AppState, csrf, error::ApiError, identity::IdentityBackend,
@@ -24,6 +25,25 @@ pub struct CompleteCurrentActivityRequest {
     confidence: Option<String>,
     confidence_after_feedback: Option<String>,
     outcome: Option<String>,
+}
+
+pub async fn reach_current_activity(
+    State(state): State<AppState>,
+    Path((play_run_id, reference)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<LearnerPlaybackActivityState>, ApiError> {
+    let run = Uuid::parse_str(&play_run_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresLearnerPlaybackReachRepository::new(&state.application_database);
+    LearnerPlaybackReachCommand::new(&repository)
+        .execute(&principal, run, &reference)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
 }
 
 pub async fn show(

@@ -5688,6 +5688,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/reach": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record entry into the authorized current activity without completing or advancing it.
+         * @description Locks the active owner/run and verifies publication, map access and node availability. Inserts reached progress only when absent and preserves any existing completed status and timestamp. Reuses source topic-visit recording and refreshes an ordinary run's entry time without advancing it. Recall verifies the active question but never writes ordinary progress or topic visits. Accepts no status or destination. Returns persisted activity state from the same transaction.
+         */
+        post: operations["reachLearnerCurrentActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete": {
         parameters: {
             query?: never;
@@ -32827,6 +32847,61 @@ export interface operations {
                 content?: never;
             };
             /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reachLearnerCurrentActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Actual private activity state after authorized entry; progress may be null for Recall. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerPlaybackActivityState"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing application access or invalid CSRF/Origin. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active run/activity is stale */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Persistence is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;
