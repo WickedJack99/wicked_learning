@@ -262,7 +262,6 @@ fn answer_progress(
         if keys.is_empty()
             || keys.len() > 24
             || keys.iter().collect::<HashSet<_>>().len() != keys.len()
-            || (!config.allow_multiple && keys.len() != 1)
             || keys
                 .iter()
                 .any(|k| !config.options.iter().any(|o| &o.key == k))

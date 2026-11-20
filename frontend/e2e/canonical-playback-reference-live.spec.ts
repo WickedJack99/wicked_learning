@@ -198,6 +198,12 @@ for (const type of types) {
             }
             if (type === 'question' || type === 'reflection' || type === 'review') expect((await result.json()).activity_slug).toBe('same-activity');
             if (type === 'question') expect((await owner.request.post(`${base}/${ref}/recall`, { headers })).status()).toBe(200);
+            if (type === 'reflection' || type === 'review') {
+                expect(resultBody.status).toBe('saved');
+                const afterSaving = await owner.request.get(`/api/v1/learner/play-runs/${run}`);
+                expect(afterSaving.status()).toBe(200);
+                expect((await afterSaving.json()).activity.id).toBe(activity);
+            }
             if (type === 'item_obstacle' || type === 'obstacle') {
                 if (type === 'item_obstacle') {
                     const continued = await owner.request.post(`${base}/${ref}/item-obstacle/continue`, { headers });

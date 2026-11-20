@@ -1807,6 +1807,54 @@ completion/navigation lifecycle, other activity transports and full-page
 responsive/media acceptance remain open; the production resolver still reports
 the route unavailable.
 
+### Question answer and reflection lifecycle contracts
+
+Pre-implementation audit against the pinned SHA: whole source
+`resources/js/features/world/standard-activities.tsx` (`QuestionActivity`,
+`ReflectionActivity`), `app/Learning/Services/{QuestionAnswerService,QuestionTransitionResolver}.php`
+and `app/Http/Controllers/LearningWorldController.php`.
+
+| Source requirement | Current Rust evidence / required repair |
+| --- | --- |
+| Single-choice correctness is the selected option's flag; multiple-choice requires exactly all correct options | `persistence/src/learner_question.rs` was applying the multiple-choice comparison to both. The live regression reproduced wrong correctness/calibration and the wrong edge; evaluation now follows source semantics. |
+| Answer option identities follow authored option order | Normalize accepted keys from the validated authored selection, preserving opaque keys; no numeric aliases. |
+| Authored mode changes preserve recorded answers and earlier attempts | Live completion coverage exposed 503 when earlier multiple-choice answers were checked against the new single-choice mode. Apply the mode constraint only to new writes; keep recorded selections, correctness and feedback on reads. |
+| Evaluated response includes nullable `nextActivityId` and matching `nextTransitionLabel`; outcome edge precedes correctness edge | Add the existing server-resolved transition UUID to `LearnerQuestionAnswerResult` and OpenAPI; use the same result on refresh. Preserve terminal null and keep the run open until the distinct completion command. |
+| Saving a reflection/independent response does not complete the activity before optional guidance and completion | Existing persistence returns `status: saved` and does not advance. Correct the stale OpenAPI `in_progress/completed` enum and advancing description; do not change the working writer. |
+
+Required verification: real PostgreSQL/Rust routing, response and refresh parity,
+authored option ordering, repeated attempts and deferred completion; focused
+Rust tests and generated-client/type/build consistency. Whole copied player
+transport and browser acceptance remain separate outstanding work.
+
+Implemented in `backend/crates/domain/src/learner_state.rs`,
+`backend/crates/persistence/src/{learner_question,learner_playback_private_state}.rs`,
+OpenAPI and its generated TypeScript client. The answer command and refreshed
+feedback now return the same destination and label. Recorded history survives
+an authored selection-mode change while current-mode restrictions still apply
+to new answers. No database migration or canonical presentation changed.
+
+Verification: 65 focused learner persistence tests passed (six existing
+integration tests remain ignored), Rust workspace fmt/check, canonical source
+identity, frontend production type/build and generated-client consistency
+passed. Real PostgreSQL/Rust tests in
+`frontend/e2e/canonical-player-answer-live.spec.ts` cover ordinary, revisit,
+recall and replay runs: single/multiple correctness, option order, outcome and
+correctness routing, terminal/absent edges, private attempts, refresh parity,
+authored-mode changes, rejected choices and distinct completion. The four
+checks pass after correcting the revisit fixture to include its required due
+invitation; existing native player contract/reference checks also pass (20).
+Recall completion creates no ordinary activity progress. Reports: ignored
+`frontend/playwright-report/player-answer-native/` and
+`frontend/playwright-report/player-answer-completion/`.
+
+Remaining before whole player acceptance: wire the copied question/reflection
+commands and recall controls; verify null-valued outcome-edge precedence against
+`QuestionTransitionResolver::for` (it compares nullable values directly, while
+the current native lookup skips an absent option outcome); finish shared player
+completion/navigation and source/browser acceptance. Native contract tests are
+not evidence that the copied player route is active.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

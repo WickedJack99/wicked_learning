@@ -7593,7 +7593,7 @@ paths:
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/reflection:
     post:
       operationId: saveLearnerReflection
-      summary: Save a private reflection for the current authorized activity and advance its play run.
+      summary: Save a private reflection for the current authorized activity without advancing its play run.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7606,7 +7606,7 @@ paths:
               $ref: '#/components/schemas/LearnerReflectionRequest'
       responses:
         '200':
-          description: The private reflection was stored and the server advanced or completed the active run.
+          description: The private reflection was stored. The run remains open for optional guidance, independent response and the separate activity completion command.
           content:
             application/json:
               schema:
@@ -11689,7 +11689,7 @@ components:
     LearnerQuestionAnswerResult:
       type: object
       additionalProperties: false
-      required: [play_run_id, activity_slug, selected_option_keys, is_correct, feedback, explanation, confidence, calibration, attempt_number, earlier_attempts, recall, next_transition_label, status]
+      required: [play_run_id, activity_slug, selected_option_keys, is_correct, feedback, explanation, confidence, calibration, attempt_number, earlier_attempts, recall, next_activity_id, next_transition_label, status]
       properties:
         play_run_id: { type: string, format: uuid }
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
@@ -11710,6 +11710,10 @@ components:
           oneOf:
             - $ref: '#/components/schemas/LearnerRecallSchedule'
             - type: 'null'
+        next_activity_id:
+          type: [string, 'null']
+          format: uuid
+          description: The authored server-resolved destination; null for a terminal or absent transition. Answering does not advance the run.
         next_transition_label: { type: [string, 'null'] }
         status:
           type: string
@@ -11768,7 +11772,7 @@ components:
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         status:
           type: string
-          enum: [in_progress, completed]
+          enum: [saved]
     LearnerJournalDocument:
       type: object
       additionalProperties: false

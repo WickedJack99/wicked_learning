@@ -1610,9 +1610,10 @@ pub struct LearnerQuestionAnswerResult {
     /// interval selected from the learner's own queue, never an adaptive
     /// recommendation or a browser-provided value.
     pub recall: Option<LearnerRecallSchedule>,
+    pub next_activity_id: Option<uuid::Uuid>,
     pub next_transition_label: Option<String>,
-    /// The question command resolves progression before responding, so React
-    /// uses this server-owned result after the optional conclusion check-in.
+    /// Answering records feedback without completing the activity. The
+    /// separate completion command applies the server-resolved transition.
     pub status: String,
 }
 

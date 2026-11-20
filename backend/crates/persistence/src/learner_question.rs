@@ -160,14 +160,7 @@ async fn answer_current_question(
         transaction.commit().await?;
         return Ok(None);
     }
-    let correct_keys = config
-        .options
-        .iter()
-        .filter(|option| option.is_correct)
-        .map(|option| &option.key)
-        .collect::<Vec<_>>();
-    let is_correct =
-        selected.len() == correct_keys.len() && selected.iter().all(|option| option.is_correct);
+    let is_correct = selection_is_correct(&config, &selected);
     let calibration = confidence.map(|value| calibration(is_correct, value).to_owned());
     let attempt_number = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM learner_question_answers WHERE principal_id = $1 AND activity_id = $2")
         .bind(current.principal_id).bind(current.activity_id).fetch_one(&mut *transaction).await? as i32 + 1;
@@ -178,7 +171,10 @@ async fn answer_current_question(
         is_correct,
     )
     .await?;
-    let selected_option_keys = option_keys.to_vec();
+    let selected_option_keys = selected
+        .iter()
+        .map(|option| option.key.clone())
+        .collect::<Vec<_>>();
     let feedback = feedback_for_selection(&config, &selected, is_correct);
     sqlx::query("INSERT INTO learner_question_answers (principal_id, activity_id, play_run_id, selected_option_keys, is_correct, confidence, calibration, attempt_number, feedback, feedback_recorded) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE)")
         .bind(current.principal_id).bind(current.activity_id).bind(play_run_id).bind(serde_json::json!(selected_option_keys)).bind(is_correct).bind(confidence).bind(&calibration).bind(attempt_number).bind(&feedback).execute(&mut *transaction).await?;
@@ -215,6 +211,9 @@ async fn answer_current_question(
         attempt_number,
         earlier_attempts,
         recall,
+        next_activity_id: transition
+            .as_ref()
+            .and_then(|transition| transition.to_activity_id),
         next_transition_label: transition.and_then(|transition| transition.label),
         status: "in_progress".to_owned(),
     }))
@@ -352,7 +351,6 @@ pub(crate) async fn question_feedback_for_playback(
         || selected.len() != selected_option_keys.len()
         || selected.iter().any(|option| option.key.is_empty())
         || duplicate(&selected_option_keys)
-        || (!config.allow_multiple && selected.len() != 1)
     {
         return Ok(None);
     }
@@ -390,6 +388,9 @@ pub(crate) async fn question_feedback_for_playback(
         earlier_attempts,
         recall: recall_schedule_for_playback(transaction, principal_id, activity_id, play_run_id)
             .await?,
+        next_activity_id: transition
+            .as_ref()
+            .and_then(|transition| transition.to_activity_id),
         next_transition_label: transition.and_then(|transition| transition.label),
         status: "in_progress".to_owned(),
     }))
@@ -500,6 +501,19 @@ pub(crate) fn feedback_for_selection(
     }
 }
 
+fn selection_is_correct(config: &QuestionConfig, selected: &[&QuestionOption]) -> bool {
+    if !config.allow_multiple {
+        return selected.len() == 1 && selected[0].is_correct;
+    }
+    selected.len()
+        == config
+            .options
+            .iter()
+            .filter(|option| option.is_correct)
+            .count()
+        && selected.iter().all(|option| option.is_correct)
+}
+
 /// Single-choice questions prefer the selected option's outcome; source
 /// multiple-choice questions route only by the aggregate correctness result.
 pub(crate) fn transition_choice<'a>(
@@ -550,7 +564,33 @@ fn calibration(correct: bool, confidence: &str) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::valid_confidence;
+    use super::{QuestionConfig, selection_is_correct, valid_confidence};
+
+    #[test]
+    fn evaluates_single_options_independently_and_multiple_selections_as_a_set() {
+        let mut config: QuestionConfig = serde_json::from_value(serde_json::json!({
+            "allowMultiple": false,
+            "options": [
+                { "key": "a", "label": "A", "isCorrect": true },
+                { "key": "b", "label": "B", "isCorrect": true },
+                { "key": "c", "label": "C", "isCorrect": false }
+            ]
+        }))
+        .unwrap();
+        assert!(selection_is_correct(&config, &[&config.options[0]]));
+        assert!(selection_is_correct(&config, &[&config.options[1]]));
+        assert!(!selection_is_correct(&config, &[&config.options[2]]));
+        config.allow_multiple = true;
+        assert!(!selection_is_correct(&config, &[&config.options[0]]));
+        assert!(selection_is_correct(
+            &config,
+            &[&config.options[1], &config.options[0]]
+        ));
+        assert!(!selection_is_correct(
+            &config,
+            &[&config.options[0], &config.options[2]]
+        ));
+    }
 
     #[test]
     fn accepts_only_the_source_defined_confidence_values() {

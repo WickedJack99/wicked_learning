@@ -6180,7 +6180,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Save a private reflection for the current authorized activity and advance its play run. */
+        /** Save a private reflection for the current authorized activity without advancing its play run. */
         post: operations["saveLearnerReflection"];
         delete?: never;
         options?: never;
@@ -8795,6 +8795,11 @@ export interface components {
             attempt_number: number;
             earlier_attempts: components["schemas"]["LearnerQuestionEarlierAttempt"][];
             recall: components["schemas"]["LearnerRecallSchedule"] | null;
+            /**
+             * Format: uuid
+             * @description The authored server-resolved destination; null for a terminal or absent transition. Answering does not advance the run.
+             */
+            next_activity_id: string | null;
             next_transition_label: string | null;
             /** @enum {string} */
             status: "in_progress" | "completed";
@@ -8830,7 +8835,7 @@ export interface components {
             play_run_id: string;
             activity_slug: string;
             /** @enum {string} */
-            status: "in_progress" | "completed";
+            status: "saved";
         };
         LearnerJournalDocument: {
             allow_expert_access_requests: boolean;
@@ -34541,7 +34546,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The private reflection was stored and the server advanced or completed the active run. */
+            /** @description The private reflection was stored. The run remains open for optional guidance, independent response and the separate activity completion command. */
             200: {
                 headers: {
                     [name: string]: unknown;
