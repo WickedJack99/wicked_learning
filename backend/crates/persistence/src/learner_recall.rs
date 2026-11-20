@@ -8,6 +8,8 @@ use wicked_learning_domain::{
     learner_state::{LearnerRecallItem, LearnerRecallQueue},
 };
 
+use crate::learner_node_availability::PostgresLearnerNodeAvailability;
+
 const MAXIMUM_RECALL_ITEMS: i64 = 24;
 
 pub struct PostgresLearnerRecallRepository<'pool> {
@@ -42,6 +44,9 @@ struct RecallItemRow {
 struct ActiveQuestionRow {
     activity_id: Uuid,
     principal_id: Uuid,
+    node_id: Uuid,
+    node_state: String,
+    node_visual_config: serde_json::Value,
 }
 
 impl LearnerRecallRepositoryPort for PostgresLearnerRecallRepository<'_> {
@@ -90,6 +95,47 @@ impl LearnerRecallRepositoryPort for PostgresLearnerRecallRepository<'_> {
         }
     }
 
+    async fn remove_current_question(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+    ) -> Result<Option<bool>, LearnerRecallError> {
+        mutate_current_question(
+            self.pool,
+            principal,
+            play_run_id,
+            activity_slug,
+            CurrentQuestionChange::Remove,
+        )
+        .await
+        .map_err(|error| {
+            tracing::error!(%error, "could not remove current recall question");
+            LearnerRecallError
+        })
+    }
+
+    async fn update_current_question_feedback(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        confidence: Option<&str>,
+    ) -> Result<Option<bool>, LearnerRecallError> {
+        mutate_current_question(
+            self.pool,
+            principal,
+            play_run_id,
+            activity_slug,
+            CurrentQuestionChange::Feedback(confidence),
+        )
+        .await
+        .map_err(|error| {
+            tracing::error!(%error, "could not update current recall feedback");
+            LearnerRecallError
+        })
+    }
+
     fn postpone(
         &self,
         principal: &AuthorizedPrincipal,
@@ -132,9 +178,18 @@ async fn queue_current_question(
     play_run_id: Uuid,
     activity_slug: &str,
 ) -> Result<Option<LearnerRecallItem>, sqlx::Error> {
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
     let mut transaction = pool.begin().await?;
-    let Some(question) =
-        active_question_for_update(&mut transaction, principal, play_run_id, activity_slug).await?
+    let Some(question) = active_question_for_update(
+        &mut transaction,
+        principal,
+        &availability,
+        play_run_id,
+        activity_slug,
+    )
+    .await?
     else {
         transaction.commit().await?;
         return Ok(None);
@@ -201,24 +256,103 @@ async fn postpone(
     Ok(item.map(recall_item))
 }
 
-/// Finds the active question from any server-owned run type. Each branch
-/// applies the same publication/access predicate, so an opaque run ID alone
-/// can never turn a queue control into a visibility bypass.
-async fn active_question_for_update(
-    transaction: &mut Transaction<'_, Postgres>,
+enum CurrentQuestionChange<'a> {
+    Remove,
+    Feedback(Option<&'a str>),
+}
+
+async fn mutate_current_question(
+    pool: &PgPool,
     principal: &AuthorizedPrincipal,
     play_run_id: Uuid,
     activity_slug: &str,
-) -> Result<Option<ActiveQuestionRow>, sqlx::Error> {
-    sqlx::query_as::<_, ActiveQuestionRow>(
-        "SELECT progress.current_activity_id AS activity_id, progress.principal_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'question' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) UNION ALL SELECT runs.activity_id, runs.principal_id FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'question' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) UNION ALL SELECT runs.activity_id, runs.principal_id FROM learner_recall_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'question' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) LIMIT 1",
+    change: CurrentQuestionChange<'_>,
+) -> Result<Option<bool>, sqlx::Error> {
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
+    let mut transaction = pool.begin().await?;
+    let Some(question) = active_question_for_update(
+        &mut transaction,
+        principal,
+        &availability,
+        play_run_id,
+        activity_slug,
     )
-    .bind(principal.subject_id)
-    .bind(play_run_id)
-    .bind(activity_slug)
-    .bind(&principal.roles)
-    .fetch_optional(&mut **transaction)
-    .await
+    .await?
+    else {
+        return Ok(None);
+    };
+    let affected = match change {
+        CurrentQuestionChange::Remove => sqlx::query("DELETE FROM learner_recall_items WHERE principal_id=$1 AND activity_id=$2")
+            .bind(question.principal_id).bind(question.activity_id).execute(&mut *transaction).await?.rows_affected(),
+        CurrentQuestionChange::Feedback(confidence) => sqlx::query("UPDATE learner_recall_items SET last_confidence_after_feedback=$3,updated_at=NOW() WHERE principal_id=$1 AND activity_id=$2")
+            .bind(question.principal_id).bind(question.activity_id).bind(confidence).execute(&mut *transaction).await?.rows_affected(),
+    };
+    transaction.commit().await?;
+    Ok(Some(affected == 1))
+}
+
+/// All table/column fragments are static. Lock the same current run that
+/// completion locks, and apply published content and node availability checks
+/// before touching the private queue. An absent item is distinct from an
+/// unavailable question/run, allowing source-defined idempotence.
+async fn active_question_for_update(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal: &AuthorizedPrincipal,
+    availability: &PostgresLearnerNodeAvailability,
+    play_run_id: Uuid,
+    activity_slug: &str,
+) -> Result<Option<ActiveQuestionRow>, sqlx::Error> {
+    for (table, run_column, activity_column, extra_join) in [
+        (
+            "learner_route_progress",
+            "current_play_run_id",
+            "current_activity_id",
+            "JOIN learning_activity_starts starts ON starts.id=runs.activity_start_id AND starts.node_id=nodes.id",
+        ),
+        (
+            "learner_revisit_runs",
+            "id",
+            "activity_id",
+            "JOIN learner_activity_check_ins check_in ON check_in.id=runs.check_in_id AND check_in.principal_id=runs.principal_id AND check_in.activity_id=activities.id",
+        ),
+        ("learner_recall_runs", "id", "activity_id", ""),
+        ("learner_activity_replay_runs", "id", "activity_id", ""),
+    ] {
+        let query = format!(
+            "SELECT activities.id AS activity_id,runs.principal_id,nodes.id AS node_id,nodes.state AS node_state,nodes.visual_config AS node_visual_config \
+             FROM {table} runs JOIN learning_activities activities ON activities.id=runs.{activity_column} \
+             JOIN learning_routes routes ON routes.id=activities.route_id JOIN learning_map_assets assets ON assets.id=routes.map_asset_id \
+             JOIN learning_nodes nodes ON nodes.map_asset_id=assets.id JOIN learning_maps maps ON maps.id=nodes.map_id {extra_join} \
+             WHERE runs.principal_id=$1 AND runs.{run_column}=$2 AND runs.status='in_progress' \
+             AND ($3='id:' || activities.id::text OR (left($3,3)<>'id:' AND activities.slug=$3)) AND activities.activity_type='question' \
+             AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL \
+             AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL \
+             AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS \
+                 (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) r(role) WHERE r.role=ANY($4))) \
+             ORDER BY nodes.id LIMIT 1 FOR UPDATE OF runs"
+        );
+        let question = sqlx::query_as::<_, ActiveQuestionRow>(&query)
+            .bind(availability.principal_id())
+            .bind(play_run_id)
+            .bind(activity_slug)
+            .bind(&principal.roles)
+            .fetch_optional(&mut **transaction)
+            .await?;
+        let Some(question) = question else {
+            continue;
+        };
+        return Ok(availability
+            .state_for_node(
+                question.node_id,
+                &question.node_state,
+                &question.node_visual_config,
+            )
+            .can_play()
+            .then_some(question));
+    }
+    Ok(None)
 }
 
 async fn load_item_for_update(

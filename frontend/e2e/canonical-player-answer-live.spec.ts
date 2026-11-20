@@ -2,11 +2,12 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
+import { verifyPlayerRecallControls } from './canonical-player-recall-evidence';
 
 // Source: QuestionAnswerService::answer and QuestionTransitionResolver.
 // Real native commands, including isolated runs; no browser response mocks.
 for (const kind of ['route', 'revisit', 'recall', 'replay'] as const) {
-    test(`source question evaluation and deferred routing in ${kind}`, async ({ browser, baseURL }) => {
+    test(`source question evaluation and deferred routing in ${kind}`, async ({ browser, baseURL }, info) => {
         const admin = await browser.newContext({ baseURL, storageState: administratorStorageStatePath });
         const owner = await browser.newContext({ baseURL, storageState: collaborationStorageStatePath('first') });
         const headersFor = async (context: typeof owner) => ({ Origin: new URL(baseURL!).origin, 'X-CSRF-Token': (await (await context.request.get('/api/v1/security/csrf')).json()).token });
@@ -42,6 +43,8 @@ for (const kind of ['route', 'revisit', 'recall', 'replay'] as const) {
             else if (kind === 'revisit') sql(`INSERT INTO learner_activity_check_ins (id,principal_id,activity_id,play_run_id,note) VALUES ('${checkIn}','${principal}','${activity}','${randomUUID()}','Fixture'); INSERT INTO learner_revisit_runs (id,principal_id,check_in_id,activity_id,revisit_reason) VALUES ('${run}','${principal}','${checkIn}','${activity}','later'); INSERT INTO learner_activity_progress (principal_id,activity_id,status,completed_at,attempt_count,revisit_status,revisit_available_at,revisit_check_in_id) VALUES ('${principal}','${activity}','completed','2026-01-01T00:00:00Z',1,'pending',NOW() - INTERVAL '1 day','${checkIn}')`);
             else sql(`INSERT INTO ${kind === 'recall' ? 'learner_recall_runs' : 'learner_activity_replay_runs'} (id,principal_id,activity_id) VALUES ('${run}','${principal}','${activity}')`);
 
+            const queueMilliseconds = await verifyPlayerRecallControls(owner, { baseURL: baseURL!, run, activity, principal, node: node.node_id, map, asset: node.asset_id, kind });
+            info.annotations.push({ type: 'native-recall-queue', description: `${kind}: ${queueMilliseconds} ms` });
             const endpoint = `/api/v1/learner/play-runs/${run}/activities/${encodeURIComponent(`id:${activity}`)}`;
             let attempt = 0;
             const answer = async (keys: string[], correct: boolean, target: string | null, label: string | null, expectedKeys = keys) => {

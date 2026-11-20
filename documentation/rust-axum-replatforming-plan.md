@@ -1868,12 +1868,66 @@ public contract, migration or production ownership changed in this follow-up.
 Remaining before whole player acceptance: wire the copied question/reflection
 commands and recall controls; finish shared player completion/navigation and
 source/browser acceptance. Native contract tests are not evidence that the
-copied player route is active. Recall control audit must cover source
-`features/learning/recall-items.ts` and
-`app/Learning/Services/LearnerRecallItemService.php`: the native queue writer
-currently omits replay runs, and the source's separate nullable post-feedback
-confidence write has no standalone native contract. Do not use premature
-activity completion as a substitute for that write.
+copied player route is active. The Recall control audit and native repairs
+below close the previously missing replay and independent feedback contracts;
+whole copied control integration remains outstanding.
+
+### Recall control contracts for the copied question player
+
+Source audit: pinned whole
+`resources/js/features/world/standard-activities.tsx`,
+`features/learning/recall-items.ts`,
+`app/Http/Controllers/LearningWorldController.php` and
+`app/Learning/Services/LearnerRecallItemService.php`.
+
+| Source operation | Existing native evidence / required work |
+| --- | --- |
+| Keep current question for recall | Existing `POST .../play-runs/{run}/activities/{reference}/recall`; `persistence/src/learner_recall.rs::active_question_for_update` checks ordinary/revisit/recall runs but omits replay. Extend the owned current-question lookup to replay and verify publication, map access, node availability and stale-run rejection. |
+| Remove saved question | Existing `DELETE /learner/recall-items/{id}`; actual queue identity is returned by queueing and by active playback. Source removes an already-absent authorized question idempotently. Preserve this distinction from a foreign/unavailable target when adapting the current player. |
+| Save nullable post-feedback confidence | Source allows `exploring`, `leaning`, `settled` or null and returns `updated: false` if no private item exists. Add a bounded owner/current-question command returning the actual update result. It must preserve schedule, review count, answer history, activity/route progress and run status. Do not call completion to simulate this independent write. |
+| Source helper omits run argument | The copied question component already has `playRunId`; inject it only at the exact transport call seam. Avoid a global current-question fallback or choosing a run from an unrelated page. |
+
+Implemented native contracts in
+`backend/crates/{api,application,persistence}/src/learner_recall.rs`, with routes
+in `backend/crates/api/src/main.rs` and OpenAPI/generated TypeScript evidence:
+
+- Existing `POST .../recall` now supports ordinary, revisit, recall and replay
+  runs. A pre-fix live regression reproduced replay's 404. Static run lookups
+  lock the current run and reuse `PostgresLearnerNodeAvailability`; all queue
+  commands require published, visible and playable content and owner access.
+- New `DELETE .../recall` (`removeLearnerCurrentQuestionFromRecall`) returns
+  the actual `removed` boolean, including false for an already-absent item on
+  an authorized current question. It does not reinterpret foreign/stale 404s.
+- New `POST .../recall/feedback` (`updateLearnerCurrentRecallFeedback`) accepts
+  the nullable `confidence_after_feedback` field and returns the actual
+  `updated` boolean. Missing/null clears the value; no item returns false
+  without creating one. Invalid phrases return 400, invalid/unknown JSON
+  fields 422, missing auth 401, invalid CSRF 403 and unavailable targets 404.
+  This command updates only that private field and its row's update timestamp.
+
+Pinned source test evidence also checked:
+`tests/Feature/{LearnerRecallItemTest,QuestionActivityTest}.php`. Focused Rust
+verification passed: four application tests, 65 learner persistence tests (six
+existing tests ignored), workspace check/fmt. Canonical identity, frontend
+production type/build and OpenAPI client consistency passed.
+
+Real PostgreSQL/Rust coverage in
+`frontend/e2e/canonical-player-recall-evidence.ts`, called by all four cases in
+`canonical-player-answer-live.spec.ts`, verifies idempotent queue/removal,
+feedback values and clearing, invalid fields, absent items, owner/anonymous/CSRF
+boundaries, publication/map access/locked/hidden/stale failures, and unchanged
+run, activity-progress, answer, check-in, review-count and scheduling facts.
+The four cases passed in 16.6 seconds after supplying the required timestamp
+in the stale isolated-run fixture; the existing 20 native player checks also
+passed. Local queue requests measured 8–12 ms, not a production guarantee.
+Reports: ignored `frontend/playwright-report/player-recall-native/` and
+`frontend/playwright-report/player-recall-controls/`. No canonical UI or database
+migration changed, and Rust gained no production ownership.
+
+Next: connect the complete copied question/reflection command surface through
+explicit run-bound transport adapters, then collect whole-source browser
+evidence at both required viewports. The player route remains unavailable;
+these native contracts alone do not complete copied-control acceptance.
 
 ## Status and purpose
 

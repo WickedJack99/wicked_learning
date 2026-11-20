@@ -6165,6 +6165,30 @@ export interface paths {
          * @description The active question is derived from the opaque server-owned run. This command does not create route progress, alter an answer, or accept a browser-selected question.
          */
         post: operations["queueLearnerCurrentQuestionForRecall"];
+        /**
+         * Remove the current authorized question from the private recall queue.
+         * @description An authorized current question with no queue item returns removed false. An unavailable, foreign, locked, hidden or stale run/question returns 404. Does not change answers, progress or scheduling of other items.
+         */
+        delete: operations["removeLearnerCurrentQuestionFromRecall"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/recall/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save the private post-feedback confidence for the current authorized question.
+         * @description Only the owner's existing recall item is updated. Null clears the value; an absent item returns updated false. Ordinary, revisit, recall and replay runs are supported. Schedule, review count, answer history, activity progress and run status are unchanged.
+         */
+        post: operations["updateLearnerCurrentRecallFeedback"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8814,6 +8838,16 @@ export interface components {
             is_correct: boolean;
             option_label: string | null;
             option_labels: string[];
+        };
+        RemoveLearnerCurrentRecallResult: {
+            removed: boolean;
+        };
+        UpdateLearnerRecallFeedbackRequest: {
+            /** @enum {string|null} */
+            confidence_after_feedback?: "exploring" | "leaning" | "settled" | null;
+        };
+        UpdateLearnerRecallFeedbackResult: {
+            updated: boolean;
         };
         LearnerRecallSchedule: {
             /** @enum {integer} */
@@ -34512,6 +34546,134 @@ export interface operations {
             };
             /** @description The active question/run pair is unavailable or not owned by this learner. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    removeLearnerCurrentQuestionFromRecall: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The actual deletion result, including idempotent absence. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoveLearnerCurrentRecallResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current question/run is unavailable or not owned by this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateLearnerCurrentRecallFeedback: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLearnerRecallFeedbackRequest"];
+            };
+        };
+        responses: {
+            /** @description The actual update result without completing the activity or creating a queue item. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateLearnerRecallFeedbackResult"];
+                };
+            };
+            /** @description The confidence phrase is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The current question/run is unavailable or not owned by this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The JSON body has an invalid field type or unknown fields. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

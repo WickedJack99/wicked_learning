@@ -4,9 +4,11 @@ use axum::{
     http::HeaderMap,
 };
 use axum_login::AuthSession;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use wicked_learning_application::learner_recall::{LearnerRecallCommand, LearnerRecallQuery};
+use wicked_learning_application::learner_recall::{
+    LearnerRecallCommand, LearnerRecallQuery, valid_recall_confidence,
+};
 use wicked_learning_domain::learner_state::{LearnerRecallItem, LearnerRecallQueue};
 use wicked_learning_persistence::learner_recall::PostgresLearnerRecallRepository;
 
@@ -19,6 +21,69 @@ use crate::{
 pub struct RemoveLearnerRecallItemResult {
     pub recall_item_id: String,
     pub removed: bool,
+}
+
+#[derive(Serialize)]
+pub struct RemoveCurrentRecallResult {
+    removed: bool,
+}
+
+#[derive(Serialize)]
+pub struct UpdateRecallFeedbackResult {
+    updated: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UpdateRecallFeedbackRequest {
+    confidence_after_feedback: Option<String>,
+}
+
+pub async fn remove_current_question(
+    State(state): State<AppState>,
+    Path((play_run_id, activity_slug)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<RemoveCurrentRecallResult>, ApiError> {
+    let play_run_id = Uuid::parse_str(&play_run_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresLearnerRecallRepository::new(&state.application_database);
+    let removed = LearnerRecallCommand::new(&repository)
+        .remove_current_question(&principal, play_run_id, &activity_slug)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    Ok(Json(RemoveCurrentRecallResult { removed }))
+}
+
+pub async fn update_current_question_feedback(
+    State(state): State<AppState>,
+    Path((play_run_id, activity_slug)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<UpdateRecallFeedbackRequest>,
+) -> Result<Json<UpdateRecallFeedbackResult>, ApiError> {
+    let play_run_id = Uuid::parse_str(&play_run_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    if !valid_recall_confidence(request.confidence_after_feedback.as_deref()) {
+        return Err(ApiError::invalid_request());
+    }
+    let repository = PostgresLearnerRecallRepository::new(&state.application_database);
+    let updated = LearnerRecallCommand::new(&repository)
+        .update_current_question_feedback(
+            &principal,
+            play_run_id,
+            &activity_slug,
+            request.confidence_after_feedback.as_deref(),
+        )
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .ok_or_else(ApiError::not_found)?;
+    Ok(Json(UpdateRecallFeedbackResult { updated }))
 }
 
 pub async fn index(

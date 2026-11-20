@@ -7590,6 +7590,50 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The active question/run pair is unavailable or not owned by this learner. }
         '503': { description: The application database is unavailable. }
+    delete:
+      operationId: removeLearnerCurrentQuestionFromRecall
+      summary: Remove the current authorized question from the private recall queue.
+      description: An authorized current question with no queue item returns removed false. An unavailable, foreign, locked, hidden or stale run/question returns 404. Does not change answers, progress or scheduling of other items.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The actual deletion result, including idempotent absence.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RemoveLearnerCurrentRecallResult' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current question/run is unavailable or not owned by this learner. }
+        '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/recall/feedback:
+    post:
+      operationId: updateLearnerCurrentRecallFeedback
+      summary: Save the private post-feedback confidence for the current authorized question.
+      description: Only the owner's existing recall item is updated. Null clears the value; an absent item returns updated false. Ordinary, revisit, recall and replay runs are supported. Schedule, review count, answer history, activity progress and run status are unchanged.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateLearnerRecallFeedbackRequest' }
+      responses:
+        '200':
+          description: The actual update result without completing the activity or creating a queue item.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateLearnerRecallFeedbackResult' }
+        '400': { description: The confidence phrase is invalid. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The current question/run is unavailable or not owned by this learner. }
+        '422': { description: The JSON body has an invalid field type or unknown fields. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/reflection:
     post:
       operationId: saveLearnerReflection
@@ -11732,6 +11776,23 @@ components:
           type: array
           maxItems: 24
           items: { type: string, maxLength: 120 }
+    RemoveLearnerCurrentRecallResult:
+      type: object
+      additionalProperties: false
+      required: [removed]
+      properties:
+        removed: { type: boolean }
+    UpdateLearnerRecallFeedbackRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        confidence_after_feedback: { type: [string, 'null'], enum: [exploring, leaning, settled, null] }
+    UpdateLearnerRecallFeedbackResult:
+      type: object
+      additionalProperties: false
+      required: [updated]
+      properties:
+        updated: { type: boolean }
     LearnerRecallSchedule:
       type: object
       additionalProperties: false

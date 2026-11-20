@@ -1593,7 +1593,11 @@ fn router(state: AppState) -> Router {
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/recall",
-            post(learner_recall::queue_current_question),
+            post(learner_recall::queue_current_question).delete(learner_recall::remove_current_question),
+        )
+        .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/recall/feedback",
+            post(learner_recall::update_current_question_feedback),
         )
         .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/reflection",

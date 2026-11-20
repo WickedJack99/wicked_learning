@@ -9,6 +9,10 @@ use wicked_learning_domain::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LearnerRecallError;
 
+pub fn valid_recall_confidence(value: Option<&str>) -> bool {
+    value.is_none_or(|value| matches!(value, "exploring" | "leaning" | "settled"))
+}
+
 /// All queue reads and mutations are owner-scoped at the persistence boundary.
 /// A browser never supplies an activity, outcome, interval, or another
 /// learner's identifier to update this private state.
@@ -30,6 +34,21 @@ pub trait LearnerRecallRepository {
         principal: &AuthorizedPrincipal,
         recall_item_id: Uuid,
     ) -> impl Future<Output = Result<bool, LearnerRecallError>> + Send;
+
+    fn remove_current_question(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+    ) -> impl Future<Output = Result<Option<bool>, LearnerRecallError>> + Send;
+
+    fn update_current_question_feedback(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        confidence: Option<&str>,
+    ) -> impl Future<Output = Result<Option<bool>, LearnerRecallError>> + Send;
 
     fn postpone(
         &self,
@@ -87,6 +106,32 @@ where
         recall_item_id: Uuid,
     ) -> Result<bool, LearnerRecallError> {
         self.repository.remove(principal, recall_item_id).await
+    }
+
+    pub async fn remove_current_question(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+    ) -> Result<Option<bool>, LearnerRecallError> {
+        self.repository
+            .remove_current_question(principal, play_run_id, activity_slug)
+            .await
+    }
+
+    pub async fn update_current_question_feedback(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        confidence: Option<&str>,
+    ) -> Result<Option<bool>, LearnerRecallError> {
+        if !valid_recall_confidence(confidence) {
+            return Ok(None);
+        }
+        self.repository
+            .update_current_question_feedback(principal, play_run_id, activity_slug, confidence)
+            .await
     }
 
     pub async fn postpone(
@@ -148,6 +193,26 @@ mod tests {
         {
             async { Ok(None) }
         }
+
+        async fn remove_current_question(
+            &self,
+            _principal: &AuthorizedPrincipal,
+            _play_run_id: Uuid,
+            _activity_slug: &str,
+        ) -> Result<Option<bool>, LearnerRecallError> {
+            Ok(None)
+        }
+
+        async fn update_current_question_feedback(
+            &self,
+            _principal: &AuthorizedPrincipal,
+            _play_run_id: Uuid,
+            _activity_slug: &str,
+            confidence: Option<&str>,
+        ) -> Result<Option<bool>, LearnerRecallError> {
+            assert!(super::valid_recall_confidence(confidence));
+            Ok(None)
+        }
     }
 
     #[tokio::test]
@@ -177,5 +242,34 @@ mod tests {
             .expect("empty queue is a valid result");
 
         assert!(queue.items.is_empty());
+    }
+
+    #[tokio::test]
+    async fn rejects_unknown_confidence_before_the_repository() {
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["learner".into()],
+            capabilities: vec![],
+        };
+        let command = LearnerRecallCommand::new(&AbsentRepository);
+        for confidence in [
+            None,
+            Some("exploring"),
+            Some("leaning"),
+            Some("settled"),
+            Some("certain"),
+        ] {
+            assert!(matches!(
+                command
+                    .update_current_question_feedback(
+                        &principal,
+                        Uuid::new_v4(),
+                        "question",
+                        confidence
+                    )
+                    .await,
+                Ok(None)
+            ));
+        }
     }
 }
