@@ -56,9 +56,14 @@ for (const kind of ['route', 'revisit', 'recall', 'replay'] as const) {
                 expect(sql(`SELECT COUNT(*) FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${activity}' AND status='completed'`).trim()).toBe(kind === 'revisit' ? '1' : '0');
             };
             await answer(['first'], true, next, 'Keep exploring');
+            const emptyOutcome = randomUUID();
+            sql(`INSERT INTO learning_activity_transitions (id,from_activity_id,to_activity_id,from_connector,trigger,trigger_value,label) VALUES ('${emptyOutcome}','${activity}','${alternate}','empty-outcome','outcome',NULL,'Unspecified outcome')`);
+            await answer(['first'], true, alternate, 'Unspecified outcome');
+            sql(`DELETE FROM learning_activity_transitions WHERE id='${emptyOutcome}'`);
             await answer(['second'], true, alternate, 'Take another path');
             await answer(['wrong'], false, null, 'Pause here');
             sql(`UPDATE learning_activities SET activity_config=jsonb_set(activity_config,'{allowMultiple}','true') WHERE id='${activity}'`);
+            sql(`INSERT INTO learning_activity_transitions (id,from_activity_id,to_activity_id,from_connector,trigger,trigger_value,label) VALUES ('${emptyOutcome}','${activity}','${alternate}','empty-outcome','outcome',NULL,'Unspecified outcome')`);
             await answer(['second', 'first'], true, next, 'Keep exploring', ['first', 'second']);
             // An author changing the selection mode does not rewrite saved
             // answers or invalidate the learner's earlier multiple-choice history.
@@ -76,15 +81,15 @@ for (const kind of ['route', 'revisit', 'recall', 'replay'] as const) {
             for (const option_keys of [['missing'], ['first', 'first'], []]) {
                 expect((await owner.request.post(`${endpoint}/answer`, { headers, data: { option_keys } })).status()).toBe(404);
             }
-            expect(sql(`SELECT COUNT(*) FROM learner_question_answers WHERE play_run_id='${run}'`).trim()).toBe('6');
+            expect(sql(`SELECT COUNT(*) FROM learner_question_answers WHERE play_run_id='${run}'`).trim()).toBe(String(attempt));
             sql(`UPDATE learning_activities SET activity_config=jsonb_set(activity_config,'{allowMultiple}','false') WHERE id='${activity}'`);
-            await answer(['first'], true, next, 'Keep exploring');
+            await answer(['first'], true, alternate, 'Unspecified outcome');
             const completed = await owner.request.post(`${endpoint}/complete`, { headers, data: {} });
             expect(completed.status()).toBe(200);
-            expect(await completed.json()).toMatchObject({ status: kind === 'route' ? 'in_progress' : 'completed', next_activity_id: kind === 'route' ? next : null });
+            expect(await completed.json()).toMatchObject({ status: kind === 'route' ? 'in_progress' : 'completed', next_activity_id: kind === 'route' ? alternate : null });
             const afterCompletion = await owner.request.get(`/api/v1/learner/play-runs/${run}`);
             expect(afterCompletion.status()).toBe(kind === 'route' ? 200 : 404);
-            if (kind === 'route') expect((await afterCompletion.json()).activity.id).toBe(next);
+            if (kind === 'route') expect((await afterCompletion.json()).activity.id).toBe(alternate);
             if (kind === 'recall') expect(sql(`SELECT COUNT(*) FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${activity}'`).trim()).toBe('0');
         } finally {
             sql(`DELETE FROM learning_activity_transitions WHERE from_activity_id='${activity}'`);

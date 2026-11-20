@@ -12,7 +12,9 @@ use wicked_learning_domain::learner_state::{
 
 use crate::{
     learner_item_obstacle::{FilledSlotRow, conditions_met, configured_slots},
-    learner_question::{QuestionConfig, selected_option_labels, transition_choice},
+    learner_question::{
+        QuestionConfig, QuestionOutcome, selected_option_labels, transition_choice,
+    },
 };
 
 fn unavailable() -> sqlx::Error {
@@ -278,19 +280,19 @@ fn answer_progress(
         .filter(|o| keys.contains(&o.key))
         .collect::<Vec<_>>();
     let (outcome, correct) = transition_choice(&config, &selected, latest.is_correct);
-    let transition = outcome
-        .and_then(|outcome| {
-            activity
-                .transitions
-                .iter()
-                .find(|e| e.trigger == "outcome" && e.trigger_value.as_deref() == Some(outcome))
-        })
-        .or_else(|| {
-            activity
-                .transitions
-                .iter()
-                .find(|e| e.trigger == if correct { "correct" } else { "incorrect" })
-        });
+    let transition = match outcome {
+        QuestionOutcome::Match(outcome) => activity
+            .transitions
+            .iter()
+            .find(|e| e.trigger == "outcome" && e.trigger_value.as_deref() == outcome),
+        QuestionOutcome::Skip => None,
+    }
+    .or_else(|| {
+        activity
+            .transitions
+            .iter()
+            .find(|e| e.trigger == if correct { "correct" } else { "incorrect" })
+    });
     let earlier_attempts = rows
         .iter()
         .skip(1)
@@ -394,16 +396,21 @@ mod tests {
         let mut config: QuestionConfig = serde_json::from_value(json!({"allowMultiple":false,"options":[{"key":"a","label":"A","isCorrect":true,"outcomeKey":"option-a"}]})).unwrap();
         assert_eq!(
             transition_choice(&config, &[&config.options[0]], false),
-            (Some("option-a"), true)
+            (QuestionOutcome::Match(Some("option-a")), true)
+        );
+        config.options[0].outcome_key = None;
+        assert_eq!(
+            transition_choice(&config, &[&config.options[0]], false),
+            (QuestionOutcome::Match(None), true)
         );
         config.allow_multiple = true;
         assert_eq!(
             transition_choice(&config, &[&config.options[0]], false),
-            (None, false)
+            (QuestionOutcome::Skip, false)
         );
         assert_eq!(
             transition_choice(&config, &[&config.options[0]], true),
-            (None, true)
+            (QuestionOutcome::Skip, true)
         );
     }
 }

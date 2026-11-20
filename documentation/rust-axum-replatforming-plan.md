@@ -1848,12 +1848,32 @@ Recall completion creates no ordinary activity progress. Reports: ignored
 `frontend/playwright-report/player-answer-native/` and
 `frontend/playwright-report/player-answer-completion/`.
 
+Nullable outcome follow-up verified: pinned
+`app/Learning/Services/QuestionTransitionResolver.php` compares nullable option
+and edge values directly, and `app/Learning/Actions/UpdateActivityTransition.php`
+persists blank outcome values as null. A live regression reproduced Rust
+incorrectly falling back to the correctness edge. `QuestionOutcome` now
+distinguishes skipping outcome lookup (multiple-choice) from matching a nullable
+outcome (one selected single-choice option), consistently in the command,
+refreshed feedback, private progress and completion. SQL uses null-safe equality;
+lookups remain bounded to the first matching edge. Browser-driver/native tests
+prove that multiple-choice ignores the same null edge, while single-choice
+returns and completes through it. The four run-kind cases and existing player
+checks all pass together (24 tests, 46.4 seconds), alongside 65 Rust learner
+checks, workspace fmt/check, canonical identity, frontend type/build and
+OpenAPI client consistency. Report: ignored
+`frontend/playwright-report/player-null-outcome/`. No presentation source,
+public contract, migration or production ownership changed in this follow-up.
+
 Remaining before whole player acceptance: wire the copied question/reflection
-commands and recall controls; verify null-valued outcome-edge precedence against
-`QuestionTransitionResolver::for` (it compares nullable values directly, while
-the current native lookup skips an absent option outcome); finish shared player
-completion/navigation and source/browser acceptance. Native contract tests are
-not evidence that the copied player route is active.
+commands and recall controls; finish shared player completion/navigation and
+source/browser acceptance. Native contract tests are not evidence that the
+copied player route is active. Recall control audit must cover source
+`features/learning/recall-items.ts` and
+`app/Learning/Services/LearnerRecallItemService.php`: the native queue writer
+currently omits replay runs, and the source's separate nullable post-feedback
+confidence write has no standalone native contract. Do not use premature
+activity completion as a substitute for that write.
 
 ## Status and purpose
 

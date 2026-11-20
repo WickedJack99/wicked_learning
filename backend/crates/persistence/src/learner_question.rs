@@ -514,28 +514,37 @@ fn selection_is_correct(config: &QuestionConfig, selected: &[&QuestionOption]) -
         && selected.iter().all(|option| option.is_correct)
 }
 
-/// Single-choice questions prefer the selected option's outcome; source
-/// multiple-choice questions route only by the aggregate correctness result.
+#[derive(Debug, PartialEq)]
+pub(crate) enum QuestionOutcome<'a> {
+    Skip,
+    Match(Option<&'a str>),
+}
+
+/// A single option's null outcome still matches an authored null outcome edge.
+/// Multiple-choice questions skip outcome edges entirely.
 pub(crate) fn transition_choice<'a>(
     config: &QuestionConfig,
     selected: &[&'a QuestionOption],
     is_correct: bool,
-) -> (Option<&'a str>, bool) {
+) -> (QuestionOutcome<'a>, bool) {
     if !config.allow_multiple && selected.len() == 1 {
-        (selected[0].outcome_key.as_deref(), selected[0].is_correct)
+        (
+            QuestionOutcome::Match(selected[0].outcome_key.as_deref()),
+            selected[0].is_correct,
+        )
     } else {
-        (None, is_correct)
+        (QuestionOutcome::Skip, is_correct)
     }
 }
 
 async fn transition_for(
     transaction: &mut Transaction<'_, Postgres>,
     activity_id: Uuid,
-    outcome_key: Option<&str>,
+    outcome: QuestionOutcome<'_>,
     is_correct: bool,
 ) -> Result<Option<TransitionRow>, sqlx::Error> {
-    let outcome = if let Some(outcome_key) = outcome_key {
-        sqlx::query_as::<_, TransitionRow>("SELECT label, to_activity_id FROM learning_activity_transitions WHERE from_activity_id = $1 AND trigger = 'outcome' AND trigger_value = $2 ORDER BY created_at ASC, id ASC LIMIT 1").bind(activity_id).bind(outcome_key).fetch_optional(&mut **transaction).await?
+    let outcome = if let QuestionOutcome::Match(outcome_key) = outcome {
+        sqlx::query_as::<_, TransitionRow>("SELECT label, to_activity_id FROM learning_activity_transitions WHERE from_activity_id = $1 AND trigger = 'outcome' AND trigger_value IS NOT DISTINCT FROM $2 ORDER BY created_at ASC, id ASC LIMIT 1").bind(activity_id).bind(outcome_key).fetch_optional(&mut **transaction).await?
     } else {
         None
     };
