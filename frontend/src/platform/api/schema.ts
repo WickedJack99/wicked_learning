@@ -8701,10 +8701,25 @@ export interface components {
             slug: string;
         };
         LearnerPlaybackCompletionResult: {
+            /**
+             * Format: uuid
+             * @description Actual server-selected next activity for an advancing ordinary run; null for terminal or isolated runs.
+             */
+            next_activity_id: string | null;
+            activity_state: components["schemas"]["LearnerPlaybackActivityState"];
             /** Format: uuid */
             play_run_id: string;
             /** @enum {string} */
             status: "in_progress" | "completed";
+        };
+        /** @description Persisted owner state read in the authorized command transaction before commit. Missing durable progress or obstacle records remain null, including recall runs that never create ordinary progress. No arbitrary progress metadata is exposed. */
+        LearnerPlaybackActivityState: {
+            /** Format: uuid */
+            activity_id: string;
+            progress: components["schemas"]["LearnerPlaybackActivityProgress"] | null;
+            item_obstacle: components["schemas"]["LearnerItemObstacleState"] | null;
+            /** Format: date-time */
+            obstacle_resolved_at: string | null;
         };
         LearnerPlaybackCompletionRequest: {
             /**
@@ -8728,6 +8743,7 @@ export interface components {
             next_direction?: "revisit" | "related" | "settle" | null;
         };
         LearnerActivityCheckInResult: {
+            activity_state: components["schemas"]["LearnerPlaybackActivityState"];
             /** Format: uuid */
             id: string;
             activity_slug: string;

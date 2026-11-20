@@ -1592,6 +1592,59 @@ No UI changed; these are native contract checks, not desktop/narrow screenshot
 parity. This prerequisite does not activate Shared Task UI or complete the copied player; typed command/identity/media
 mapping and anonymous playback remain separate acceptance requirements.
 
+### Player progress mutation response contract
+
+Before implementation, source was checked at pinned main
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`:
+`resources/js/pages/learning/node-play.tsx`,
+`features/world/{activity-panel,standard-activities,item-obstacle-activity,obstacle-activity}.tsx`,
+`app/Http/Controllers/LearningWorldController.php::{markActivity,recordActivityCheckIn}`,
+`app/Learning/{Serializers/LearnerProgressSerializer,Services/LearnerProgressService}.php`.
+The source completion/check-in callbacks replace local activity progress with
+server-returned status, completion timestamp and metadata. A run-status-only
+Rust acknowledgement cannot truthfully supply these values after the run has
+become terminal and its active-run read returns 404.
+
+| Source requirement | Existing Rust contract / missing data | Required typed response |
+| --- | --- | --- |
+| Completion returns the affected activity identity, status and stored first-completion timestamp | `LearnerPlaybackCompletionResult` contains only run ID/status; six branches cover ordinary, message, portal-arrival, revisit, recall and replay | Read the affected principal/activity state in the same transaction before commit. Return actual persisted progress or null, never a browser timestamp or invented durable completion. |
+| Completion follows authored transition; terminal edges stay null | Ordinary/message completion already resolves the next activity under lock, but omits its ID from the response | Return that actual `next_activity_id`; isolated recall/replay/revisit/arrival runs return null. |
+| Check-in response retains progress and obstacle state | `LearnerActivityCheckInResult` returns the saved observation only | Include the same typed activity-state receipt after the check-in/revisit scheduling write. |
+| Source progress metadata restores item-obstacle slots/lock and base-obstacle destruction | Private graph state already reads normalized records; source consumes `metadata.itemObstacle` and `metadata.obstacle.destroyedAt` | Reuse typed normalized obstacle state and resolution timestamp. A future mapper translates only these audited fields; arbitrary metadata is not a new API. |
+| Recall does not create ordinary activity/route progress or evidence | ADR-037 and existing native recall completion deliberately preserve this boundary | Receipt reports absent progress as null and returns existing progress unchanged when present. Full copied recall/check-in transport compatibility remains a separate unresolved requirement; do not fake ordinary progress to activate it. |
+
+The entry/progress transport audit also confirms remaining work: the source
+posts `status: reached` before reading translation; locally selects the next
+activity after completion; restarts via a returned URL; and completes an output
+portal before visiting its target. Native output portals complete through the
+atomic travel command, so blindly forwarding the source completion call to
+ordinary `/complete` cannot work. Resolve these typed lifecycle seams before
+mounting the whole player, alongside every activity command and native UUID
+identity conversion. This slice adds response facts only, not a partial player
+or a generic progress writer.
+
+**Verified:** all six completion branches and the check-in command now return
+the authorized principal's actual activity state from their write transaction.
+`learner_playback_activity_state.rs` uses one joined query; an existing item
+obstacle record adds the two existing bounded slot/state reads. No database
+migration, canonical UI change or generic metadata writer is introduced.
+
+The new native regression first failed on the absent receipt. The 20 live
+checks in `canonical-playback-contract-live.spec.ts` and
+`canonical-playback-reference-live.spec.ts` then passed against the rebuilt
+local Rust backend and PostgreSQL (20.8 seconds). They cover advancing and
+terminal runs, server-selected destinations, preserved first-completion time
+after reset, owner isolation and CSRF, recall's absent ordinary progress,
+all six run kinds, and item/base obstacle state surviving completion and
+check-in after the active-run read becomes unavailable. Reports are retained
+in ignored `frontend/playwright-report/player-progress-receipts/`.
+
+Canonical identity, frontend production type/build, generated OpenAPI client,
+Rust workspace check/format, 22 focused persistence playback tests, three
+application playback tests and one check-in application test passed. These
+are native contract checks; no desktop/narrow UI parity claim or player
+activation is made by this prerequisite.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

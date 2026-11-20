@@ -201,6 +201,8 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 const advanced = await owner.request.post(completePath, { headers: ownerHeaders, data: {} });
                 expect(advanced.status()).toBe(200);
                 expect(await advanced.json()).toMatchObject({ play_run_id: runId, status: 'in_progress' });
+                expect((await advanced.json()).activity_state).toMatchObject({ activity_id: activityId, progress: { activity_id: activityId, status: 'completed', completed_at: expect.any(String) } });
+                expect((await advanced.json()).next_activity_id).toBe(destinationId);
                 info.annotations.push({ type: 'native-cross-group-completion', description: `${kind}: ${Math.round(performance.now() - startedCompletion)} ms` });
                 expect(progress()).toEqual({ route_id: originalRouteId, current_activity_id: destinationId, status: 'in_progress', completion_count: 0 });
                 expect((await (await owner.request.get(path)).json()).activity.id).toBe(destinationId);
@@ -212,6 +214,8 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 const completed = await owner.request.post(terminalPath, { headers: ownerHeaders, data: {} });
                 expect(completed.status()).toBe(200);
                 expect(await completed.json()).toMatchObject({ play_run_id: runId, status: 'completed' });
+                expect((await completed.json()).activity_state).toMatchObject({ activity_id: destinationId, progress: { activity_id: destinationId, status: 'completed', completed_at: expect.any(String) } });
+                expect((await completed.json()).next_activity_id).toBeNull();
                 expect((await owner.request.post(terminalPath, { headers: ownerHeaders, data: {} })).status()).toBe(404);
                 expect(progress()).toEqual({ route_id: originalRouteId, current_activity_id: destinationId, status: 'completed', completion_count: 1 });
                 expect((await peer.request.post(checkInPath, { headers: { Origin: new URL(baseURL!).origin, 'X-CSRF-Token': peerCsrf.token }, data: observation })).status()).toBe(404);
@@ -225,6 +229,7 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 const observed = await owner.request.post(checkInPath, { headers: ownerHeaders, data: observation });
                 expect(observed.status()).toBe(200);
                 expect(await observed.json()).toMatchObject({ activity_slug: 'same-activity', ...observation });
+                expect((await observed.json()).activity_state).toEqual((await completed.json()).activity_state);
                 expect(localSql(`SELECT count(*) FROM learner_activity_check_ins WHERE principal_id = '${principal}' AND activity_id = '${destinationId}' AND play_run_id = '${runId}'`).trim()).toBe('1');
                 expect(localSql(`SELECT revisit_status FROM learner_activity_progress WHERE principal_id = '${principal}' AND activity_id = '${destinationId}'`).trim()).toBe('pending');
                 // Legacy slugs still name the original route group; repeated
@@ -247,6 +252,7 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 const resetCompletion = await owner.request.post(`${resetPath}/activities/same-activity/complete`, { headers: ownerHeaders, data: {} });
                 expect(resetCompletion.status()).toBe(200);
                 expect(await resetCompletion.json()).toMatchObject({ status: 'completed' });
+                expect((await resetCompletion.json()).activity_state).toEqual((await advanced.json()).activity_state);
                 expect(localSql(`SELECT completion_count FROM learner_route_progress WHERE principal_id = '${principal}' AND activity_start_id = '${startId}'`).trim()).toBe('2');
             } else {
                 const ownerCsrf = await (await owner.request.get('/api/v1/security/csrf')).json();
@@ -263,7 +269,14 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                     expect((await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} })).status()).toBe(404);
                     localSql(`INSERT INTO learner_activity_progress (principal_id,activity_id,status,attempt_count,revisit_status,revisit_available_at,revisit_check_in_id) SELECT '${principal}','${activityId}','completed',1,'pending',NOW() - INTERVAL '1 day',check_in_id FROM learner_revisit_runs WHERE id = '${runId}'`);
                 }
-                expect((await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} })).status()).toBe(200);
+                const completed = await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} });
+                expect(completed.status()).toBe(200);
+                const receipt = await completed.json();
+                expect(receipt.next_activity_id).toBeNull();
+                expect(receipt.activity_state.activity_id).toBe(activityId);
+                const persistedProgress = JSON.parse(localSql(`SELECT COALESCE(json_agg(p)->0,'null'::json) FROM (SELECT activity_id,status,to_char(completed_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS completed_at FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${activityId}') p`).trim());
+                expect(receipt.activity_state.progress).toEqual(persistedProgress);
+                if (kind === 'recall') expect(receipt.activity_state.progress).toBeNull();
                 expect((await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} })).status()).toBe(404);
             }
             expect((await owner.request.get(path)).status()).toBe(404);

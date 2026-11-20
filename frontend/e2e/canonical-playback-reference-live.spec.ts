@@ -187,6 +187,24 @@ for (const type of types) {
             }
             if (type === 'question' || type === 'reflection' || type === 'review') expect((await result.json()).activity_slug).toBe('same-activity');
             if (type === 'question') expect((await owner.request.post(`${base}/${ref}/recall`, { headers })).status()).toBe(200);
+            if (type === 'item_obstacle' || type === 'obstacle') {
+                if (type === 'item_obstacle') {
+                    const continued = await owner.request.post(`${base}/${ref}/item-obstacle/continue`, { headers });
+                    expect(continued.status()).toBe(200);
+                    expect((await continued.json()).state.can_continue).toBe(true);
+                }
+                const beforeCompletion = await (await owner.request.get(`/api/v1/learner/play-runs/${run}`)).json();
+                const completed = await owner.request.post(`${base}/${ref}/complete`, { headers, data: {} });
+                expect(completed.status()).toBe(200);
+                const receipt = await completed.json();
+                expect(receipt).toMatchObject({ next_activity_id: null, activity_state: { activity_id: activity, progress: { activity_id: activity, status: 'completed', completed_at: expect.any(String) } } });
+                expect(receipt.activity_state.item_obstacle).toEqual(beforeCompletion.private_state.item_obstacles.find((entry) => entry.activity_id === activity)?.state ?? null);
+                expect(receipt.activity_state.obstacle_resolved_at).toBe(beforeCompletion.private_state.obstacle_resolutions.find((entry) => entry.activity_id === activity)?.resolved_at ?? null);
+                expect((await owner.request.get(`/api/v1/learner/play-runs/${run}`)).status()).toBe(404);
+                const observation = await owner.request.post(`${base}/${ref}/check-ins`, { headers, data: { note: 'The completed obstacle state stays intact.' } });
+                expect(observation.status()).toBe(200);
+                expect((await observation.json()).activity_state).toEqual(receipt.activity_state);
+            }
             if (type === 'open_practice') {
                 const observation = await owner.request.post(`${base}/${ref}/check-ins`, { headers, data: { note: 'A private observation after completion.' } });
                 expect(observation.status()).toBe(200);

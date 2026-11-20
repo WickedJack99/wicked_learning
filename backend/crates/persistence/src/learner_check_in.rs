@@ -107,6 +107,12 @@ async fn record_completed_activity_check_in(
     .execute(&mut *transaction)
     .await?;
 
+    let activity_state = crate::learner_playback_activity_state::load(
+        &mut transaction,
+        activity.principal_id,
+        activity.activity_id,
+    )
+    .await?;
     transaction.commit().await?;
 
     Ok(Some(LearnerActivityCheckInResult {
@@ -116,6 +122,7 @@ async fn record_completed_activity_check_in(
         next_direction: input.next_direction.clone(),
         note: input.note.clone(),
         recorded_at: check_in.recorded_at,
+        activity_state,
     }))
 }
 

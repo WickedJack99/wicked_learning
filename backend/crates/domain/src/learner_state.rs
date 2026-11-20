@@ -1506,11 +1506,24 @@ pub struct LearnerPlaybackLearningArea {
 
 /// Result of completing the activity that is currently active in a play run.
 /// `in_progress` means the server advanced to another authored activity; the
-/// browser must fetch the same run again rather than choosing that activity.
+/// response names that actual next identity rather than letting the browser
+/// choose an unchecked destination.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerPlaybackCompletionResult {
     pub play_run_id: String,
     pub status: String,
+    pub next_activity_id: Option<uuid::Uuid>,
+    pub activity_state: LearnerPlaybackActivityState,
+}
+
+/// Actual owner state after an authorized activity command, including when
+/// its run is now terminal. Absent durable progress is never synthesized.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackActivityState {
+    pub activity_id: uuid::Uuid,
+    pub progress: Option<LearnerPlaybackActivityProgress>,
+    pub item_obstacle: Option<LearnerItemObstacleState>,
+    pub obstacle_resolved_at: Option<String>,
 }
 
 /// A private question the learner explicitly kept in the source Learning Desk
@@ -1572,6 +1585,7 @@ pub struct LearnerActivityCheckInResult {
     pub next_direction: Option<String>,
     pub note: Option<String>,
     pub recorded_at: String,
+    pub activity_state: LearnerPlaybackActivityState,
 }
 
 /// A learner's evaluated attempt at the question currently authorized by a

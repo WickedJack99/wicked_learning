@@ -2103,11 +2103,19 @@ async fn complete_current_activity(
             play_run_id,
         )
         .await?;
+        let activity_state = crate::learner_playback_activity_state::load(
+            &mut transaction,
+            current.principal_id,
+            current.activity_id,
+        )
+        .await?;
         transaction.commit().await?;
 
         return Ok(Some(LearnerPlaybackCompletionResult {
             play_run_id: play_run_id.to_string(),
             status: "completed".to_owned(),
+            next_activity_id: None,
+            activity_state,
         }));
     }
 
@@ -2137,11 +2145,19 @@ async fn complete_current_activity(
             .execute(&mut *transaction)
             .await?;
         }
+        let activity_state = crate::learner_playback_activity_state::load(
+            &mut transaction,
+            current.principal_id,
+            current.activity_id,
+        )
+        .await?;
         transaction.commit().await?;
 
         return Ok(Some(LearnerPlaybackCompletionResult {
             play_run_id: play_run_id.to_string(),
             status: "completed".to_owned(),
+            next_activity_id: None,
+            activity_state,
         }));
     }
 
@@ -2165,11 +2181,19 @@ async fn complete_current_activity(
             transaction.commit().await?;
             return Ok(None);
         }
+        let activity_state = crate::learner_playback_activity_state::load(
+            &mut transaction,
+            current.principal_id,
+            current.activity_id,
+        )
+        .await?;
         transaction.commit().await?;
 
         return Ok(Some(LearnerPlaybackCompletionResult {
             play_run_id: play_run_id.to_string(),
             status: "completed".to_owned(),
+            next_activity_id: None,
+            activity_state,
         }));
     }
 
@@ -2303,11 +2327,19 @@ async fn complete_current_activity(
         "completed"
     };
 
+    let activity_state = crate::learner_playback_activity_state::load(
+        &mut transaction,
+        current.principal_id,
+        current.activity_id,
+    )
+    .await?;
     transaction.commit().await?;
 
     Ok(Some(LearnerPlaybackCompletionResult {
         play_run_id: play_run_id.to_string(),
         status: status.to_owned(),
+        next_activity_id: next_activity_id,
+        activity_state,
     }))
 }
 
@@ -2468,10 +2500,19 @@ async fn complete_current_message_activity(
         "completed"
     };
 
+    let activity_state = crate::learner_playback_activity_state::load(
+        &mut transaction,
+        current.principal_id,
+        current.activity_id,
+    )
+    .await?;
     transaction.commit().await?;
+
     Ok(Some(LearnerPlaybackCompletionResult {
         play_run_id: play_run_id.to_string(),
         status: status.to_owned(),
+        next_activity_id: next_activity_id,
+        activity_state,
     }))
 }
 
@@ -2525,10 +2566,19 @@ async fn complete_portal_arrival(
         transaction.commit().await?;
         return Ok(None);
     }
+    let activity_state = crate::learner_playback_activity_state::load(
+        &mut transaction,
+        current.principal_id,
+        current.activity_id,
+    )
+    .await?;
     transaction.commit().await?;
+
     Ok(Some(LearnerPlaybackCompletionResult {
         play_run_id: play_run_id.to_string(),
         status: "completed".to_owned(),
+        next_activity_id: None,
+        activity_state,
     }))
 }
 

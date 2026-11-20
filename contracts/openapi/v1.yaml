@@ -11583,14 +11583,35 @@ components:
     LearnerPlaybackCompletionResult:
       type: object
       additionalProperties: false
-      required: [play_run_id, status]
+      required: [play_run_id, status, next_activity_id, activity_state]
       properties:
+        next_activity_id:
+          type: [string, 'null']
+          format: uuid
+          description: Actual server-selected next activity for an advancing ordinary run; null for terminal or isolated runs.
+        activity_state: { $ref: '#/components/schemas/LearnerPlaybackActivityState' }
         play_run_id:
           type: string
           format: uuid
         status:
           type: string
           enum: [in_progress, completed]
+    LearnerPlaybackActivityState:
+      type: object
+      additionalProperties: false
+      description: Persisted owner state read in the authorized command transaction before commit. Missing durable progress or obstacle records remain null, including recall runs that never create ordinary progress. No arbitrary progress metadata is exposed.
+      required: [activity_id, progress, item_obstacle, obstacle_resolved_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        progress:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerPlaybackActivityProgress'
+            - type: 'null'
+        item_obstacle:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerItemObstacleState'
+            - type: 'null'
+        obstacle_resolved_at: { type: [string, 'null'], format: date-time }
     LearnerPlaybackCompletionRequest:
       type: object
       additionalProperties: false
@@ -11623,8 +11644,9 @@ components:
     LearnerActivityCheckInResult:
       type: object
       additionalProperties: false
-      required: [id, activity_slug, feeling, note, next_direction, recorded_at]
+      required: [id, activity_slug, feeling, note, next_direction, recorded_at, activity_state]
       properties:
+        activity_state: { $ref: '#/components/schemas/LearnerPlaybackActivityState' }
         id: { type: string, format: uuid }
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         feeling: { type: [string, 'null'], enum: [clearer, forming, stretched, stuck, null] }
