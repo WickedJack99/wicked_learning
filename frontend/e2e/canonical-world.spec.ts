@@ -1,8 +1,19 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page, Route } from '@playwright/test';
 import type { components } from '../src/platform/api/schema';
+import { toWorldPageProps } from '../src/platform/world-projection';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+
+const worldIds = {
+    world: '018f1f8c-4c2f-7b8a-9d0e-000000000001',
+    map: '018f1f8c-4c2f-7b8a-9d0e-000000000002',
+    asset: '018f1f8c-4c2f-7b8a-9d0e-000000000003',
+    node: '018f1f8c-4c2f-7b8a-9d0e-000000000004',
+    activity: '018f1f8c-4c2f-7b8a-9d0e-000000000005',
+    nextActivity: '018f1f8c-4c2f-7b8a-9d0e-000000000006',
+    start: '018f1f8c-4c2f-7b8a-9d0e-0f1a2b3c4d5e',
+};
 
 const viewports = [
     { name: 'desktop', viewport: { width: 1440, height: 900 } },
@@ -63,8 +74,76 @@ for (const { name, viewport } of viewports) {
             await expect(
                 page.getByRole('heading', { name: 'This page is not available yet' }),
             ).toBeVisible();
-            await expect(page.getByText('Requested path: /learning/nodes/1/play')).toBeVisible();
+            await expect(page.getByText(`Requested path: /learning/nodes/${worldIds.node}/play`)).toBeVisible();
+            expect(await page.evaluate(() => JSON.parse(localStorage.getItem('learning.activeActivity')!))).toMatchObject({
+                activityId: worldIds.activity,
+                activityTitle: 'Orientation activity',
+                playHref: `/learning/nodes/${worldIds.node}/play?activity=${worldIds.activity}&route=${worldIds.start}`,
+            });
             expect(worldWrites).toBe(0);
+        });
+
+        test('completion includes non-start activities and preferred starts keep their identities', async ({ page }) => {
+            const snapshot = worldSnapshot();
+            await routeWorldReads(page, { world: (route) => route.fulfill({ json: snapshot }) });
+            const graphNode = snapshot.graph.maps[0].nodes[0];
+            graphNode.activities.push({ id: worldIds.nextActivity, slug: 'reflection', title: 'Reflect on orientation', activity_type: 'text', status: 'completed' });
+            graphNode.start_activity_id = worldIds.nextActivity;
+            graphNode.starts = [];
+            snapshot.start_routes = [];
+            await page.goto('/world');
+            await page.getByRole('button', { name: 'First place' }).click();
+            await expect(page.getByLabel('Node completed')).toBeVisible();
+            await expectBounded(page.getByRole('button', { name: 'Start node', exact: true }), viewport);
+            await page.getByRole('button', { name: 'Start node', exact: true }).click();
+            expect(await page.evaluate(() => JSON.parse(localStorage.getItem('learning.activeActivity')!))).toMatchObject({
+                activityId: worldIds.nextActivity,
+                activityTitle: 'Reflect on orientation',
+                playHref: `/learning/nodes/${worldIds.node}/play?activity=${worldIds.nextActivity}`,
+            });
+        });
+
+        test('selected-place completion and fallback start match pinned source', async ({ page, context }, testInfo) => {
+            test.skip(!process.env.SOURCE_EVIDENCE_BASE_URL, 'Requires the pinned-source Vite evidence server.');
+            for (const path of ['resources/js/pages/world.tsx', 'resources/js/features/world/active-activity.ts',
+                'resources/js/features/world/node-detail-drawer.tsx', 'resources/js/features/world/activity-panel.tsx']) {
+                expect(readFileSync(new URL(`../../${path}`, import.meta.url))).toEqual(
+                    execFileSync('git', ['show', `32c3113a5bc688c9944c20942cdf40a6a5d57d7f:${path}`]),
+                );
+            }
+            const snapshot = worldSnapshot();
+            snapshot.graph.maps[0].nodes[0].activities[0].status = 'completed';
+            snapshot.graph.maps[0].nodes[0].starts = [];
+            snapshot.start_routes = [];
+            await routeWorldReads(page, { world: (route) => route.fulfill({ json: snapshot }) });
+            const source = await context.newPage();
+            await source.addInitScript((props) => { window.sourceWorldEvidence = props; }, sourceWorldProps());
+            await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-world-source.html`);
+            await page.goto('/world');
+            for (const target of [source, page]) {
+                await target.getByRole('button', { name: 'First place' }).click();
+                await expect(target.getByLabel('Node completed')).toBeVisible();
+                await expectBounded(target.getByRole('button', { name: 'Start node', exact: true }), viewport);
+            }
+            expect(await page.locator('aside').innerText()).toBe(await source.locator('aside').innerText());
+            expect(await page.locator('aside').boundingBox()).toEqual(await source.locator('aside').boundingBox());
+            await testInfo.attach('main-world-place', { body: await source.screenshot(), contentType: 'image/png' });
+            await testInfo.attach('rust-world-place', { body: await page.screenshot(), contentType: 'image/png' });
+            await source.getByRole('button', { name: 'Start node', exact: true }).click();
+            await expect(source).toHaveURL(/learning\/nodes\/1\/play\?activity=1/);
+            expect(await source.evaluate(() => JSON.parse(localStorage.getItem('learning.activeActivity')!))).toMatchObject({
+                activityId: 1, activityTitle: 'Orientation activity', playHref: '/learning/nodes/1/play?activity=1',
+            });
+            await source.close();
+        });
+
+        test('incomplete identity contracts fail explicitly instead of manufacturing record IDs', async ({ page }) => {
+            const snapshot = worldSnapshot();
+            snapshot.graph.maps[0].nodes = [];
+            await routeWorldReads(page, { world: (route) => route.fulfill({ json: snapshot }) });
+            await page.goto('/world');
+            await expect(page.getByText('World is unavailable.', { exact: true })).toBeVisible();
+            await expect(page.getByRole('button', { name: 'First place' })).toHaveCount(0);
         });
 
         test('copied group pagination uses the Rust transport for relative source imports', async ({ page }) => {
@@ -395,7 +474,7 @@ async function routeWorldReads(page: Page, options: RouteOptions = {}) {
     }));
 }
 
-function worldSnapshot() {
+function worldSnapshot(): components['schemas']['LearnerWorldSnapshot'] {
     return {
         world: {
             slug: 'learning-world',
@@ -436,6 +515,18 @@ function worldSnapshot() {
                     r: 0,
                     state: 'available',
                     visual_config: {},
+                }],
+            }],
+        },
+        graph: {
+            id: worldIds.world,
+            maps: [{
+                id: worldIds.map, slug: 'orientation-map',
+                assets: [{ id: worldIds.asset, slug: 'first-place-asset' }],
+                nodes: [{
+                    id: worldIds.node, slug: 'first-place', start_activity_id: worldIds.activity,
+                    activities: [{ id: worldIds.activity, slug: 'orientation-activity', title: 'Orientation activity', activity_type: 'text', status: null }],
+                    starts: [{ id: worldIds.start, activity_id: worldIds.activity, current_activity_id: null, play_run_id: null }],
                 }],
             }],
         },
@@ -499,11 +590,78 @@ async function expectBounded(
     locator: Locator,
     viewport: { width: number; height: number },
 ) {
-    const box = await locator.boundingBox();
-
-    expect(box).not.toBeNull();
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.y).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
-    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+    await expect(async () => {
+        const box = await locator.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.y).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
+        expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+    }).toPass({ timeout: 5000 });
 }
+
+// Independent source-shaped fixture: numeric Laravel identities and camelCase
+// props, rather than the Rust adapter under test.
+function sourceWorldProps() {
+    const topic = { competenceHref: '/topics/orientation', href: '/topics/orientation', slug: 'orientation', title: 'Orientation' };
+    return {
+        auth: { user: { id: 1, name: 'Learner' } }, appearance: 'light',
+        localization: { locale: 'en', translations: {} },
+        soundPreferences: { ambienceVolume: 100, effectsVolume: 100, muted: false },
+        groups: [], groupsPagination: { currentPage: 1, lastPage: 1, perPage: 1, total: 0 },
+        bookmarkedNodeIds: [], progress: { activities: { 1: { status: 'completed' } } },
+        world: {
+            id: 1, slug: 'learning-world', title: 'Learning world', description: 'A bounded learner map.', themeConfig: {},
+            maps: [{
+                id: 1, slug: 'orientation-map', title: 'Orientation map', description: 'Find your first place.', topic,
+                backgroundConfig: { light: { pageBackground: '#e6fffb' }, dark: { pageBackground: '#07111f' } },
+                gridConfig: {}, mapAssetsLocked: false,
+                mapAssets: [{ id: 1, nodeId: 1, imageUrl: null, text: 'First place', x: 50, y: 50, z: 1, width: 24,
+                    opacity: 1, locked: false, focusable: true, interactionMode: 'focusable', interactionConfig: {}, visualConfig: {}, soundConfig: {} }],
+                nodes: [{ id: 1, mapId: 1, mapSlug: 'orientation-map', mapTitle: 'Orientation map', topic,
+                    slug: 'first-place', title: 'First place', description: 'A source-derived learner place.',
+                    position: { q: 0, r: 0 }, state: 'available', visualConfig: {}, startActivityId: 1, startRoutes: [],
+                    activities: [{ id: 1, slug: 'orientation-activity', title: 'Orientation activity', type: 'text' }] }],
+            }],
+        },
+    };
+}
+
+test('World projection keeps identities across ordering and scopes same-slug progress by UUID', () => {
+    const snapshot = worldSnapshot();
+    const alternateMap = structuredClone(snapshot.world.maps[0]);
+    alternateMap.slug = 'another-map';
+    snapshot.world.maps.push(alternateMap);
+    const alternateGraph = structuredClone(snapshot.graph.maps[0]);
+    alternateGraph.slug = alternateMap.slug;
+    alternateGraph.id = '018f1f8c-4c2f-7b8a-9d0e-000000000102';
+    alternateGraph.assets[0].id = '018f1f8c-4c2f-7b8a-9d0e-000000000103';
+    alternateGraph.nodes[0].id = '018f1f8c-4c2f-7b8a-9d0e-000000000104';
+    alternateGraph.nodes[0].activities[0].id = worldIds.nextActivity;
+    alternateGraph.nodes[0].start_activity_id = worldIds.nextActivity;
+    alternateGraph.nodes[0].starts = [];
+    snapshot.graph.maps.push(alternateGraph);
+    snapshot.graph.maps[0].nodes[0].activities[0].status = 'completed';
+    // Two authored buttons for one activity must not duplicate that activity.
+    const secondStartId = '018f1f8c-4c2f-7b8a-9d0e-000000000107';
+    snapshot.start_routes.push({ ...snapshot.start_routes[0], start_id: secondStartId });
+    snapshot.graph.maps[0].nodes[0].starts.push({ ...snapshot.graph.maps[0].nodes[0].starts[0], id: secondStartId });
+    snapshot.bookmarked_nodes.push({ map_slug: 'orientation-map', node_slug: 'first-place' });
+    const project = () => toWorldPageProps(snapshot, {
+        groups: [], pagination: { current_page: 1, last_page: 1, per_page: 1, total: 0 },
+    }, currentUser(), { locale: 'en', translations: {} }, { ambience_volume: 100, effects_volume: 100, muted: false });
+    const before = project();
+    expect(before.progress).toEqual({ activities: { [worldIds.activity]: { status: 'completed' } } });
+    expect(before.bookmarkedNodeIds).toEqual([worldIds.node]);
+    const beforeMaps = (before.world as { maps: unknown[] }).maps;
+    expect(beforeMaps[0]).toMatchObject({ nodes: [{
+        activities: [expect.objectContaining({ id: worldIds.activity })],
+        startRoutes: [expect.objectContaining({ activityId: worldIds.activity }), expect.objectContaining({ activityId: worldIds.activity })],
+    }] });
+    snapshot.world.maps.reverse();
+    snapshot.graph.maps.reverse();
+    const after = project();
+    expect(after.progress).toEqual(before.progress);
+    expect(after.bookmarkedNodeIds).toEqual(before.bookmarkedNodeIds);
+    expect((after.world as { maps: unknown[] }).maps).toEqual([...beforeMaps].reverse());
+});

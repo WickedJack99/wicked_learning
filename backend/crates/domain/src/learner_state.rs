@@ -29,11 +29,13 @@ impl LearnerAppearance {
 }
 
 /// A bounded, authenticated projection for the World screen. It deliberately
-/// excludes activity configuration, answer history, play-run identifiers and
-/// all mutation affordances.
+/// excludes activity configuration and answer history. Its private graph
+/// carries only the caller's route-run references needed for source continuity;
+/// these references never replace authorization in playback commands.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerWorldSnapshot {
     pub world: PublicWorld,
+    pub graph: LearnerWorldGraph,
     pub items: Vec<LearnerItem>,
     pub tools: Vec<LearnerTool>,
     pub bookmarked_nodes: Vec<LearnerBookmark>,
@@ -41,6 +43,55 @@ pub struct LearnerWorldSnapshot {
     pub route_progress: Vec<LearnerRouteProgress>,
     pub available_routes: Vec<LearnerWorldRoute>,
     pub start_routes: Vec<LearnerActivityStart>,
+}
+
+/// Authenticated source-rendering identities and published activity outlines.
+/// Kept separate from the anonymous public graph and from playback payloads:
+/// no activity configuration, answers or another learner's state is included.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerWorldGraph {
+    pub id: uuid::Uuid,
+    pub maps: Vec<LearnerWorldMapGraph>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerWorldMapGraph {
+    pub id: uuid::Uuid,
+    pub slug: String,
+    pub assets: Vec<LearnerWorldAssetIdentity>,
+    pub nodes: Vec<LearnerWorldNodeGraph>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerWorldAssetIdentity {
+    pub id: uuid::Uuid,
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerWorldNodeGraph {
+    pub id: uuid::Uuid,
+    pub slug: String,
+    pub start_activity_id: Option<uuid::Uuid>,
+    pub activities: Vec<LearnerWorldActivityOutline>,
+    pub starts: Vec<LearnerWorldStartIdentity>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerWorldActivityOutline {
+    pub id: uuid::Uuid,
+    pub slug: String,
+    pub title: String,
+    pub activity_type: String,
+    pub status: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerWorldStartIdentity {
+    pub id: uuid::Uuid,
+    pub activity_id: uuid::Uuid,
+    pub current_activity_id: Option<uuid::Uuid>,
+    pub play_run_id: Option<uuid::Uuid>,
 }
 
 /// One learner-owned inventory item, bounded to presentation fields the

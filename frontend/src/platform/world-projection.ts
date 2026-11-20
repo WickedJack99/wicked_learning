@@ -10,13 +10,13 @@ type LearnerSoundPreferences = components['schemas']['LearnerSoundPreferences'];
 /**
  * Props consumed by the copied World page. The source still declares numeric
  * Laravel record IDs, while the Rust contract deliberately keeps UUIDs opaque.
- * Numeric values below are document-local rendering handles only: they are
- * never sent to Rust and are never persisted as server identities.
+ * Keep those UUIDs intact for source keys, comparisons, persisted continuation
+ * and URLs. This adapter never converts them to fabricated numeric handles.
  */
 export type WorldPageProps = {
     appearance: CurrentUser['appearance'];
     auth: { user: { subjectId: string } };
-    bookmarkedNodeIds: number[];
+    bookmarkedNodeIds: string[];
     groups: ReturnType<typeof toSourceGroupPage>['groups'];
     groupsPagination: {
         currentPage: number;
@@ -44,49 +44,45 @@ export function toWorldPageProps(
     translations: LearnerTranslations,
     soundPreferences: LearnerSoundPreferences,
 ): WorldPageProps {
-    let nextMapId = 1;
-    let nextNodeId = 1;
-    let nextAssetId = 1;
-    let nextActivityId = 1;
-    let nextStartId = 1;
-    const nodeIds = new Map<string, number>();
-    const activityIds = new Map<string, number>();
-    const progress: Record<number, { status: string }> = {};
+    const nodeIds = new Map<string, string>();
+    const progress: Record<string, { status: string }> = {};
+    const graphMaps = new Map(snapshot.graph.maps.map((map) => [map.slug, map]));
 
     const world = {
-        // The source page does not render World.id, but its legacy type
-        // requires it. This is strictly a local rendering handle.
-        id: 1,
+        id: snapshot.graph.id,
         slug: snapshot.world.slug,
         title: snapshot.world.title,
         description: snapshot.world.description,
         themeConfig: snapshot.world.theme_config,
         maps: snapshot.world.maps.map((map) => {
-            const mapId = nextMapId++;
+            const graphMap = required(graphMaps.get(map.slug));
+            const mapId = graphMap.id;
+            const graphNodes = new Map(graphMap.nodes.map((node) => [node.slug, node]));
+            const graphAssets = new Map(graphMap.assets.map((asset) => [asset.slug, asset]));
             const startsForMap = snapshot.start_routes.filter(
                 (start) => start.map_slug === map.slug,
             );
             const nodes = map.nodes.map((node) => {
-                const nodeId = nextNodeId++;
+                const graphNode = required(graphNodes.get(node.slug));
+                const nodeId = graphNode.id;
+                const graphStarts = new Map(graphNode.starts.map((start) => [start.id, start]));
                 const nodeKey = `${map.slug}:${node.slug}`;
                 nodeIds.set(nodeKey, nodeId);
                 const starts = startsForMap.filter(
                     (start) => start.node_slug === node.slug,
                 );
-                const activities = starts.map((start) => {
-                    const activityKey = `${nodeKey}:${start.activity_slug}`;
-                    const activityId = nextActivityId++;
-                    activityIds.set(activityKey, activityId);
-
-                    // World reads this outline only to preserve the copied
-                    // page's local active-route affordance. Playback itself
-                    // remains an explicit unavailable destination.
+                const activities = graphNode.activities.map((activity) => {
+                    if (activity.status) progress[activity.id] = { status: activity.status };
                     return {
-                        id: activityId,
-                        slug: start.activity_slug,
-                        title: start.label,
+                        id: activity.id,
+                        slug: activity.slug,
+                        title: activity.title,
+                        type: activity.activity_type,
                     };
                 });
+                if (graphNode.start_activity_id !== null) {
+                    required(activities.find((activity) => activity.id === graphNode.start_activity_id));
+                }
 
                 return {
                     id: nodeId,
@@ -107,9 +103,12 @@ export function toWorldPageProps(
                     position: { q: node.q, r: node.r },
                     state: node.state,
                     visualConfig: node.visual_config,
-                    startActivityId: activities[0]?.id ?? null,
-                    startRoutes: starts.map((start, startIndex) => {
-                        const activityId = activities[startIndex]?.id ?? null;
+                    startActivityId: graphNode.start_activity_id,
+                    startRoutes: starts.map((start) => {
+                        const identity = required(graphStarts.get(start.start_id));
+                        const activityId = required(activities.find(
+                            (activity) => activity.id === identity.activity_id && activity.slug === start.activity_slug,
+                        )).id;
                         const routeProgress = snapshot.route_progress.find(
                             (candidate) => candidate.start_id === start.start_id,
                         );
@@ -121,17 +120,17 @@ export function toWorldPageProps(
                             buttonColorDark: start.button_color_dark,
                             buttonColorLight: start.button_color_light,
                             description: start.description,
-                            id: nextStartId++,
+                            id: start.start_id,
                             imageDark: start.image_dark,
                             imageLight: start.image_light,
                             label: start.label,
                             progress: routeProgress
                                 ? {
                                     completionCount: routeProgress.completion_count,
-                                    currentActivityId: null,
+                                    currentActivityId: identity.current_activity_id,
                                     lastCompletedAt: routeProgress.last_completed_at,
                                     lastEnteredAt: routeProgress.last_entered_at,
-                                    playRunId: null,
+                                    playRunId: identity.play_run_id,
                                     status: routeProgress.status,
                                 }
                                 : null,
@@ -158,7 +157,7 @@ export function toWorldPageProps(
                 backgroundConfig: map.background_config,
                 gridConfig: map.grid_config,
                 mapAssets: map.assets.map((asset) => ({
-                    id: nextAssetId++,
+                    id: required(graphAssets.get(asset.slug)).id,
                     nodeId: nodeIds.get(
                         `${map.slug}:${map.nodes.find((node) => node.asset_slug === asset.slug)?.slug ?? ''}`,
                     ) ?? null,
@@ -181,17 +180,6 @@ export function toWorldPageProps(
             };
         }),
     };
-
-    for (const activityProgress of snapshot.activity_progress) {
-        for (const map of snapshot.world.maps) {
-            const activityId = activityIds.get(
-                `${map.slug}:${activityProgress.node_slug}:${activityProgress.activity_slug}`,
-            );
-            if (activityId) {
-                progress[activityId] = { status: activityProgress.status };
-            }
-        }
-    }
 
     const bookmarkedNodeIds = snapshot.bookmarked_nodes.flatMap((bookmark) => {
         const nodeId = nodeIds.get(`${bookmark.map_slug}:${bookmark.node_slug}`);
@@ -218,4 +206,10 @@ export function toWorldPageProps(
         },
         world,
     };
+}
+
+/** An incomplete server document must use the route's unavailable state. */
+function required<T>(value: T | undefined): T {
+    if (value === undefined) throw new Error('The World identity projection is incomplete.');
+    return value;
 }

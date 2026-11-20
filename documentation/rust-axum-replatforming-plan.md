@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; group transport and authenticated bootstrap verified below | Complete copied shared layout, anonymous access, location persistence, map/activity identity, progress, media, search, bookmarks, tools, route lifecycle and playback. |
+| Learner World and playback | **Incomplete**; group transport, authenticated bootstrap and graph identity verified below | Complete copied shared layout, anonymous access, location persistence, progress writes, media, search, bookmarks, tools, route lifecycle and playback. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -124,14 +124,78 @@ access, location persistence, map/activity identity or playback.
 `AppSideActionBar` and `LearnerSurfaceNavigation` trees. Before mounting, map
 all consumed authenticated user, inventory/tool, public presentation, menu
 theme, Companion, feedback prompt and Journal props/requests to existing Rust
-contracts. The current bare World page omits these source controls. In
-parallel with that contract inventory, replace the current document-local
-map/node/activity counters: source `active-activity.ts` persists their values
-into local storage and playback URLs, so the old claim that they are purely
-ephemeral is false. `world-projection.ts` also derives activities only from
-start routes; this cannot prove all-activity completion badges or fallback
-start behavior. Those contracts must be made complete before playback is
-activated; do not fabricate IDs, activities, or missing layout props.
+contracts. The current bare World page omits these source controls. The identity/outline dependency described below is now verified. Do not
+fabricate the remaining shared-layout props or activate playback before its
+complete document and transport contracts are available.
+
+### Verified World identity and activity-outline contract
+
+Pinned-source owners under `resources/js/` are `pages/world.tsx`,
+`features/world/active-activity.ts`, `features/world/world-map.tsx`,
+`features/world/node-detail-drawer.tsx`, `features/world/activity-panel.tsx`,
+`types/learning.ts`, and
+`app/Learning/Serializers/LearningNodeSerializer.php`. Source World's completed
+badge inspects every activity, its fallback start uses the authored preferred
+activity, and `active-activity.ts` persists node/activity/start identities.
+The prior adapter's array counters and start-label-as-activity-title projection
+cannot preserve those behaviors.
+
+Extended the existing authenticated `/api/v1/learner/world` read with a typed
+`graph` identity/outline projection. Reused already scoped map/asset/node reads;
+loaded published activity outlines in one additional batched query, with only
+the current principal's progress. Anonymous `/public/world` remains unchanged.
+Hidden-node activity data, unpublished activities and activity configuration/answers
+are excluded. Preferred/start/progress references use UUIDs, including persisted
+source continuation links. Playback remains pending until its complete transport
+and document contracts are activated.
+
+This dependency precedes full shared-layout activation: the layout's Continue
+link reads the same persisted activity record. Shared-layout audit also found
+missing learner palette, app-name, menu-theme and feedback-prompt eligibility
+projections, plus on-demand Journal/Companion transport mappings. None may be
+replaced by invented source props.
+
+| Source contract | Rust evidence / adapter | Verified behavior |
+| --- | --- | --- |
+| World/map/MapAsset/node identities, `active-activity.ts` persisted URL | `LearnerWorldSnapshot.graph`, `domain/src/learner_state.rs`, `persistence/src/{public_world,learner_world}.rs`; `frontend/src/platform/world-projection.ts` | Real UUIDs survive map reordering, source keys and navigation. No numeric stand-ins. |
+| All published node activities, actual title, completed badge | `LearnerWorldActivityOutline`, batched `load_graph` query, principal-scoped progress join | Non-start activities included, multiple starts do not duplicate activities, identical slugs in different maps cannot share completion. No activity configuration/answers exposed. |
+| Authored preferred start and route starts | `start_activity_id`, `LearnerWorldStartIdentity`; existing start-summary fields retained | Invalid/portal-input preferred starts excluded. Hidden nodes have no outlines/starts; locked nodes retain readable outlines while source disables starting. |
+| Private route continuation summary | Own `learner_route_progress` joined by principal and start UUID; `current_activity_id` and `play_run_id` | Route progress preserves real references; current activity must still be in the published node outline. Playback must independently authorize every command. |
+| Incomplete/oversized read | Existing World unavailable boundary; graph-wide 10000-outline limit checked with LIMIT 10001 | An incomplete identity mapping or oversized graph fails explicitly, never fabricates IDs or silently truncates badges. |
+
+Evidence: `frontend/e2e/canonical-world.spec.ts` covers persisted URLs/titles,
+non-start completion, preferred starts, missing identities, reordered maps,
+repeated slugs and duplicate buttons. Six pre-fix checks failed against the
+previous build at both viewports. The independent original-page harness
+`canonical-world-source.{html,tsx}` verifies pinned source bytes and compares
+selected-place text, bounds, screenshots and source numeric continuation at
+1440×900 and 390×844. This is World page evidence, not shared-layout acceptance.
+`canonical-world-identity-live.spec.ts` uses real Rust responses, cross-checks
+activity IDs/titles against the author read, verifies the anonymous response
+remains unchanged and drives source continuation with the real UUIDs. It
+attaches request duration/payload-size measurements: the local seed returned
+143 outlines across two maps in a 33866-byte response, measured at 11–13 ms
+in the two browser runs. These are local observations, not a production SLA.
+Existing live group coverage remains passing. The source and Rust selected-place
+screenshots were byte-identical at both required viewports.
+
+Rust's `preferred_start_requires_an_eligible_published_outline` covers preferred
+eligibility. `graph_outlines_preserve_identity_publication_visibility_and_private_progress`
+ran against the migrated local PostgreSQL using connection-local temporary
+copies of actual tables: available/locked/hidden nodes, draft exclusion,
+non-start outlines, repeated slugs, another learner's completion and answer
+non-disclosure. It performs no writes to application rows. Rerun with
+`TEST_APPLICATION_DATABASE_URL` set to the local test database and
+`cargo test -p wicked-learning-persistence graph_outlines -- --ignored` from
+`backend/`. Regular focused workspace tests cover the authenticated route.
+
+Validation: canonical identity, frontend production type/build, generated
+OpenAPI client drift, Rust fmt/check and focused tests, the explicit PostgreSQL
+regression, and 26 passing checks in the combined canonical World/identity/group
+browser suite.
+Use the earlier source-server setup and run all three `canonical-world*.spec.ts`
+files named above with the HTML reporter to retain comparison screenshots.
+No canonical source, migrations, production data or traffic ownership changed.
 
 ## Status and purpose
 
@@ -815,8 +879,9 @@ unavailable; none is silently represented as successful bootstrap behavior.
 activation. The active completion register above governs remaining work.
 The original relative-import and pagination claims were contradicted by the
 new browser regression and repaired in the group subworkflow. Activity
-outlines, local numeric identity, empty/error semantics and playback still
-require source-contract verification; this entry is not full-route acceptance.
+outlines, identity and empty/error semantics were repaired in the verified
+entries above. Shared layout and playback remain open; this entry is not
+full-route acceptance.
 
 **Pinned source verified:** `main` resolves to
 `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. The mounted source entry is the
@@ -832,7 +897,7 @@ interaction helpers; shared UI primitives; and the canonical stylesheet.
 
 | Source dependency / behavior | Rust contract and adapter evidence | Read-route rule |
 | --- | --- | --- |
-| Authenticated World, maps, nodes, learner state, safe map media and route-start summaries | `GET /api/v1/learner/world`; `api/src/learner_world.rs`; `application/src/learner_world.rs`; `persistence/src/{learner_world,public_world}.rs`; OpenAPI `getLearnerWorld` / `LearnerWorldSnapshot` | Reused as a bounded read. The adapter maps snake case and joins source-visible start/progress summaries by slug. It creates only document-local numeric rendering handles because copied source pointer logic requires legacy numeric IDs; no UUID-derived handle is accepted by Rust or used as persistence identity. |
+| Authenticated World, maps, nodes, learner state, safe map media and route-start summaries | `GET /api/v1/learner/world`; `api/src/learner_world.rs`; `application/src/learner_world.rs`; `persistence/src/{learner_world,public_world}.rs`; OpenAPI `getLearnerWorld` / `LearnerWorldSnapshot` | Reused as a bounded read. The initial numeric-handle approach was incorrect because source persists those identities. The verified graph adapter above now maps real UUIDs and complete published outlines; it joins progress by identity rather than ambiguous activity slugs. |
 | Map-to-topic navigation | `PublicMap.topic`, `PublicMapTopic`; `persistence/src/public_world.rs`; OpenAPI `PublicMapTopic` | The learner/public map projection now returns only the published topic slug/title needed to retain the copied “Back to …” control. It does not disclose topic drafts or grant topic access. Its destination remains explicit-unavailable until Topics is activated. |
 | Current authenticated marker and private appearance | `GET /api/v1/me`; `api/src/current_user.rs`; OpenAPI `getCurrentUser` / `CurrentUser` | Required successful read. The copied page receives only an authenticated marker and appearance value; its copied `useAppearance` keeps the source browser preference behavior. This read route never calls the appearance writer, and name, email, roles and capabilities are not injected into source props. |
 | UI translations | `GET /api/v1/learner/platform-translations`; `api/src/learner_platform_translation.rs`; OpenAPI `getLearnerPlatformTranslations` | Reused to preserve copied labels. A failed read makes World unavailable rather than silently presenting an unverified language projection. |

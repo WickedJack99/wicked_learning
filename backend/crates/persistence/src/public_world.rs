@@ -37,7 +37,9 @@ impl PublicWorldRepositoryPort for PostgresPublicWorldRepository<'_> {
 
 pub struct LoadedWorld {
     pub world: PublicWorld,
+    pub world_id: Uuid,
     pub map_ids: Vec<Uuid>,
+    pub asset_ids: HashMap<Uuid, HashMap<String, Uuid>>,
 }
 
 #[derive(FromRow)]
@@ -64,6 +66,7 @@ struct MapRow {
 
 #[derive(FromRow)]
 struct MapAssetRow {
+    id: Uuid,
     map_id: Uuid,
     slug: String,
     title: String,
@@ -130,7 +133,7 @@ pub async fn load_first_visible(
         Vec::new()
     } else {
         sqlx::query_as::<_, MapAssetRow>(
-            "SELECT map_id, slug, title, description, position_x AS x, position_y AS y, position_z AS z, image_url, text, width, opacity, locked, visual_config, interaction_config, sound_config, interaction_mode FROM learning_map_assets WHERE map_id = ANY($1) AND published_at IS NOT NULL ORDER BY map_id ASC, position_z ASC, slug ASC",
+            "SELECT id, map_id, slug, title, description, position_x AS x, position_y AS y, position_z AS z, image_url, text, width, opacity, locked, visual_config, interaction_config, sound_config, interaction_mode FROM learning_map_assets WHERE map_id = ANY($1) AND published_at IS NOT NULL ORDER BY map_id ASC, position_z ASC, slug ASC",
         )
         .bind(&map_ids)
         .fetch_all(pool)
@@ -163,7 +166,12 @@ pub async fn load_first_visible(
         .collect()
     };
     let mut assets_by_map: HashMap<Uuid, Vec<PublicMapAsset>> = HashMap::new();
+    let mut asset_ids: HashMap<Uuid, HashMap<String, Uuid>> = HashMap::new();
     for asset in assets {
+        asset_ids
+            .entry(asset.map_id)
+            .or_default()
+            .insert(asset.slug.clone(), asset.id);
         assets_by_map
             .entry(asset.map_id)
             .or_default()
@@ -203,6 +211,8 @@ pub async fn load_first_visible(
             });
     }
     Ok(Some(LoadedWorld {
+        world_id: world.id,
+        asset_ids,
         map_ids: map_ids.clone(),
         world: PublicWorld {
             slug: world.slug,

@@ -9656,7 +9656,54 @@ export interface components {
             id: string;
             title: string;
         };
+        LearnerWorldGraph: {
+            /** Format: uuid */
+            id: string;
+            maps: components["schemas"]["LearnerWorldMapGraph"][];
+        };
+        LearnerWorldMapGraph: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            assets: components["schemas"]["LearnerWorldAssetIdentity"][];
+            nodes: components["schemas"]["LearnerWorldNodeGraph"][];
+        };
+        LearnerWorldAssetIdentity: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+        };
+        LearnerWorldNodeGraph: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            /** Format: uuid */
+            start_activity_id: string | null;
+            /** @description Published outlines only; hidden nodes have none. The entire graph is bounded to 10000 activities and fails rather than truncating. */
+            activities: components["schemas"]["LearnerWorldActivityOutline"][];
+            starts: components["schemas"]["LearnerWorldStartIdentity"][];
+        };
+        LearnerWorldActivityOutline: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            activity_type: string;
+            /** @enum {string|null} */
+            status: "reached" | "completed" | null;
+        };
+        LearnerWorldStartIdentity: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: uuid */
+            current_activity_id: string | null;
+            /** Format: uuid */
+            play_run_id: string | null;
+        };
         LearnerWorldSnapshot: {
+            graph: components["schemas"]["LearnerWorldGraph"];
             world: components["schemas"]["PublicWorld"];
             items: components["schemas"]["LearnerItem"][];
             tools: components["schemas"]["LearnerTool"][];

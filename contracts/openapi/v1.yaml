@@ -13098,11 +13098,77 @@ components:
       properties:
         id: { type: string, format: uuid }
         title: { type: string, maxLength: 240 }
+    LearnerWorldGraph:
+      type: object
+      additionalProperties: false
+      required: [id, maps]
+      properties:
+        id: { type: string, format: uuid }
+        maps:
+          type: array
+          items: { $ref: '#/components/schemas/LearnerWorldMapGraph' }
+    LearnerWorldMapGraph:
+      type: object
+      additionalProperties: false
+      required: [id, slug, assets, nodes]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        assets:
+          type: array
+          items: { $ref: '#/components/schemas/LearnerWorldAssetIdentity' }
+        nodes:
+          type: array
+          items: { $ref: '#/components/schemas/LearnerWorldNodeGraph' }
+    LearnerWorldAssetIdentity:
+      type: object
+      additionalProperties: false
+      required: [id, slug]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+    LearnerWorldNodeGraph:
+      type: object
+      additionalProperties: false
+      required: [id, slug, start_activity_id, activities, starts]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        start_activity_id: { type: [string, 'null'], format: uuid }
+        activities:
+          type: array
+          maxItems: 10000
+          description: Published outlines only; hidden nodes have none. The entire graph is bounded to 10000 activities and fails rather than truncating.
+          items: { $ref: '#/components/schemas/LearnerWorldActivityOutline' }
+        starts:
+          type: array
+          items: { $ref: '#/components/schemas/LearnerWorldStartIdentity' }
+    LearnerWorldActivityOutline:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, activity_type, status]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        title: { type: string }
+        activity_type: { type: string }
+        status: { type: [string, 'null'], enum: [reached, completed, null] }
+    LearnerWorldStartIdentity:
+      type: object
+      additionalProperties: false
+      required: [id, activity_id, current_activity_id, play_run_id]
+      properties:
+        id: { type: string, format: uuid }
+        activity_id: { type: string, format: uuid }
+        current_activity_id: { type: [string, 'null'], format: uuid }
+        play_run_id: { type: [string, 'null'], format: uuid }
     LearnerWorldSnapshot:
       type: object
       additionalProperties: false
-      required: [world, items, tools, bookmarked_nodes, activity_progress, route_progress, available_routes, start_routes]
+      required: [world, graph, items, tools, bookmarked_nodes, activity_progress, route_progress, available_routes, start_routes]
       properties:
+        graph:
+          $ref: '#/components/schemas/LearnerWorldGraph'
         world:
           $ref: '#/components/schemas/PublicWorld'
         items:

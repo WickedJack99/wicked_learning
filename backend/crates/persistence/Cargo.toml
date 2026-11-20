@@ -16,3 +16,6 @@ tracing = "0.1"
 uuid.workspace = true
 wicked-learning-application = { path = "../application" }
 wicked-learning-domain = { path = "../domain" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }
