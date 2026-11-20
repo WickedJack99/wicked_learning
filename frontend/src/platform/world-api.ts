@@ -4,6 +4,7 @@ import { searchUnavailableMessage, toSourceSearchResponse } from './world-search
 
 import { JsonRequestError } from './json-request-error';
 import { journalRead, journalWrite, isJournalWrite } from './journal-api';
+import { isSharedTaskWrite, sharedTaskWrite } from './playback-shared-task-api';
 export { JsonRequestError } from './json-request-error';
 
 const unavailableMessage =
@@ -84,6 +85,7 @@ export async function postJson<T>(
     payload: Record<string, unknown>,
 ): Promise<T> {
     if (isJournalWrite('POST', url)) return await journalWrite('POST', url, payload) as T;
+    if (isSharedTaskWrite(url)) return await sharedTaskWrite('POST', url, payload) as T;
     const groupAction = /^\/learning\/groups\/([a-f0-9-]+)\/(messages|admin-chat-vote|messages\/([a-f0-9-]+)\/resolve)$/.exec(url);
     if (groupAction) {
         const [, groupId, action, messageId] = groupAction;
@@ -136,5 +138,6 @@ export async function patchJson<T>(
     payload: Record<string, unknown>,
 ): Promise<T> {
     if (isJournalWrite('PATCH', url)) return await journalWrite('PATCH', url, payload) as T;
+    if (isSharedTaskWrite(url)) return await sharedTaskWrite('PATCH', url, payload) as T;
     return unavailableOperation();
 }

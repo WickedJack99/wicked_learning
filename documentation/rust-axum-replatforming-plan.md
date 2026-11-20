@@ -1749,6 +1749,64 @@ maps and permission checks. Player fixture cleanup now removes only edges owned
 by its disposable map before calling the map-delete API; this is not a product
 fix or evidence that map deletion is accepted.
 
+### Copied Shared Task command transport
+
+Pre-implementation source audit: pinned
+`resources/js/features/world/shared-task-activity.tsx` and its whole dependency
+tree (`activity-utils.tsx`, `components/ui/button.tsx`,
+`hooks/use-platform-translation.ts`, `lib/utils.ts`, `types/learning.ts`), plus
+`features/world/api.ts`. Initial activity/peer state and saved checklist use the
+verified `playback-projection.ts` mapping. This slice connects the complete
+Shared Task command surface; common player completion/navigation remains a
+separate whole-route integration boundary.
+
+| Source operation | Existing typed Rust contract | Response / unavailable behavior |
+| --- | --- | --- |
+| POST `shared-task-submissions` | `.../shared-task/submissions`, `SubmitLearnerSharedTaskContribution` | Real persisted shared state; preserve body, explicit sharing choice and nullable project step. |
+| POST `shared-task-reviews` | `.../shared-task/reviews`, `SubmitLearnerSharedTaskReview` | Preserve actual submission UUID, response type and project step. |
+| PATCH `shared-task-submissions/{id}/revision` | `.../shared-task/submissions/{id}/revision` | Source receives actual revised submission and permissions. |
+| PATCH `shared-task-reviews/{id}/helpfulness` | `.../shared-task/reviews/{id}/helpfulness` | Source receives actual updated helpful marker. |
+| PATCH `shared-task-reviews/{id}/follow-up` | `.../shared-task/reviews/{id}/follow-up` | Private nullable note remains owner-scoped. |
+| POST `shared-task-checklist` | `.../shared-task/checklist` | Return normalized actual step indexes; source owns optimistic rollback on failure. |
+
+Bind only a successfully loaded playback document and its graph identities to
+its exact run. No unbound/global-current-activity fallback, arbitrary Laravel
+POST or success emulation. Validate the six known source paths and payload
+types, forward through the generated client with native CSRF, map successful
+state through the existing explicit projection, and propagate actual failures
+to the copied component's error and draft-retention behavior. Test-only browser
+harnesses import whole original/copied components; they do not activate a
+partial production player or count as whole-route acceptance.
+
+Implemented in `frontend/src/platform/playback-shared-task-api.ts`, dispatched
+only for the six recognized command paths by `world-api.ts`. A run binding is
+released by its owning render; disposing an older binding cannot invalidate a
+newer one. Unknown runs, foreign URLs, malformed payloads and unsupported
+methods fail explicitly. Backend ownership, current activity and publication
+checks remain authoritative. No Rust contract or canonical source changed.
+
+Verification: canonical identity (299 JS files plus CSS), frontend type/production
+build, generated OpenAPI consistency, the focused Rust Shared Task input test,
+and all 20 native player contract/reference checks passed. The two real
+Rust/PostgreSQL browser checks in
+`frontend/e2e/canonical-player-shared-live.spec.ts` exercise all six commands at
+1440×900 and 390×844, persisted reloads, real stale-run failures, retained drafts,
+optimistic checklist rollback, and binding/payload guards. There are no mocked
+API responses or legacy Laravel requests. Test-owned maps/runs are removed.
+The test-only `canonical-player-shared.tsx` imports the complete copied and
+pinned-source components and compares initial/persisted review text, geometry
+and screenshots; controls are reachable and bounded after scrolling. Source
+and copied initial and persisted review screenshots are byte-identical at both
+viewports; their layouts were visually reviewed. Screenshot capture
+normalizes the pointer and disables animation for reproducibility. Evidence:
+ignored `frontend/playwright-report/player-shared-transport/` and
+`frontend/playwright-report/player-shared-native/`.
+
+This is command/subcomponent acceptance only. The complete NodePlay route,
+completion/navigation lifecycle, other activity transports and full-page
+responsive/media acceptance remain open; the production resolver still reports
+the route unavailable.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the
