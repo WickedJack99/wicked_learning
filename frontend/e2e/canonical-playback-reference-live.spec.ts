@@ -1,6 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, test, type BrowserContext } from '@playwright/test';
+import { verifyPlaybackProjection } from './canonical-playback-projection-evidence';
+import { toSourceActivityReceipt } from '../src/platform/playback-projection';
 import { verifyPlaybackPortals } from './canonical-playback-node-evidence';
 import { verifyPlaybackSharedState } from './canonical-playback-shared-evidence';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
@@ -89,6 +91,13 @@ for (const type of types) {
             const playbackResponse = await owner.request.get(`/api/v1/learner/play-runs/${run}`);
             expect(playbackResponse.status()).toBe(200);
             const playback = await playbackResponse.json();
+            const sourceProps = verifyPlaybackProjection(playback);
+            expect(sourceProps.progress).toEqual({ activities: {}, answers: {}, recallQuestionIds: [] });
+            const sourceActivity = sourceProps.node.activities.find((entry) => entry.id === activity)!;
+            if (type === 'question') expect(sourceActivity.question).toMatchObject({ id: activity, options: [{ id: 'choice', outcomeKey: 'explore' }] });
+            if (type === 'tool_grant') expect(sourceActivity.config.toolId).toBe(tool);
+            if (type === 'item_obstacle') expect(sourceActivity.config.slots).toEqual([expect.objectContaining({ itemId: item })]);
+            if (type === 'item_grant') expect(sourceActivity.config.items).toEqual([expect.objectContaining({ itemId: item })]);
             expect(playback.private_state).toEqual({ activities: [], answers: [], recall_activity_ids: [], npc_dialogues: [], shared_task_checklists: [], item_obstacles: [], obstacle_resolutions: [] });
             info.annotations.push({ type: 'native-player-presentation-read', description: `${type}: ${Math.round(performance.now() - presentationStarted)} ms; ${Buffer.byteLength(JSON.stringify(playback))} bytes` });
             const presentation = playback.graph.activities.find((entry) => entry.id === activity).presentation;
@@ -197,6 +206,10 @@ for (const type of types) {
                 const completed = await owner.request.post(`${base}/${ref}/complete`, { headers, data: {} });
                 expect(completed.status()).toBe(200);
                 const receipt = await completed.json();
+                const sourceReceipt = toSourceActivityReceipt(receipt.activity_state, beforeCompletion.graph.activities.find((entry) => entry.id === activity));
+                expect(sourceReceipt).toMatchObject({ activityId: activity, status: 'completed', completedAt: receipt.activity_state.progress.completed_at });
+                if (type === 'item_obstacle') expect(sourceReceipt?.metadata.itemObstacle?.filledSlots).toEqual({ '0': { itemId: item } });
+                if (type === 'obstacle') expect(sourceReceipt?.metadata.obstacle?.destroyedAt).toBe(receipt.activity_state.obstacle_resolved_at);
                 expect(receipt).toMatchObject({ next_activity_id: null, activity_state: { activity_id: activity, progress: { activity_id: activity, status: 'completed', completed_at: expect.any(String) } } });
                 expect(receipt.activity_state.item_obstacle).toEqual(beforeCompletion.private_state.item_obstacles.find((entry) => entry.activity_id === activity)?.state ?? null);
                 expect(receipt.activity_state.obstacle_resolved_at).toBe(beforeCompletion.private_state.obstacle_resolutions.find((entry) => entry.activity_id === activity)?.resolved_at ?? null);
@@ -251,7 +264,9 @@ async function verifyPrivateState(type: string, owner: BrowserContext, peer: Bro
     const read = async () => {
         const response = await owner.request.get(path);
         expect(response.status()).toBe(200);
-        return response.json();
+        const document = await response.json();
+        verifyPlaybackProjection(document);
+        return document;
     };
     if (type === 'open_practice') {
         sql(`INSERT INTO learner_activity_progress (principal_id,activity_id,status,completed_at) VALUES ('${principal}','${activity}','reached',NULL),('${principal}','${other}','completed','2026-01-02T00:00:00Z'),('${peerPrincipal}','${activity}','completed','2026-01-03T00:00:00Z')`);

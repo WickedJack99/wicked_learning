@@ -1,3 +1,4 @@
+import { verifyPlaybackProjection } from './canonical-playback-projection-evidence';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, type BrowserContext, type TestInfo } from '@playwright/test';
@@ -38,6 +39,7 @@ export async function verifyPlaybackReviews(owner: BrowserContext, peer: Browser
         const started = performance.now();
         const response = await owner.request.get(path); expect(response.status()).toBe(200);
         const body = await response.json();
+        verifyPlaybackProjection(body);
         info.annotations.push({ type: 'native-playback-reviews', description: `${Math.round(performance.now() - started)} ms; ${Buffer.byteLength(JSON.stringify(body))} bytes; seven inactive contexts` });
         const contexts = new Map(body.graph.activities.map((a) => [a.id, a.review_context]));
         expect(contexts.get(activities[0])).toBeInstanceOf(Array);

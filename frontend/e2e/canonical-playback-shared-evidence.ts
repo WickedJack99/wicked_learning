@@ -1,3 +1,4 @@
+import { verifyPlaybackProjection } from './canonical-playback-projection-evidence';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, type BrowserContext, type TestInfo } from '@playwright/test';
@@ -14,7 +15,7 @@ export async function verifyPlaybackSharedState(owner: BrowserContext, peer: Bro
     const older = randomUUID(); const latest = randomUUID(); const recentReview = randomUUID(); const oldRun = randomUUID();
     const scale = Array.from({ length: 100 }, () => randomUUID());
     const config = { threshold: 3, showContributions: true, peerReviewEnabled: true, peerReviewPrompt: 'What did you notice?', minimumLength: 1, repeatPolicy: 'unlimited', projectSteps: ['Notice', 'Explain'] };
-    const read = async () => { const response = await owner.request.get(path); expect(response.status()).toBe(200); return response.json(); };
+    const read = async () => { const response = await owner.request.get(path); expect(response.status()).toBe(200); const document = await response.json(); verifyPlaybackProjection(document); return document; };
     const state = (doc) => doc.graph.activities.find((a) => a.id === inactive).shared_task_state;
     const submission = (id: string, who: string, body: string, shared: boolean, time: string) => `INSERT INTO learner_shared_task_submissions (id,activity_id,principal_id,play_run_id,body,share_with_peers,task_kind,validation_mode,project_step_index,accepted_at) VALUES ('${id}','${inactive}','${who}','${randomUUID()}','${body}',${shared},'reflection','none',1,'${time}');`;
     try {

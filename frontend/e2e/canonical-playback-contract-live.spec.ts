@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { verifyPlaybackNode } from './canonical-playback-node-evidence';
+import { verifyPlaybackProjection } from './canonical-playback-projection-evidence';
 import { verifyPlaybackReviews } from './canonical-playback-review-evidence';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
@@ -73,6 +74,9 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
             const response = await owner.request.get(path);
             expect(response.status()).toBe(200);
             const playback = await response.json();
+            const props = verifyPlaybackProjection(playback);
+            expect(props.recallQuestionId).toBe(kind === 'recall' ? activityId : null);
+            expect(props.revisitActivityId).toBe(kind === 'revisit' ? activityId : null);
             expect(playback.node).toMatchObject({ id: nodeId, map_id: mapId, slug: 'same-playback-place', title: 'Same playback place', description: 'A disposable playback identity fixture.', q: 0, r: 0, state: 'available', is_bookmarked: false, topic: null, outgoing_portal_links: [] });
             info.annotations.push({ type: 'native-playback-read', description: `${kind}: ${Math.round(performance.now() - readStarted)} ms; ${Buffer.byteLength(JSON.stringify(playback))} bytes` });
             expect(playback).toMatchObject({ run_kind: kind === 'message' ? 'route' : kind, play_run_id: runId, activity: { id: activityId }, context: { node_id: nodeId, map_id: mapId, node_slug: 'same-playback-place', node_title: 'Same playback place' } });

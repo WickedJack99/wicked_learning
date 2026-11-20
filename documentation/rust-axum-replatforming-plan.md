@@ -1645,6 +1645,50 @@ application playback tests and one check-in application test passed. These
 are native contract checks; no desktop/narrow UI parity claim or player
 activation is made by this prerequisite.
 
+### Copied player page-prop adapter
+
+Source owners checked against pinned `main`: `resources/js/pages/learning/node-play.tsx`,
+`types/learning.ts`, `features/world/{activity-panel,item-obstacle-activity,shared-task-activity}.tsx`,
+`app/Learning/Serializers/{LearningNodeSerializer,LearningActivitySerializer,LearnerProgressSerializer}.php`
+and `app/Learning/Services/LearnerActivityPlayStateService.php`.
+`frontend/src/platform/playback-projection.ts` consumes the existing generated
+`LearnerPlaybackDocument` and command receipt schemas. It is a pure typed data
+adapter, with no production route activation or source-file modification.
+
+| Copied source prop | Native evidence / mapping | Incomplete-contract rule |
+| --- | --- | --- |
+| `node`, starts, transitions, outgoing portals and topic links | `LearnerPlaybackNode`, `LearnerPlaybackGraph`; keep actual UUIDs, order, nullable terminal edges, route progress and authored presentation | Reject mismatched node/map/active/start identities or missing transition targets. Topic and competence URLs remain distinct source URLs. |
+| Every activity's question, sources, feedback, sounds, items/tools, NPC graph and review/shared-task context | Typed `presentation`, `review_context`, `shared_task_state`; explicit field mapping, no generic case conversion of authored config | Question identity is its actual native activity UUID; options retain native authored keys. Catalog references resolve to actual catalog UUIDs, never array counters. Missing referenced items fail explicitly. |
+| `progress.activities`, `progress.answers`, `recallQuestionIds` | Principal-scoped `private_state`; preserve stored timestamps, feedback, earlier attempts, actual next targets and nullable records | No inferred completion, empty substitute answer or fabricated recall ID. Unknown saved question options or next targets fail explicitly. |
+| `playState` | Per-run `npc_dialogues` and `shared_task_checklists` | Preserve only actual saved entries and validated node identities. Do not initialize or persist new state merely by mapping props. |
+| Obstacle metadata in reads and command receipts | `item_obstacles`, `obstacle_resolutions`, `LearnerPlaybackActivityState` | Map consumed slot item IDs and actual destruction time; native storage has no `filledAt`, which the copied component does not consume. Do not invent it. Null ordinary recall progress stays null. |
+| Initial route/run/recall/revisit selection | Authorized document `start_id`, `play_run_id`, `run_kind`, active activity UUID | These props describe an existing authorized run. They do not authorize entry, start, restart, navigation or completion. |
+
+Still required before whole-player activation: exact typed command transport,
+entry/resume/restart and terminal lifecycle, anonymous access, Companion reload,
+media delivery evidence, and narrow UUID transport seams for source numeric
+coercions/comparisons (item drops/slots, tool grants, route filtering and sound
+references). Also reconcile every source-consumed configuration key against
+the type-specific Rust allowlists: the existing check-in projection excludes
+learning-area labels without a valid slug, while source accepts a null slug.
+The adapter preserves any already-returned `competenceTopics` and otherwise
+maps the projected areas; this does not establish complete configuration parity.
+The production route remains explicitly unavailable until these gaps close.
+
+**Verified data seam:** canonical source identity and production frontend
+type/build passed; generated API drift check and 22 focused Rust persistence
+playback tests passed. The 20 live contract checks passed in 26.6 seconds
+against real local Rust/PostgreSQL, with `canonical-playback-projection-evidence.ts`
+applied to all six run kinds and fourteen activity types, populated saved
+answers/NPC/checklists, review context and shared-task peer state. They check
+complete activity field coverage, unchanged input documents, stable native
+identities, no invented empty progress, exact private feedback/history,
+nullable destinations, catalog reference resolution and obstacle receipts.
+Mismatched node/active activity, absent option keys and absent catalog rows
+fail explicitly. HTML evidence is in ignored
+`frontend/playwright-report/player-projection/`. These are adapter/native
+contract checks, not browser-rendered player parity or route acceptance.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the
