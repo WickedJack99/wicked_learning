@@ -1025,7 +1025,7 @@ and field mappings are verified.
 | Start/resume/reset; ordinary, portal, revisit, recall and replay semantics | Existing `/learner/activity-starts/{start_id}/{start,reset}`, replay/recall/revisit entry endpoints and run repositories | Map source query parameters and restart response URL to typed commands. Preserve distinct run kinds and CSRF; no Laravel GET/session emulation. Inventory clean URL entry and direct activity entry before activation. |
 | Complete `node` with activity graph, start alternatives and portal links | World graph supplies real outline IDs; active-run document now adds the published navigation definition described below; native author graph is **not** a learner endpoint | Complete configured resources, source activity metadata, node presentation and portal destinations before building the copied page props. Never fill inactive activities with fake config or use author-only payloads. |
 | `playActivityId`, `playRouteId`, `playRunId`, `revisitActivityId`, `recallQuestionId` | Active activity ID, optional start ID, run ID/kind and owner-scoped recall handle exist | Reconcile question/option identities and source recall question identity versus native recall-item handle. Source numeric identity checks such as alternative `route.id > 0` require an exact transport/identity seam, not invented numeric IDs. |
-| `progress.activities`, `progress.answers`, `progress.recallQuestionIds`, `playState` | Native World activity summaries, question feedback, recall state and type-specific run state | Audit source progress metadata, earlier answers and resume state; current single-activity feedback is not proof of full page-prop parity. |
+| `progress.activities`, `progress.answers`, `progress.recallQuestionIds`, `playState` | The typed `LearnerPlaybackDocument.private_state` extension below supplies owner progress, bounded answers, recall membership and saved run/obstacle state | Map these verified native facts into the whole copied page, retaining missing-snapshot unavailable behavior. Copied-player resume/reset acceptance remains required. |
 | Reached/completed progress and optional check-in | Existing route-entry/progress writes, completion and check-in endpoints; `persistence/src/learner_playback.rs` | Map all source completion fields and returned activity/transition identities, including assistance, outcome and check-in state; do not acknowledge an unmapped write. |
 | Question/reflection/grants/obstacles/messages/dialogue/shared-task/portal commands | Existing typed `/learner/play-runs/{run}/activities/{slug}/...` operations and persistence modules | Complete per-player source request/response and media mapping before mounting the route family. Preserve the server's active-run authority even where source state selects the next activity locally. |
 | Companion refresh, shared layout, appearance, inventory, bookmarks and return-to-map | Existing shell and World adapters, companion context/turn, bookmark and map-location operations | Bind to actual node/activity/run context. Source partial reload of Companion must remain scoped; failed reads/writes keep explicit unavailable/error behavior. |
@@ -1339,6 +1339,88 @@ parity.
 This closes the same-place cross-group check-in gap only. Private replay,
 recall/revisit and portal-arrival check-in admission, dynamic availability on
 writers, and complete copied-player props/transports remain activation work.
+
+### Private player progress and saved interaction state
+
+Source audit owners: pinned `LearnerProgressSerializer::{forUser,activities,
+answers,attempt}`, `LearnerActivityPlayStateService::{activityStatesForRun,
+updateNpcDialogueState,updateSharedTaskChecklist,clearActivityState}`,
+`LearningWorldController::play`, copied `types/learning.ts`,
+`pages/learning/node-play.tsx` and the whole `activity-panel`,
+`item-obstacle-activity`, `obstacle-activity`, `npc-dialogue-player` and
+`shared-task-activity` modules. The private boundary is separate from the
+authored presentation contract. Also audited pinned
+`QuestionAnswerService::{answer,feedbackFor}` and `QuestionTransitionResolver`;
+source serializers/services were verified byte-identical to the pinned SHA.
+
+| Source prop | Existing Rust evidence | Projection and adapter requirement |
+| --- | --- | --- |
+| `progress.activities` keyed by real activity identity | `learner_activity_progress`; `LearnerActivityProgress` currently exposes node/activity slugs, status and timestamp | Project actual activity UUIDs for the authorized node, preserving status and completion time. Source obstacle metadata must come from its typed durable records, not invented empty metadata. |
+| `progress.answers` with latest and three earlier attempts | `learner_question_answers`; `learner_question.rs::question_feedback_for_playback` returns only the active activity's current-run answer | Batch the owner's latest four answers per published node question across runs; preserve native option keys, confidence/calibration, authored selected-option labels, feedback/explanation and next transition identity. Existing current-run helper is insufficient and must not be called per graph activity. No unanswered-question correctness may leak. |
+| `progress.recallQuestionIds` | Existing recall queue and activity identities | Batch actual owner queue membership for the node's questions; distinguish question/activity identity from the separate recall-item handle. |
+| `playState[activity].npcDialogue` | `learner_npc_dialogue_states`; current-activity reader in `learner_playback.rs::load_npc_dialogue` | Batch only this principal/run's saved cursors/history, validate against authored node identities and preserve the source forty-entry bound. An absent saved row remains absent; do not fabricate an initialized state. |
+| `playState[activity].sharedTask` | `learner_shared_task_checklists`; current-activity `load_state_for_playback` | Batch this principal/run's actual completed indexes, retain source limits and validate against current authored steps. Shared contribution/review data remains its separate typed contract. |
+| `progress.activities[id].metadata.itemObstacle` | `learner_item_obstacle_states`, `learner_item_obstacle_slots`, `learner_item_obstacle.rs::load_state` | Batch durable slot/lock state and reuse configured-slot/condition policy. Map real catalog identities consistently with the presentation catalog; do not substitute owned inventory for filled slots. |
+| `progress.activities[id].metadata.obstacle.destroyedAt` | `learner_obstacle_resolutions` versus `learner_obstacle_run_passes` | Project the durable resolution timestamp only; a temporary per-run pass must not become a permanent source clear. |
+
+Implementation: `LearnerPlaybackDocument.private_state`,
+`persistence/src/learner_playback_private_state.rs`, domain/OpenAPI/generated
+client types. The caller first authorizes the active run and bounded published
+node graph. Eight batch reads at most (absent activity kinds skip their reads)
+return owner-only facts; saved dialogue/checklists additionally require the
+exact run. Unique activity-keyed records are bounded by the graph's 1000
+activities, slots by ten per activity, and answers by an indexed lateral read
+of four records per question. No all-history materialization or per-activity
+network query is added. Authored definitions and private facts remain separate.
+The typed adapter must map these actual facts into the copied props; the
+canonical page remains unmounted.
+
+Malformed selected options, missing saved dialogue references, over-forty
+history and checklist entries outside current authored steps fail explicitly.
+Absent records remain absent. Obstacle conditions reuse the existing configured
+slot/evaluation functions. Durable obstacle clear timestamps are distinct from
+per-run passes. Saved state reads do not initialize or change these records.
+The existing playback endpoint's topic-visit behavior remains unchanged.
+
+**Answer-time feedback:** source persists the feedback actually shown. Native
+answers previously did not. Migration `0109_question_answer_feedback.sql` adds
+nullable feedback plus a recorded flag, preserving existing rows without
+inventing their history. The native answer writer now saves the source-derived
+single/multiple-choice feedback in its existing transaction. The new canonical
+projection returns 503 if its latest answer lacks a recorded snapshot; a new
+valid answer supplies a real snapshot, including a deliberately null feedback.
+Earlier attempts require only their already-recorded result, time and choices.
+Current-run reads preserve recorded feedback after author edits. No legacy
+answer text is backfilled or deleted.
+
+**Selection rule:** pinned source uses option outcomes only for a single-choice
+question and aggregate correctness for multiple-choice questions. The native
+answer writer, completion resolver, current-answer reader and new private
+projection now share that rule. This prevents a restored answer and its next
+command from choosing different destinations.
+
+Verification passed: canonical byte identity, frontend production type/build,
+generated OpenAPI client drift, Rust workspace fmt/check, twenty persistence
+playback tests, one question test, and three application playback tests. The
+local SQLx migration runner completed migration 109 (`success=true`). All 22
+native/browser checks passed against the rebuilt API/PostgreSQL, including
+World continuation at 1440×900 and 390×844; the report is
+`frontend/playwright-report/player-private-state/`. The initial regression
+first reproduced the absent private state; the next native run reproduced the
+multiple-choice transition mismatch before its correction. Source-derived
+coverage includes latest/four-attempt ordering across runs, repeated slugs,
+owner/peer isolation, unpublished activities, missing snapshots, changed authored
+feedback (including recorded null), single versus multiple-choice transitions, current versus stale run
+state, malformed dialogue history, checklist bounds and durable versus temporary
+obstacle state. This does not by itself complete node/topic/portal presentation,
+review/shared-task documents, all player transports, anonymous playback, actual
+copied-player refresh/reset acceptance or UI activation.
+
+Local measurements for the two-activity fixtures before any private records
+were seeded: 6–9 ms and 4.7–11.6 KB. The existing 102-activity graph returned
+58015 bytes in 8 ms, versus 57850 bytes/8 ms before this extension. These are
+single local observations, not an SLA or measurements of populated history.
+
 
 ## Status and purpose
 

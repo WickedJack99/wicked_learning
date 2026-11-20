@@ -10834,7 +10834,7 @@ components:
     LearnerPlaybackDocument:
       type: object
       additionalProperties: false
-      required: [start_id, play_run_id, run_kind, context, graph, items, tools, activity]
+      required: [start_id, play_run_id, run_kind, context, graph, private_state, items, tools, activity]
       properties:
         start_id:
           type: [string, 'null']
@@ -10849,6 +10849,8 @@ components:
           $ref: '#/components/schemas/LearnerPlaybackContext'
         graph:
           $ref: '#/components/schemas/LearnerPlaybackGraph'
+        private_state:
+          $ref: '#/components/schemas/LearnerPlaybackPrivateState'
         items:
           type: array
           maxItems: 100
@@ -10859,6 +10861,73 @@ components:
           items: { $ref: '#/components/schemas/LearnerTool' }
         activity:
           $ref: '#/components/schemas/LearnerPlaybackActivity'
+    LearnerPlaybackPrivateState:
+      type: object
+      additionalProperties: false
+      description: Owner-only persisted state for the authorized published node. Dialogue and checklist state is additionally scoped to this exact play run; absent records are not initialized by this read.
+      required: [activities, answers, recall_activity_ids, npc_dialogues, shared_task_checklists, item_obstacles, obstacle_resolutions]
+      properties:
+        activities: { type: array, maxItems: 1000, items: { $ref: '#/components/schemas/LearnerPlaybackActivityProgress' } }
+        answers: { type: array, maxItems: 1000, items: { $ref: '#/components/schemas/LearnerPlaybackAnswerProgress' } }
+        recall_activity_ids: { type: array, maxItems: 1000, items: { type: string, format: uuid } }
+        npc_dialogues: { type: array, maxItems: 1000, items: { $ref: '#/components/schemas/LearnerPlaybackSavedDialogue' } }
+        shared_task_checklists: { type: array, maxItems: 1000, items: { $ref: '#/components/schemas/LearnerPlaybackSavedChecklist' } }
+        item_obstacles: { type: array, maxItems: 1000, items: { $ref: '#/components/schemas/LearnerPlaybackSavedItemObstacle' } }
+        obstacle_resolutions: { type: array, maxItems: 1000, items: { $ref: '#/components/schemas/LearnerPlaybackObstacleResolution' } }
+    LearnerPlaybackActivityProgress:
+      type: object
+      additionalProperties: false
+      required: [activity_id, status, completed_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        status: { type: string, enum: [reached, completed] }
+        completed_at: { type: [string, 'null'], format: date-time }
+    LearnerPlaybackAnswerProgress:
+      type: object
+      additionalProperties: false
+      description: Latest stored answer across runs with at most three earlier answers, ordered by timestamp and identity. Answered questions only; unselected option correctness remains private. Feedback is the recorded answer-time snapshot; an older latest answer without a snapshot makes the canonical document unavailable rather than inventing historical feedback.
+      required: [activity_id, selected_option_keys, is_correct, attempt_number, confidence, calibration, feedback, explanation, next_activity_id, next_transition_label, earlier_attempts]
+      properties:
+        activity_id: { type: string, format: uuid }
+        selected_option_keys: { type: array, maxItems: 24, items: { type: string } }
+        is_correct: { type: boolean }
+        attempt_number: { type: integer, minimum: 1 }
+        confidence: { type: [string, 'null'] }
+        calibration: { type: [string, 'null'] }
+        feedback: { type: [string, 'null'] }
+        explanation: { type: [string, 'null'] }
+        next_activity_id: { type: [string, 'null'], format: uuid }
+        next_transition_label: { type: [string, 'null'] }
+        earlier_attempts: { type: array, maxItems: 3, items: { $ref: '#/components/schemas/LearnerQuestionEarlierAttempt' } }
+    LearnerPlaybackSavedDialogue:
+      type: object
+      additionalProperties: false
+      required: [activity_id, current_node_id, history]
+      properties:
+        activity_id: { type: string, format: uuid }
+        current_node_id: { type: string, format: uuid }
+        history: { type: array, maxItems: 40, items: { type: string, format: uuid } }
+    LearnerPlaybackSavedChecklist:
+      type: object
+      additionalProperties: false
+      required: [activity_id, completed_step_indexes]
+      properties:
+        activity_id: { type: string, format: uuid }
+        completed_step_indexes: { type: array, maxItems: 6, items: { type: integer, minimum: 0, maximum: 5 } }
+    LearnerPlaybackSavedItemObstacle:
+      type: object
+      additionalProperties: false
+      required: [activity_id, state]
+      properties:
+        activity_id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/LearnerItemObstacleState' }
+    LearnerPlaybackObstacleResolution:
+      type: object
+      additionalProperties: false
+      required: [activity_id, resolved_at]
+      properties:
+        activity_id: { type: string, format: uuid }
+        resolved_at: { type: string, format: date-time }
     LearnerPlaybackGraph:
       type: object
       additionalProperties: false

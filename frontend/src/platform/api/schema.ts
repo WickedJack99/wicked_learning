@@ -8162,9 +8162,67 @@ export interface components {
             run_kind: "route" | "portal" | "revisit" | "recall" | "replay";
             context: components["schemas"]["LearnerPlaybackContext"];
             graph: components["schemas"]["LearnerPlaybackGraph"];
+            private_state: components["schemas"]["LearnerPlaybackPrivateState"];
             items: components["schemas"]["LearnerItem"][];
             tools: components["schemas"]["LearnerTool"][];
             activity: components["schemas"]["LearnerPlaybackActivity"];
+        };
+        /** @description Owner-only persisted state for the authorized published node. Dialogue and checklist state is additionally scoped to this exact play run; absent records are not initialized by this read. */
+        LearnerPlaybackPrivateState: {
+            activities: components["schemas"]["LearnerPlaybackActivityProgress"][];
+            answers: components["schemas"]["LearnerPlaybackAnswerProgress"][];
+            recall_activity_ids: string[];
+            npc_dialogues: components["schemas"]["LearnerPlaybackSavedDialogue"][];
+            shared_task_checklists: components["schemas"]["LearnerPlaybackSavedChecklist"][];
+            item_obstacles: components["schemas"]["LearnerPlaybackSavedItemObstacle"][];
+            obstacle_resolutions: components["schemas"]["LearnerPlaybackObstacleResolution"][];
+        };
+        LearnerPlaybackActivityProgress: {
+            /** Format: uuid */
+            activity_id: string;
+            /** @enum {string} */
+            status: "reached" | "completed";
+            /** Format: date-time */
+            completed_at: string | null;
+        };
+        /** @description Latest stored answer across runs with at most three earlier answers, ordered by timestamp and identity. Answered questions only; unselected option correctness remains private. Feedback is the recorded answer-time snapshot; an older latest answer without a snapshot makes the canonical document unavailable rather than inventing historical feedback. */
+        LearnerPlaybackAnswerProgress: {
+            /** Format: uuid */
+            activity_id: string;
+            selected_option_keys: string[];
+            is_correct: boolean;
+            attempt_number: number;
+            confidence: string | null;
+            calibration: string | null;
+            feedback: string | null;
+            explanation: string | null;
+            /** Format: uuid */
+            next_activity_id: string | null;
+            next_transition_label: string | null;
+            earlier_attempts: components["schemas"]["LearnerQuestionEarlierAttempt"][];
+        };
+        LearnerPlaybackSavedDialogue: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: uuid */
+            current_node_id: string;
+            history: string[];
+        };
+        LearnerPlaybackSavedChecklist: {
+            /** Format: uuid */
+            activity_id: string;
+            completed_step_indexes: number[];
+        };
+        LearnerPlaybackSavedItemObstacle: {
+            /** Format: uuid */
+            activity_id: string;
+            state: components["schemas"]["LearnerItemObstacleState"];
+        };
+        LearnerPlaybackObstacleResolution: {
+            /** Format: uuid */
+            activity_id: string;
+            /** Format: date-time */
+            resolved_at: string;
         };
         /** @description Published navigation definitions for the authorized node, not complete source player props. Unavailable targets, unsupported configurations or graph bounds fail explicitly; private progress and configured resource mappings are separate contracts. */
         LearnerPlaybackGraph: {

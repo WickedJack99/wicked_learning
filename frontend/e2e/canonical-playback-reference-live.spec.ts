@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { expect, test } from '@playwright/test';
+import { expect, test, type BrowserContext } from '@playwright/test';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
 const types = ['open_practice', 'question', 'reflection', 'review', 'markdown', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'message_prompt', 'message_wall', 'npc_dialogue', 'shared_task', 'portal'] as const;
@@ -87,6 +87,7 @@ for (const type of types) {
             const playbackResponse = await owner.request.get(`/api/v1/learner/play-runs/${run}`);
             expect(playbackResponse.status()).toBe(200);
             const playback = await playbackResponse.json();
+            expect(playback.private_state).toEqual({ activities: [], answers: [], recall_activity_ids: [], npc_dialogues: [], shared_task_checklists: [], item_obstacles: [], obstacle_resolutions: [] });
             info.annotations.push({ type: 'native-player-presentation-read', description: `${type}: ${Math.round(performance.now() - presentationStarted)} ms; ${Buffer.byteLength(JSON.stringify(playback))} bytes` });
             const presentation = playback.graph.activities.find((entry) => entry.id === activity).presentation;
             expect(presentation).toMatchObject({
@@ -130,6 +131,7 @@ for (const type of types) {
                 expect(presentation.npc_dialogue_transitions).toEqual([]);
                 expect(presentation.dialogue_typing_sound_sets).toEqual([]);
             }
+            await verifyPrivateState(type, owner, peer, principal, run, activity, other, item, itemSlug, tool);
             const base = `/api/v1/learner/play-runs/${run}/activities`;
             const ref = encodeURIComponent(`id:${activity}`); const otherRef = encodeURIComponent(`id:${other}`);
             expect((await owner.request.get(`${base}/same-activity/translation`)).status()).toBe(200);
@@ -207,3 +209,108 @@ for (const type of types) {
 }
 function uuid(value: string) { expect(value).toMatch(/^[a-f0-9-]{36}$/); return value; }
 function sql(input: string) { return execFileSync('docker', ['exec', '-i', 'wicked_learning-application-db-1', 'psql', '-tA', '-v', 'ON_ERROR_STOP=1', '-U', 'wicked_application', '-d', 'wicked_application'], { input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }); }
+
+// Saved facts are intentionally different from the authored presentation and
+// from another principal or run. Remove only these fixture facts before the
+// existing command matrix exercises the actual writers.
+async function verifyPrivateState(type: string, owner: BrowserContext, peer: BrowserContext, principal: string, run: string, activity: string, other: string, item: string, itemSlug: string, tool: string) {
+    if (!['open_practice', 'question', 'npc_dialogue', 'shared_task', 'item_obstacle', 'obstacle'].includes(type)) return;
+    const peerSubject = uuid((await (await peer.request.get('/api/v1/me')).json()).subject_id);
+    const peerPrincipal = uuid(sql(`SELECT id FROM application_principals WHERE identity_subject_id = '${peerSubject}'`).trim());
+    const oldRun = randomUUID();
+    const path = `/api/v1/learner/play-runs/${run}`;
+    const read = async () => {
+        const response = await owner.request.get(path);
+        expect(response.status()).toBe(200);
+        return response.json();
+    };
+    if (type === 'open_practice') {
+        sql(`INSERT INTO learner_activity_progress (principal_id,activity_id,status,completed_at) VALUES ('${principal}','${activity}','reached',NULL),('${principal}','${other}','completed','2026-01-02T00:00:00Z'),('${peerPrincipal}','${activity}','completed','2026-01-03T00:00:00Z')`);
+        const result = (await read()).private_state;
+        expect(result.activities).toHaveLength(2);
+        expect(result.activities).toContainEqual({ activity_id: activity, status: 'reached', completed_at: null });
+        expect(result.activities).toContainEqual({ activity_id: other, status: 'completed', completed_at: '2026-01-02T00:00:00.000000Z' });
+        sql(`UPDATE learning_activities SET published_at = NULL WHERE id = '${other}'`);
+        expect((await read()).private_state.activities).toEqual([{ activity_id: activity, status: 'reached', completed_at: null }]);
+        sql(`UPDATE learning_activities SET published_at = NOW() WHERE id = '${other}'; DELETE FROM learner_activity_progress WHERE activity_id IN ('${activity}','${other}')`);
+    }
+    if (type === 'question') {
+        sql(`INSERT INTO learner_question_answers (principal_id,activity_id,play_run_id,selected_option_keys,is_correct,confidence,attempt_number,created_at,feedback,feedback_recorded) SELECT '${principal}','${activity}',gen_random_uuid(),'["choice"]',n % 2 = 0,'exploring',n,'2026-01-01T00:00:00Z'::timestamptz + n * INTERVAL '1 day','Private answer feedback',TRUE FROM generate_series(1,6) n;
+        INSERT INTO learner_question_answers (principal_id,activity_id,play_run_id,selected_option_keys,is_correct,confidence,attempt_number,created_at) VALUES ('${peerPrincipal}','${activity}','${run}','["choice"]',FALSE,'settled',99,'2027-01-01T00:00:00Z');
+        INSERT INTO learner_recall_items (principal_id,activity_id) VALUES ('${principal}','${activity}');
+        INSERT INTO learning_activity_transitions (from_activity_id,to_activity_id,from_connector,trigger,trigger_value,label) VALUES ('${activity}','${other}','choice','outcome','explore','Continue exploring');`);
+        sql(`UPDATE learner_question_answers SET feedback_recorded = FALSE WHERE principal_id = '${principal}' AND activity_id = '${activity}' AND attempt_number = 6`);
+        expect((await owner.request.get(path)).status()).toBe(503);
+        sql(`UPDATE learner_question_answers SET feedback_recorded = TRUE WHERE principal_id = '${principal}' AND activity_id = '${activity}' AND attempt_number = 6`);
+        const result = await read();
+        expect(result.private_state.recall_activity_ids).toEqual([activity]);
+        expect(result.private_state.answers).toHaveLength(1);
+        expect(result.private_state.answers[0]).toMatchObject({ activity_id: activity, selected_option_keys: ['choice'], is_correct: true, attempt_number: 6, confidence: 'exploring', feedback: 'Private answer feedback', next_activity_id: other, next_transition_label: 'Continue exploring' });
+        expect(result.private_state.answers[0].earlier_attempts).toEqual([5,4,3].map((n) => ({ answered_at: `2026-01-0${n+1}T00:00:00.000000Z`, calibration: null, confidence: 'exploring', is_correct: n % 2 === 0, option_label: 'A', option_labels: ['A'] })));
+        expect(JSON.stringify(result.graph)).not.toContain('Private answer feedback');
+        sql(`INSERT INTO learning_activity_transitions (from_activity_id,to_activity_id,from_connector,trigger,label) VALUES ('${activity}',NULL,'correct','correct','Aggregate correct'); UPDATE learning_activities SET activity_config = activity_config || '{"allowMultiple":true,"feedbackCorrect":"Aggregate answer feedback"}' WHERE id = '${activity}'`);
+        expect((await read()).private_state.answers[0]).toMatchObject({ next_activity_id: null, next_transition_label: 'Aggregate correct' });
+        const csrf = (await (await owner.request.get('/api/v1/security/csrf')).json()).token;
+        const multipleAnswer = await owner.request.post(`${path}/activities/${encodeURIComponent(`id:${activity}`)}/answer`, { headers: { Origin: new URL((await owner.request.get('/api/v1/me')).url()).origin, 'X-CSRF-Token': csrf }, data: { option_keys: ['choice'] } });
+        expect(multipleAnswer.status()).toBe(200);
+        expect(await multipleAnswer.json()).toMatchObject({ next_transition_label: 'Aggregate correct', feedback: 'Aggregate answer feedback' });
+        sql(`UPDATE learning_activities SET activity_config = activity_config || '{"feedbackCorrect":"Later authored feedback"}' WHERE id = '${activity}'`);
+        const preserved = await read();
+        expect(preserved.private_state.answers[0].feedback).toBe('Aggregate answer feedback');
+        expect(preserved.activity.question_feedback.feedback).toBe('Aggregate answer feedback');
+        sql(`UPDATE learning_activities SET activity_config = activity_config || '{"feedbackCorrect":null}' WHERE id = '${activity}'`);
+        const noFeedback = await owner.request.post(`${path}/activities/${encodeURIComponent(`id:${activity}`)}/answer`, { headers: { Origin: new URL(multipleAnswer.url()).origin, 'X-CSRF-Token': csrf }, data: { option_keys: ['choice'] } });
+        expect(noFeedback.status()).toBe(200);
+        expect((await noFeedback.json()).feedback).toBeNull();
+        expect((await read()).private_state.answers[0].feedback).toBeNull();
+        sql(`UPDATE learning_activities SET activity_config = activity_config || '{"allowMultiple":false}' WHERE id = '${activity}'; DELETE FROM learner_question_answers WHERE principal_id = '${principal}' AND activity_id = '${activity}' AND play_run_id = '${run}'`);
+        sql(`UPDATE learner_question_answers SET selected_option_keys = '["removed-option"]' WHERE principal_id = '${principal}' AND activity_id = '${activity}' AND attempt_number = 6`);
+        expect((await owner.request.get(path)).status()).toBe(503);
+        sql(`DELETE FROM learner_question_answers WHERE activity_id = '${activity}'; DELETE FROM learner_recall_items WHERE activity_id = '${activity}'; DELETE FROM learning_activity_transitions WHERE from_activity_id = '${activity}' AND trigger IN ('outcome','correct')`);
+        expect((await read()).private_state.answers).toEqual([]);
+    }
+    if (type === 'npc_dialogue') {
+        const nodes = JSON.parse(sql(`SELECT json_agg(id ORDER BY sort_order) FROM learning_npc_dialogue_nodes WHERE activity_id = '${activity}'`).trim());
+        const first = uuid(nodes[0]); const end = uuid(nodes[1]);
+        sql(`INSERT INTO learner_npc_dialogue_states (principal_id,activity_id,play_run_id,current_node_id,history) VALUES ('${principal}','${activity}','${run}','${end}','["${first}"]'),('${principal}','${activity}','${oldRun}','${first}','[]'),('${peerPrincipal}','${activity}','${run}','${first}','[]')`);
+        expect((await read()).private_state.npc_dialogues).toEqual([{ activity_id: activity, current_node_id: end, history: [first] }]);
+        sql(`UPDATE learner_route_progress SET current_play_run_id = '${oldRun}' WHERE principal_id = '${principal}' AND current_play_run_id = '${run}'`);
+        expect((await owner.request.get(path)).status()).toBe(404);
+        const otherRun = await owner.request.get(`/api/v1/learner/play-runs/${oldRun}`);
+        expect(otherRun.status()).toBe(200);
+        expect((await otherRun.json()).private_state.npc_dialogues).toEqual([{ activity_id: activity, current_node_id: first, history: [] }]);
+        sql(`UPDATE learner_route_progress SET current_play_run_id = '${run}' WHERE principal_id = '${principal}' AND current_play_run_id = '${oldRun}'`);
+        sql(`UPDATE learner_npc_dialogue_states SET history = '["${other}"]' WHERE principal_id = '${principal}' AND play_run_id = '${run}' AND activity_id = '${activity}'`);
+        expect((await owner.request.get(path)).status()).toBe(503);
+        sql(`UPDATE learner_npc_dialogue_states SET history = '${JSON.stringify(Array(41).fill(first))}' WHERE principal_id = '${principal}' AND play_run_id = '${run}' AND activity_id = '${activity}'`);
+        expect((await owner.request.get(path)).status()).toBe(503);
+        sql(`UPDATE learner_npc_dialogue_states SET history = '${JSON.stringify(Array(40).fill(first))}' WHERE principal_id = '${principal}' AND play_run_id = '${run}' AND activity_id = '${activity}'`);
+        expect((await read()).private_state.npc_dialogues[0].history).toHaveLength(40);
+        sql(`DELETE FROM learner_npc_dialogue_states WHERE principal_id = '${principal}' AND play_run_id = '${run}' AND activity_id = '${activity}'`);
+        expect((await read()).private_state.npc_dialogues).toEqual([]);
+    }
+    if (type === 'shared_task') {
+        sql(`UPDATE learning_activities SET activity_config = activity_config || '{"projectSteps":["Notice","Explain"]}' WHERE id = '${activity}';
+        INSERT INTO learner_shared_task_checklists (principal_id,activity_id,play_run_id,completed_step_indexes) VALUES ('${principal}','${activity}','${run}',ARRAY[1,0,1]::smallint[]),('${principal}','${activity}','${oldRun}',ARRAY[0]::smallint[]),('${peerPrincipal}','${activity}','${run}',ARRAY[0]::smallint[])`);
+        expect((await read()).private_state.shared_task_checklists).toEqual([{ activity_id: activity, completed_step_indexes: [0,1] }]);
+        sql(`UPDATE learner_shared_task_checklists SET completed_step_indexes = ARRAY[5]::smallint[] WHERE principal_id = '${principal}' AND play_run_id = '${run}' AND activity_id = '${activity}'`);
+        expect((await owner.request.get(path)).status()).toBe(503);
+        sql(`DELETE FROM learner_shared_task_checklists WHERE principal_id = '${principal}' AND play_run_id = '${run}' AND activity_id = '${activity}'`);
+        expect((await read()).private_state.shared_task_checklists).toEqual([]);
+    }
+    if (type === 'item_obstacle') {
+        sql(`INSERT INTO learner_item_obstacle_states (principal_id,activity_id,locked_until) VALUES ('${principal}','${activity}','2027-01-01T00:00:00Z'),('${peerPrincipal}','${activity}',NULL);
+        INSERT INTO learner_item_obstacle_slots (principal_id,activity_id,slot_index,item_id) VALUES ('${principal}','${activity}',0,'${item}')`);
+        expect((await read()).private_state.item_obstacles).toEqual([{ activity_id: activity, state: { can_continue: null, conditions_met: true, filled_slots: [{ item_slug: itemSlug, slot_index: 0 }], locked_until: '2027-01-01T00:00:00.000000Z' } }]);
+        sql(`DELETE FROM learner_item_obstacle_states WHERE principal_id = '${principal}' AND activity_id = '${activity}'`);
+        expect((await read()).private_state.item_obstacles).toEqual([]);
+    }
+    if (type === 'obstacle') {
+        sql(`INSERT INTO learner_obstacle_run_passes (principal_id,activity_id,play_run_id,used_tool_id) VALUES ('${principal}','${activity}','${run}','${tool}');
+        INSERT INTO learner_obstacle_resolutions (principal_id,activity_id,resolved_at) VALUES ('${peerPrincipal}','${activity}','2026-01-01T00:00:00Z')`);
+        expect((await read()).private_state.obstacle_resolutions).toEqual([]);
+        sql(`INSERT INTO learner_obstacle_resolutions (principal_id,activity_id,resolved_at) VALUES ('${principal}','${activity}','2026-01-02T00:00:00Z')`);
+        expect((await read()).private_state.obstacle_resolutions).toEqual([{ activity_id: activity, resolved_at: '2026-01-02T00:00:00.000000Z' }]);
+        sql(`DELETE FROM learner_obstacle_resolutions WHERE principal_id = '${principal}' AND activity_id = '${activity}'; DELETE FROM learner_obstacle_run_passes WHERE principal_id = '${principal}' AND activity_id = '${activity}'`);
+    }
+}

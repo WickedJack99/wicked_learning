@@ -38,9 +38,9 @@ struct StateRow {
 }
 
 #[derive(FromRow)]
-struct FilledSlotRow {
-    item_slug: String,
-    slot_index: i16,
+pub(crate) struct FilledSlotRow {
+    pub(crate) item_slug: String,
+    pub(crate) slot_index: i16,
 }
 
 #[derive(FromRow)]
@@ -464,7 +464,10 @@ fn bounded_number(value: Option<&Value>, fallback: f64, minimum: f64, maximum: f
     (value.is_finite() && (minimum..=maximum).contains(&value)).then_some(value)
 }
 
-fn conditions_met(slots: &[ConfiguredItemObstacleSlot], filled_slots: &[FilledSlotRow]) -> bool {
+pub(crate) fn conditions_met(
+    slots: &[ConfiguredItemObstacleSlot],
+    filled_slots: &[FilledSlotRow],
+) -> bool {
     !slots.is_empty()
         && slots.iter().all(|slot| {
             filled_slots.iter().any(|filled| {

@@ -699,6 +699,7 @@ pub struct LearnerPlaybackDocument {
     pub run_kind: LearnerPlaybackRunKind,
     pub context: LearnerPlaybackContext,
     pub graph: LearnerPlaybackGraph,
+    pub private_state: LearnerPlaybackPrivateState,
     /// The signed-in learner's current held items. The source player exposes
     /// this inventory through its action bar so item-obstacle activities can
     /// accept an existing dragged item rather than inventing a local picker.
@@ -708,6 +709,66 @@ pub struct LearnerPlaybackDocument {
     /// private to the server.
     pub tools: Vec<LearnerTool>,
     pub activity: LearnerPlaybackActivity,
+}
+
+/// Private persisted facts for the authorized node. Absence means no stored
+/// state, not an inferred completion, answer, or initialized interaction.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct LearnerPlaybackPrivateState {
+    pub activities: Vec<LearnerPlaybackActivityProgress>,
+    pub answers: Vec<LearnerPlaybackAnswerProgress>,
+    pub recall_activity_ids: Vec<uuid::Uuid>,
+    pub npc_dialogues: Vec<LearnerPlaybackSavedDialogue>,
+    pub shared_task_checklists: Vec<LearnerPlaybackSavedChecklist>,
+    pub item_obstacles: Vec<LearnerPlaybackSavedItemObstacle>,
+    pub obstacle_resolutions: Vec<LearnerPlaybackObstacleResolution>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackActivityProgress {
+    pub activity_id: uuid::Uuid,
+    pub status: String,
+    pub completed_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackAnswerProgress {
+    pub activity_id: uuid::Uuid,
+    pub selected_option_keys: Vec<String>,
+    pub is_correct: bool,
+    pub attempt_number: i32,
+    pub confidence: Option<String>,
+    pub calibration: Option<String>,
+    pub feedback: Option<String>,
+    pub explanation: Option<String>,
+    pub next_activity_id: Option<uuid::Uuid>,
+    pub next_transition_label: Option<String>,
+    pub earlier_attempts: Vec<LearnerQuestionEarlierAttempt>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackSavedDialogue {
+    pub activity_id: uuid::Uuid,
+    pub current_node_id: uuid::Uuid,
+    pub history: Vec<uuid::Uuid>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackSavedChecklist {
+    pub activity_id: uuid::Uuid,
+    pub completed_step_indexes: Vec<i16>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackSavedItemObstacle {
+    pub activity_id: uuid::Uuid,
+    pub state: LearnerItemObstacleState,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackObstacleResolution {
+    pub activity_id: uuid::Uuid,
+    pub resolved_at: String,
 }
 
 /// Published navigation and authored presentation for one authorized node.

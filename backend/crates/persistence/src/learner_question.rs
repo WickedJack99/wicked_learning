@@ -56,6 +56,8 @@ struct EarlierAnswerRow {
 
 #[derive(FromRow)]
 struct PlaybackAnswerRow {
+    feedback: Option<String>,
+    feedback_recorded: bool,
     attempt_number: i32,
     calibration: Option<String>,
     confidence: Option<String>,
@@ -76,22 +78,22 @@ pub(crate) struct QuestionCompletionAttempt {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct QuestionConfig {
-    allow_multiple: bool,
-    explanation: Option<String>,
-    feedback_correct: Option<String>,
-    feedback_incorrect: Option<String>,
-    options: Vec<QuestionOption>,
+pub(crate) struct QuestionConfig {
+    pub(crate) allow_multiple: bool,
+    pub(crate) explanation: Option<String>,
+    pub(crate) feedback_correct: Option<String>,
+    pub(crate) feedback_incorrect: Option<String>,
+    pub(crate) options: Vec<QuestionOption>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct QuestionOption {
-    feedback: Option<String>,
-    is_correct: bool,
-    key: String,
-    label: String,
-    outcome_key: Option<String>,
+pub(crate) struct QuestionOption {
+    pub(crate) feedback: Option<String>,
+    pub(crate) is_correct: bool,
+    pub(crate) key: String,
+    pub(crate) label: String,
+    pub(crate) outcome_key: Option<String>,
 }
 
 impl LearnerQuestionRepositoryPort for PostgresLearnerQuestionRepository<'_> {
@@ -172,15 +174,14 @@ async fn answer_current_question(
     let transition = transition_for(
         &mut transaction,
         current.activity_id,
-        selected
-            .first()
-            .and_then(|option| option.outcome_key.as_deref()),
+        transition_choice(&config, &selected, is_correct).0,
         is_correct,
     )
     .await?;
     let selected_option_keys = option_keys.to_vec();
-    sqlx::query("INSERT INTO learner_question_answers (principal_id, activity_id, play_run_id, selected_option_keys, is_correct, confidence, calibration, attempt_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)")
-        .bind(current.principal_id).bind(current.activity_id).bind(play_run_id).bind(serde_json::json!(selected_option_keys)).bind(is_correct).bind(confidence).bind(&calibration).bind(attempt_number).execute(&mut *transaction).await?;
+    let feedback = feedback_for_selection(&config, &selected, is_correct);
+    sqlx::query("INSERT INTO learner_question_answers (principal_id, activity_id, play_run_id, selected_option_keys, is_correct, confidence, calibration, attempt_number, feedback, feedback_recorded) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE)")
+        .bind(current.principal_id).bind(current.activity_id).bind(play_run_id).bind(serde_json::json!(selected_option_keys)).bind(is_correct).bind(confidence).bind(&calibration).bind(attempt_number).bind(&feedback).execute(&mut *transaction).await?;
     let earlier_attempts = earlier_attempts(
         &mut transaction,
         current.principal_id,
@@ -202,16 +203,6 @@ async fn answer_current_question(
         None
     };
     transaction.commit().await?;
-    let feedback = selected
-        .first()
-        .and_then(|option| option.feedback.clone())
-        .or_else(|| {
-            if is_correct {
-                config.feedback_correct
-            } else {
-                config.feedback_incorrect
-            }
-        });
     Ok(Some(LearnerQuestionAnswerResult {
         play_run_id: play_run_id.to_string(),
         activity_slug: current.activity_slug,
@@ -253,15 +244,7 @@ async fn earlier_attempts(
             if selected_keys.is_empty() || duplicate(&selected_keys) {
                 return None;
             }
-            let option_labels = selected_keys
-                .iter()
-                .map(|key| {
-                    options
-                        .iter()
-                        .find(|option| option.key == *key)
-                        .map(|option| option.label.clone())
-                })
-                .collect::<Option<Vec<_>>>()?;
+            let option_labels = selected_option_labels(options, &selected_keys)?;
 
             Some(LearnerQuestionEarlierAttempt {
                 answered_at: attempt.answered_at,
@@ -283,7 +266,7 @@ pub(crate) async fn latest_answer_for_completion(
     activity_config: &serde_json::Value,
 ) -> Result<Option<QuestionCompletionAttempt>, sqlx::Error> {
     let Some(answer) = sqlx::query_as::<_, CompletionAnswerRow>(
-        "SELECT attempt_number, calibration, confidence, is_correct, selected_option_keys FROM learner_question_answers WHERE principal_id = $1 AND activity_id = $2 AND play_run_id = $3 ORDER BY attempt_number DESC LIMIT 1",
+        "SELECT feedback, feedback_recorded, attempt_number, calibration, confidence, is_correct, selected_option_keys FROM learner_question_answers WHERE principal_id = $1 AND activity_id = $2 AND play_run_id = $3 ORDER BY attempt_number DESC LIMIT 1",
     )
     .bind(principal_id)
     .bind(activity_id)
@@ -316,10 +299,8 @@ pub(crate) async fn latest_answer_for_completion(
     let transition = transition_for(
         transaction,
         activity_id,
-        selected
-            .first()
-            .and_then(|option| option.outcome_key.as_deref()),
-        answer.is_correct,
+        transition_choice(&config, &selected, answer.is_correct).0,
+        transition_choice(&config, &selected, answer.is_correct).1,
     )
     .await?;
 
@@ -344,7 +325,7 @@ pub(crate) async fn question_feedback_for_playback(
     activity_config: &serde_json::Value,
 ) -> Result<Option<LearnerQuestionAnswerResult>, sqlx::Error> {
     let Some(answer) = sqlx::query_as::<_, PlaybackAnswerRow>(
-        "SELECT attempt_number, calibration, confidence, is_correct, selected_option_keys FROM learner_question_answers WHERE principal_id = $1 AND activity_id = $2 AND play_run_id = $3 ORDER BY attempt_number DESC LIMIT 1",
+        "SELECT feedback, feedback_recorded, attempt_number, calibration, confidence, is_correct, selected_option_keys FROM learner_question_answers WHERE principal_id = $1 AND activity_id = $2 AND play_run_id = $3 ORDER BY attempt_number DESC LIMIT 1",
     )
     .bind(principal_id)
     .bind(activity_id)
@@ -378,10 +359,8 @@ pub(crate) async fn question_feedback_for_playback(
     let transition = transition_for(
         transaction,
         activity_id,
-        selected
-            .first()
-            .and_then(|option| option.outcome_key.as_deref()),
-        answer.is_correct,
+        transition_choice(&config, &selected, answer.is_correct).0,
+        transition_choice(&config, &selected, answer.is_correct).1,
     )
     .await?;
     let earlier_attempts = earlier_attempts(
@@ -392,16 +371,11 @@ pub(crate) async fn question_feedback_for_playback(
         &config.options,
     )
     .await?;
-    let feedback = selected
-        .first()
-        .and_then(|option| option.feedback.clone())
-        .or_else(|| {
-            if answer.is_correct {
-                config.feedback_correct
-            } else {
-                config.feedback_incorrect
-            }
-        });
+    let feedback = if answer.feedback_recorded {
+        answer.feedback
+    } else {
+        feedback_for_selection(&config, &selected, answer.is_correct)
+    };
 
     Ok(Some(LearnerQuestionAnswerResult {
         play_run_id: play_run_id.to_string(),
@@ -495,6 +469,49 @@ async fn recall_schedule_for_playback(
     .fetch_optional(&mut **transaction)
     .await
     .map(|row| row.map(|row| LearnerRecallSchedule { interval_days: row.interval_days, next_review_at: row.next_review_at }))
+}
+
+pub(crate) fn selected_option_labels(
+    options: &[QuestionOption],
+    keys: &[String],
+) -> Option<Vec<String>> {
+    let labels = options
+        .iter()
+        .filter(|option| keys.contains(&option.key))
+        .map(|option| option.label.clone())
+        .collect::<Vec<_>>();
+    (labels.len() == keys.len()).then_some(labels)
+}
+
+pub(crate) fn feedback_for_selection(
+    config: &QuestionConfig,
+    selected: &[&QuestionOption],
+    is_correct: bool,
+) -> Option<String> {
+    if !config.allow_multiple && selected.len() == 1 {
+        if let Some(feedback) = selected[0].feedback.as_ref().filter(|s| !s.is_empty()) {
+            return Some(feedback.clone());
+        }
+    }
+    if is_correct {
+        config.feedback_correct.clone()
+    } else {
+        config.feedback_incorrect.clone()
+    }
+}
+
+/// Single-choice questions prefer the selected option's outcome; source
+/// multiple-choice questions route only by the aggregate correctness result.
+pub(crate) fn transition_choice<'a>(
+    config: &QuestionConfig,
+    selected: &[&'a QuestionOption],
+    is_correct: bool,
+) -> (Option<&'a str>, bool) {
+    if !config.allow_multiple && selected.len() == 1 {
+        (selected[0].outcome_key.as_deref(), selected[0].is_correct)
+    } else {
+        (None, is_correct)
+    }
 }
 
 async fn transition_for(

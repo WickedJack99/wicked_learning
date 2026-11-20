@@ -1601,6 +1601,14 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     .map_err(|_| LearnerPlaybackReadError)?;
                 return Ok(None);
             };
+            let private_state = crate::learner_playback_private_state::load(
+                &mut transaction,
+                row.principal_id,
+                play_run_id,
+                &graph,
+            )
+            .await
+            .map_err(|_| LearnerPlaybackReadError)?;
             let activity_config = row.activity_config.clone();
             let check_in = check_in_context(&activity_config);
             let review_context = if is_review_activity(&row.activity_type, &activity_config) {
@@ -1812,6 +1820,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                 play_run_id: play_run_id.to_string(),
                 run_kind,
                 graph,
+                private_state,
                 context: LearnerPlaybackContext {
                     node_id: row.node_id.to_string(),
                     map_id: row.map_id.to_string(),
