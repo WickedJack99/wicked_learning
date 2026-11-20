@@ -96,6 +96,8 @@ export function usePage<TProps extends object = WelcomePageProps>(): {
 }
 
 type RouterPatchOptions = {
+    onError?: () => void;
+    preserveState?: boolean;
     onFinish?: () => void;
     onStart?: () => void;
     preserveScroll?: boolean;
@@ -131,7 +133,7 @@ export const router = {
             && typeof payload.effectsVolume === 'number'
             && typeof payload.ambienceVolume === 'number';
         const isFeedback = url === '/settings/feedback-prompt'
-            && (payload.action === 'enable' || payload.action === 'decline');
+            && (payload.action === 'enable' || payload.action === 'decline' || payload.action === 'dismiss');
         if (!isLanguage && !isSound && !isFeedback) {
             unavailableSourceOperation('Settings form submission');
         }
@@ -155,15 +157,19 @@ export const router = {
                             params: { header: { 'X-CSRF-Token': csrfToken } },
                         })
                         : await apiClient.PATCH('/learner/feedback-prompt-preference', {
-                            body: { action: payload.action as 'decline' | 'enable' },
+                            body: { action: payload.action as 'decline' | 'enable' | 'dismiss' },
                             params: { header: { 'X-CSRF-Token': csrfToken } },
                         });
 
-                if (response.ok) {
-                    // A source Inertia visit refreshes the source page props;
-                    // this exact route may do the same after its typed write.
+                if (!response.ok) {
+                    options?.onError?.();
+                } else if (!isFeedback || !options?.preserveState) {
+                    // Settings writes refresh their page props. The copied
+                    // invitation explicitly preserves local learner state.
                     window.location.reload();
                 }
+            } catch {
+                options?.onError?.();
             } finally {
                 options?.onFinish?.();
             }

@@ -384,14 +384,14 @@ No canonical module is edited. Journal keeps the whole `journal-client.ts`;
 only its existing `world/api` transport resolves to explicit typed Rust calls.
 The copied export anchor keeps `/learning/journal/export`; the platform serves
 an exact redirect to the audited Rust download endpoint. Companion's single
-module-local fetch is bound to a dedicated typed adapter at build time; no
+module-local fetch must be bound to a dedicated typed adapter at build time; no
 global fetch interception or substitute dialogue component is permitted.
 
 Journal saves also send `request_expert_access` (see pinned
 `app/Learning/Actions/UpdateLearnerJournalPage.php`). Rust now accepts the
 bounded boolean and checks the existing policy atomically on create/update.
-Source feedback dismiss/decline must call `onError` on rejected writes and
-preserve local overlay state on success. All required shell reads must succeed;
+Source feedback dismiss/decline now calls `onError` on rejected writes and
+preserves local overlay state on success. All required shell reads must succeed;
 Companion's documented 204 maps to absence, not fabricated empty dialogue.
 The 200 Companion response proves enabled state. Source IDs retain real UUIDs.
 
@@ -459,6 +459,37 @@ Git and then checks copied bytes/file set. Docker explicitly uses manifest mode
 before generating the API client, type checking and building; it never skips
 identity checks or copies Git history. The Node regression executes without Git
 and rejects altered, missing and extra source files.
+
+### Verified shared feedback invitation transport
+
+Pinned `resources/js/components/platform-feedback-prompt.tsx` sends
+`dismiss`/`decline` to `/settings/feedback-prompt` with `preserveState`,
+`onError` and `onFinish`. The prior platform facade rejected `dismiss`, ignored
+failure callbacks and reloaded the whole learner page on successful writes.
+The source-derived pre-fix browser regression proved the dismiss request never
+reached Rust.
+
+`frontend/src/platform/welcome-inertia.tsx` now maps those exact actions to
+PATCH `/api/v1/learner/feedback-prompt-preference`, reusing the existing
+`feedback_prompt_preference.rs` API/application/persistence contract and native
+CSRF. HTTP or token/network failures call the copied control's `onError`,
+restoring its prompt; `onFinish` releases its pending state. A successful
+invitation write honors the source `preserveState` request. Existing language,
+sound and Settings preference writes retain their page-prop refresh behavior.
+No generic Inertia transport or new Rust contract was introduced.
+
+`frontend/e2e/canonical-feedback-prompt.spec.ts` mounts the whole copied control
+at 1440×900 and 390×844 using the same evidence server as Journal. It checks
+pinned source bytes, bounded prompt controls, failed write/token recovery and
+retained local page state. Real Rust tests obtain the actual session claim,
+snooze/decline through the copied buttons and confirm the next server claim
+stays false. Test-owned preferences are re-enabled during cleanup. This is a
+shared-layout dependency, not completed World/header activation. Full layout
+visual evidence and Companion transport/media are still outstanding.
+
+Validation: four feedback browser checks (including two real Rust-backed runs),
+four canonical Language regression checks, source identity, frontend types/build,
+generated-client drift, Rust formatting and the source-action parser test passed.
 
 ## Status and purpose
 
@@ -1210,7 +1241,7 @@ used by direct pages; it is not permission to replace the root workspace.
 | Personal source workspace | `pages/settings/personal.tsx`; `features/settings/{profile-settings-panel,appearance-settings-panel,language-settings-panel,sound-settings-panel,security-settings-panel}.tsx`; `components/{delete-user,manage-passkeys,manage-two-factor,passkey-*,two-factor-*}.tsx` | `PersonalSettingsProps`: `availableLanguages`, `initialSection`, locale, `mustVerifyEmail`, sound preferences, feedback-prompt status, optional flash status, password rules, TOTP flags, passkey flags and summaries. Its eight nested panels own source forms, security dialogs and URL selection. | **Partial by operation, missing as document.** Profile, appearance, language, sound, feedback preference, password confirmation/update, profile deletion, TOTP and passkey operations have bounded Rust contracts. No read projection provides their source-shaped aggregate, `passwordRules`, source flash lifecycle or a verified-email flag. Do not mount the root Personal panel until that aggregate and its source-form seams are explicit. |
 | Direct personal pages | `pages/settings/{profile,appearance,language,security}.tsx` plus the same whole panels above | Profile needs `mustVerifyEmail` and status; Language needs available language list and locale; Security needs password rules, TOTP/passkey flags and summaries; Appearance needs source appearance persistence. | **Mixed.** Appearance is the earliest candidate because its copied page has no route prop. Language, profile and security await their documented typed reads and narrowly allowed forms. A successful direct page must not imply that `/settings?panel=personal` is active. |
 | Information in Settings | `pages/settings/{about,imprint,data-protection}.tsx`; `features/platform-info/{platform-info-page,content,markdown-renderer}.tsx` | Authenticated settings variant of the already copied information surface and its presentation/content props. | **Reusable read dependency; inactive.** Public information projection exists for public routes, but the settings variant still depends on authenticated shared Settings props and needs a route-local audit. It is not included in the first bootstrap slice. |
-| Administration/authoring root panels | `pages/settings/index.tsx`; `features/settings/{access-*,assets-world-objects-panel,content-api-panel,learning-companion-*,learning-support-panel,presentation-localization-panel,world-builder-settings-panel,world-map-management-panel}.tsx`; pages under `pages/settings/{admin-panel,ai,color-palette,journal,languages,presentation,assets/**,worlds/**}.tsx` | The root type requires access groups/links/tokens/users/roles, AI, companion, asset and sound catalogs, language admin, learning-support, presentation, map graph/selected map/selected node and their pagination/error/flash details. | **Individually partial, bootstrap-absent.** Rust/OpenAPI provide bounded endpoint families below, but no route may receive fabricated empty arrays or old standalone data just to render the source root. Every listed panel remains explicit unavailable until its page document and command mapping are audited. World Builder retains its separately pinned P0 parity backlog. |
+| Administration/authoring root panels | `pages/settings/index.tsx`; `features/settings/{access-*,assets-world-objects-panel,content-api-panel,learning-companion-*,learning-support-panel,presentation-localization-panel,world-builder-settings-panel,world-map-management-panel}.tsx`; pages under `pages/settings/{admin-panel,ai,color-palette,journal,languages,presentation,assets/**,worlds/**}.tsx` | The root type requires access groups/links/tokens/users/roles, AI, companion, asset and sound catalogs, language admin, learning-support, presentation, map graph/selected map/selected node and their pagination/error/flash details. | **Individually partial, bootstrap-absent.** Rust/OpenAPI provide bounded endpoint families below, but no route may receive fabricated empty arrays or old standalone data just to render the source root. Every listed panel remains explicit unavailable until its page document and command mapping are audited. World Builder follows the canonical route-family activation gate below; historical backend work is reuse evidence only. |
 
 #### Existing Rust/OpenAPI contract register
 
