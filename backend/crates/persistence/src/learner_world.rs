@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use serde_json::{Value, json};
-use sqlx::{FromRow, PgPool};
+use sqlx::{FromRow, PgConnection, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::learner_world::{
     LearnerWorldReadError, LearnerWorldRepository as LearnerWorldRepositoryPort,
@@ -483,29 +483,64 @@ async fn availability_labels(
                 node.id.to_string(),
                 json!({"mapSlug":map.slug,"nodeSlug":node.slug,"nodeTitle":node.title}),
             );
-            let config = LearnerNodeAvailabilityConfig::from_visual_config(&node.visual_config);
-            if let Some(action) = config.tool_action(authored_node_state(&node.state)) {
-                match action {
-                    LearnerNodeToolAction::Reveal { tool_reference }
-                    | LearnerNodeToolAction::Unlock { tool_reference } => {
-                        tool_refs.insert(tool_reference);
-                    }
-                }
-            }
-            if let Some(reference) = config.unlock.legacy_item_reference {
-                item_refs.insert(reference);
-            }
-            if let Some(reference) = config.unlock.legacy_role_slug {
-                role_refs.insert(reference);
+            collect_catalog_references(
+                &node.state,
+                &node.visual_config,
+                &mut tool_refs,
+                &mut item_refs,
+                &mut role_refs,
+            );
+        }
+    }
+    let mut connection = pool.acquire().await?;
+    load_catalog_labels(
+        &mut connection,
+        &mut labels,
+        tool_refs,
+        item_refs,
+        role_refs,
+    )
+    .await?;
+    Ok(labels)
+}
+
+pub(crate) fn collect_catalog_references(
+    state: &str,
+    visual_config: &Value,
+    tool_refs: &mut HashSet<String>,
+    item_refs: &mut HashSet<String>,
+    role_refs: &mut HashSet<String>,
+) {
+    let config = LearnerNodeAvailabilityConfig::from_visual_config(visual_config);
+    if let Some(action) = config.tool_action(authored_node_state(state)) {
+        match action {
+            LearnerNodeToolAction::Reveal { tool_reference }
+            | LearnerNodeToolAction::Unlock { tool_reference } => {
+                tool_refs.insert(tool_reference);
             }
         }
     }
+    if let Some(reference) = config.unlock.legacy_item_reference {
+        item_refs.insert(reference);
+    }
+    if let Some(reference) = config.unlock.legacy_role_slug {
+        role_refs.insert(reference);
+    }
+}
+
+pub(crate) async fn load_catalog_labels(
+    connection: &mut PgConnection,
+    labels: &mut AvailabilityLabels,
+    tool_refs: HashSet<String>,
+    item_refs: HashSet<String>,
+    role_refs: HashSet<String>,
+) -> Result<(), sqlx::Error> {
     if !tool_refs.is_empty() {
         labels.tools = sqlx::query_as::<_, (String, String)>(
             "SELECT slug, title FROM learning_tools WHERE slug = ANY($1)",
         )
         .bind(tool_refs.into_iter().collect::<Vec<_>>())
-        .fetch_all(pool)
+        .fetch_all(&mut *connection)
         .await?
         .into_iter()
         .collect();
@@ -515,7 +550,7 @@ async fn availability_labels(
             "SELECT slug, title FROM learning_items WHERE slug = ANY($1)",
         )
         .bind(item_refs.into_iter().collect::<Vec<_>>())
-        .fetch_all(pool)
+        .fetch_all(&mut *connection)
         .await?
         .into_iter()
         .collect();
@@ -525,12 +560,12 @@ async fn availability_labels(
             "SELECT role_key, name FROM application_roles WHERE role_key = ANY($1)",
         )
         .bind(role_refs.into_iter().collect::<Vec<_>>())
-        .fetch_all(pool)
+        .fetch_all(&mut *connection)
         .await?
         .into_iter()
         .collect();
     }
-    Ok(labels)
+    Ok(())
 }
 
 fn apply_learner_node_states(

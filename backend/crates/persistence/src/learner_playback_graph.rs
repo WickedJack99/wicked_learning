@@ -23,13 +23,7 @@ const MAX_ACTIVITIES: usize = 1000;
 const MAX_TRANSITIONS: usize = 4000;
 const MAX_STARTS: usize = 1000;
 
-#[derive(FromRow)]
-struct NodeRow {
-    map_asset_id: Uuid,
-    start_activity_id: Option<Uuid>,
-    state: String,
-    visual_config: Value,
-}
+use crate::learner_playback_node::NodeRow;
 
 #[derive(FromRow)]
 struct ActivityRow {
@@ -84,12 +78,19 @@ pub(crate) async fn load(
     node_id: Uuid,
     map_id: Uuid,
     active_activity_id: Uuid,
-) -> Result<Option<LearnerPlaybackGraph>, sqlx::Error> {
+) -> Result<
+    Option<(
+        LearnerPlaybackGraph,
+        wicked_learning_domain::learner_state::LearnerPlaybackNode,
+    )>,
+    sqlx::Error,
+> {
     let node = sqlx::query_as::<_, NodeRow>(
-        "SELECT nodes.map_asset_id, nodes.start_activity_id, nodes.state, nodes.visual_config \
+        "SELECT nodes.id, nodes.map_id, maps.slug AS map_slug, maps.title AS map_title, nodes.slug, nodes.title, nodes.description, nodes.position_q AS q, nodes.position_r AS r, topics.slug AS topic_slug, topics.title AS topic_title, EXISTS(SELECT 1 FROM learner_node_bookmarks b WHERE b.principal_id=$4 AND b.node_id=nodes.id) AS is_bookmarked, nodes.map_asset_id, nodes.start_activity_id, nodes.state, nodes.visual_config \
          FROM learning_nodes AS nodes \
          INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id \
          INNER JOIN learning_map_assets AS assets ON assets.id = nodes.map_asset_id AND assets.map_id = maps.id \
+         LEFT JOIN learning_topics AS topics ON topics.id=maps.topic_id AND topics.published_at IS NOT NULL \
          WHERE nodes.id = $1 AND maps.id = $2 AND nodes.published_at IS NOT NULL \
          AND maps.published_at IS NOT NULL AND assets.published_at IS NOT NULL \
          AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS \
@@ -98,6 +99,7 @@ pub(crate) async fn load(
     .bind(node_id)
     .bind(map_id)
     .bind(&principal.roles)
+    .bind(availability.principal_id())
     .fetch_optional(&mut **transaction)
     .await?;
     let Some(node) = node else { return Ok(None) };
@@ -156,7 +158,10 @@ pub(crate) async fn load(
         .collect();
     let mut graph = assemble(node_id, node.start_activity_id, rows, transitions, starts)?;
     crate::learner_playback_presentation::enrich(transaction, &mut graph, &configs).await?;
-    Ok(Some(graph))
+    let node =
+        crate::learner_playback_node::project(transaction, principal, availability, node, &graph)
+            .await?;
+    Ok(Some((graph, node)))
 }
 
 fn assemble(

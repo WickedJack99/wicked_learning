@@ -246,7 +246,7 @@ struct SoundUrlRow {
     url: String,
 }
 
-fn interaction_sound_ids(config: &Value) -> Vec<Uuid> {
+pub(crate) fn interaction_sound_ids(config: &Value) -> Vec<Uuid> {
     config
         .get("sounds")
         .and_then(Value::as_object)
@@ -291,7 +291,10 @@ fn learner_map_asset_visual_config(config: Value, sound_urls: &HashMap<Uuid, Str
     config
 }
 
-fn learner_node_visual_config(config: Value, sound_urls: &HashMap<Uuid, String>) -> Value {
+pub(crate) fn learner_node_visual_config(
+    config: Value,
+    sound_urls: &HashMap<Uuid, String>,
+) -> Value {
     learner_map_asset_visual_config(config, sound_urls)
 }
 

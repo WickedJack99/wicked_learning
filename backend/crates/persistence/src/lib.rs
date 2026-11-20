@@ -108,6 +108,7 @@ pub mod learner_peer_message;
 pub mod learner_platform_translation;
 pub mod learner_playback;
 mod learner_playback_graph;
+mod learner_playback_node;
 mod learner_playback_presentation;
 mod learner_playback_private_state;
 pub mod learner_portal;

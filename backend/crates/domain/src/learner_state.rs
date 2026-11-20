@@ -699,6 +699,7 @@ pub struct LearnerPlaybackDocument {
     pub run_kind: LearnerPlaybackRunKind,
     pub context: LearnerPlaybackContext,
     pub graph: LearnerPlaybackGraph,
+    pub node: LearnerPlaybackNode,
     pub private_state: LearnerPlaybackPrivateState,
     /// The signed-in learner's current held items. The source player exposes
     /// this inventory through its action bar so item-obstacle activities can
@@ -709,6 +710,43 @@ pub struct LearnerPlaybackDocument {
     /// private to the server.
     pub tools: Vec<LearnerTool>,
     pub activity: LearnerPlaybackActivity,
+}
+
+/// Source node presentation for this authorized play run, independent of
+/// which World the map explorer currently selects.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackNode {
+    pub id: uuid::Uuid,
+    pub map_id: uuid::Uuid,
+    pub map_slug: String,
+    pub map_title: String,
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub q: i32,
+    pub r: i32,
+    pub state: String,
+    pub visual_config: serde_json::Value,
+    pub topic: Option<crate::world_content::PublicMapTopic>,
+    pub is_bookmarked: bool,
+    pub outgoing_portal_links: Vec<LearnerPlaybackPortalLink>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackPortalLink {
+    /// The source activity is the native portal-link primary key.
+    pub id: uuid::Uuid,
+    pub source_activity_id: uuid::Uuid,
+    pub target_activity_id: uuid::Uuid,
+    pub label: Option<String>,
+    pub description: Option<String>,
+    pub target_map_id: uuid::Uuid,
+    pub target_map_slug: String,
+    pub target_map_title: String,
+    pub target_node_id: uuid::Uuid,
+    pub target_node_slug: String,
+    pub target_node_title: String,
+    pub target_node_state: String,
 }
 
 /// Private persisted facts for the authorized node. Absence means no stored

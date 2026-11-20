@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, test, type BrowserContext } from '@playwright/test';
+import { verifyPlaybackPortals } from './canonical-playback-node-evidence';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
 const types = ['open_practice', 'question', 'reflection', 'review', 'markdown', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'message_prompt', 'message_wall', 'npc_dialogue', 'shared_task', 'portal'] as const;
@@ -131,6 +132,7 @@ for (const type of types) {
                 expect(presentation.npc_dialogue_transitions).toEqual([]);
                 expect(presentation.dialogue_typing_sound_sets).toEqual([]);
             }
+            if (type === 'portal') await verifyPlaybackPortals(admin, owner, adminHeaders, `/api/v1/learner/play-runs/${run}`, activity, portalTargetId!);
             await verifyPrivateState(type, owner, peer, principal, run, activity, other, item, itemSlug, tool);
             const base = `/api/v1/learner/play-runs/${run}/activities`;
             const ref = encodeURIComponent(`id:${activity}`); const otherRef = encodeURIComponent(`id:${other}`);
@@ -172,7 +174,9 @@ for (const type of types) {
                 expect(await retry.json()).toEqual(resultBody);
                 const arrival = await owner.request.get(`/api/v1/learner/play-runs/${uuid(resultBody.play_run_id)}`);
                 expect(arrival.status()).toBe(200);
-                expect((await arrival.json()).activity.id).toBe(portalTargetId);
+                const arrived = await arrival.json();
+                expect(arrived.activity.id).toBe(portalTargetId);
+                expect(arrived.node.outgoing_portal_links).toEqual([]);
             }
             if (type === 'question' || type === 'reflection' || type === 'review') expect((await result.json()).activity_slug).toBe('same-activity');
             if (type === 'question') expect((await owner.request.post(`${base}/${ref}/recall`, { headers })).status()).toBe(200);

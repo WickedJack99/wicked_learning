@@ -8162,10 +8162,54 @@ export interface components {
             run_kind: "route" | "portal" | "revisit" | "recall" | "replay";
             context: components["schemas"]["LearnerPlaybackContext"];
             graph: components["schemas"]["LearnerPlaybackGraph"];
+            node: components["schemas"]["LearnerPlaybackNode"];
             private_state: components["schemas"]["LearnerPlaybackPrivateState"];
             items: components["schemas"]["LearnerItem"][];
             tools: components["schemas"]["LearnerTool"][];
             activity: components["schemas"]["LearnerPlaybackActivity"];
+        };
+        /** @description The already authorized playback node, independent of the explorer selected World. Visual requirements are evaluated for the current learner, bookmark membership is private, and media URLs reuse the learner resolver. */
+        LearnerPlaybackNode: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            map_id: string;
+            map_slug: string;
+            map_title: string;
+            slug: string;
+            title: string;
+            description: string;
+            q: number;
+            r: number;
+            /** @enum {string} */
+            state: "available" | "active" | "completed" | "hinted" | "recommended" | "locked" | "hidden";
+            visual_config: {
+                [key: string]: unknown;
+            };
+            topic: components["schemas"]["PublicMapTopic"] | null;
+            is_bookmarked: boolean;
+            outgoing_portal_links: components["schemas"]["LearnerPlaybackPortalLink"][];
+        };
+        /** @description One native portal link; id is its source-activity primary key. Only published input targets in accessible maps are returned. Locked and hidden target states remain explicit; these identities do not authorize travel or select a run. */
+        LearnerPlaybackPortalLink: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            source_activity_id: string;
+            /** Format: uuid */
+            target_activity_id: string;
+            label: string | null;
+            description: string | null;
+            /** Format: uuid */
+            target_map_id: string;
+            target_map_slug: string;
+            target_map_title: string;
+            /** Format: uuid */
+            target_node_id: string;
+            target_node_slug: string;
+            target_node_title: string;
+            /** @enum {string} */
+            target_node_state: "available" | "active" | "completed" | "hinted" | "recommended" | "locked" | "hidden";
         };
         /** @description Owner-only persisted state for the authorized published node. Dialogue and checklist state is additionally scoped to this exact play run; absent records are not initialized by this read. */
         LearnerPlaybackPrivateState: {

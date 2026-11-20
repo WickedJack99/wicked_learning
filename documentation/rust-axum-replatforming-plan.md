@@ -1023,7 +1023,7 @@ and field mappings are verified.
 | --- | --- | --- |
 | Node UUID in `/learning/nodes/{node}/play`; node/map identity in props | `GET /learner/play-runs/{play_run_id}`, `domain/src/learner_state.rs::LearnerPlaybackContext`, `persistence/src/learner_playback.rs::PlaybackRow` | Actual authorized `node_id` and `map_id` now returned for generic, message, portal-arrival, revisit, recall and replay reads. Existing titles/slugs cannot stand in for these identities. The future adapter must validate route identity against the authorized read before mounting. |
 | Start/resume/reset; ordinary, portal, revisit, recall and replay semantics | Existing `/learner/activity-starts/{start_id}/{start,reset}`, replay/recall/revisit entry endpoints and run repositories | Map source query parameters and restart response URL to typed commands. Preserve distinct run kinds and CSRF; no Laravel GET/session emulation. Inventory clean URL entry and direct activity entry before activation. |
-| Complete `node` with activity graph, start alternatives and portal links | World graph supplies real outline IDs; active-run document now adds the published navigation definition described below; native author graph is **not** a learner endpoint | Complete configured resources, source activity metadata, node presentation and portal destinations before building the copied page props. Never fill inactive activities with fake config or use author-only payloads. |
+| Complete `node` with activity graph, start alternatives and portal links | World graph supplies real outline IDs; active-run document now adds the published navigation definition described below; native author graph is **not** a learner endpoint | The authored-presentation, private-state and node/portal read extensions below now supply these prerequisites. Complete review/shared-task contexts and source identity/transport mapping before mounting; never fill inactive activities with fake config or use author-only payloads. |
 | `playActivityId`, `playRouteId`, `playRunId`, `revisitActivityId`, `recallQuestionId` | Active activity ID, optional start ID, run ID/kind and owner-scoped recall handle exist | Reconcile question/option identities and source recall question identity versus native recall-item handle. Source numeric identity checks such as alternative `route.id > 0` require an exact transport/identity seam, not invented numeric IDs. |
 | `progress.activities`, `progress.answers`, `progress.recallQuestionIds`, `playState` | The typed `LearnerPlaybackDocument.private_state` extension below supplies owner progress, bounded answers, recall membership and saved run/obstacle state | Map these verified native facts into the whole copied page, retaining missing-snapshot unavailable behavior. Copied-player resume/reset acceptance remains required. |
 | Reached/completed progress and optional check-in | Existing route-entry/progress writes, completion and check-in endpoints; `persistence/src/learner_playback.rs` | Map all source completion fields and returned activity/transition identities, including assistance, outcome and check-in state; do not acknowledge an unmapped write. |
@@ -1296,10 +1296,10 @@ observations describe the additional payload, not a performance guarantee.
 No canonical UI, database migration or production ownership changed.
 
 This completes the authored-presentation prerequisite, not the player route.
-Before activation, reconcile node/topic props, portal destinations, private
-answers/progress/play-state and per-activity review/shared-task state; all
-player transport, availability and media boundaries still need their own
-complete source-derived acceptance. Question option-weight authoring must also
+The private-state and node/portal read extensions below now supply their
+separate prerequisites. Per-activity review/shared-task state and all player
+transport, availability and media boundaries still need complete source-derived
+acceptance before activation. Question option-weight authoring must also
 be checked against the source; exposing stored weights is not evidence that
 all source authoring controls persist them.
 
@@ -1421,6 +1421,79 @@ were seeded: 6–9 ms and 4.7–11.6 KB. The existing 102-activity graph returne
 58015 bytes in 8 ms, versus 57850 bytes/8 ms before this extension. These are
 single local observations, not an SLA or measurements of populated history.
 
+
+### Player node and portal presentation
+
+Pinned-source owners verified against main: `LearningNodeSerializer::{serialize,
+baseNode}`, `LearningPortalLinkSerializer::serialize`, copied
+`pages/learning/node-play.tsx`, `features/world/standard-activities.tsx` and
+`types/learning.ts`. The source selects a portal by actual source activity ID,
+shows target availability, and constructs its destination from real target
+node/activity IDs. A display-only target title cannot satisfy that contract.
+
+| Required source data | Existing evidence | Next implementation |
+| --- | --- | --- |
+| Node description, position, evaluated state/visual configuration, map identity and topic | `world-projection.ts::toWorldPageProps`, `learner_world.rs`, `public_world.rs`, `learner_availability_presentation::visual_config` | Reuse sanitization, media conversion and evaluated availability policies in a bounded projection for the already authorized playback node. The existing World endpoint chooses the first published World and cannot reliably supply an arbitrary authorized deep-link node. Do not fabricate a missing node from titles/slugs or load another World as its substitute. |
+| All outgoing portal links: real link/source activity/target activity/map/node IDs, target map/node slugs and titles, label/description, evaluated target state | `LearnerPortalDestination` currently contains only labels/titles/state; `learner_playback.rs::load_portal_state` reads the active route portal; `learning_portal_links` and typed travel commands already persist actual identities | Batch the authorized node's published links and target publication/map access, reuse `PostgresLearnerNodeAvailability` for target state, and return source-required identities. Keep locked/hidden state explicit; route labels alone cannot authorize travel. Test multiple output portals, input portals, inaccessible/unpublished targets and same-slug destinations. |
+| Bookmark and source topic/return URLs | Existing bookmark, topic and node/map identity contracts | Bind URLs and bookmark membership to the authorized node's real identifiers; retain source navigation. A topic link may stay unavailable until its route activation, without inventing topic content. |
+
+After this boundary, finish per-activity review/shared-task documents, complete
+typed command/media mappings and source identity seams before mounting the
+whole copied player. This contract does not activate any UI or declare playback
+complete. Existing World selection policy is not changed by the
+playback-node projection.
+
+Implementation: `LearnerPlaybackDocument.node`,
+`persistence/src/learner_playback_node.rs`, the existing authorized node query
+in `learner_playback_graph.rs`, and domain/OpenAPI/generated client models.
+The node query now supplies actual map/node identity, title/description,
+coordinates, published topic and owner-only bookmark existence. No extra
+endpoint or first-World lookup is introduced. The future source adapter must
+retain `/topics/{slug}` and `/competence?topic={slug}` as their distinct source
+destinations, not map both links to the topic page.
+
+Node visual configuration reuses `learner_availability_presentation`, the
+existing availability facts and `public_world::learner_node_visual_config`.
+Catalog label collection/queries are shared with the World reader. Prerequisite
+node labels are fetched in one bounded, published/map-access-scoped batch;
+interaction sounds reuse publication filtering and learner media URL mapping.
+The current node still returns 404 when its availability denies play. This
+proves URL conversion, not delivery authorization for every configured asset.
+
+Outgoing portals are one bounded batch over the authorized graph's published
+output activities. Target activity/route/MapAsset/node/map publication and map
+access are checked before projection; targets must remain input portals. Locked,
+hidden and authored visible states remain explicit. Every returned identity is
+native: the link's `id` is its real source-activity primary key, not a generated
+presentation counter. Input portals, inaccessible/unpublished targets and
+missing links do not produce substitute destinations. Existing travel commands
+retain run ownership and recheck destination playability independently.
+
+The base node/bookmark/topic data extends an existing query; dependent labels,
+sounds and portal links add at most six batch queries, skipping absent kinds.
+The graph's 1000-activity limit and unique source-portal primary key bound links;
+node/sound reference collections also reject more than 1000 dependencies.
+
+Verification passed: canonical source identity, production frontend type/build,
+generated client drift, Rust fmt/workspace check, 21 persistence playback tests,
+one World unit test, both previously ignored PostgreSQL World integration tests,
+four public-World tests, thirteen domain availability tests and three application
+playback tests. All 26 native/browser cases passed against the rebuilt API.
+`canonical-playback-node-evidence.ts` proves a node outside the explorer's first
+World, coordinates/topic visibility, private bookmark membership, visual-rule
+sanitization, media URL conversion and published sound filtering. Portal cases
+cover multiple outputs, input arrivals, repeated target slugs in distinct maps,
+other-World targets, scheduled/hidden/locked/active/completed states, inaccessible
+maps, each publication boundary and changed target type. Existing owner/run,
+private-state and command guards remain passing.
+
+Report: `frontend/playwright-report/player-node-portals/`. World continuation,
+availability and authored-state browser checks retain 1440×900 and 390×844
+coverage. These are backend and unchanged World evidence, not player screenshot
+parity. Six run-kind reads took 7–38 ms locally; the 102-activity fixture returned
+58516 bytes in 13 ms, versus 58015 bytes/8 ms before node presentation. Fourteen
+two-activity reads took 6–10 ms. These observations are not an SLA. No canonical
+UI, database migration, production owner or World-selection policy changed.
 
 ## Status and purpose
 

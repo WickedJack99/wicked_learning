@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { verifyPlaybackNode } from './canonical-playback-node-evidence';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
 // These prove native graph/progression prerequisites, not copied-player activation.
@@ -71,9 +72,11 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
             const response = await owner.request.get(path);
             expect(response.status()).toBe(200);
             const playback = await response.json();
+            expect(playback.node).toMatchObject({ id: nodeId, map_id: mapId, slug: 'same-playback-place', title: 'Same playback place', description: 'A disposable playback identity fixture.', q: 0, r: 0, state: 'available', is_bookmarked: false, topic: null, outgoing_portal_links: [] });
             info.annotations.push({ type: 'native-playback-read', description: `${kind}: ${Math.round(performance.now() - readStarted)} ms; ${Buffer.byteLength(JSON.stringify(playback))} bytes` });
             expect(playback).toMatchObject({ run_kind: kind === 'message' ? 'route' : kind, play_run_id: runId, activity: { id: activityId }, context: { node_id: nodeId, map_id: mapId, node_slug: 'same-playback-place', node_title: 'Same playback place' } });
             expect.soft(playback.graph).toMatchObject({ node_id: nodeId, activities: [expect.objectContaining({ id: activityId, slug: 'same-activity', activity_type: type, transitions: [] })] });
+            if (kind === 'route') await verifyPlaybackNode(owner, peer, path, nodeId, mapId);
             const authored = await (await admin.request.get(`/api/v1/admin/world-builder/nodes/${nodeId}`)).json();
             expect(authored.activity_graph.activities).toEqual(expect.arrayContaining([expect.objectContaining({ id: playback.activity.id })]));
             expect(JSON.stringify(playback.activity.config)).not.toContain('isCorrect');

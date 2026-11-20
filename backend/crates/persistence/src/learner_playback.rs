@@ -1584,7 +1584,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     .map_err(|_| LearnerPlaybackReadError)?;
                 return Ok(None);
             };
-            let Some(graph) = crate::learner_playback_graph::load(
+            let Some((graph, node)) = crate::learner_playback_graph::load(
                 &mut transaction,
                 principal,
                 &availability,
@@ -1820,6 +1820,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                 play_run_id: play_run_id.to_string(),
                 run_kind,
                 graph,
+                node,
                 private_state,
                 context: LearnerPlaybackContext {
                     node_id: row.node_id.to_string(),
