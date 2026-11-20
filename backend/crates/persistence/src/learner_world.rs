@@ -514,29 +514,33 @@ pub(crate) async fn load_inventory(
     Ok((
         items
             .into_iter()
-            .map(|item| LearnerItem {
-                id: item.id,
-                config: item.config,
-                description: item.description,
-                image_dark: item.image_dark,
-                image_light: item.image_light,
-                quantity: item.quantity,
-                slug: item.slug,
-                title: item.title,
+            .map(|item| {
+                crate::learner_media::learner_item(LearnerItem {
+                    id: item.id,
+                    config: item.config,
+                    description: item.description,
+                    image_dark: item.image_dark,
+                    image_light: item.image_light,
+                    quantity: item.quantity,
+                    slug: item.slug,
+                    title: item.title,
+                })
             })
             .collect(),
         tools
             .into_iter()
-            .map(|tool| LearnerTool {
-                id: tool.id,
-                animation_dark: tool.animation_dark,
-                animation_light: tool.animation_light,
-                config: tool.config,
-                description: tool.description,
-                image_dark: tool.image_dark,
-                image_light: tool.image_light,
-                slug: tool.slug,
-                title: tool.title,
+            .map(|tool| {
+                crate::learner_media::learner_tool(LearnerTool {
+                    id: tool.id,
+                    animation_dark: tool.animation_dark,
+                    animation_light: tool.animation_light,
+                    config: tool.config,
+                    description: tool.description,
+                    image_dark: tool.image_dark,
+                    image_light: tool.image_light,
+                    slug: tool.slug,
+                    title: tool.title,
+                })
             })
             .collect(),
     ))

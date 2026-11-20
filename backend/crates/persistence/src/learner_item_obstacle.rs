@@ -385,7 +385,7 @@ pub(crate) async fn load_inventory(
     .map(|items| {
         items
             .into_iter()
-            .map(|item| LearnerItem {
+            .map(|item| crate::learner_media::learner_item(LearnerItem {
                 id: item.id,                config: item.config,
                 description: item.description,
                 image_dark: item.image_dark,
@@ -393,7 +393,7 @@ pub(crate) async fn load_inventory(
                 quantity: item.quantity,
                 slug: item.slug,
                 title: item.title,
-            })
+            }))
             .collect()
     })
 }

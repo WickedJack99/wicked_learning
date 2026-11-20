@@ -53,7 +53,7 @@ impl From<MenuRow> for LearnerMenuTheme {
         Self {
             map_id: row.map_id,
             map_slug: row.map_slug,
-            background_config: row.background_config,
+            background_config: crate::learner_media::learner_media_config(row.background_config),
         }
     }
 }
@@ -114,6 +114,22 @@ async fn remember(
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn menu_theme_uses_managed_learner_media_without_changing_authored_style() {
+        let map_id = Uuid::new_v4();
+        let media = Uuid::new_v4();
+        let theme = LearnerMenuTheme::from(MenuRow {
+            map_id,
+            map_slug: "remembered".into(),
+            background_config: json!({"dark": {"imageUrl": format!("/api/v1/admin/media-assets/{media}/content"), "opacity": 0.5}, "light": {"imageUrl": "/authored/background.svg"}}),
+        });
+        assert_eq!(theme.map_id, map_id);
+        assert_eq!(
+            theme.background_config,
+            json!({"dark": {"imageUrl": format!("/api/v1/learner/media-assets/{media}/content"), "opacity": 0.5}, "light": {"imageUrl": "/authored/background.svg"}})
+        );
+    }
 
     #[tokio::test]
     #[ignore = "requires TEST_APPLICATION_DATABASE_URL pointing to the migrated local test stack"]

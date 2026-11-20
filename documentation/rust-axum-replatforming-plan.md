@@ -211,9 +211,9 @@ copied modules. Source shared props come from
 | Required source behavior | Existing Rust evidence | Concrete remaining contract / adapter |
 | --- | --- | --- |
 | Account name/avatar, media permission, appearance and logout | `/me`, `/session/logout`, `frontend/src/platform/{welcome-inertia,welcome-routes}` and existing Settings account mapping | Reuse the real profile/appearance mapping and typed logout. Verify failure behavior and source `router.flushAll` cleanup; do not fabricate account props. |
-| `auth.items` and `auth.tools`, grant deduplication, tool selection | `/learner/world` inventory; domain `LearnerItem`/`LearnerTool`; source `Learning{Item,Tool}Serializer.php` | Real UUIDs now travel in World/shell holdings and existing tool-grant/playback/obstacle responses. Complete owned-item/tool media authorization and URL projection before mounting inventory; the item-grant display result still needs the source inventory refresh contract. |
+| `auth.items` and `auth.tools`, grant deduplication, tool selection | `/learner/world` inventory; domain `LearnerItem`/`LearnerTool`; source `Learning{Item,Tool}Serializer.php` | Real UUIDs now travel in World/shell holdings and existing tool-grant/playback/obstacle responses. Owned-item/tool media delivery and URL projection are implemented below; connect the complete source controls through the shared-layout adapter. The item-grant display result still needs the source inventory refresh contract. |
 | `name`, learner palette, branding and cursors | `PublicPresentation`, `persistence/src/public_presentation.rs`; source `theme/presentation.ts` | Branding/cursors reused. `/learner/shell` now supplies deployment `APPLICATION_NAME` and typed learner palette with pinned-source defaults. The frontend source-shape mapping remains to be connected. |
-| `menuTheme` remembers the learner's preferred visible map | Source `app/Learning/Queries/LoadCurrentMenuMapTheme.php`, `Services/LearnerMapLocationService.php`; Rust visible World maps | Private preferred-map persistence and visibility revalidation now exist in `/learner/map-location` and `/learner/shell`. Connect source World navigation/reload semantics through the typed adapter; media URLs still need projection. |
+| `menuTheme` remembers the learner's preferred visible map | Source `app/Learning/Queries/LoadCurrentMenuMapTheme.php`, `Services/LearnerMapLocationService.php`; Rust visible World maps | Private preferred-map persistence and visibility revalidation now exist in `/learner/map-location` and `/learner/shell`. Managed menu-background URLs now use the existing learner media route. Connect source World navigation/reload semantics through the typed adapter. |
 | Journal initial theme without loading private notes | `persistence/src/learner_journal.rs`, table `application_journal_feedback_policy`, domain default theme | The shell now reuses the existing theme/policy read without loading journal content. Connect that real theme through the source page-prop adapter. |
 | On-demand complete Journal overlay | `/learner/journal`, `/learner/journal/pages`, page update/delete/feedback request, `/learner/journal/export`; `features/journal/journal-client.ts` | Reuse existing writes, owner scope, search, pagination and theme. Complete `LearnerJournalLearningContext` activity destination/topic and check-in/revisit real activity identities before mapping all source context links. Preserve export and feedback/revisit errors. |
 | Companion visibility, context, authored dialogue and AI turn | `/learner/companion`, `/learner/companion/turn`; `domain/src/learning_companion.rs` | Map all source fields and 204 absence explicitly. Source `learning-companion-dialogue.tsx` calls direct fetch; provide an exact-module transport seam for that call, never global fetch interception or a replacement dialogue component. |
@@ -244,7 +244,7 @@ verified for this slice are `app/Models/PlatformPresentationSetting.php`,
 | Application name, learner colors, inventory identities, Journal theme, menu background | `GET /api/v1/learner/shell`; `crates/{domain,application,persistence,api}/src/learner_shell.rs`; OpenAPI `LearnerShell`; shared inventory/theme queries | Map all source props together when Journal, Companion and media dependencies are complete. A required read failure must keep the route unavailable. |
 | Preferred map across visits | `POST /api/v1/learner/map-location`, `RememberLearnerMapRequest`; migration `0106_learner_map_location.sql` | Source URL navigation must call the command and retain selection on reload. Actual map UUID is private to the principal; reads revalidate publication/roles and fall back to the first visible map. |
 | Session feedback invitation | `POST /api/v1/learner/feedback-prompt/claim`; `api/src/feedback_prompt_preference.rs`; native subject-scoped session flag | Invoke only through the documented adapter. Existing preference PATCH clears the flag after enable/dismiss/decline; source dismiss/error callbacks still need wiring. |
-| Owned visuals and tool animation | Real inventory IDs now available in domain `LearnerItem`/`LearnerTool` and all constructing repositories | `api/src/learner_media_assets.rs` currently authorizes published content/Journal references, not owned inventory references. Implement ownership-scoped serving and rewrite authored media URLs before activating these controls. |
+| Owned visuals and tool animation | Real inventory IDs now available in domain `LearnerItem`/`LearnerTool` and all constructing repositories | `api/src/learner_media_assets.rs` now also authorizes active owned-inventory references; the follow-up below records its verification. Source control activation remains pending. |
 
 The shell performs two bounded inventory queries and one preferred-map query,
 without fetching the World graph or private Journal pages. More than 100 items
@@ -284,6 +284,49 @@ explicit PostgreSQL regressions. The combined World source/live and shell
 contract suite passed 27 checks; existing source comparison screenshots at
 1440×900 and 390×844 remain in the local HTML report. These screenshots prove
 no World page regression, not acceptance of the still-unmounted shared layout.
+
+### Owned learner inventory media dependency
+
+Pinned-source owners are the complete
+`resources/js/features/items/item-inventory.ts`,
+`features/tools/{tool-selection.ts,tool-visuals.ts,tool-cursor-overlay.tsx}`,
+`components/app-side-action-bar.tsx`, and the Item/Tool serializers listed above.
+Those serializers and `HandleInertiaRequests.php` expose held inventory,
+including light/dark images and tool animations. This dependency preserves
+those fields without altering any copied component.
+
+The existing `/api/v1/learner/media-assets/{asset_id}/content` now additionally
+admits an active `learning_item` media reference with the current principal's
+positive quantity, or an active `learning_tool` reference with that principal's
+tool holding. Anonymous visitors and other learners gain no access from a
+catalog or media UUID. Existing published-content and Journal authorization
+remain independent valid access paths. No unrestricted catalog-preview route
+was introduced. The administrative catalog already synchronizes those media
+references transactionally; it is reused unchanged.
+
+`persistence/src/learner_media.rs` supplies shared item/tool projections for
+World/shell holdings, item-obstacle inventory, tool-grant/NPC grant results and
+playback held tools. It preserves real IDs, quantities, null fallback fields,
+custom paths and authored sizing/timing; only recognized managed URLs change.
+The shell's preferred-map background uses the same existing recursive media
+URL mapping. Unowned tool/item discovery previews still require a separately
+audited active-playback contract; inventory access must not expose all catalog
+visuals to satisfy that future flow.
+
+`canonical-learner-inventory-media.spec.ts` first reproduced 404 for both owners,
+then exercises real uploaded bytes, admin catalog reference synchronization,
+owner/peer/guest reads, World and shell projections, replacement under the same
+media identity, zero item quantity, revoked tools, and removed references.
+Its holdings fixture is explicitly restricted to the local Compose stack and
+uses only test-created UUIDs, with cleanup; it does not claim playback-grant
+acceptance. Rust projection tests cover null/custom-path fallbacks, retained
+identity and visual configuration, and preferred-map theme projection.
+
+Validation: canonical source identity, production frontend type/build, generated
+OpenAPI drift, workspace Rust check/fmt and affected learner/media tests passed.
+The shell PostgreSQL regression passed, and the combined source/live World,
+shell and media suite passed 29 checks. Desktop/narrow World comparison evidence
+remains valid; no new inventory UI parity claim is made before layout activation.
 
 ## Status and purpose
 

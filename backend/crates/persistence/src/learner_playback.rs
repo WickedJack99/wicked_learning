@@ -1128,8 +1128,9 @@ async fn load_tools(
     .map(|tools| {
         tools
             .into_iter()
-            .map(|tool| LearnerTool {
-                id: tool.id,                animation_dark: tool.animation_dark,
+            .map(|tool| crate::learner_media::learner_tool(LearnerTool {
+                id: tool.id,
+                animation_dark: tool.animation_dark,
                 animation_light: tool.animation_light,
                 config: tool.config,
                 description: tool.description,
@@ -1137,7 +1138,7 @@ async fn load_tools(
                 image_light: tool.image_light,
                 slug: tool.slug,
                 title: tool.title,
-            })
+            }))
             .collect()
     })
 }

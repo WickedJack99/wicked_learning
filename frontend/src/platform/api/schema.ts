@@ -3152,7 +3152,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Serve a reusable visual only through a published MapAsset, activity-start route, or activity visible to the learner. */
+        /**
+         * Serve a referenced visual through visible published content, authenticated Journal presentation or the current learner's owned inventory.
+         * @description Inventory access requires an active learning_item or learning_tool media reference and this principal's positive item quantity or tool holding. Knowing a catalog or media UUID grants no access.
+         */
         get: operations["getLearnerMediaAssetContent"];
         put?: never;
         post?: never;
@@ -16496,7 +16499,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description CSRF */
+            /** @description CSRF, origin or principal admission failed. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -16510,7 +16513,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The JSON document has missing */
+            /** @description The JSON document has missing, mistyped or unknown fields. */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -16565,14 +16568,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description CSRF */
+            /** @description CSRF, origin or principal admission failed. */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description The JSON document has missing */
+            /** @description The JSON document has missing, mistyped or unknown fields. */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -22769,7 +22772,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The asset is not actively referenced by a visible published MapAsset, activity-start route, or activity. */
+            /** @description The asset has no currently authorized content, Journal or owned-inventory reference. */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -1673,7 +1673,7 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/LearnerShell' } } }
         '401': { description: Authentication is required. }
         '403': { description: The identity has no application principal. }
-        '503': { description: A required read is unavailable or exceeds its bound. }
+        '503': { description: 'A required read is unavailable or exceeds its bound.' }
   /learner/map-location:
     post:
       operationId: rememberLearnerMap
@@ -1687,9 +1687,9 @@ paths:
           description: The authorized map's source menu theme, after the preference was persisted.
           content: { application/json: { schema: { $ref: '#/components/schemas/LearnerMenuTheme' } } }
         '400': { description: Invalid map reference. }
-        '422': { description: The JSON document has missing, mistyped or unknown fields. }
+        '422': { description: 'The JSON document has missing, mistyped or unknown fields.' }
         '401': { description: Authentication is required. }
-        '403': { description: CSRF, origin or principal admission failed. }
+        '403': { description: 'CSRF, origin or principal admission failed.' }
         '404': { description: Map is not published and visible in the current World. }
         '503': { description: Persistence is unavailable. }
   /learner/feedback-prompt/claim:
@@ -1706,9 +1706,9 @@ paths:
           description: Whether this surface may show the invitation now.
           content: { application/json: { schema: { $ref: '#/components/schemas/ClaimFeedbackPromptResponse' } } }
         '400': { description: Unknown surface. }
-        '422': { description: The JSON document has missing, mistyped or unknown fields. }
+        '422': { description: 'The JSON document has missing, mistyped or unknown fields.' }
         '401': { description: Authentication is required. }
-        '403': { description: CSRF, origin or principal admission failed. }
+        '403': { description: 'CSRF, origin or principal admission failed.' }
         '503': { description: Preference or native session storage is unavailable. }
   /learner/companion:
     get:
@@ -3920,13 +3920,14 @@ paths:
   /learner/media-assets/{asset_id}/content:
     get:
       operationId: getLearnerMediaAssetContent
-      summary: Serve a reusable visual only through a published MapAsset, activity-start route, or activity visible to the learner.
+      summary: Serve a referenced visual through visible published content, authenticated Journal presentation or the current learner's owned inventory.
+      description: Inventory access requires an active learning_item or learning_tool media reference and this principal's positive item quantity or tool holding. Knowing a catalog or media UUID grants no access.
       parameters:
         - { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200': { description: The image bytes with restrictive content and short private cache headers. }
         '403': { description: A signed-in identity has no active application principal. }
-        '404': { description: 'The asset is not actively referenced by a visible published MapAsset, activity-start route, or activity.' }
+        '404': { description: 'The asset has no currently authorized content, Journal or owned-inventory reference.' }
         '503': { description: The media store or application database is unavailable. }
   /admin/world-builder/activities/{activity_id}/templates:
     post:

@@ -99,7 +99,7 @@ async fn grant_current_tool(
 
     Ok(Some(LearnerToolGrantResult {
         already_owned: !inserted,
-        tool: LearnerTool {
+        tool: crate::learner_media::learner_tool(LearnerTool {
             id: tool.id,
             animation_dark: tool.animation_dark,
             animation_light: tool.animation_light,
@@ -109,7 +109,7 @@ async fn grant_current_tool(
             image_light: tool.image_light,
             slug: tool.slug,
             title: tool.title,
-        },
+        }),
     }))
 }
 

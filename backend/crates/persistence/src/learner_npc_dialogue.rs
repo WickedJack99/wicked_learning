@@ -594,7 +594,7 @@ async fn grant_configured_tool_for_node(
     .bind(tool.id)
     .execute(&mut **transaction)
     .await?;
-    Ok(Some(LearnerTool {
+    Ok(Some(crate::learner_media::learner_tool(LearnerTool {
         id: tool.id,
         animation_dark: tool.animation_dark,
         animation_light: tool.animation_light,
@@ -604,7 +604,7 @@ async fn grant_configured_tool_for_node(
         image_light: tool.image_light,
         slug: tool.slug,
         title: tool.title,
-    }))
+    })))
 }
 
 async fn reflection_journal_page_id(
