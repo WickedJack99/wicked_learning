@@ -1383,6 +1383,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/companion/avatar/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Serve the currently resolved Companion avatar in an authorized context.
+         * @description Rechecks the same enabled Companion and visible map/activity scope as the Companion document. Only its exact selected managed asset can be served; this does not grant media-library access. Private cache and sandbox headers match other learner media. Static authored avatar URLs are not proxied.
+         */
+        get: operations["getLearnerCompanionAvatar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/companion/turn": {
         parameters: {
             query?: never;
@@ -16667,6 +16687,60 @@ export interface operations {
                 content?: never;
             };
             /** @description The identity or application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerCompanionAvatar: {
+        parameters: {
+            query: {
+                surface: "desk" | "world" | "activity";
+                map_slug?: string;
+                activity_id?: string;
+            };
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The authorized managed avatar bytes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+            /** @description The surface or context parameters are invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The Companion or selected asset is unavailable in the current scope. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A required storage or database service is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

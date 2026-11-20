@@ -56,8 +56,16 @@ pub async fn content(
     .await
     .map_err(|_| ApiError::service_unavailable())?
     .ok_or_else(ApiError::not_found)?;
-    let key =
-        MediaObjectKey::from_stored_value(&stored.object_key).ok_or_else(ApiError::not_found)?;
+    stored_response(&state, &stored.object_key, &stored.content_type).await
+}
+
+/// Call only after proving the selected media reference is visible to the caller.
+pub(crate) async fn stored_response(
+    state: &AppState,
+    object_key: &str,
+    content_type: &str,
+) -> Result<Response, ApiError> {
+    let key = MediaObjectKey::from_stored_value(object_key).ok_or_else(ApiError::not_found)?;
     let bytes = state
         .media_store
         .get(&key)
@@ -70,8 +78,7 @@ pub async fn content(
     let headers = response.headers_mut();
     headers.insert(
         header::CONTENT_TYPE,
-        HeaderValue::from_str(&stored.content_type)
-            .map_err(|_| ApiError::internal_server_error())?,
+        HeaderValue::from_str(content_type).map_err(|_| ApiError::internal_server_error())?,
     );
     headers.insert(
         header::X_CONTENT_TYPE_OPTIONS,

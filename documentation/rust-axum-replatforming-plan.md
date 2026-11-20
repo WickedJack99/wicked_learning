@@ -491,6 +491,50 @@ Validation: four feedback browser checks (including two real Rust-backed runs),
 four canonical Language regression checks, source identity, frontend types/build,
 generated-client drift, Rust formatting and the source-action parser test passed.
 
+### Companion media contract required before shared-layout activation
+
+Pinned owners: `features/world/learning-companion-{panel,dialogue}.tsx`,
+`components/learning-companion-avatar.tsx`, `types/index.ts`,
+`app/Learning/Services/LearningCompanion{Context,ConfigurationResolver}.php`,
+and `app/Http/Controllers/Settings/AdminCompanionController.php`.
+The source renders the resolved avatar and retains authored cropping/scale.
+Existing GET `/learner/companion` scopes context and inherits configuration, but
+returns an administrator media URL. The real API regression reproduces that
+learner-inaccessible URL. Platform settings writes also omit media references.
+
+Required bounded repair: managed avatars receive
+`/api/v1/learner/companion/avatar/{asset_id}` with the same validated surface and
+map/activity query. Delivery must resolve the current enabled Companion scope
+again and match the selected asset UUID before reading bytes; guests, unknown
+assets, unavailable scopes and stale replaced/cleared selections cannot use it.
+Static/external authored URLs remain unchanged. Reuse media response headers
+and storage; do not widen generic media-library access. Platform avatar saves
+must synchronize their one managed reference transactionally so replacement,
+usage reporting and deletion retain the selected media relationship. This
+contract adds no UI and does not activate Companion or the complete layout.
+
+**Verified media dependency:** the existing Companion API now projects the
+scoped avatar URL and the new endpoint reuses the same configuration resolver
+before serving bytes through the hardened learner-media response. Platform
+settings changes synchronize the `companion_presentation` reference in the
+same transaction. Migration `0108_companion_avatar_reference.sql` backfills
+existing selections; the normal migrator applied it to the local application
+database and its recorded status is successful.
+
+`frontend/e2e/canonical-companion-media.spec.ts` first failed on the administrator
+URL, then passed against the updated Rust runtime. It verifies bytes, sandbox
+headers, anonymous/unknown-asset/unavailable-scope rejection, referenced-asset
+delete protection, content replacement, disabled/cleared selection revocation,
+and unchanged static URLs. Only a test-uploaded image is deleted, and the
+original platform settings are restored. Existing real item/tool media tests
+also passed after sharing their response helper. The isolated PostgreSQL test
+covers World inheritance, map-role denial, map/World unpublication, explicit
+avatar clearing and idempotent reference backfill. Four existing Companion
+resolver tests and the API guest-authentication regression passed, as did
+frontend source identity/type/build, Rust workspace check/fmt and OpenAPI
+client generation. This is backend/media evidence; complete copied Companion
+browser and full-layout acceptance are still pending.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

@@ -1308,6 +1308,7 @@ fn router(state: AppState) -> Router {
         .route("/api/v1/learner/map-location", post(learner_shell::remember_map))
         .route("/api/v1/learner/feedback-prompt/claim", post(feedback_prompt_preference::claim))
         .route("/api/v1/learner/companion", get(learner_companion::show))
+        .route("/api/v1/learner/companion/avatar/{asset_id}", get(learner_companion::avatar))
         .route(
             "/api/v1/learner/companion/turn",
             post(learner_companion_turn::create),
@@ -2096,7 +2097,11 @@ mod tests {
             webauthn: test_webauthn(),
         };
 
-        for path in ["/api/v1/learner/world", "/api/v1/learner/shell"] {
+        for path in [
+            "/api/v1/learner/world",
+            "/api/v1/learner/shell",
+            "/api/v1/learner/companion/avatar/00000000-0000-0000-0000-000000000001?surface=desk",
+        ] {
             let response = router(state.clone())
                 .oneshot(
                     Request::builder()

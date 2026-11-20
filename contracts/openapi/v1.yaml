@@ -1739,6 +1739,40 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: The identity has no application principal or role assignment. }
         '503': { description: The identity or application database is unavailable. }
+  /learner/companion/avatar/{asset_id}:
+    get:
+      operationId: getLearnerCompanionAvatar
+      summary: Serve the currently resolved Companion avatar in an authorized context.
+      description: >-
+        Rechecks the same enabled Companion and visible map/activity scope as the
+        Companion document. Only its exact selected managed asset can be served;
+        this does not grant media-library access. Private cache and sandbox headers
+        match other learner media. Static authored avatar URLs are not proxied.
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: surface
+          in: query
+          required: true
+          schema: { type: string, enum: [desk, world, activity] }
+        - name: map_slug
+          in: query
+          schema: { type: string }
+        - name: activity_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The authorized managed avatar bytes.
+          content:
+            image/*:
+              schema: { type: string, format: binary }
+        '400': { description: The surface or context parameters are invalid. }
+        '401': { description: Authentication is required. }
+        '404': { description: The Companion or selected asset is unavailable in the current scope. }
+        '503': { description: A required storage or database service is unavailable. }
   /learner/companion/turn:
     post:
       operationId: createLearnerCompanionTurn

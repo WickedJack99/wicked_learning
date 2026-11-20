@@ -5,6 +5,17 @@ use wicked_learning_domain::learner_state::{LearnerItem, LearnerTool};
 const ADMIN_MEDIA_CONTENT_PREFIX: &str = "/api/v1/admin/media-assets/";
 const LEARNER_MEDIA_CONTENT_PREFIX: &str = "/api/v1/learner/media-assets/";
 
+/// Recognizes only a managed administrator content URL, never an arbitrary
+/// URL containing a UUID or a caller-supplied object-store path.
+pub fn managed_media_asset_id(value: &str) -> Option<Uuid> {
+    Uuid::parse_str(
+        value
+            .strip_prefix(ADMIN_MEDIA_CONTENT_PREFIX)?
+            .strip_suffix("/content")?,
+    )
+    .ok()
+}
+
 /// Rewrites only a Rust-owned reusable-media content path for a learner-safe
 /// projection. Custom and malformed paths retain their authored value.
 pub fn learner_media_url(value: &str) -> String {

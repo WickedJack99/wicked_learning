@@ -30,6 +30,19 @@ impl<'pool> PostgresLearnerCompanionRepository<'pool> {
         Self { pool }
     }
 
+    /// Resolves the same visibility and enabled configuration as the document,
+    /// without loading action summaries or exposing any arbitrary media asset.
+    pub async fn avatar_asset_id(
+        &self,
+        principal: &AuthorizedPrincipal,
+        request: &LearnerCompanionRequest,
+    ) -> Result<Option<Uuid>, LearnerCompanionError> {
+        Ok(resolve_companion_scope(self.pool, principal, request)
+            .await?
+            .and_then(|resolved| resolved.configuration.avatar_url)
+            .and_then(|url| crate::learner_media::managed_media_asset_id(&url)))
+    }
+
     pub async fn prepare_turn(
         &self,
         principal: &AuthorizedPrincipal,
@@ -981,6 +994,134 @@ mod tests {
         assert!(
             parse_dialogue_graph(&json!({"version": 1, "start": "missing", "nodes": []})).is_none()
         );
+    }
+
+    #[tokio::test]
+    #[ignore = "requires TEST_APPLICATION_DATABASE_URL pointing to the migrated local test stack"]
+    async fn avatar_delivery_rechecks_inheritance_publication_and_map_roles() {
+        use super::*;
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(1)
+            .idle_timeout(None)
+            .max_lifetime(None)
+            .connect(&std::env::var("TEST_APPLICATION_DATABASE_URL").expect("test database URL"))
+            .await
+            .unwrap();
+        for table in [
+            "learning_companion_settings",
+            "learning_worlds",
+            "learning_maps",
+            "learning_topics",
+            "learning_companion_dialogue_assignments",
+            "learning_companion_dialogues",
+            "reusable_media_assets",
+            "reusable_media_asset_references",
+        ] {
+            sqlx::query(&format!(
+                "CREATE TEMP TABLE {table} AS SELECT * FROM public.{table} WITH NO DATA"
+            ))
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+        sqlx::query("ALTER TABLE reusable_media_asset_references ADD PRIMARY KEY (asset_id, owner_kind, owner_id, field_key)")
+            .execute(&pool).await.unwrap();
+        let platform_asset = Uuid::new_v4();
+        let world_asset = Uuid::new_v4();
+        let world_id = Uuid::new_v4();
+        let platform_url = format!("/api/v1/admin/media-assets/{platform_asset}/content");
+        sqlx::query("INSERT INTO learning_companion_settings (singleton, enabled, display_name, avatar_url, avatar_color, avatar_position_x, avatar_position_y, avatar_scale, welcome_message, mode, ai_enabled, ai_capabilities) VALUES (TRUE, TRUE, 'Guide', $1, '#123456', 50, 50, 100, 'Welcome', 'scripted', FALSE, '[]')")
+            .bind(&platform_url).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO learning_worlds (id, slug, title, companion_config, published_at) VALUES ($1, 'world', 'World', $2, NOW())")
+            .bind(world_id).bind(json!({"avatar_url": format!("/api/v1/admin/media-assets/{world_asset}/content")})).execute(&pool).await.unwrap();
+        sqlx::query(r#"INSERT INTO learning_maps (id, world_id, slug, title, companion_config, access_roles, published_at, position) VALUES ($1, $2, 'map', 'Map', '{}', '["learner"]', NOW(), 1)"#)
+            .bind(Uuid::new_v4()).bind(world_id).execute(&pool).await.unwrap();
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["learner".into()],
+            capabilities: vec![],
+        };
+        let denied = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec![],
+            capabilities: vec![],
+        };
+        let repository = PostgresLearnerCompanionRepository::new(&pool);
+        let desk = LearnerCompanionRequest::parse("desk", None, None).unwrap();
+        let map = LearnerCompanionRequest::parse("world", Some("map"), None).unwrap();
+        assert_eq!(
+            repository.avatar_asset_id(&principal, &desk).await.unwrap(),
+            Some(platform_asset)
+        );
+        assert_eq!(
+            repository.avatar_asset_id(&principal, &map).await.unwrap(),
+            Some(world_asset)
+        );
+        assert_eq!(
+            repository.avatar_asset_id(&denied, &map).await.unwrap(),
+            None
+        );
+        sqlx::query(r#"UPDATE learning_maps SET companion_config = '{"avatar_url":""}'"#)
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            repository.avatar_asset_id(&principal, &map).await.unwrap(),
+            None
+        );
+        sqlx::query("UPDATE learning_maps SET companion_config = '{}', published_at = NULL")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            repository.avatar_asset_id(&principal, &map).await.unwrap(),
+            None
+        );
+        sqlx::query("UPDATE learning_maps SET published_at = NOW()")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("UPDATE learning_worlds SET published_at = NULL")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            repository.avatar_asset_id(&principal, &map).await.unwrap(),
+            None
+        );
+        sqlx::query("UPDATE learning_companion_settings SET enabled = FALSE")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            repository.avatar_asset_id(&principal, &desk).await.unwrap(),
+            None
+        );
+        sqlx::query("INSERT INTO reusable_media_assets (id) VALUES ($1)")
+            .bind(platform_asset)
+            .execute(&pool)
+            .await
+            .unwrap();
+        for _ in 0..2 {
+            sqlx::raw_sql(include_str!(
+                "../../../migrations/application/0108_companion_avatar_reference.sql"
+            ))
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+        let count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM reusable_media_asset_references WHERE asset_id = $1",
+        )
+        .bind(platform_asset)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            count, 1,
+            "backfill protects existing avatars even while disabled and is idempotent"
+        );
+        pool.close().await;
     }
 
     #[test]

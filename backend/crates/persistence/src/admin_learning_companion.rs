@@ -74,6 +74,7 @@ impl AdminLearningCompanionRepository for PostgresAdminLearningCompanionReposito
                 }
             }
 
+            let mut transaction = self.pool.begin().await.map_err(unavailable)?;
             sqlx::query(
                 "UPDATE learning_companion_settings SET enabled = $1, display_name = $2, avatar_url = $3, avatar_color = $4, avatar_position_x = $5, avatar_position_y = $6, avatar_scale = $7, welcome_message = $8, mode = $9, ai_enabled = $10, ai_template_id = $11, ai_capabilities = $12, updated_by_principal_id = $13, updated_at = NOW() WHERE singleton = TRUE",
             )
@@ -90,9 +91,21 @@ impl AdminLearningCompanionRepository for PostgresAdminLearningCompanionReposito
             .bind(form.ai_template_id)
             .bind(serde_json::json!(form.ai_capabilities))
             .bind(principal_id)
-            .execute(self.pool)
+            .execute(&mut *transaction)
             .await
             .map_err(unavailable)?;
+            let owner_id = Uuid::from_u128(0x28eb3e1d_656f_41d4_b226_a85e4752810e);
+            sqlx::query("DELETE FROM reusable_media_asset_references WHERE owner_kind = 'companion_presentation' AND owner_id = $1")
+                .bind(owner_id).execute(&mut *transaction).await.map_err(unavailable)?;
+            if let Some(asset_id) = form
+                .avatar_url
+                .as_deref()
+                .and_then(crate::learner_media::managed_media_asset_id)
+            {
+                sqlx::query("INSERT INTO reusable_media_asset_references (asset_id, owner_kind, owner_id, field_key) SELECT id, 'companion_presentation', $2, 'avatar_url' FROM reusable_media_assets WHERE id = $1 ON CONFLICT DO NOTHING")
+                    .bind(asset_id).bind(owner_id).execute(&mut *transaction).await.map_err(unavailable)?;
+            }
+            transaction.commit().await.map_err(unavailable)?;
             load(self.pool).await.map(Some)
         }
     }
