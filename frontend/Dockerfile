@@ -7,7 +7,10 @@ RUN npm ci
 
 COPY frontend/ ./
 COPY contracts/openapi /contracts/openapi
-RUN npm run build
+RUN node scripts/verify-canonical-source.mjs --manifest \
+    && npm run generate:api \
+    && npx tsc --noEmit \
+    && npx vite build
 
 FROM nginx:1.27-alpine AS runtime
 

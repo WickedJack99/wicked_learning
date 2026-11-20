@@ -9505,6 +9505,11 @@ export interface components {
             status: "in_progress";
         };
         CreateLearnerJournalPageRequest: {
+            /**
+             * @description Honored only while the server Journal review policy permits requests.
+             * @default false
+             */
+            request_expert_access: boolean;
             title: string;
             topic: string;
             subtopic?: string | null;
@@ -9513,6 +9518,11 @@ export interface components {
             preferred_mode?: "view" | "edit" | null;
         };
         UpdateLearnerJournalPageRequest: {
+            /**
+             * @description Honored only while the server Journal review policy permits requests.
+             * @default false
+             */
+            request_expert_access: boolean;
             title: string;
             topic: string;
             subtopic?: string | null;

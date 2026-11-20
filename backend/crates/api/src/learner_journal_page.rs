@@ -19,6 +19,7 @@ use crate::{
 
 #[derive(Deserialize)]
 pub struct CreateLearnerJournalPageRequest {
+    request_expert_access: Option<bool>,
     markdown: Option<String>,
     preferred_mode: Option<String>,
     subtopic: Option<String>,
@@ -28,6 +29,7 @@ pub struct CreateLearnerJournalPageRequest {
 
 #[derive(Deserialize)]
 pub struct UpdateLearnerJournalPageRequest {
+    request_expert_access: Option<bool>,
     markdown: Option<String>,
     preferred_mode: String,
     subtopic: Option<String>,
@@ -52,7 +54,7 @@ pub async fn create(
     auth_session: AuthSession<IdentityBackend>,
     Json(request): Json<CreateLearnerJournalPageRequest>,
 ) -> Result<Json<LearnerJournalPageResponse>, ApiError> {
-    let draft = LearnerJournalPageDraft::new(
+    let mut draft = LearnerJournalPageDraft::new(
         request.title,
         request.topic,
         request.subtopic,
@@ -61,6 +63,7 @@ pub async fn create(
         "edit",
     )
     .ok_or_else(ApiError::invalid_request)?;
+    draft.request_expert_access = request.request_expert_access.unwrap_or(false);
     let principal = authenticated_principal(&state, auth_session).await?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let repository = PostgresLearnerJournalPageRepository::new(&state.application_database);
@@ -81,7 +84,7 @@ pub async fn update(
     Json(request): Json<UpdateLearnerJournalPageRequest>,
 ) -> Result<Json<LearnerJournalPageResponse>, ApiError> {
     let page_id = Uuid::parse_str(&page_id).map_err(|_| ApiError::not_found())?;
-    let draft = LearnerJournalPageDraft::new(
+    let mut draft = LearnerJournalPageDraft::new(
         request.title,
         request.topic,
         request.subtopic,
@@ -90,6 +93,7 @@ pub async fn update(
         "edit",
     )
     .ok_or_else(ApiError::invalid_request)?;
+    draft.request_expert_access = request.request_expert_access.unwrap_or(false);
     let principal = authenticated_principal(&state, auth_session).await?;
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let repository = PostgresLearnerJournalPageRepository::new(&state.application_database);

@@ -119,7 +119,7 @@ async fn create(
         .await?
         .ok_or(sqlx::Error::RowNotFound)?;
     let page_id = sqlx::query_scalar::<_, Uuid>(
-        "INSERT INTO learner_journal_pages (principal_id, title, topic, subtopic, markdown, preferred_mode) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+        "INSERT INTO learner_journal_pages (principal_id, title, topic, subtopic, markdown, preferred_mode, expert_access_requested) VALUES ($1, $2, $3, $4, $5, $6, $7 AND COALESCE((SELECT allow_review_requests FROM application_journal_feedback_policy WHERE singleton = TRUE), FALSE)) RETURNING id",
     )
     .bind(principal_id)
     .bind(&draft.title)
@@ -127,6 +127,7 @@ async fn create(
     .bind(&draft.subtopic)
     .bind(&draft.markdown)
     .bind(&draft.preferred_mode)
+    .bind(draft.request_expert_access)
     .fetch_one(pool)
     .await?;
 
@@ -145,7 +146,7 @@ async fn update(
         return Ok(None);
     };
     let page_id = sqlx::query_scalar::<_, Uuid>(
-        "UPDATE learner_journal_pages SET title = $3, topic = $4, subtopic = $5, markdown = $6, preferred_mode = $7, updated_at = NOW() WHERE id = $1 AND principal_id = $2 RETURNING id",
+        "UPDATE learner_journal_pages SET title = $3, topic = $4, subtopic = $5, markdown = $6, preferred_mode = $7, expert_access_requested = $8 AND COALESCE((SELECT allow_review_requests FROM application_journal_feedback_policy WHERE singleton = TRUE), FALSE), updated_at = NOW() WHERE id = $1 AND principal_id = $2 RETURNING id",
     )
     .bind(page_id)
     .bind(principal_id)
@@ -154,6 +155,7 @@ async fn update(
     .bind(&draft.subtopic)
     .bind(&draft.markdown)
     .bind(&draft.preferred_mode)
+    .bind(draft.request_expert_access)
     .fetch_optional(pool)
     .await?;
     match page_id {

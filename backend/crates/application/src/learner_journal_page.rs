@@ -12,6 +12,7 @@ pub const MAX_TOPIC_CHARACTERS: usize = 160;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LearnerJournalPageDraft {
+    pub request_expert_access: bool,
     pub markdown: String,
     pub preferred_mode: String,
     pub subtopic: String,
@@ -45,6 +46,7 @@ impl LearnerJournalPageDraft {
         }
 
         Some(Self {
+            request_expert_access: false,
             markdown,
             preferred_mode,
             subtopic,

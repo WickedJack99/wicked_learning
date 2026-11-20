@@ -517,6 +517,89 @@ mod tests {
                 && other.check_ins.is_empty()
                 && other.revisit_invitations.is_empty()
         );
+        // The source save includes expert-access consent, but policy remains
+        // authoritative. Never permit a write to another learner's page.
+        use wicked_learning_application::learner_journal_page::{
+            LearnerJournalPageDraft, LearnerJournalPageRepository,
+        };
+        let repository =
+            crate::learner_journal_page::PostgresLearnerJournalPageRepository::new(&pool);
+        let mut draft = LearnerJournalPageDraft::new(
+            "Private page".into(),
+            "General".into(),
+            None,
+            Some("Private words".into()),
+            None,
+            "edit",
+        )
+        .unwrap();
+        draft.request_expert_access = true;
+        assert!(
+            !repository
+                .update(&principal, page_id, &draft)
+                .await
+                .unwrap()
+                .unwrap()
+                .expert_access_requested
+        );
+        sqlx::query("INSERT INTO application_journal_feedback_policy (singleton, allow_review_requests) VALUES (TRUE, TRUE)")
+            .execute(&pool).await.unwrap();
+        assert!(
+            repository
+                .update(&principal, page_id, &draft)
+                .await
+                .unwrap()
+                .unwrap()
+                .expert_access_requested
+        );
+        assert!(
+            repository
+                .update(&peer, page_id, &draft)
+                .await
+                .unwrap()
+                .is_none()
+        );
+        draft.request_expert_access = false;
+        assert!(
+            !repository
+                .update(&principal, page_id, &draft)
+                .await
+                .unwrap()
+                .unwrap()
+                .expert_access_requested
+        );
+        draft.request_expert_access = true;
+        sqlx::query("UPDATE application_journal_feedback_policy SET allow_review_requests = FALSE")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(
+            !repository
+                .update(&principal, page_id, &draft)
+                .await
+                .unwrap()
+                .unwrap()
+                .expert_access_requested
+        );
+        // Temporary copies need the production defaults for the create path.
+        sqlx::query("ALTER TABLE learner_journal_pages ALTER COLUMN id SET DEFAULT gen_random_uuid(), ALTER COLUMN updated_at SET DEFAULT NOW()")
+            .execute(&pool).await.unwrap();
+        let created = repository.create(&principal, &draft).await.unwrap();
+        assert!(!created.expert_access_requested);
+        repository
+            .delete(&principal, Uuid::parse_str(&created.id).unwrap())
+            .await
+            .unwrap();
+        sqlx::query("UPDATE application_journal_feedback_policy SET allow_review_requests = TRUE")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let created = repository.create(&principal, &draft).await.unwrap();
+        assert!(created.expert_access_requested);
+        repository
+            .delete(&principal, Uuid::parse_str(&created.id).unwrap())
+            .await
+            .unwrap();
         // Topic unpublication removes only the public topic link, not the note.
         sqlx::query("UPDATE learning_topics SET published_at = NULL WHERE id = $1")
             .bind(topic_id)

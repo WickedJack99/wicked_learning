@@ -31,30 +31,33 @@ function filesWithin(directory) {
     });
 }
 
-if (git('rev-parse', 'main') !== pinnedMainSha) {
-    throw new Error(`main no longer resolves to pinned source ${pinnedMainSha}.`);
+// Local/CI verification proves this portable manifest against Git. Docker has
+// neither Git nor repository history, so it verifies the same copied bytes
+// using the committed manifest explicitly, never by silently skipping checks.
+const manifest = JSON.parse(readFileSync(resolve(frontendRoot, 'scripts/canonical-source-manifest.json'), 'utf8'));
+if (manifest.mainSha !== pinnedMainSha) {
+    throw new Error('The canonical manifest must name the pinned main SHA.');
 }
-
-const sourcePaths = git(
-    'ls-tree',
-    '-r',
-    '--name-only',
-    pinnedMainSha,
-    '--',
-    'resources/js',
-    'resources/css/app.css',
-)
-    .split('\n')
-    .filter(Boolean);
-
+const sourcePaths = Object.keys(manifest.files).sort();
+if (!process.argv.includes('--manifest')) {
+    if (git('rev-parse', 'main') !== pinnedMainSha) {
+        throw new Error(`main no longer resolves to pinned source ${pinnedMainSha}.`);
+    }
+    const gitPaths = git('ls-tree', '-r', '--name-only', pinnedMainSha, '--', 'resources/js', 'resources/css/app.css')
+        .split('\n').filter(Boolean).sort();
+    if (JSON.stringify(gitPaths) !== JSON.stringify(sourcePaths)) {
+        throw new Error('The canonical manifest file set differs from the pinned source.');
+    }
+    for (const sourcePath of sourcePaths) {
+        const pinnedContents = execFileSync('git', ['show', `${pinnedMainSha}:${sourcePath}`], { cwd: repositoryRoot });
+        if (digest(pinnedContents) !== manifest.files[sourcePath]) {
+            throw new Error(`Canonical manifest differs from ${pinnedMainSha}: ${sourcePath}`);
+        }
+    }
+}
 for (const sourcePath of sourcePaths) {
-    const copiedPath = resolve(canonicalRoot, sourcePath);
-    const pinnedContents = execFileSync('git', ['show', `${pinnedMainSha}:${sourcePath}`], {
-        cwd: repositoryRoot,
-    });
-    const copiedContents = readFileSync(copiedPath);
-
-    if (digest(pinnedContents) !== digest(copiedContents)) {
+    const copiedContents = readFileSync(resolve(canonicalRoot, sourcePath));
+    if (digest(copiedContents) !== manifest.files[sourcePath]) {
         throw new Error(`Canonical source differs from ${pinnedMainSha}: ${sourcePath}`);
     }
 }

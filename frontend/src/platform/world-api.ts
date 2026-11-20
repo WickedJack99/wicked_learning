@@ -1,15 +1,9 @@
 import { apiClient, getCsrfToken } from './api/client';
 import { toSourceGroup, toSourceGroupPage } from './world-groups';
 
-export class JsonRequestError extends Error {
-    public constructor(
-        message: string,
-        public readonly status: number,
-    ) {
-        super(message);
-        this.name = 'JsonRequestError';
-    }
-}
+import { JsonRequestError } from './json-request-error';
+import { journalRead, journalWrite, isJournalWrite } from './journal-api';
+export { JsonRequestError } from './json-request-error';
 
 const unavailableMessage =
     'This World action is not available until its Rust migration slice is activated.';
@@ -29,8 +23,12 @@ function unavailableOperation(): never {
  * only audited paths to typed Rust calls. Unmapped operations never fall
  * through to Laravel-shaped requests.
  */
-export async function getJson<T>(url: string, _signal?: AbortSignal): Promise<T> {
+export async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
     const parsed = new URL(url, window.location.origin);
+
+    if (parsed.origin === window.location.origin && parsed.pathname === '/learning/journal') {
+        return await journalRead(parsed, signal) as T;
+    }
 
     if (parsed.pathname === '/learning/search') {
         const { data, response } = await apiClient.GET('/learner/search', {
@@ -90,6 +88,7 @@ export async function postJson<T>(
     url: string,
     payload: Record<string, unknown>,
 ): Promise<T> {
+    if (isJournalWrite('POST', url)) return await journalWrite('POST', url, payload) as T;
     const groupAction = /^\/learning\/groups\/([a-f0-9-]+)\/(messages|admin-chat-vote|messages\/([a-f0-9-]+)\/resolve)$/.exec(url);
     if (groupAction) {
         const [, groupId, action, messageId] = groupAction;
@@ -132,13 +131,15 @@ export async function postJson<T>(
     return unavailableOperation();
 }
 
-export async function deleteJson<T>(_url: string): Promise<T> {
+export async function deleteJson<T>(url: string): Promise<T> {
+    if (isJournalWrite('DELETE', url)) return await journalWrite('DELETE', url) as T;
     return unavailableOperation();
 }
 
 export async function patchJson<T>(
-    _url: string,
-    _payload: Record<string, unknown>,
+    url: string,
+    payload: Record<string, unknown>,
 ): Promise<T> {
+    if (isJournalWrite('PATCH', url)) return await journalWrite('PATCH', url, payload) as T;
     return unavailableOperation();
 }

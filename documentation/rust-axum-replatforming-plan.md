@@ -376,6 +376,90 @@ The final combined source/live World, shell, inventory-media and Journal
 contract run passed 30 checks, retaining desktop/narrow screenshots and request
 measurements in `frontend/playwright-report/`.
 
+### Shared learner layout adapter contract
+
+Activation uses the whole copied `layouts/app-layout.tsx` and its sidebar,
+account/navigation, Journal, inventory, tool and Companion trees listed above.
+No canonical module is edited. Journal keeps the whole `journal-client.ts`;
+only its existing `world/api` transport resolves to explicit typed Rust calls.
+The copied export anchor keeps `/learning/journal/export`; the platform serves
+an exact redirect to the audited Rust download endpoint. Companion's single
+module-local fetch is bound to a dedicated typed adapter at build time; no
+global fetch interception or substitute dialogue component is permitted.
+
+Journal saves also send `request_expert_access` (see pinned
+`app/Learning/Actions/UpdateLearnerJournalPage.php`). Rust now accepts the
+bounded boolean and checks the existing policy atomically on create/update.
+Source feedback dismiss/decline must call `onError` on rejected writes and
+preserve local overlay state on success. All required shell reads must succeed;
+Companion's documented 204 maps to absence, not fabricated empty dialogue.
+The 200 Companion response proves enabled state. Source IDs retain real UUIDs.
+
+### Verified Journal transport dependency; shared layout still pending
+
+The whole copied `features/journal/{journal-overlay.tsx,journal-client.ts,theme.ts}`
+remains unchanged. Its existing `features/world/api.ts` seam now reaches
+`frontend/src/platform/{journal-api.ts,journal-projection.ts,world-api.ts}`.
+Source serialization owners are `LearnerJournalSerializer`,
+`LoadLearnerActivityCheckIns`, `LoadLearnerRevisitInvitations`, and
+`CreateLearnerJournalPage`/`UpdateLearnerJournalPage` under `app/Learning/`.
+Shared UI dependencies remain copied whole: `LearnerPaginatedItems`,
+`PaginationControls`, Input/Button, MarkdownRenderer, appearance/translation
+hooks and competence links. No route or substitute Journal presentation was
+added. Full shared-layout activation is still incomplete.
+
+| Source operation / data | Rust contract / adapter | Verification |
+| --- | --- | --- |
+| GET `/learning/journal`, page/per_page/search, abort | GET `/api/v1/learner/journal`; explicit camelCase projection for pages, contexts, domains, theme, check-ins, invitations and pagination | Independent original client/transport comparison; pagination/search; closing aborts the native request. Shared API fetch now retains `Request.signal` when combining it with the timeout. |
+| Create, save and delete pages | Existing POST/PATCH/DELETE `/learner/journal/pages[/{page_id}]`; native CSRF; `deleted_page_id` → `deletedPageId` | Whole copied overlay against real Rust at both viewports; refresh persistence, search and cleanup; private-owner API test. |
+| `request_expert_access` on create/save | Optional boolean in OpenAPI/API draft; SQL gates consent against `application_journal_feedback_policy.allow_review_requests` | Temporary-table database regression covers missing/disabled/enabled policy, withdrawal, create/update, and rejected other-owner write; real HTTP read/write verifies the response. |
+| Feedback request and returned page | POST `/learner/journal/pages/{page_id}/feedback-request`, exact `domain_key`; returned request timestamps/domain/status | Copied client preserves successful cache replacement; typed adapter carries native CSRF and server response. Existing Rust authorization remains authoritative. |
+| Activity-named revisit action | POST `/learner/revisit-invitations/{check_in_id}` | Only the latest authorized Journal read maps real activity UUID to its private check-in UUID. Failed writes retain the invitation; successful writes remove it; missing/stale association rejects with 409. |
+| Context links and export anchor | Actual node/activity UUIDs with source `/learning/nodes/{node}/play?activity_id=…`, topic URL and World map/focus query; exact `/learning/journal/export` redirect to Rust download | Source/Rust context links compared; no invented IDs. Nginx and Vite retain the copied download URL; Rust authorizes content. Destination route activation remains separate. |
+
+`frontend/e2e/canonical-journal.spec.ts` mounts the complete original and
+canonical overlays in a test-only harness. `journal-vite.config.ts` directs
+only the **original** client's imports to its original Laravel-shaped
+transport; the canonical side uses the typed Rust client. The harness serves
+root public assets. Source and canonical files are checked against the pinned
+Git blob before comparing text, control/editor bounds and screenshots at
+1440×900 and 390×844. The local live component test bridges its evidence-server
+Origin to the local deployment for native CSRF; it does not mock API responses.
+This is component integration evidence, not production shared-layout acceptance.
+
+**Observed source limitations, preserved rather than silently fixed:** at
+390×844, the context/review sections displace the editor below the clipped
+panel. The same bounds occur in the original. Initial read failure leaves the
+source loading skeleton and disabled create control; it does not display an
+error message. Save failure retains the draft and the source retry message.
+These observations must remain visible at full-route acceptance; they are not
+proof that all source controls are usable or a new blanket defect waiver.
+
+Verification: canonical identity and frontend production types/build; Rust
+workspace fmt/check, six Journal application tests, authenticated export API
+test, isolated PostgreSQL consent/context regression, generated OpenAPI client,
+and eight Journal browser/API checks passed. The 24 affected World/group
+checks also passed. The production-style container build passed; the download
+regression caught Nginx dropping the external port, then passed after the exact
+location used a relative redirect. Docker excludes local browser sessions and
+generated reports from its build context. Rerun the browser evidence by
+starting `npm run dev -- --host 127.0.0.1 --port 8083 --strictPort --config
+e2e/journal-vite.config.ts` from `frontend/`, then use
+`JOURNAL_EVIDENCE_BASE_URL=http://localhost:8083 PLAYWRIGHT_HTML_OPEN=never
+PLAYWRIGHT_HTML_OUTPUT_DIR=playwright-report/journal npx playwright test
+e2e/canonical-journal.spec.ts e2e/canonical-journal-context-contract.spec.ts
+--output=test-results/journal --reporter=line,html`. Without the explicit
+server variable the component checks skip and do not constitute acceptance.
+
+**Container identity gate repair:** the existing Dockerfile called the local
+Git-dependent verifier inside an image without Git/history and failed with
+`spawnSync git ENOENT`. `scripts/canonical-source-manifest.json` records SHA-256
+for every pinned source file. Normal verification proves this manifest against
+Git and then checks copied bytes/file set. Docker explicitly uses manifest mode
+before generating the API client, type checking and building; it never skips
+identity checks or copies Git history. The Node regression executes without Git
+and rejects altered, missing and extra source files.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

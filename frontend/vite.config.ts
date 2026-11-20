@@ -9,6 +9,17 @@ const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts'
 export default defineConfig({
     plugins: [
         {
+            name: 'canonical-journal-download',
+            configureServer(server) {
+                server.middlewares.use((request, response, next) => {
+                    if (request.method === 'GET' && request.url?.split('?')[0] === '/learning/journal/export') {
+                        response.writeHead(302, { Location: '/api/v1/learner/journal/export' });
+                        response.end();
+                    } else next();
+                });
+            },
+        },
+        {
             name: 'canonical-world-transport',
             enforce: 'pre',
             resolveId(source, importer) {

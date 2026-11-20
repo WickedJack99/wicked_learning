@@ -6,8 +6,9 @@ const API_TIMEOUT_MILLISECONDS = 10_000;
 
 const sameOriginFetch: typeof fetch = async (input, init) => {
   const timeoutSignal = AbortSignal.timeout(API_TIMEOUT_MILLISECONDS);
-  const signal = init?.signal
-    ? AbortSignal.any([init.signal, timeoutSignal])
+  const requestSignal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
+  const signal = requestSignal
+    ? AbortSignal.any([requestSignal, timeoutSignal])
     : timeoutSignal;
 
   return fetch(input, {

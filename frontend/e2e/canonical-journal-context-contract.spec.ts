@@ -15,7 +15,7 @@ test('Journal list and write responses preserve actual context identities and ow
     try {
         expect((await guest.request.get('/api/v1/learner/journal')).status()).toBe(401);
         const title = `Journal context ${randomUUID()}`;
-        const draft = { title, topic: 'General', subtopic: '', markdown: 'Only this learner may read these words.', preferred_mode: 'edit' };
+        const draft = { title, topic: 'General', subtopic: '', markdown: 'Only this learner may read these words.', preferred_mode: 'edit', request_expert_access: true };
         const created = await owner.request.post('/api/v1/learner/journal/pages', { headers, data: draft });
         expect(created.status()).toBe(200);
         const page = (await created.json()).page;
@@ -43,6 +43,8 @@ test('Journal list and write responses preserve actual context identities and ow
         expect(read.status()).toBe(200);
         const document: components['schemas']['LearnerJournalDocument'] = await read.json();
         expect(document.pagination.total).toBe(1);
+        expect(page.expert_access_requested).toBe(document.allow_expert_access_requests);
+        expect(document.pages[0].expert_access_requested).toBe(document.allow_expert_access_requests);
         expect(document.pages[0].reflection_count).toBe(1);
         const context = document.pages[0].learning_context;
         expect(context).toMatchObject({ activity_id: start.activity_id, node_id: node.id, map_slug: map.slug, node_slug: node.slug });
@@ -51,14 +53,24 @@ test('Journal list and write responses preserve actual context identities and ow
         expect(peerRead.status()).toBe(200);
         expect((await peerRead.json()).pages).toEqual([]);
         expect((await owner.request.patch(`/api/v1/learner/journal/pages/${pageId}`, { data: draft })).status()).toBe(403);
-        const updated = await owner.request.patch(`/api/v1/learner/journal/pages/${pageId}`, { headers, data: { ...draft, markdown: 'Edited private words.' } });
+        const updated = await owner.request.patch(`/api/v1/learner/journal/pages/${pageId}`, { headers, data: { ...draft, markdown: 'Edited private words.', request_expert_access: false } });
         expect(updated.status()).toBe(200);
-        expect((await updated.json()).page.learning_context).toEqual(context);
+        const updatedPage = (await updated.json()).page;
+        expect(updatedPage.learning_context).toEqual(context);
+        expect(updatedPage.expert_access_requested).toBe(false);
         const peerHeaders = await csrf(peer.request, baseURL);
         expect((await peer.request.patch(`/api/v1/learner/journal/pages/${pageId}`, { headers: peerHeaders, data: draft })).status()).toBe(404);
         expect((await peer.request.delete(`/api/v1/learner/journal/pages/${pageId}`, { headers: peerHeaders })).status()).toBe(404);
         const exported = await owner.request.get('/api/v1/learner/journal/export');
         expect(exported.status()).toBe(200);
+        const sourceDownload = await owner.request.get('/learning/journal/export', { maxRedirects: 0 });
+        expect(sourceDownload.status()).toBe(302);
+        expect(sourceDownload.headers().location).toBe('/api/v1/learner/journal/export');
+        const downloaded = await owner.request.get('/learning/journal/export');
+        expect(downloaded.status()).toBe(200);
+        expect(downloaded.headers()['content-disposition']).toContain('attachment');
+        expect(await downloaded.text()).toBe(await exported.text());
+        expect((await guest.request.get('/learning/journal/export')).status()).toBe(401);
         expect(await exported.text()).toContain('Edited private words.');
         expect(await (await peer.request.get('/api/v1/learner/journal/export')).text()).not.toContain(title);
     } finally {

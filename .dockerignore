@@ -4,6 +4,11 @@ backend/target
 bootstrap/ssr
 frontend/dist
 frontend/node_modules
+frontend/.e2e-state
+frontend/test-results
+frontend/playwright-report
+frontend/tsconfig.tsbuildinfo
+test-results
 node_modules
 public/build
 storage
