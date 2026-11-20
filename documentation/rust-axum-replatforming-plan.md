@@ -197,6 +197,38 @@ Use the earlier source-server setup and run all three `canonical-world*.spec.ts`
 files named above with the HTML reporter to retain comparison screenshots.
 No canonical source, migrations, production data or traffic ownership changed.
 
+### Next integration boundary: complete copied learner shell
+
+This is a shared learner-navigation dependency, not World Builder priority.
+The owning source tree is `resources/js/layouts/{app-layout.tsx,app/app-sidebar-layout.tsx}`,
+`components/{app-side-action-bar,learner-surface-navigation,learner-navigation-header,learner-account-controls,user-menu-content,platform-feedback-prompt}.tsx`,
+`features/{items/item-inventory,tools/tool-selection,tools/tool-cursor-overlay}`,
+`features/journal/{journal-overlay.tsx,journal-client.ts,theme.ts}` and
+`features/world/learning-companion-{panel,dialogue}.tsx`. Preserve those whole
+copied modules. Source shared props come from
+`app/Http/Middleware/HandleInertiaRequests.php`.
+
+| Required source behavior | Existing Rust evidence | Concrete remaining contract / adapter |
+| --- | --- | --- |
+| Account name/avatar, media permission, appearance and logout | `/me`, `/session/logout`, `frontend/src/platform/{welcome-inertia,welcome-routes}` and existing Settings account mapping | Reuse the real profile/appearance mapping and typed logout. Verify failure behavior and source `router.flushAll` cleanup; do not fabricate account props. |
+| `auth.items` and `auth.tools`, grant deduplication, tool selection | `/learner/world` inventory; domain `LearnerItem`/`LearnerTool`; source `Learning{Item,Tool}Serializer.php` | Existing rows omit IDs which source inventory/selection uses for equality. Carry real identities consistently across initial reads and grant responses; map media/config fields without substitutes. |
+| `name`, learner palette, branding and cursors | `PublicPresentation`, `persistence/src/public_presentation.rs`; source `theme/presentation.ts` | Branding/cursors reusable. Deployment app name and learner palette have no complete audited projection; add bounded configuration/read support rather than inventing page props. |
+| `menuTheme` remembers the learner's preferred visible map | Source `app/Learning/Queries/LoadCurrentMenuMapTheme.php`, `Services/LearnerMapLocationService.php`; Rust visible World maps | Reuse map visibility and actual background configuration. Preferred-map persistence/selection still needs its source contract; first array element is not a substitute for a saved preference. |
+| Journal initial theme without loading private notes | `persistence/src/learner_journal.rs`, table `application_journal_feedback_policy`, domain default theme | Reuse the existing theme/policy read in bounded shell data. Do not fetch all journal content to paint the header. |
+| On-demand complete Journal overlay | `/learner/journal`, `/learner/journal/pages`, page update/delete/feedback request, `/learner/journal/export`; `features/journal/journal-client.ts` | Reuse existing writes, owner scope, search, pagination and theme. Complete `LearnerJournalLearningContext` activity destination/topic and check-in/revisit real activity identities before mapping all source context links. Preserve export and feedback/revisit errors. |
+| Companion visibility, context, authored dialogue and AI turn | `/learner/companion`, `/learner/companion/turn`; `domain/src/learning_companion.rs` | Map all source fields and 204 absence explicitly. Source `learning-companion-dialogue.tsx` calls direct fetch; provide an exact-module transport seam for that call, never global fetch interception or a replacement dialogue component. |
+| Feedback invitation once per authenticated session | Source `app/Settings/Services/PlatformFeedbackPrompt.php`; Rust `/learner/feedback-prompt-preference` | Rust has persisted enable/decline/14-day snooze but no session-scoped shown decision. Source `shouldShow` claims that flag, so do not mislabel its equivalent as a pure read or emulate a Laravel session. Use native Rust session state and preserve exclusions for Settings/Feedback. |
+| Feedback dismiss, decline and failure recovery | Existing Rust preference PATCH; source `components/platform-feedback-prompt.tsx` | Current Inertia seam only accepts enable/decline and does not call source `onError`. Add the narrowly scoped dismiss and error lifecycle; failed writes must restore the source invitation. |
+
+Execution order: finish shared metadata/identity/session contracts; complete
+Journal and Companion transport/document dependencies; then mount the whole
+copied layout around World and test the complete header, inventory/tool
+selection, Journal, feedback and account journeys at both viewports against
+source and real Rust. Destination route families may retain honest unavailable
+states, but controls within this activated shell cannot be marked complete
+while their operations are absent. A failed required shell projection keeps
+the route unavailable; never hide missing controls by supplying empty data.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the
