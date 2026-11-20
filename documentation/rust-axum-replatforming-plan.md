@@ -662,9 +662,9 @@ The final built-container run passes all four layout checks, including original
 source comparisons; the isolated native-session logout check also passes.
 It verifies that a failed logout preserves the page/session, retry revokes that
 session, Welcome becomes anonymous, and a different existing session remains
-valid. The separate fresh-login setup intermittently returns 429 after an expired
-rate-limit window; this reproduced issue is the next bounded authentication
-repair, not a logout failure. No credential-bearing traces are retained.
+valid. Fresh-login setup exposed a native 429 after an expired rate-limit window;
+the separate verified authentication repair below closes that reproduced
+issue. It was not a logout failure. No credential-bearing traces are retained.
 Reports are retained under `frontend/playwright-report/learner-layout-verified`,
 `learner-layout-final`, `learner-layout-container` and `learner-logout-container`.
 The two built-container ready measurements were 910 ms and 924 ms (local seeded
@@ -1232,9 +1232,51 @@ unchanged.
 
 `frontend/e2e/canonical-login.spec.ts` proves first-click CSRF then session
 submission, request shape, 503 visibility, and bounded submit controls at
-1440×900 and 390×844. This closes the reported retry-dependent login behavior
-for this standalone route; it does not activate registration, recovery, MFA
-or a generic Laravel/Inertia form mechanism.
+1440×900 and 390×844 with mocked session responses. That evidence establishes
+client submission ordering, not real-server first-attempt acceptance after a
+rate-limit window expires. The native expiry defect discovered during whole
+learner-layout verification is covered by the repair below. This original
+activation did not activate registration, recovery, MFA or generic form transport.
+
+### Native login rate-limit expiry repair
+
+The earlier report that the first login says unavailable and the second succeeds
+has a reproduced Rust cause. Both functions in
+`backend/crates/api/src/login_rate_limit.rs` deleted expired records in one
+writable SQL CTE and tried to insert/update the same key in another. The first
+post-expiry reservation returned no row, producing native 429 even though the
+old window had expired; the next request could insert successfully. Isolated
+PostgreSQL regressions for both client-IP and account windows failed before
+the change at exactly that first post-expiry assertion.
+
+The same single-statement reservation now renews the target key atomically in
+`ON CONFLICT`, setting count 1 and a new one-minute deadline when expired.
+Cleanup excludes that target key and still removes other expired keys. Active
+windows keep their original start/deadline and five-attempt burst; unrelated
+active keys remain unchanged. Successful authentication still clears only the
+account limiter, never the client-IP limiter. The outer Governor limit,
+proxy-controlled IP, keyed digests, CSRF and generic credential responses are
+unchanged. No schema, OpenAPI or copied frontend source changed.
+
+Five focused Rust tests pass, including both live-PostgreSQL expiry regressions,
+fresh and renewed five-attempt bounds, cleanup isolation and successful-password
+reset boundaries. The database tests shadow both limiter tables with temporary
+tables on isolated single-connection pools; they never edit real login records.
+Twenty focused API session/authentication regressions, workspace check/fmt,
+canonical-source identity, frontend type verification and generated client drift
+checks also pass.
+
+`frontend/e2e/canonical-login-expiry.spec.ts` exercises the actual local Rust
+service and copied Login. It establishes a real client window, waits for its
+one-minute expiry, then submits once at 1440×900 and 390×844, without retries,
+IP spoofing or limiter resets. Traces are disabled and screenshots are taken
+before filling credentials. It verifies native 200, one request, authenticated
+`/me`, source `/world` navigation and session cleanup. The rebuilt-container run passes all five browser checks (the timed real
+expiry scenario plus four existing canonical Login regressions). Evidence is
+retained in `frontend/playwright-report/login-expiry`; both post-expiry browser
+submissions returned 200 on their single click. The local backend image was
+rebuilt and its normal session endpoint and container health verified; no
+production deployment or rate-limit reset was performed.
 
 ### Canonical Login passkey activation — 17 November 2026
 

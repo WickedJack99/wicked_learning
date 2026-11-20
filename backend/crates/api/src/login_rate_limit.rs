@@ -37,11 +37,14 @@ pub async fn claim_client_ip_login_attempt(
     client_ip: IpAddr,
 ) -> Result<bool, sqlx::Error> {
     let client_key_hash = client_ip_login_key(login_rate_limit_key, client_ip);
+    // Renew this key in the upsert; deleting it in a sibling CTE can make
+    // ON CONFLICT see the expired row and reject the first eligible attempt.
+    // Cleanup only touches other expired keys in this statement.
     let attempt_count = sqlx::query_scalar::<_, i16>(
         r#"
         WITH expired AS (
             DELETE FROM identity_client_ip_login_rate_limits
-            WHERE expires_at <= NOW()
+            WHERE expires_at <= NOW() AND client_key_hash <> $1
         ), claimed AS (
             INSERT INTO identity_client_ip_login_rate_limits (
                 client_key_hash,
@@ -51,10 +54,21 @@ pub async fn claim_client_ip_login_attempt(
             )
             VALUES ($1, 1, NOW(), NOW() + INTERVAL '1 minute')
             ON CONFLICT (client_key_hash) DO UPDATE
-            SET attempt_count = identity_client_ip_login_rate_limits.attempt_count + 1,
+            SET attempt_count = CASE
+                    WHEN identity_client_ip_login_rate_limits.expires_at <= NOW() THEN 1
+                    ELSE identity_client_ip_login_rate_limits.attempt_count + 1
+                END,
+                window_started_at = CASE
+                    WHEN identity_client_ip_login_rate_limits.expires_at <= NOW() THEN NOW()
+                    ELSE identity_client_ip_login_rate_limits.window_started_at
+                END,
+                expires_at = CASE
+                    WHEN identity_client_ip_login_rate_limits.expires_at <= NOW() THEN NOW() + INTERVAL '1 minute'
+                    ELSE identity_client_ip_login_rate_limits.expires_at
+                END,
                 updated_at = NOW()
-            WHERE identity_client_ip_login_rate_limits.attempt_count < $2
-                AND identity_client_ip_login_rate_limits.expires_at > NOW()
+            WHERE identity_client_ip_login_rate_limits.expires_at <= NOW()
+                OR identity_client_ip_login_rate_limits.attempt_count < $2
             RETURNING attempt_count
         )
         SELECT attempt_count FROM claimed
@@ -82,7 +96,7 @@ pub async fn claim_password_login_attempt(
         r#"
         WITH expired AS (
             DELETE FROM identity_password_login_rate_limits
-            WHERE expires_at <= NOW()
+            WHERE expires_at <= NOW() AND account_key_hash <> $1
         ), claimed AS (
             INSERT INTO identity_password_login_rate_limits (
                 account_key_hash,
@@ -92,10 +106,21 @@ pub async fn claim_password_login_attempt(
             )
             VALUES ($1, 1, NOW(), NOW() + INTERVAL '1 minute')
             ON CONFLICT (account_key_hash) DO UPDATE
-            SET attempt_count = identity_password_login_rate_limits.attempt_count + 1,
+            SET attempt_count = CASE
+                    WHEN identity_password_login_rate_limits.expires_at <= NOW() THEN 1
+                    ELSE identity_password_login_rate_limits.attempt_count + 1
+                END,
+                window_started_at = CASE
+                    WHEN identity_password_login_rate_limits.expires_at <= NOW() THEN NOW()
+                    ELSE identity_password_login_rate_limits.window_started_at
+                END,
+                expires_at = CASE
+                    WHEN identity_password_login_rate_limits.expires_at <= NOW() THEN NOW() + INTERVAL '1 minute'
+                    ELSE identity_password_login_rate_limits.expires_at
+                END,
                 updated_at = NOW()
-            WHERE identity_password_login_rate_limits.attempt_count < $2
-                AND identity_password_login_rate_limits.expires_at > NOW()
+            WHERE identity_password_login_rate_limits.expires_at <= NOW()
+                OR identity_password_login_rate_limits.attempt_count < $2
             RETURNING attempt_count
         )
         SELECT attempt_count FROM claimed
@@ -216,5 +241,117 @@ mod tests {
 
         headers.insert("x-real-ip", HeaderValue::from_static("not-an-ip"));
         assert_eq!(trusted_proxy_client_ip(&headers), None);
+    }
+
+    #[tokio::test]
+    #[ignore = "requires TEST_IDENTITY_DATABASE_URL pointing to the migrated local test stack"]
+    async fn expired_client_window_accepts_the_first_attempt_without_relaxing_the_burst() {
+        assert_window_renewal(true).await;
+    }
+
+    #[tokio::test]
+    #[ignore = "requires TEST_IDENTITY_DATABASE_URL pointing to the migrated local test stack"]
+    async fn expired_account_window_accepts_the_first_attempt_without_relaxing_the_burst() {
+        assert_window_renewal(false).await;
+    }
+
+    async fn assert_window_renewal(client_ip: bool) {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(1)
+            .idle_timeout(None)
+            .max_lifetime(None)
+            .connect(&std::env::var("TEST_IDENTITY_DATABASE_URL").expect("test database URL"))
+            .await
+            .unwrap();
+        // Temporary tables shadow real limiters on this single test connection.
+        // No actual session, account or deployed rate-limit record is changed.
+        for table in [
+            "identity_client_ip_login_rate_limits",
+            "identity_password_login_rate_limits",
+        ] {
+            sqlx::query(&format!(
+                "CREATE TEMP TABLE {table} (LIKE public.{table} INCLUDING ALL)"
+            ))
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+        let (table, key_column, key) = if client_ip {
+            (
+                "identity_client_ip_login_rate_limits",
+                "client_key_hash",
+                client_ip_login_key(&[7; 32], IpAddr::V4(Ipv4Addr::LOCALHOST)),
+            )
+        } else {
+            (
+                "identity_password_login_rate_limits",
+                "account_key_hash",
+                password_login_account_key(&[7; 32], "rate-limit@example.test"),
+            )
+        };
+        for _ in 0..5 {
+            assert!(claim_test_attempt(&pool, client_ip).await);
+        }
+        assert!(
+            !claim_test_attempt(&pool, client_ip).await,
+            "the sixth active-window attempt must be rejected"
+        );
+        sqlx::query(&format!("UPDATE {table} SET window_started_at = NOW() - INTERVAL '2 minutes', expires_at = NOW() - INTERVAL '1 minute' WHERE {key_column} = $1"))
+            .bind(&key).execute(&pool).await.unwrap();
+        let expired_other = "a".repeat(64);
+        let active_other = "b".repeat(64);
+        sqlx::query(&format!("INSERT INTO {table} ({key_column}, attempt_count, window_started_at, expires_at) VALUES ($1, 5, NOW() - INTERVAL '2 minutes', NOW() - INTERVAL '1 minute'), ($2, 5, NOW(), NOW() + INTERVAL '1 minute')"))
+            .bind(&expired_other).bind(&active_other).execute(&pool).await.unwrap();
+        assert!(
+            claim_test_attempt(&pool, client_ip).await,
+            "the first attempt after expiry must start a new window"
+        );
+        let renewed: (i16, bool) = sqlx::query_as(&format!("SELECT attempt_count, expires_at > NOW() AND window_started_at > NOW() - INTERVAL '5 seconds' FROM {table} WHERE {key_column} = $1"))
+            .bind(&key).fetch_one(&pool).await.unwrap();
+        assert_eq!(renewed, (1, true));
+        let expired_remaining: i64 = sqlx::query_scalar(&format!(
+            "SELECT COUNT(*) FROM {table} WHERE {key_column} = $1"
+        ))
+        .bind(&expired_other)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(expired_remaining, 0);
+        let active_count: i16 = sqlx::query_scalar(&format!(
+            "SELECT attempt_count FROM {table} WHERE {key_column} = $1"
+        ))
+        .bind(&active_other)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            active_count, 5,
+            "cleanup must not reset another active limit"
+        );
+        for _ in 0..4 {
+            assert!(claim_test_attempt(&pool, client_ip).await);
+        }
+        assert!(!claim_test_attempt(&pool, client_ip).await);
+        super::clear_password_login_attempts(&pool, &[7; 32], "rate-limit@example.test")
+            .await
+            .unwrap();
+        assert_eq!(
+            claim_test_attempt(&pool, client_ip).await,
+            !client_ip,
+            "successful passwords clear account attempts but never the client limit"
+        );
+        pool.close().await;
+    }
+
+    async fn claim_test_attempt(pool: &sqlx::PgPool, client_ip: bool) -> bool {
+        if client_ip {
+            super::claim_client_ip_login_attempt(pool, &[7; 32], IpAddr::V4(Ipv4Addr::LOCALHOST))
+                .await
+                .unwrap()
+        } else {
+            super::claim_password_login_attempt(pool, &[7; 32], "rate-limit@example.test")
+                .await
+                .unwrap()
+        }
     }
 }
