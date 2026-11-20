@@ -95,6 +95,51 @@ for (const { name, viewport } of viewports) {
             expect(legacyRequests).toEqual([]);
         });
 
+        test('World bootstraps the authenticated source appearance without overwriting the preference', async ({ page }) => {
+            await routeWorldReads(page);
+            await page.addInitScript(() => {
+                localStorage.setItem('theme-preference-unauthenticated', 'light');
+            });
+            await page.route('**/api/v1/me', (route) => route.fulfill({ json: { ...currentUser(), appearance: 'dark' } }));
+            const preferenceWrites: string[] = [];
+            page.on('request', (request) => {
+                if (request.method() !== 'GET' && /appearance/.test(request.url())) preferenceWrites.push(request.url());
+            });
+            await page.goto('/world');
+            await expect(page.getByRole('heading', { name: 'Orientation map' })).toBeVisible();
+            await expect(page.locator('html')).toHaveClass(/dark/);
+            await expect(page.locator('[data-world-appearance]')).toHaveAttribute('data-world-appearance', 'dark');
+            expect(await page.evaluate(() => localStorage.getItem('appearance'))).toBe('dark');
+            expect(await page.evaluate(() => window.__INITIAL_AUTHENTICATED__)).toBe(true);
+            await page.reload();
+            await expect(page.locator('[data-world-appearance]')).toHaveAttribute('data-world-appearance', 'dark');
+            expect(preferenceWrites).toEqual([]);
+        });
+
+        test('World distinguishes contracted emptiness from failed dependencies and unexpected 404s', async ({ page }) => {
+            for (const status of [401, 403, 503]) {
+                await routeWorldReads(page);
+                await page.route('**/api/v1/me', (route) => route.fulfill({ status, json: { code: 'failure' } }));
+                await page.goto('/world');
+                await expect(page.getByText('World is unavailable.', { exact: true })).toBeVisible();
+                await expect(page.getByText(status === 401
+                    ? 'Sign in is required before the learner World can be opened.'
+                    : status === 403
+                        ? 'The learner World is not available for this account.'
+                        : 'The learner World projection is currently unavailable.', { exact: true })).toBeVisible();
+                await expect(page.getByText('No learning world has been seeded yet.')).toHaveCount(0);
+            }
+            await routeWorldReads(page, { world: (route) => route.fulfill({ status: 404 }) });
+            await page.goto('/world');
+            await expect(page.getByText('World is unavailable.', { exact: true })).toBeVisible();
+            await routeWorldReads(page, { world: (route) => route.fulfill({ status: 404, json: {
+                code: 'not_found', title: 'The requested resource was not found.',
+            } }) });
+            await page.goto('/world');
+            await expect(page.getByText('No learning world has been seeded yet.')).toBeVisible();
+            expect(await page.evaluate(() => window.__INITIAL_AUTHENTICATED__)).toBe(true);
+        });
+
         test('copied group commands preserve UUIDs, CSRF and server-owned message/help/vote state', async ({ page }) => {
             await routeWorldReads(page);
             let group = groupFixture(1);
@@ -297,7 +342,7 @@ test('the copied World page preserves loading, empty, permission, and API failur
     await expect(page.getByRole('heading', { name: 'Orientation map' })).toBeVisible();
 
     await routeWorldReads(page, {
-        world: (route) => route.fulfill({ status: 404 }),
+        world: (route) => route.fulfill({ status: 404, json: { code: 'not_found', title: 'The requested resource was not found.' } }),
     });
     await page.goto('/world');
     await expect(page.getByText('No learning world has been seeded yet.')).toBeVisible();

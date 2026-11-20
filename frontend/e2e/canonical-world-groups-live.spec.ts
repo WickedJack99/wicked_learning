@@ -55,11 +55,21 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
             const page = await learner.newPage();
             const legacyRequests: string[] = [];
             const browserErrors: string[] = [];
+            const appearanceWrites: string[] = [];
+            const learnerHeaders = await csrfHeaders(learner.request);
+            const darkPreference = await learner.request.patch('/api/v1/learner/appearance', {
+                headers: learnerHeaders, data: { appearance: 'dark' },
+            });
+            expect(darkPreference.status()).toBe(200);
+            await page.addInitScript(() => localStorage.setItem('theme-preference-unauthenticated', 'light'));
             page.on('pageerror', (error) => browserErrors.push(error.message));
             page.on('request', (request) => {
                 if (new URL(request.url()).pathname.startsWith('/learning/groups')) legacyRequests.push(request.url());
+                if (request.method() !== 'GET' && request.url().endsWith('/learner/appearance')) appearanceWrites.push(request.url());
             });
             await page.goto('/world');
+            await expect(page.locator('html')).toHaveClass(/dark/);
+            await expect(page.locator('[data-world-appearance]')).toHaveAttribute('data-world-appearance', 'dark');
             await page.getByRole('button', { name: 'Open groups' }).click();
             await expect(page.getByRole('heading', { name: `Alpha ${marker}` })).toBeVisible();
             await bounded(page.getByRole('button', { name: 'Next items' }), viewport);
@@ -102,6 +112,15 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
             await expect(page.getByRole('button', { name: 'Admin view allowed' })).toBeDisabled();
             await bounded(page.getByPlaceholder('Message the group'), viewport);
             await testInfo.attach('canonical-world-groups-rust', { body: await page.screenshot(), contentType: 'image/png' });
+            const lightPreference = await learner.request.patch('/api/v1/learner/appearance', {
+                headers: learnerHeaders, data: { appearance: 'light' },
+            });
+            expect(lightPreference.status()).toBe(200);
+            await page.reload();
+            await expect(page.locator('[data-world-appearance]')).toHaveAttribute('data-world-appearance', 'light');
+            await expect(page.locator('html')).not.toHaveClass(/dark/);
+            expect((await (await learner.request.get('/api/v1/me')).json()).appearance).toBe('light');
+            expect(appearanceWrites).toEqual([]);
             expect(legacyRequests).toEqual([]);
             expect(browserErrors).toEqual([]);
         } finally {

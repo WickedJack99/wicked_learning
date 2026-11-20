@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; group subworkflow verified below | Verify map/activity identity, progress, media, appearance, empty/error semantics, search, bookmarks, tools, route lifecycle and playback. |
+| Learner World and playback | **Incomplete**; group transport and authenticated bootstrap verified below | Complete copied shared layout, anonymous access, location persistence, map/activity identity, progress, media, search, bookmarks, tools, route lifecycle and playback. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -56,8 +56,10 @@ the draft for 401/403/404/503. Source comparison mounts the whole pinned-main
 files against the pinned SHA, compare text and panel/control bounds before and
 after pagination, and attach source/Rust screenshots at 1440×900 and 390×844.
 This is component-level light-appearance evidence; full World/player route
-parity remains open. Live screenshot inspection also exposed inconsistent
-World appearance/root dark-class initialization, which is the next repair.
+parity remains open. Follow-up inspection traced the live screenshot's dark
+panel colors to authored light-variant map configuration; these colors must
+be preserved. The separate missing authenticated appearance bootstrap is
+covered by the next repair below.
 
 `frontend/e2e/canonical-world-groups-live.spec.ts` uses real local Rust APIs and
 PostgreSQL, without response mocks: two members, two paginated groups, message
@@ -78,6 +80,58 @@ The ignored `frontend/playwright-report/` retains the screenshot attachments.
 The source comparison explicitly requires that evidence server; a skipped
 comparison is not parity evidence. Existing unrelated worktree edits remain
 outside this slice.
+
+### World bootstrap, empty and dependency state repair
+
+Source evidence: pinned `resources/views/app.blade.php` initializes auth and
+the authoritative server appearance before the React tree; copied
+`hooks/use-appearance.tsx` and `theme/appearance.ts` own DOM, storage and cookie
+updates. `layouts/app/app-sidebar-layout.tsx` normally synchronizes the page's
+appearance. The standalone World loader omitted the authenticated bootstrap;
+its source layout is also still absent and remains a separate acceptance gap.
+The platform adapter must initialize the existing source theme helper from the
+successful `/api/v1/me` read before mounting World, without changing a stored
+server preference merely by opening the route.
+
+`LearningWorldController::show`, `LoadLearningWorld::forMapView` and copied
+`pages/world.tsx` render the source empty view for a signed-in learner with no
+visible map. Existing OpenAPI `getLearnerWorld` explicitly defines its 404
+`not_found` response as no visible map, matching the Rust repository's `None`.
+Reuse this contract; no replacement endpoint is required. Only that contracted
+problem response may become the empty view. A malformed/unexpected 404,
+authentication/authorization failure or failed companion read must remain
+unavailable. Empty props must retain the real current user and real group read,
+not a blank subject identifier or fabricated group page.
+
+**Verified:** the new regressions first failed at both viewports on ignored
+server appearance and incorrect dependency failure copy. `world-route.tsx`
+now uses the successful current-user appearance with the copied initializer
+before mounting, maps the failed dependency's actual status, and accepts only
+the documented `not_found` response as empty. Empty props retain real subject
+and group data. No new Rust contract was needed.
+
+Validation: canonical source identity, production frontend type/build,
+generated-client drift check, two focused Rust `learner_world` tests, and 21
+browser tests across canonical World, real Rust groups and existing Appearance
+Settings passed. The live tests set actual dark/light server preferences at
+both viewports and prove reopening World reads them without an appearance
+write. The combined HTML report retains source/Rust group comparisons and
+live screenshots. This does not complete World shared layout, anonymous
+access, location persistence, map/activity identity or playback.
+
+**Next complete integration boundary:** restore the copied shared World layout
+(`layouts/app-layout.tsx`, `layouts/app/app-sidebar-layout.tsx`) with its whole
+`AppSideActionBar` and `LearnerSurfaceNavigation` trees. Before mounting, map
+all consumed authenticated user, inventory/tool, public presentation, menu
+theme, Companion, feedback prompt and Journal props/requests to existing Rust
+contracts. The current bare World page omits these source controls. In
+parallel with that contract inventory, replace the current document-local
+map/node/activity counters: source `active-activity.ts` persists their values
+into local storage and playback URLs, so the old claim that they are purely
+ephemeral is false. `world-projection.ts` also derives activities only from
+start routes; this cannot prove all-activity completion badges or fallback
+start behavior. Those contracts must be made complete before playback is
+activated; do not fabricate IDs, activities, or missing layout props.
 
 ## Status and purpose
 

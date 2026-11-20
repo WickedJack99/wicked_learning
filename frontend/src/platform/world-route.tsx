@@ -3,10 +3,13 @@ import type { ComponentType } from 'react';
 
 import AlertError from '@/components/alert-error';
 import { Spinner } from '@/components/ui/spinner';
+import { initializeTheme } from '@/hooks/use-appearance';
 
 import { apiClient } from './api/client';
+import type { components } from './api/schema';
 import { SourcePageProjectionProvider } from './page-props';
 import { toWorldPageProps, type WorldPageProps } from './world-projection';
+import { toSourceGroupPage } from './world-groups';
 
 const worldModules = import.meta.glob<{
     default: ComponentType<Record<string, unknown>>;
@@ -21,7 +24,6 @@ const SourceWorld = lazy(loadWorld);
 
 type WorldLoadState =
     | { kind: 'loading' }
-    | { kind: 'empty'; appearance: 'dark' | 'light'; props: WorldPageProps }
     | { kind: 'ready'; props: WorldPageProps }
     | { kind: 'unavailable'; message: string };
 
@@ -53,19 +55,22 @@ export function WorldRoute() {
                 !soundPreferences.response.ok ||
                 !soundPreferences.data
             ) {
+                const failedDependency = [groups, currentUser, translations, soundPreferences]
+                    .find((result) => !result.response.ok || !result.data);
                 setState({
                     kind: 'unavailable',
-                    message: unavailableMessageFor(world.response.status),
+                    message: unavailableMessageFor(failedDependency?.response.status ?? 503),
                 });
                 return;
             }
 
-            if (world.response.status === 404) {
+            if (world.response.status === 404 && world.error?.code === 'not_found') {
+                initializeWorldAppearance(currentUser.data.appearance);
                 setState({
-                    kind: 'empty',
-                    appearance: currentUser.data.appearance,
+                    kind: 'ready',
                     props: emptyWorldProps(
-                        currentUser.data.appearance,
+                        currentUser.data,
+                        groups.data,
                         translations.data,
                         soundPreferences.data,
                     ),
@@ -81,6 +86,7 @@ export function WorldRoute() {
                 return;
             }
 
+            initializeWorldAppearance(currentUser.data.appearance);
             setState({
                 kind: 'ready',
                 props: toWorldPageProps(
@@ -159,7 +165,8 @@ function MountedWorld({
 }
 
 function emptyWorldProps(
-    appearance: 'dark' | 'light',
+    currentUser: components['schemas']['CurrentUser'],
+    groups: components['schemas']['LearnerGroupPage'],
     translations: { locale: string; translations: Record<string, string> },
     soundPreferences: {
         ambience_volume: number;
@@ -167,12 +174,13 @@ function emptyWorldProps(
         muted: boolean;
     },
 ): WorldPageProps {
+    const sourceGroups = toSourceGroupPage(groups);
     return {
-        appearance,
-        auth: { user: { subjectId: '' } },
+        appearance: currentUser.appearance,
+        auth: { user: { subjectId: currentUser.subject_id } },
         bookmarkedNodeIds: [],
-        groups: [],
-        groupsPagination: { currentPage: 1, lastPage: 1, perPage: 1, total: 0 },
+        groups: sourceGroups.groups,
+        groupsPagination: sourceGroups.pagination,
         localization: translations,
         progress: { activities: {} },
         soundPreferences: {
@@ -182,6 +190,14 @@ function emptyWorldProps(
         },
         world: null,
     };
+}
+
+function initializeWorldAppearance(appearance: components['schemas']['CurrentUser']['appearance']) {
+    // Replaces the authenticated Blade bootstrap, using the exact copied
+    // theme initializer. Server preference wins over anonymous browser state.
+    window.__INITIAL_AUTHENTICATED__ = true;
+    window.__INITIAL_APPEARANCE__ = appearance;
+    initializeTheme();
 }
 
 function unavailableMessageFor(status: number): string {
