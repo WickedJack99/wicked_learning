@@ -807,6 +807,78 @@ resources were changed. World remains **Incomplete**.
 
 
 
+### World evaluated availability prerequisite
+
+The tool-action audit found that the existing native
+`POST /learner/maps/{map_slug}/nodes/{node_slug}/use-tool` and
+`LearnerNodeToolResult` are reusable, but the previous World reader only evaluated
+`node.state` and passed authored reveal/unlock configuration directly to the
+copied UI. Source `LearningNodeSerializer::{baseNode,concealedNode}` and
+`NodeUnlockService::{unlockState,requirements,transformRequirement}` instead
+provide evaluated reveal flags, safe requirement labels and own-user satisfaction;
+hidden nodes have the fixed “Undiscovered place” label, no description or activity
+outline. The copied `features/world/world-map.tsx::canUseToolOnNode` and
+`node-detail-drawer.tsx` depend on those fields. Connecting the writer alone
+would leave the original controls unusable.
+
+The existing authenticated World read now includes server-evaluated source
+availability presentation, reusing the existing batched principal facts and
+at most three scoped catalog-label queries for the complete World. It preserves
+the source nested AND/OR requirement shape, node destinations, tool/item/role
+labels and schedule times, and keeps hidden activities absent. Projection
+before/after native discovery and unlock, isolation, nested requirements and
+copied rendering are verified below. Source answer-event availability remains a separately recorded Rust
+model gap. Tool command transport and source `router.reload({only:['world']})`
+activation follow this prerequisite; a full document reload is not equivalent
+because it discards source local interaction state.
+
+| Source contract | Rust / adapter evidence | Boundary |
+| --- | --- | --- |
+| Concealed node | `domain/src/learner_availability_presentation.rs`; `persistence/src/learner_world.rs::apply_learner_node_states` | Fixed source title and empty native description; `world-projection.ts` maps the latter to source null. Only concealment visual flags remain. Existing graph filter keeps hidden activities and starts absent. |
+| Evaluated unlock flags and nested requirements | Same domain module; existing `learner_node_availability.rs` facts; `availability_labels` batches catalog labels | Own-user tool/item/completion/manual facts, AND/OR structure, source labels and destinations; no authored rule tree is passed as evaluated UI data. Missing referenced labels remain nullable. |
+| Timed tool unlock | Existing `learner_availability.rs::unlocks_node` and native `learner_node_tool.rs` writer | A configured future schedule must remain an unsatisfied condition. A regression reproduced the old early unlock after tool use; the fixed rule includes schedule presence rather than only elapsed schedules. |
+| Typed World read | OpenAPI `LearnerWorldPresentation`, `LearnerWorldMap`, `LearnerWorldNode`, `LearnerNodeUnlockPresentation`, `LearnerNodeUnlockRequirement`; generated client | Public read schemas stay separate. This is authenticated World evidence, not anonymous-route acceptance. |
+
+Source navigation limitation observed during browser comparison:
+`pages/world.tsx::openNode` and the focused-node effect reject every locked
+node, although `ActivityPanel::LockedActivityState` can display requirements.
+Both original and copied World preserve that refusal. Complete drawer evidence
+uses `e2e/canonical-availability-source.{html,tsx}` to mount the whole original
+and whole copied `NodeDetailDrawer` and shared layout, with no component
+fragments. This verifies the existing requirement rendering at both viewports;
+it does **not** claim the World can navigate to that panel. Its narrow header
+obstruction also remains visible. These source defects are not waived.
+
+The native fixture uses real author map/node/catalog commands and scoped local
+SQL only to publish its newly created map/nodes and grant its newly created
+tool; it does not claim author publication or playback grant UI acceptance.
+Native tool commands then prove discovery, timed lock retention and principal
+isolation, with CSRF/ownership rejection. Cleanup removes only those disposable
+records and restores the prior learner map preference.
+
+Still open after this prerequisite: tool-action adapter and partial World
+reload, answer-event availability, and source informational visible-state
+preservation (the existing Rust availability enum currently normalizes active,
+recommended, hinted and completed presentation to available). World-family
+acceptance remains **Incomplete**.
+
+Verification: 45 combined browser checks passed on the rebuilt native stack,
+covering native availability, source/canonical drawer evidence, identity,
+bookmarks, search, error states and canonical resolver imports. The isolated
+concealed-prop check additionally covers the native-empty → source-null seam.
+All 13 focused domain availability checks, three World persistence checks
+(including PostgreSQL-backed discovery/tool-use isolation), the application
+tool-target check and API World/shell authentication check passed. Rust
+format/workspace check, frontend canonical identity (299 JS files plus CSS),
+production type/build and generated API drift checks passed. Native fixture
+World reads measured 37,606 bytes and 12–15 ms in two local observations; those
+are fixture-scale values, not production latency claims. Browser evidence is
+in `frontend/playwright-report/world-availability-verified` and the separate
+`world-availability-source` / `world-availability-native` reports. Canonical
+source bytes, migrations, production resources and unrelated worktree files
+remain unchanged.
+
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

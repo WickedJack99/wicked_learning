@@ -7,7 +7,8 @@ use uuid::Uuid;
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_availability::{
-        LearnerNodeAvailabilityConfig, LearnerNodeState, learner_node_state, schedule_facts,
+        LearnerNodeAvailabilityConfig, LearnerNodeAvailabilityFacts, LearnerNodeState,
+        learner_node_state, schedule_facts,
     },
 };
 
@@ -97,6 +98,19 @@ impl PostgresLearnerNodeAvailability {
         state: &str,
         visual_config: &Value,
     ) -> LearnerNodeState {
+        let facts = self.facts_for_node(node_id, visual_config);
+
+        learner_node_state(
+            authored_node_state(state),
+            &LearnerNodeAvailabilityConfig::from_visual_config(visual_config),
+            &facts,
+        )
+    }
+    pub(crate) fn facts_for_node(
+        &self,
+        node_id: Uuid,
+        visual_config: &Value,
+    ) -> LearnerNodeAvailabilityFacts {
         let mut facts = schedule_facts(visual_config, OffsetDateTime::now_utc());
         facts.completed_node_references = self.completed_node_references.clone();
         facts.has_discovery = self.discovered_node_ids.contains(&node_id);
@@ -105,11 +119,7 @@ impl PostgresLearnerNodeAvailability {
         facts.owned_item_references = self.owned_item_references.clone();
         facts.role_slugs = self.role_slugs.clone();
 
-        learner_node_state(
-            authored_node_state(state),
-            &LearnerNodeAvailabilityConfig::from_visual_config(visual_config),
-            &facts,
-        )
+        facts
     }
 }
 

@@ -7,6 +7,7 @@ pub mod ai;
 pub mod authoring;
 pub mod identity_access;
 pub mod learner_availability;
+pub mod learner_availability_presentation;
 pub mod learner_state;
 pub mod learning_companion;
 pub mod organization;

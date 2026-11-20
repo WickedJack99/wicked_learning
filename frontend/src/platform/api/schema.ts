@@ -9910,9 +9910,56 @@ export interface components {
             /** Format: uuid */
             play_run_id: string | null;
         };
+        LearnerWorldNode: components["schemas"]["PublicNode"] & {
+            /** @description Source-evaluated learner presentation. Hidden nodes contain only hideEmptySpace and concealment flags; authored unlock rules are replaced by own-user evaluated requirements. Hidden descriptions are empty and titles are Undiscovered place. */
+            visual_config?: {
+                reveal: {
+                    isDiscoverable: boolean;
+                    isDiscovered: boolean;
+                } & {
+                    [key: string]: unknown;
+                };
+                unlock?: components["schemas"]["LearnerNodeUnlockPresentation"];
+            } & {
+                [key: string]: unknown;
+            };
+        };
+        LearnerWorldMap: components["schemas"]["PublicMap"] & {
+            nodes?: components["schemas"]["LearnerWorldNode"][];
+        };
+        LearnerWorldPresentation: components["schemas"]["PublicWorld"] & {
+            maps?: components["schemas"]["LearnerWorldMap"][];
+        };
+        LearnerNodeUnlockPresentation: {
+            isUnlockable: boolean;
+            isUnlocked: boolean;
+            isManuallyUnlocked: boolean;
+            isItemUnlockable: boolean;
+            isToolUnlockable: boolean;
+            itemOwned: boolean;
+            toolUsed: boolean;
+            requirements: components["schemas"]["LearnerNodeUnlockRequirement"];
+        };
+        LearnerNodeUnlockRequirement: {
+            /** @enum {string} */
+            type: "group" | "node_completed" | "tool_used" | "role_has" | "item_owned" | "time_after";
+            satisfied: boolean;
+            /** @enum {string} */
+            operator?: "and" | "or";
+            requirements?: components["schemas"]["LearnerNodeUnlockRequirement"][];
+            mapSlug?: string | null;
+            nodeSlug?: string | null;
+            nodeTitle?: string | null;
+            toolTitle?: string | null;
+            itemTitle?: string | null;
+            roleSlug?: string | null;
+            roleTitle?: string | null;
+            /** Format: date-time */
+            availableAt?: string | null;
+        };
         LearnerWorldSnapshot: {
             graph: components["schemas"]["LearnerWorldGraph"];
-            world: components["schemas"]["PublicWorld"];
+            world: components["schemas"]["LearnerWorldPresentation"];
             items: components["schemas"]["LearnerItem"][];
             tools: components["schemas"]["LearnerTool"][];
             bookmarked_nodes: components["schemas"]["LearnerBookmark"][];

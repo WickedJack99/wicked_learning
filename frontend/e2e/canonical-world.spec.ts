@@ -318,6 +318,56 @@ for (const { name, viewport } of viewports) {
             await source.close();
         });
 
+        test('evaluated unlock drawer matches source while locked World selection remains unavailable', async ({ page, context }, info) => {
+            test.skip(!process.env.SOURCE_EVIDENCE_BASE_URL, 'Requires the original-source evidence server.');
+            const visual = {
+                reveal: { isDiscoverable: false, isDiscovered: true },
+                unlock: { isUnlockable: true, isUnlocked: false, isManuallyUnlocked: false, isItemUnlockable: true, isToolUnlockable: true, itemOwned: true, toolUsed: false,
+                    requirements: { type: 'group', operator: 'and', satisfied: false, requirements: [
+                        { type: 'tool_used', toolTitle: 'Source lens', satisfied: false },
+                        { type: 'group', operator: 'or', satisfied: true, requirements: [
+                            { type: 'node_completed', nodeTitle: 'First path', mapSlug: 'first-path', nodeSlug: 'first-place', satisfied: false },
+                            { type: 'role_has', roleTitle: 'Learner', roleSlug: 'learner', satisfied: true },
+                        ] },
+                        { type: 'item_owned', itemTitle: 'Source key', satisfied: true },
+                        { type: 'time_after', availableAt: '2099-01-01T00:00:00Z', satisfied: false },
+                    ] },
+                },
+            };
+            const snapshot = worldSnapshot();
+            snapshot.world.maps[0].nodes[0].state = 'locked';
+            snapshot.world.maps[0].nodes[0].visual_config = visual;
+            const shell = await routeWorldReads(page, { world: (route) => route.fulfill({ json: snapshot }) });
+            const source = await context.newPage();
+            const props = { ...sourceWorldProps(), name: shell.name, progress: { activities: {} } };
+            props.world.maps[0].nodes[0].state = 'locked';
+            props.world.maps[0].nodes[0].visualConfig = visual;
+            await source.addInitScript((props) => { window.sourceWorldEvidence = props; window.sourceWorldEvidenceUrl = '/world?map=orientation-map'; }, props);
+            await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-learner-layout-source.html`);
+            await page.goto('/world?map=orientation-map');
+            for (const target of [source, page]) {
+                await target.getByRole('button', { name: 'First place', exact: true }).click();
+                await expect(target.getByText('Locked for now', { exact: true })).toHaveCount(0);
+            }
+            await page.addInitScript((props) => { window.sourceWorldEvidence = props; }, props);
+            await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-availability-source.html?original`);
+            await page.goto(`${process.env.AVAILABILITY_EVIDENCE_BASE_URL ?? 'http://localhost:8083'}/e2e/canonical-availability-source.html`);
+            for (const target of [source, page]) {
+                for (const text of ['Locked for now', 'Meet all of these', 'Meet one of these', 'Use Source lens here', 'Have the Learner role', 'Have Source key in your inventory']) {
+                    await expect(target.getByText(text, { exact: true })).toBeVisible();
+                }
+                const prerequisite = target.getByRole('link', { name: 'Complete First path', exact: true });
+                await expect(prerequisite).toHaveAttribute('href', '/world?map=first-path&focused=first-place');
+                await expectBounded(prerequisite, viewport);
+            }
+            const selector = 'div.rounded-lg.border-dashed';
+            expect(await page.locator(selector).innerText()).toBe(await source.locator(selector).innerText());
+            expect(await page.locator(selector).boundingBox()).toEqual(await source.locator(selector).boundingBox());
+            await info.attach('main-unlock-requirements', { body: await source.screenshot(), contentType: 'image/png' });
+            await info.attach('rust-unlock-requirements', { body: await page.screenshot(), contentType: 'image/png' });
+            await source.close();
+        });
+
         test('incomplete identity contracts fail explicitly instead of manufacturing record IDs', async ({ page }) => {
             const snapshot = worldSnapshot();
             snapshot.graph.maps[0].nodes = [];
@@ -865,6 +915,19 @@ test('World projection keeps identities across ordering and scopes same-slug pro
     expect(after.progress).toEqual(before.progress);
     expect(after.bookmarkedNodeIds).toEqual(before.bookmarkedNodeIds);
     expect((after.world as { maps: unknown[] }).maps).toEqual([...beforeMaps].reverse());
+});
+
+
+test('concealed World props preserve opaque identity and the source null description', () => {
+    const snapshot = worldSnapshot();
+    const node = snapshot.world.maps[0].nodes[0];
+    Object.assign(node, { state: 'hidden', title: 'Undiscovered place', description: '', visual_config: { hideEmptySpace: true, reveal: { isDiscoverable: true, isDiscovered: false } } });
+    Object.assign(snapshot.graph.maps[0].nodes[0], { activities: [], starts: [], start_activity_id: null });
+    snapshot.start_routes = [];
+    const props = toWorldPageProps(snapshot, { groups: [], pagination: { current_page: 1, last_page: 1, per_page: 1, total: 0 } },
+        currentUser(), { locale: 'en', translations: {} }, { ambience_volume: 100, effects_volume: 100, muted: false });
+    expect(props.world.maps[0].nodes[0]).toMatchObject({ id: worldIds.node, title: 'Undiscovered place', description: null,
+        activities: [], startRoutes: [], startActivityId: null, visualConfig: node.visual_config });
 });
 
 

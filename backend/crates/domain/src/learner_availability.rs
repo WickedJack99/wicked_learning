@@ -257,13 +257,16 @@ fn unlocks_node(
         Some(None) => false,
         None => evaluate_group(
             unlock.legacy_top_operator,
-            &legacy_rules(unlock, facts.is_unlocked_by_schedule),
+            &legacy_rules(unlock, facts.has_unlock_schedule),
             facts,
         ),
     }
 }
 
-fn legacy_rules(unlock: &UnlockConfiguration, has_unlock_schedule: bool) -> Vec<UnlockRule> {
+pub(crate) fn legacy_rules(
+    unlock: &UnlockConfiguration,
+    has_unlock_schedule: bool,
+) -> Vec<UnlockRule> {
     let mut rules = unlock
         .legacy_node_references
         .iter()
@@ -291,7 +294,7 @@ fn legacy_rules(unlock: &UnlockConfiguration, has_unlock_schedule: bool) -> Vec<
     rules
 }
 
-fn evaluate_rule(rule: &UnlockRule, facts: &LearnerNodeAvailabilityFacts) -> bool {
+pub(crate) fn evaluate_rule(rule: &UnlockRule, facts: &LearnerNodeAvailabilityFacts) -> bool {
     match rule {
         UnlockRule::Group { operator, rules } => evaluate_group(*operator, rules, facts),
         UnlockRule::ItemOwned { item_reference } => {

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use serde_json::Value;
+use serde_json::{Value, json};
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::learner_world::{
@@ -19,9 +19,16 @@ use wicked_learning_domain::{
 
 use crate::learner_media::learner_media_url;
 use crate::learner_node_availability::PostgresLearnerNodeAvailability;
+use crate::learner_node_availability::authored_node_state;
 use crate::learner_paths::{learning_areas, learning_intent, time_guide_minutes};
 use crate::learner_route_run::ROUTE_START_ACTIVITY_TYPES;
 use crate::public_world::load_first_visible as load_visible_world;
+use wicked_learning_domain::learner_availability::{
+    LearnerNodeAvailabilityConfig, LearnerNodeState, LearnerNodeToolAction,
+};
+use wicked_learning_domain::learner_availability_presentation::{
+    AvailabilityLabels, visual_config as evaluated_visual_config,
+};
 
 pub struct PostgresLearnerWorldRepository<'pool> {
     pool: &'pool PgPool,
@@ -166,7 +173,8 @@ async fn load_first_visible(
         return Ok(None);
     };
     let principal_id = availability.principal_id();
-    let playable_nodes = apply_learner_node_states(&mut loaded_world.world, &availability);
+    let labels = availability_labels(pool, &loaded_world.world).await?;
+    let playable_nodes = apply_learner_node_states(&mut loaded_world.world, &availability, &labels);
     let (items, tools) = load_inventory(pool, principal_id).await?;
 
     let bookmarked_nodes = sqlx::query_as::<_, BookmarkRow>(
@@ -460,15 +468,93 @@ fn learner_desk_context(row: &ActivityStartRow) -> LearnerActivityStartDeskConte
     }
 }
 
+/// At most three catalog reads for the complete World, never per-node queries.
+async fn availability_labels(
+    pool: &PgPool,
+    world: &wicked_learning_domain::world_content::PublicWorld,
+) -> Result<AvailabilityLabels, sqlx::Error> {
+    let mut labels = AvailabilityLabels::default();
+    let mut tool_refs = HashSet::new();
+    let mut item_refs = HashSet::new();
+    let mut role_refs = HashSet::new();
+    for map in &world.maps {
+        for node in &map.nodes {
+            labels.nodes.insert(
+                node.id.to_string(),
+                json!({"mapSlug":map.slug,"nodeSlug":node.slug,"nodeTitle":node.title}),
+            );
+            let config = LearnerNodeAvailabilityConfig::from_visual_config(&node.visual_config);
+            if let Some(action) = config.tool_action(authored_node_state(&node.state)) {
+                match action {
+                    LearnerNodeToolAction::Reveal { tool_reference }
+                    | LearnerNodeToolAction::Unlock { tool_reference } => {
+                        tool_refs.insert(tool_reference);
+                    }
+                }
+            }
+            if let Some(reference) = config.unlock.legacy_item_reference {
+                item_refs.insert(reference);
+            }
+            if let Some(reference) = config.unlock.legacy_role_slug {
+                role_refs.insert(reference);
+            }
+        }
+    }
+    if !tool_refs.is_empty() {
+        labels.tools = sqlx::query_as::<_, (String, String)>(
+            "SELECT slug, title FROM learning_tools WHERE slug = ANY($1)",
+        )
+        .bind(tool_refs.into_iter().collect::<Vec<_>>())
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .collect();
+    }
+    if !item_refs.is_empty() {
+        labels.items = sqlx::query_as::<_, (String, String)>(
+            "SELECT slug, title FROM learning_items WHERE slug = ANY($1)",
+        )
+        .bind(item_refs.into_iter().collect::<Vec<_>>())
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .collect();
+    }
+    if !role_refs.is_empty() {
+        labels.roles = sqlx::query_as::<_, (String, String)>(
+            "SELECT role_key, name FROM application_roles WHERE role_key = ANY($1)",
+        )
+        .bind(role_refs.into_iter().collect::<Vec<_>>())
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .collect();
+    }
+    Ok(labels)
+}
+
 fn apply_learner_node_states(
     world: &mut wicked_learning_domain::world_content::PublicWorld,
     availability: &PostgresLearnerNodeAvailability,
+    labels: &AvailabilityLabels,
 ) -> HashSet<(String, String)> {
     let mut playable_nodes = HashSet::new();
 
     for map in &mut world.maps {
         for node in &mut map.nodes {
             let state = availability.state_for_node(node.id, &node.state, &node.visual_config);
+            let authored = authored_node_state(&node.state);
+            node.visual_config = evaluated_visual_config(
+                authored,
+                state,
+                &node.visual_config,
+                &availability.facts_for_node(node.id, &node.visual_config),
+                labels,
+            );
+            if state == LearnerNodeState::Hidden {
+                node.title = "Undiscovered place".into();
+                node.description.clear();
+            }
             node.state = match state {
                 wicked_learning_domain::learner_availability::LearnerNodeState::Available => {
                     "available".to_owned()
@@ -552,6 +638,207 @@ mod tests {
     use crate::public_world::LoadedWorld;
     use serde_json::json;
     use wicked_learning_domain::world_content::{PublicMap, PublicNode, PublicWorld};
+
+    #[tokio::test]
+    #[ignore = "requires TEST_APPLICATION_DATABASE_URL pointing to the migrated local test stack"]
+    async fn evaluated_source_world_availability_tracks_native_tools_and_principal_isolation() {
+        use crate::learner_node_tool::PostgresLearnerNodeToolRepository;
+        use wicked_learning_application::learner_node_tool::{
+            LearnerNodeToolRepository, LearnerNodeToolTarget,
+        };
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(1)
+            .idle_timeout(None)
+            .max_lifetime(None)
+            .connect(&std::env::var("TEST_APPLICATION_DATABASE_URL").unwrap())
+            .await
+            .unwrap();
+        for table in [
+            "application_principals",
+            "learning_nodes",
+            "learning_maps",
+            "learning_tools",
+            "learner_tools",
+            "learner_node_tool_uses",
+            "learner_node_discoveries",
+            "learner_node_manual_unlocks",
+            "learning_items",
+            "learner_item_holdings",
+            "application_roles",
+            "learning_activities",
+            "learning_routes",
+            "learning_map_assets",
+            "learner_activity_progress",
+        ] {
+            sqlx::query(&format!(
+                "CREATE TEMP TABLE {table} AS SELECT * FROM public.{table} WITH NO DATA"
+            ))
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+        sqlx::query("CREATE UNIQUE INDEX ON learner_node_discoveries (principal_id, node_id)")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE UNIQUE INDEX ON learner_node_tool_uses (principal_id, node_id, tool_id)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let owner = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["learner".into()],
+            capabilities: vec![],
+        };
+        let peer = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            ..owner.clone()
+        };
+        let owner_id = Uuid::new_v4();
+        let peer_id = Uuid::new_v4();
+        let map_id = Uuid::new_v4();
+        let tool_id = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO application_principals (id, identity_subject_id) VALUES ($1,$2),($3,$4)",
+        )
+        .bind(owner_id)
+        .bind(owner.subject_id)
+        .bind(peer_id)
+        .bind(peer.subject_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO learning_maps (id,slug,published_at,access_roles) VALUES ($1,'tool-map',NOW(),'[\"public\"]')")
+            .bind(map_id).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO learning_tools (id,slug,title) VALUES ($1,'lens','Source lens')")
+            .bind(tool_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO learner_tools (principal_id,tool_id) VALUES ($1,$2)")
+            .bind(owner_id)
+            .bind(tool_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let mut nodes = vec![];
+        for (slug, state, config) in [
+            (
+                "concealed",
+                "hidden",
+                json!({"label":"Secret label","reveal":{"enabled":true,"toolId":"lens"}}),
+            ),
+            (
+                "locked",
+                "locked",
+                json!({"unlock":{"tool":{"enabled":true,"toolId":"lens"}}}),
+            ),
+            (
+                "scheduled",
+                "locked",
+                json!({"unlock":{"enabled":true,"tool":{"enabled":true,"toolId":"lens"}},"schedule":{"unlockAt":"2099-01-01T00:00:00Z"}}),
+            ),
+        ] {
+            let id = Uuid::new_v4();
+            sqlx::query("INSERT INTO learning_nodes (id,map_id,slug,state,visual_config,published_at) VALUES ($1,$2,$3,$4,$5,NOW())")
+                .bind(id).bind(map_id).bind(slug).bind(state).bind(&config).execute(&pool).await.unwrap();
+            nodes.push(PublicNode {
+                id,
+                asset_slug: None,
+                slug: slug.into(),
+                title: format!("Source {slug}"),
+                description: "Private description".into(),
+                q: 0,
+                r: 0,
+                state: state.into(),
+                visual_config: config,
+            });
+        }
+        let world = PublicWorld {
+            slug: "world".into(),
+            title: "World".into(),
+            description: String::new(),
+            theme_config: json!({}),
+            maps: vec![PublicMap {
+                slug: "tool-map".into(),
+                title: "Map".into(),
+                description: String::new(),
+                topic: None,
+                background_config: json!({}),
+                grid_config: json!({}),
+                map_assets_locked: false,
+                assets: vec![],
+                nodes,
+            }],
+        };
+        let labels = availability_labels(&pool, &world).await.unwrap();
+        let availability = PostgresLearnerNodeAvailability::load(&pool, &owner)
+            .await
+            .unwrap()
+            .unwrap();
+        let mut before = world.clone();
+        apply_learner_node_states(&mut before, &availability, &labels);
+        assert_eq!(before.maps[0].nodes[0].title, "Undiscovered place");
+        assert!(before.maps[0].nodes[0].description.is_empty());
+        assert!(before.maps[0].nodes[0].visual_config.get("label").is_none());
+        assert_eq!(
+            before.maps[0].nodes[1].visual_config["unlock"]["isToolUnlockable"],
+            true
+        );
+        assert_eq!(
+            before.maps[0].nodes[1].visual_config["unlock"]["requirements"]["requirements"][0]["toolTitle"],
+            "Source lens"
+        );
+        let repository = PostgresLearnerNodeToolRepository::new(&pool);
+        for slug in ["concealed", "locked", "scheduled"] {
+            let target = LearnerNodeToolTarget::parse("tool-map", slug, "lens").unwrap();
+            assert!(repository.use_tool(&peer, &target).await.unwrap().is_none());
+            let result = repository.use_tool(&owner, &target).await.unwrap().unwrap();
+            assert!(result.is_useful);
+            assert_eq!(result.is_unlocked, slug != "scheduled");
+        }
+        let mut after = world.clone();
+        apply_learner_node_states(
+            &mut after,
+            &PostgresLearnerNodeAvailability::load(&pool, &owner)
+                .await
+                .unwrap()
+                .unwrap(),
+            &labels,
+        );
+        assert_eq!(after.maps[0].nodes[0].title, "Source concealed");
+        assert_eq!(after.maps[0].nodes[0].state, "available");
+        assert_eq!(
+            after.maps[0].nodes[0].visual_config["reveal"]["isDiscovered"],
+            true
+        );
+        assert_eq!(
+            after.maps[0].nodes[1].visual_config["unlock"]["isUnlocked"],
+            true
+        );
+        assert_eq!(after.maps[0].nodes[2].state, "locked");
+        assert_eq!(
+            after.maps[0].nodes[2].visual_config["unlock"]["toolUsed"],
+            true
+        );
+        let mut peer_world = world.clone();
+        apply_learner_node_states(
+            &mut peer_world,
+            &PostgresLearnerNodeAvailability::load(&pool, &peer)
+                .await
+                .unwrap()
+                .unwrap(),
+            &labels,
+        );
+        assert_eq!(peer_world.maps[0].nodes[0].state, "hidden");
+        assert_eq!(
+            peer_world.maps[0].nodes[1].visual_config["unlock"]["toolUsed"],
+            false
+        );
+        pool.close().await;
+    }
 
     #[test]
     fn preferred_start_requires_an_eligible_published_outline() {

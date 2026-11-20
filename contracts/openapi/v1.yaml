@@ -13400,6 +13400,74 @@ components:
         activity_id: { type: string, format: uuid }
         current_activity_id: { type: [string, 'null'], format: uuid }
         play_run_id: { type: [string, 'null'], format: uuid }
+    LearnerWorldNode:
+      allOf:
+        - $ref: '#/components/schemas/PublicNode'
+        - type: object
+          properties:
+            visual_config:
+              type: object
+              additionalProperties: true
+              required: [reveal]
+              description: Source-evaluated learner presentation. Hidden nodes contain only hideEmptySpace and concealment flags; authored unlock rules are replaced by own-user evaluated requirements. Hidden descriptions are empty and titles are Undiscovered place.
+              properties:
+                reveal:
+                  type: object
+                  additionalProperties: true
+                  required: [isDiscoverable, isDiscovered]
+                  properties:
+                    isDiscoverable: { type: boolean }
+                    isDiscovered: { type: boolean }
+                unlock:
+                  $ref: '#/components/schemas/LearnerNodeUnlockPresentation'
+    LearnerWorldMap:
+      allOf:
+        - $ref: '#/components/schemas/PublicMap'
+        - type: object
+          properties:
+            nodes:
+              type: array
+              items: { $ref: '#/components/schemas/LearnerWorldNode' }
+    LearnerWorldPresentation:
+      allOf:
+        - $ref: '#/components/schemas/PublicWorld'
+        - type: object
+          properties:
+            maps:
+              type: array
+              items: { $ref: '#/components/schemas/LearnerWorldMap' }
+    LearnerNodeUnlockPresentation:
+      type: object
+      additionalProperties: false
+      required: [isUnlockable, isUnlocked, isManuallyUnlocked, isItemUnlockable, isToolUnlockable, itemOwned, toolUsed, requirements]
+      properties:
+        isUnlockable: { type: boolean }
+        isUnlocked: { type: boolean }
+        isManuallyUnlocked: { type: boolean }
+        isItemUnlockable: { type: boolean }
+        isToolUnlockable: { type: boolean }
+        itemOwned: { type: boolean }
+        toolUsed: { type: boolean }
+        requirements: { $ref: '#/components/schemas/LearnerNodeUnlockRequirement' }
+    LearnerNodeUnlockRequirement:
+      type: object
+      additionalProperties: false
+      required: [type, satisfied]
+      properties:
+        type: { type: string, enum: [group, node_completed, tool_used, role_has, item_owned, time_after] }
+        satisfied: { type: boolean }
+        operator: { type: string, enum: [and, or] }
+        requirements:
+          type: array
+          items: { $ref: '#/components/schemas/LearnerNodeUnlockRequirement' }
+        mapSlug: { type: [string, 'null'] }
+        nodeSlug: { type: [string, 'null'] }
+        nodeTitle: { type: [string, 'null'] }
+        toolTitle: { type: [string, 'null'] }
+        itemTitle: { type: [string, 'null'] }
+        roleSlug: { type: [string, 'null'] }
+        roleTitle: { type: [string, 'null'] }
+        availableAt: { type: [string, 'null'], format: date-time }
     LearnerWorldSnapshot:
       type: object
       additionalProperties: false
@@ -13408,7 +13476,7 @@ components:
         graph:
           $ref: '#/components/schemas/LearnerWorldGraph'
         world:
-          $ref: '#/components/schemas/PublicWorld'
+          $ref: '#/components/schemas/LearnerWorldPresentation'
         items:
           type: array
           maxItems: 100

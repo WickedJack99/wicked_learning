@@ -100,7 +100,7 @@ export function toWorldPageProps(
                         : null,
                     slug: node.slug,
                     title: node.title,
-                    description: node.description,
+                    description: node.state === 'hidden' ? null : node.description,
                     position: { q: node.q, r: node.r },
                     state: node.state,
                     visualConfig: node.visual_config,
