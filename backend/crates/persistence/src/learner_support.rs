@@ -320,7 +320,7 @@ where
          INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id \
          INNER JOIN learning_message_topics AS topics ON topics.id::text = activities.activity_config ->> 'messageTopicId' AND topics.map_asset_id = assets.id \
          WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' \
-           AND activities.slug = $3 AND activities.activity_type = 'message_prompt' \
+           AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'message_prompt' \
            AND activities.activity_config ->> 'messageAudience' = 'support' \
            AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL \
            AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL \
@@ -357,7 +357,7 @@ where
          INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id \
          INNER JOIN learning_message_topics AS topics ON topics.id::text = activities.activity_config ->> 'messageTopicId' AND topics.map_asset_id = assets.id \
          WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' \
-           AND activities.slug = $3 AND activities.activity_type = 'message_prompt' \
+           AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'message_prompt' \
            AND activities.activity_config ->> 'messageAudience' = 'support' \
            AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL \
            AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL \

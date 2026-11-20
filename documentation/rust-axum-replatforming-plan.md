@@ -1170,10 +1170,76 @@ local observations. The destination lookup is indexed and bounded; the message
 path adds one point query so it can distinguish a terminal from an invalid target.
 
 Remaining activation gaps include node availability enforcement across all
-player writers and UUID-safe commands when two activities share a slug; the
-existing slug-addressed completion API alone cannot prove stale-command safety
-between identically named activities. These must be reconciled alongside full
-player props and typed commands before activating the copied route.
+player writers. The exact-reference contract below addresses commands when two
+activities share a slug; the canonical adapter must use it throughout the
+copied player. Full player props and typed commands are still required before
+activating the route.
+
+### Player activity reference contract
+
+Pinned `resources/js/pages/learning/node-play.tsx` and its whole activity-player
+components send the selected activity ID in source URLs. Slugs are not unique
+across the native route groups now exposed in a node graph. Before activation,
+all player transports must address the actual graph activity UUID, including
+stale requests after another command advances the run.
+
+The existing Rust path parameter retains its historical `activity_slug` name
+for client compatibility, but gains the explicit `id:<lowercase UUID>` form.
+The typed adapter must encode this reference from the server's real activity
+ID; it must never resolve an ID back to an ambiguous slug. The `id:` prefix is
+outside the documented legacy slug alphabet, so UUID-shaped slugs remain valid
+legacy slugs and an invalid explicit ID never falls back to slug matching.
+Resolution stays inside each existing authorized/locked SQL query; it is not a
+separate preflight whose result can become stale before the write. There is no
+new endpoint, generic transport, schema migration or client-chosen destination.
+Answer, reflection and check-in responses continue returning the actual stored
+`activity_slug`, rather than echoing the new reference into a slug field.
+
+| Contract owner in `backend/crates/persistence/src/` | Required identity boundary |
+| --- | --- |
+| `learner_playback.rs` | Current completion, message completion, portal arrival and current run-specific state/resource reads retain the activity UUID. |
+| `learner_question.rs`, `learner_reflection.rs`, `learner_recall.rs`, `learner_check_in.rs` | Answer, reflection, recall and completed-activity observations remain bound to the addressed activity and owned run. |
+| `learner_tool_grant.rs`, `learner_item_grant.rs`, `learner_item_obstacle.rs`, `learner_obstacle_tool.rs` | Grant/obstacle prerequisites and owned inventory remain authoritative after exact activity selection. |
+| `learner_npc_dialogue.rs`, `learner_shared_task.rs` | Every dialogue and shared-task command reuses its existing current-activity lookup, with exact reference matching. |
+| `learner_support.rs`, `learner_peer_message.rs` | Private support and peer message reads/writes keep their topic, audience and membership boundaries. |
+| `learner_portal.rs` | Travel and idempotent existing-arrival lookup both identify the actual source activity. |
+| `learner_activity_translation.rs`, `learner_activity_replay_run.rs` | Translation and replay entry select the exact published, scoped activity; replay no longer relies on an ambiguous slug when called by the canonical adapter. |
+
+Verified implementation: the named repositories accept exact references inside
+their existing queries without extra preflight queries. The initial native
+regression failed because translation rejected the real explicit ID. The new
+`frontend/e2e/canonical-playback-reference-live.spec.ts` exercises an actual
+read/command for each of the fourteen supported activity types against fresh
+PostgreSQL fixtures. It checks legacy slug reads, exact-ID reads, wrong IDs,
+another principal, CSRF, UUID-shaped legacy slugs, malformed explicit IDs and
+stale requests after movement to a different activity with the same slug.
+Question, reflection and check-in results retain real slugs. Recall queueing,
+exact replay entry, private support submission, portal travel and its
+idempotent arrival retry retain their existing server-owned semantics.
+
+The extended `canonical-playback-contract-live.spec.ts` now advances between
+same-slug activities using explicit IDs and rejects the old activity's command
+after advancement. All six run kinds complete through their exact references;
+revisit completion still refuses a run without a current due invitation. The
+publication denial is checked while each run is active, rather than relying
+on a completed run's unrelated 404. Fixtures are local-only and their created
+maps/catalog records are removed afterwards.
+
+Verification passed: canonical byte identity, production frontend type/build,
+generated OpenAPI client drift, Rust workspace fmt/check, 54 focused
+persistence tests and 43 application tests. Six unrelated database-dependent
+Rust tests were ignored by that command, not counted as passing. The rebuilt
+local Rust/PostgreSQL service passed all 22 native/browser cases, including
+existing World continuation at 1440×900 and 390×844. Report:
+`frontend/playwright-report/playback-reference/`. Single local observations of
+the fourteen representative requests ranged from 4–11 ms; these are not a
+production SLA. No copied component or source URL changed. These command
+prerequisites do not constitute full player UI or every secondary-command
+workflow acceptance.
+
+This is a prerequisite contract, not player activation. Node availability on
+all writers, complete player props, full command mappings and source-derived
+browser acceptance remain open.
 
 ## Status and purpose
 

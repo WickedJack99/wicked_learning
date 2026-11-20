@@ -47,6 +47,7 @@ impl LearnerCheckInRepositoryPort for PostgresLearnerCheckInRepository<'_> {
 
 #[derive(FromRow)]
 struct CompletedActivityRow {
+    activity_slug: String,
     activity_id: Uuid,
     principal_id: Uuid,
 }
@@ -109,7 +110,7 @@ async fn record_completed_activity_check_in(
     transaction.commit().await?;
 
     Ok(Some(LearnerActivityCheckInResult {
-        activity_slug: activity_slug.to_owned(),
+        activity_slug: activity.activity_slug,
         feeling: input.feeling.clone(),
         id: check_in.id.to_string(),
         next_direction: input.next_direction.clone(),
@@ -125,7 +126,7 @@ async fn load_completed_activity_for_update(
     activity_slug: &str,
 ) -> Result<Option<CompletedActivityRow>, sqlx::Error> {
     sqlx::query_as::<_, CompletedActivityRow>(
-        "SELECT activities.id AS activity_id, progress.principal_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.route_id = progress.route_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id INNER JOIN learner_activity_progress AS activity_progress ON activity_progress.principal_id = progress.principal_id AND activity_progress.activity_id = activities.id AND activity_progress.status = 'completed' WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND activities.slug = $3 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress, activity_progress",
+        "SELECT activities.id AS activity_id, activities.slug AS activity_slug, progress.principal_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.route_id = progress.route_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id INNER JOIN learner_activity_progress AS activity_progress ON activity_progress.principal_id = progress.principal_id AND activity_progress.activity_id = activities.id AND activity_progress.status = 'completed' WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress, activity_progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)

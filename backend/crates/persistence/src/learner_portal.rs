@@ -116,7 +116,7 @@ async fn travel(
          INNER JOIN learning_nodes AS target_nodes ON target_nodes.id = links.target_node_id AND target_nodes.map_asset_id = target_assets.id \
          INNER JOIN learning_maps AS target_maps ON target_maps.id = target_nodes.map_id \
          WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' \
-           AND activities.slug = $3 AND activities.activity_type = 'portal' \
+           AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'portal' \
            AND COALESCE(activities.activity_config ->> 'portalMode', 'output') = 'output' \
            AND target_activities.activity_type = 'portal' \
            AND COALESCE(target_activities.activity_config ->> 'portalMode', 'output') = 'input' \
@@ -254,7 +254,7 @@ async fn load_existing_arrival(
          INNER JOIN learning_map_assets AS target_assets ON target_assets.id = target_routes.map_asset_id \
          INNER JOIN learning_nodes AS target_nodes ON target_nodes.id = links.target_node_id AND target_nodes.map_asset_id = target_assets.id \
          INNER JOIN learning_maps AS target_maps ON target_maps.id = target_nodes.map_id \
-         WHERE principals.identity_subject_id = $1 AND arrivals.source_play_run_id = $2 AND source_activities.slug = $3 \
+         WHERE principals.identity_subject_id = $1 AND arrivals.source_play_run_id = $2 AND ($3 = 'id:' || source_activities.id::text OR (left($3, 3) <> 'id:' AND source_activities.slug = $3)) \
            AND arrivals.status = 'in_progress' AND target_activities.activity_type = 'portal' \
            AND COALESCE(target_activities.activity_config ->> 'portalMode', 'output') = 'input' \
            AND target_maps.published_at IS NOT NULL AND target_nodes.published_at IS NOT NULL \

@@ -8106,9 +8106,10 @@ components:
       name: activity_slug
       in: path
       required: true
+      description: Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups.
       schema:
         type: string
-        pattern: '^[a-z0-9-]+$'
+        pattern: '^(id:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|[a-z0-9-]+)$'
     RecallItemId:
       name: recall_item_id
       in: path

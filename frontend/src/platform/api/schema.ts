@@ -12254,6 +12254,7 @@ export interface components {
         TopicSlug: string;
         NodeSlug: string;
         PlayRunId: string;
+        /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
         ActivitySlug: string;
         RecallItemId: string;
         PublicSlugPathWorld: string;
@@ -31964,6 +31965,7 @@ export interface operations {
                 "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
             };
             path: {
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -32592,6 +32594,7 @@ export interface operations {
             header?: never;
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -32646,6 +32649,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -32712,6 +32716,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -32766,6 +32771,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -32817,6 +32823,7 @@ export interface operations {
             header?: never;
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -32871,6 +32878,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -32933,6 +32941,7 @@ export interface operations {
             header?: never;
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -32980,6 +32989,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -33045,6 +33055,7 @@ export interface operations {
             header?: never;
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -33092,6 +33103,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
                 message_id: components["parameters"]["LearningSupportMessageId"];
             };
@@ -33158,6 +33170,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
                 message_id: components["parameters"]["LearningSupportMessageId"];
                 response_id: components["parameters"]["LearningSupportResponseId"];
@@ -33218,6 +33231,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -33283,6 +33297,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
                 submission_id: string;
             };
@@ -33349,6 +33364,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -33414,6 +33430,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
                 review_id: string;
             };
@@ -33473,6 +33490,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
                 review_id: string;
             };
@@ -33539,6 +33557,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -33604,6 +33623,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -33658,6 +33678,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -33716,6 +33737,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -33770,6 +33792,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -33828,6 +33851,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -33882,6 +33906,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
                 slot_index: number;
             };
@@ -33941,6 +33966,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -33995,6 +34021,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -34053,6 +34080,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -34118,6 +34146,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -34176,6 +34205,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;
@@ -34230,6 +34260,7 @@ export interface operations {
             };
             path: {
                 play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
                 activity_slug: components["parameters"]["ActivitySlug"];
             };
             cookie?: never;

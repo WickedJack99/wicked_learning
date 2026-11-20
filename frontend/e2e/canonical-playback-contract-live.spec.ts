@@ -145,12 +145,16 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
             localSql(`UPDATE learning_nodes SET state = 'hidden', visual_config = '{}' WHERE id = '${nodeId}'`);
             expect((await owner.request.get(path)).status()).toBe(404);
             localSql(`UPDATE learning_nodes SET state = 'available' WHERE id = '${nodeId}'`);
+            localSql(`UPDATE learning_maps SET published_at = NULL WHERE id = '${mapId}'`);
+            expect((await owner.request.get(path)).status()).toBe(404);
+            localSql(`UPDATE learning_maps SET published_at = NOW() WHERE id = '${mapId}'`);
+            expect((await owner.request.get(path)).status()).toBe(200);
             if (kind === 'route' || kind === 'message') {
                 const ownerCsrf = await (await owner.request.get('/api/v1/security/csrf')).json();
                 const ownerHeaders = { Origin: new URL(baseURL!).origin, 'X-CSRF-Token': ownerCsrf.token };
-                const completePath = `${path}/activities/same-activity/complete`;
+                const completePath = `${path}/activities/${encodeURIComponent(`id:${activityId}`)}/complete`;
                 if (kind === 'message') {
-                    expect((await owner.request.post(`${path}/activities/same-activity/support-request`, { headers: ownerHeaders, data: { body: 'Disposable completion regression request.' } })).status()).toBe(200);
+                    expect((await owner.request.post(`${path}/activities/${encodeURIComponent(`id:${activityId}`)}/support-request`, { headers: ownerHeaders, data: { body: 'Disposable completion regression request.' } })).status()).toBe(200);
                 }
                 const destinationId = randomUUID(); const destinationRouteId = randomUUID(); const transitionId = randomUUID();
                 const originalRouteId = uuid(localSql(`SELECT route_id FROM learner_route_progress WHERE principal_id = '${principal}' AND current_play_run_id = '${runId}'`).trim());
@@ -160,7 +164,7 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 const foreignActivityId = randomUUID();
                 localSql(`
                     INSERT INTO learning_routes (id,map_asset_id,slug,title,description,position,published_at) VALUES ('${destinationRouteId}','${assetId}','completion-destination','Destination','',2,NOW());
-                    INSERT INTO learning_activities (id,route_id,slug,title,description,position,published_at,activity_type,activity_config) VALUES ('${destinationId}','${destinationRouteId}','finish-next-group','Finish next group','',0,NOW(),'open_practice','{}');
+                    INSERT INTO learning_activities (id,route_id,slug,title,description,position,published_at,activity_type,activity_config) VALUES ('${destinationId}','${destinationRouteId}','same-activity','Finish next group','',0,NOW(),'open_practice','{}');
                     INSERT INTO learning_activities (id,route_id,slug,title,description,position,published_at,activity_type,activity_config) SELECT '${foreignActivityId}',id,'foreign-destination','Foreign destination','',0,NOW(),'open_practice','{}' FROM learning_routes WHERE map_asset_id = '${foreignAssetId}';
                     UPDATE learning_routes SET published_at = NOW() WHERE map_asset_id = '${foreignAssetId}';
                     DELETE FROM learning_activity_transitions WHERE from_activity_id = '${activityId}';
@@ -196,7 +200,7 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 expect(progress()).toEqual({ route_id: originalRouteId, current_activity_id: destinationId, status: 'in_progress', completion_count: 0 });
                 expect((await (await owner.request.get(path)).json()).activity.id).toBe(destinationId);
                 expect((await owner.request.post(completePath, { headers: ownerHeaders, data: {} })).status()).toBe(404);
-                const terminalPath = `${path}/activities/finish-next-group/complete`;
+                const terminalPath = `${path}/activities/${encodeURIComponent(`id:${destinationId}`)}/complete`;
                 const completed = await owner.request.post(terminalPath, { headers: ownerHeaders, data: {} });
                 expect(completed.status()).toBe(200);
                 expect(await completed.json()).toMatchObject({ play_run_id: runId, status: 'completed' });
@@ -217,8 +221,24 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 expect(resetCompletion.status()).toBe(200);
                 expect(await resetCompletion.json()).toMatchObject({ status: 'completed' });
                 expect(localSql(`SELECT completion_count FROM learner_route_progress WHERE principal_id = '${principal}' AND activity_start_id = '${startId}'`).trim()).toBe('2');
+            } else {
+                const ownerCsrf = await (await owner.request.get('/api/v1/security/csrf')).json();
+                const ownerHeaders = { Origin: new URL(baseURL!).origin, 'X-CSRF-Token': ownerCsrf.token };
+                const activityPath = `${path}/activities/${encodeURIComponent(`id:${activityId}`)}`;
+                if (kind === 'recall') {
+                    const answer = await owner.request.post(`${activityPath}/answer`, { headers: ownerHeaders, data: { option_keys: ['answer-1'] } });
+                    expect(answer.status()).toBe(200);
+                    expect((await answer.json()).activity_slug).toBe('same-activity');
+                }
+                if (kind === 'revisit') {
+                    // An owned run alone cannot consume a revisit. It must
+                    // still belong to the current due invitation.
+                    expect((await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} })).status()).toBe(404);
+                    localSql(`INSERT INTO learner_activity_progress (principal_id,activity_id,status,attempt_count,revisit_status,revisit_available_at,revisit_check_in_id) SELECT '${principal}','${activityId}','completed',1,'pending',NOW() - INTERVAL '1 day',check_in_id FROM learner_revisit_runs WHERE id = '${runId}'`);
+                }
+                expect((await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} })).status()).toBe(200);
+                expect((await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} })).status()).toBe(404);
             }
-            localSql(`UPDATE learning_maps SET published_at = NULL WHERE id = '${mapId}'`);
             expect((await owner.request.get(path)).status()).toBe(404);
         } finally {
             if (mapId) expect((await admin.request.delete(`/api/v1/admin/world-builder/maps/${mapId}`, { headers })).status()).toBe(204);
