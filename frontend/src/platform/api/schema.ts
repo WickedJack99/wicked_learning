@@ -6105,7 +6105,7 @@ export interface paths {
         put?: never;
         /**
          * Record one private, optional reflection after a completed activity.
-         * @description The server derives the completed activity and its owner from the authorized play run; the browser cannot select another learner or activity.
+         * @description The server requires the caller's completed activity progress and current route-run identity. Explicit id:<UUID> activity references may address a published completed activity in any route group on that run's MapAsset. Legacy slugs remain scoped to the original route group to avoid duplicate-slug ambiguity. Foreign places, other learners, incomplete activities and superseded run IDs are unavailable.
          */
         post: operations["recordLearnerActivityCheckIn"];
         delete?: never;

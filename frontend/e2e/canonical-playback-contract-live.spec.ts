@@ -201,16 +201,38 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 expect((await (await owner.request.get(path)).json()).activity.id).toBe(destinationId);
                 expect((await owner.request.post(completePath, { headers: ownerHeaders, data: {} })).status()).toBe(404);
                 const terminalPath = `${path}/activities/${encodeURIComponent(`id:${destinationId}`)}/complete`;
+                const checkInPath = `${path}/activities/${encodeURIComponent(`id:${destinationId}`)}/check-ins`;
+                const observation = { note: 'I followed the connection to another activity group.', next_direction: 'revisit' };
+                expect((await owner.request.post(checkInPath, { headers: ownerHeaders, data: observation })).status()).toBe(404);
                 const completed = await owner.request.post(terminalPath, { headers: ownerHeaders, data: {} });
                 expect(completed.status()).toBe(200);
                 expect(await completed.json()).toMatchObject({ play_run_id: runId, status: 'completed' });
                 expect((await owner.request.post(terminalPath, { headers: ownerHeaders, data: {} })).status()).toBe(404);
                 expect(progress()).toEqual({ route_id: originalRouteId, current_activity_id: destinationId, status: 'completed', completion_count: 1 });
+                expect((await peer.request.post(checkInPath, { headers: { Origin: new URL(baseURL!).origin, 'X-CSRF-Token': peerCsrf.token }, data: observation })).status()).toBe(404);
+                expect((await owner.request.post(checkInPath, { data: observation })).status()).toBe(403);
+                expect((await anonymous.request.post(checkInPath, { data: observation })).status()).toBe(401);
+                localSql(`INSERT INTO learner_activity_progress (principal_id,activity_id,status,attempt_count) VALUES ('${principal}','${foreignActivityId}','completed',1)`);
+                expect((await owner.request.post(`${path}/activities/${encodeURIComponent(`id:${foreignActivityId}`)}/check-ins`, { headers: ownerHeaders, data: observation })).status()).toBe(404);
+                localSql(`UPDATE learning_activities SET published_at = NULL WHERE id = '${destinationId}'`);
+                expect((await owner.request.post(checkInPath, { headers: ownerHeaders, data: observation })).status()).toBe(404);
+                localSql(`UPDATE learning_activities SET published_at = NOW() WHERE id = '${destinationId}'`);
+                const observed = await owner.request.post(checkInPath, { headers: ownerHeaders, data: observation });
+                expect(observed.status()).toBe(200);
+                expect(await observed.json()).toMatchObject({ activity_slug: 'same-activity', ...observation });
+                expect(localSql(`SELECT count(*) FROM learner_activity_check_ins WHERE principal_id = '${principal}' AND activity_id = '${destinationId}' AND play_run_id = '${runId}'`).trim()).toBe('1');
+                expect(localSql(`SELECT revisit_status FROM learner_activity_progress WHERE principal_id = '${principal}' AND activity_id = '${destinationId}'`).trim()).toBe('pending');
+                // Legacy slugs still name the original route group; repeated
+                // slugs must not silently select a different completed activity.
+                const legacyObservation = await owner.request.post(`${path}/activities/same-activity/check-ins`, { headers: ownerHeaders, data: { note: 'Original group observation.' } });
+                expect(legacyObservation.status()).toBe(200);
+                expect(localSql(`SELECT count(*) FROM learner_activity_check_ins WHERE principal_id = '${principal}' AND activity_id = '${activityId}' AND play_run_id = '${runId}'`).trim()).toBe('1');
                 const resetResponse = await owner.request.post(`/api/v1/learner/activity-starts/${startId}/reset`, { headers: ownerHeaders });
                 expect(resetResponse.status()).toBe(200);
                 const reset = await resetResponse.json();
                 expect(reset).toMatchObject({ start_id: startId, activity_slug: 'same-activity', status: 'in_progress', completion_count: 1 });
                 expect(reset.play_run_id).not.toBe(runId);
+                expect((await owner.request.post(checkInPath, { headers: ownerHeaders, data: observation })).status()).toBe(404);
                 expect((await owner.request.get(path)).status()).toBe(404);
                 const resetPath = `/api/v1/learner/play-runs/${uuid(reset.play_run_id)}`;
                 expect((await (await owner.request.get(resetPath)).json()).activity.id).toBe(activityId);

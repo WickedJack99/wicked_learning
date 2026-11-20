@@ -1303,6 +1303,43 @@ complete source-derived acceptance. Question option-weight authoring must also
 be checked against the source; exposing stored weights is not evidence that
 all source authoring controls persist them.
 
+### Check-ins after crossing activity route groups
+
+Source owners, verified byte-identical to pinned main:
+`app/Http/Controllers/LearningWorldController.php::recordActivityCheckIn`,
+`app/Learning/Services/LearnerProgressService.php::recordCheckIn`, and
+`tests/Feature/LearnerActivityCheckInTest.php`. Source check-ins require the
+learner's completed activity, not membership in the start's original route
+group. The Rust run keeps its original start/group after traversing an authored
+same-MapAsset connection. Its check-in query incorrectly required that original
+group, returning 404 after a successful cross-group completion.
+
+`persistence/src/learner_check_in.rs` now scopes explicit activity UUIDs to the
+authorized run's MapAsset. It retains own completed progress, publication,
+map-access, current run, and transactional row locks. Legacy slugs remain
+scoped to the original group because slugs can repeat between groups. The
+existing endpoint, payload, private history limit and revisit scheduling are
+reused; OpenAPI documents the identity distinction. No schema or source UI
+changes are needed.
+
+`canonical-playback-contract-live.spec.ts` reproduced the 404 for both ordinary
+and message-started runs. Its regression follows a real authored transition,
+completes the destination, saves an observation and checks persisted ownership,
+activity/run identity and pending revisit. It also rejects incomplete,
+foreign-place, unpublished, wrong-user, anonymous, missing-CSRF and superseded
+run requests, and proves repeated legacy slugs still select the original group.
+Verification passed: canonical identity, production frontend type/build,
+generated OpenAPI client drift, Rust fmt/workspace check and the focused
+application check-in test. All 22 native/browser checks passed against the
+rebuilt local API/PostgreSQL, including World continuation at 1440×900 and
+390×844. Report: `frontend/playwright-report/playback-checkins/`. This backend
+fix adds no queries or UI changes; it does not establish player screenshot
+parity.
+
+This closes the same-place cross-group check-in gap only. Private replay,
+recall/revisit and portal-arrival check-in admission, dynamic availability on
+writers, and complete copied-player props/transports remain activation work.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the
