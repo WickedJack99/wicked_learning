@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; whole copied learner layout, shared transports, authenticated bootstrap, location persistence, graph identity and search transport integrated below | Anonymous access, progress writes, remaining media, bookmark projection bounds, tool application, route lifecycle and playback; retain observed source usability defects as open acceptance limitations. |
+| Learner World and playback | **Incomplete**; whole copied learner layout, shared transports, authenticated bootstrap, location persistence, graph identity, search, bookmarks and tool transport integrated below | Anonymous access, progress writes, remaining media, bookmark/inventory projection bounds, availability gaps, route lifecycle and playback; retain observed source usability defects as open acceptance limitations. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -856,9 +856,9 @@ Native tool commands then prove discovery, timed lock retention and principal
 isolation, with CSRF/ownership rejection. Cleanup removes only those disposable
 records and restores the prior learner map preference.
 
-Still open after this prerequisite: tool-action adapter and partial World
-reload, answer-event availability, and source informational visible-state
-preservation (the existing Rust availability enum currently normalizes active,
+The tool-action adapter and partial World reload are verified in the next
+entry. Remaining availability gaps include answer-event availability and
+source informational visible-state preservation (the existing Rust availability enum currently normalizes active,
 recommended, hinted and completed presentation to available). World-family
 acceptance remains **Incomplete**.
 
@@ -877,6 +877,76 @@ in `frontend/playwright-report/world-availability-verified` and the separate
 `world-availability-source` / `world-availability-native` reports. Canonical
 source bytes, migrations, production resources and unrelated worktree files
 remain unchanged.
+
+
+### World tool command and partial reload adapter
+
+Pinned owners: `pages/world.tsx::useToolOnMapNode`, complete
+`features/world/world-map.tsx`, `features/tools/tool-selection.ts`,
+`components/app-side-action-bar.tsx`, and the source sound helpers. Source
+controllers `LearningWorldController::{revealNodeWithTool,unlockNodeWithTool}`
+use `NodeRevealService` / `NodeUnlockService`; native
+`POST /learner/maps/{map_slug}/nodes/{node_slug}/use-tool` already owns scope,
+CSRF, tool ownership, transactional discovery/tool-use records and evaluated
+result flags. The previous availability prerequisite now supplies the source
+read fields required to expose these controls.
+
+| Source seam | Implemented narrow adapter | Failure / preservation rule |
+| --- | --- | --- |
+| Source node UUID + selected tool UUID and reveal/unlock path | Retain verified map/node slugs and owned-tool UUID → slug mapping per exact projected node; call only the existing generated native tool command | Reject forged/changed node objects, unknown tool identities and other paths before a write. Repeat actual scope/ownership enforcement in Rust. |
+| Separate reveal / unlock results | Map native flags into the matching source result variant, retaining real node/tool identities | A reveal result must not expose `isUnlocked` and accidentally play an unlock sound or reload an unrelated already-open node. Wrong-but-owned tool remains the source's successful no-op. |
+| `router.reload({only:['world']})` after a useful opening | Bind only this exact copied call to the mounting World's read callback; fetch the existing World projection and update only `world` props | Keep copied layout/page/component instances, local map interactions and other props. Latest reload wins; abort reads on unmount. Failed refresh retains prior state with explicit unavailable feedback. No generic Inertia reload emulation. |
+| Mutation failure / retry | Existing operation alert and source async rejection; successful retry clears only its own error | Never fabricate discovery/unlock, clear unrelated errors, or reset the document to hide a failed refresh. |
+
+Implementation: `src/platform/world-tools.ts` retains per-projection identity
+and reload bindings in WeakMaps; `world-projection.ts` registers verified nodes
+and tools; `world-route.tsx` reads and replaces only the World prop. The exact
+module/call guards in `vite.config.ts` fail the build if the pinned transport
+seams change. All copied JSX, state hooks, controls, tool animation and sound
+code stay byte-identical. No Rust endpoint or command was added.
+
+Source-derived comparison first failed against the previous generic
+unavailable adapter. Both reveal and unlock now preserve no-op, mutation
+failure/retry, selected tool and toggled-map-asset state at 1440×900 and
+390×844. Refresh failure keeps the old World with an error; retry restores it.
+Overlapping reload coverage verifies browser cancellation (`ERR_ABORTED`) of
+the older request, with no stale replacement. An unexpected 404 remains an
+error; the existing contracted `404/not_found` response supplies source
+`world: null` and renders the complete copied empty state. That edge case was
+also reproduced before the correction.
+
+The original-source evidence harness adapts only the exact
+`router.reload({only:['world']})` transport call into a test-only World-prop
+update. Original command URLs and the complete original React tree remain
+independent of the native adapter. Final screenshots wait for both source and
+canonical drawer transitions to settle and compare their bounds; a screenshot
+mid-transition is not treated as a presentation mismatch.
+
+Real local Rust browser journeys use the complete copied tool controls with
+new disposable author-created nodes and tools. The existing scoped local SQL
+fixture publishes only those records and grants only the two new test tools.
+An owned but incorrect tool produces a successful no-op. Correct tool use
+unlocks/reveals persistently; another principal remains locked/concealed, and
+native ownership/CSRF rejection still applies. The document and equipped tool
+survive both successful commands. Page-read counters prove that only World is
+refetched (plus the separate CSRF reads required for writes), without another
+shell, group, current-user or appearance bootstrap. Fixture cleanup restores
+the previous map preference and removes only its created records.
+
+Validation: canonical identity (299 source files plus CSS), production frontend
+type/build, generated OpenAPI client drift, Rust workspace fmt/check, and focused
+application/API regressions passed. The combined browser run passed 55 checks,
+including `canonical-world.spec.ts`, `canonical-world-tools.spec.ts` and
+`canonical-world-tools-live.spec.ts`, alongside existing availability, bookmark,
+identity, search and source-identity coverage. The native tool journeys exercised
+the existing Rust writer against local PostgreSQL at both required viewports.
+The ignored `frontend/playwright-report/world-tools-verified/index.html` retains
+the source/Rust screenshots and final results. No canonical source, backend,
+OpenAPI schema or database migration changed in this slice.
+
+Recorded source header/selection defects remain unchanged and are not waived.
+Playback, anonymous World access, remaining availability/media and bounded
+projection gaps still prevent whole-family completion.
 
 
 ## Status and purpose

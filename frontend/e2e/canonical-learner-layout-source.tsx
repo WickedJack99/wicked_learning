@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import AppLayout from '../../resources/js/layouts/app-layout';
@@ -13,8 +14,21 @@ window.__INITIAL_AUTHENTICATED__ = true;
 window.__INITIAL_APPEARANCE__ = props.appearance;
 initializeTheme();
 history.replaceState(history.state, '', window.sourceWorldEvidenceUrl);
-createRoot(document.getElementById('root')!).render(
-    <BrowserRouter><SourcePageProjectionProvider value={{ component: 'world', props }}>
-        <AppLayout><World {...props} /></AppLayout>
-    </SourcePageProjectionProvider></BrowserRouter>,
-);
+function SourceEvidence() {
+    const [pageProps, setPageProps] = useState(props);
+    useEffect(() => {
+        const reload = () => {
+            void fetch('/__source-evidence/world').then(async (response) => {
+                if (!response.ok) throw new Error('Original source reload failed.');
+                const updated = await response.json();
+                setPageProps((previous) => ({ ...previous, world: updated.world }));
+            });
+        };
+        window.addEventListener('source-world:reload', reload);
+        return () => window.removeEventListener('source-world:reload', reload);
+    }, []);
+    return <BrowserRouter><SourcePageProjectionProvider value={{ component: 'world', props: pageProps }}>
+        <AppLayout><World {...pageProps} /></AppLayout>
+    </SourcePageProjectionProvider></BrowserRouter>;
+}
+createRoot(document.getElementById('root')!).render(<SourceEvidence />);

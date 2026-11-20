@@ -9,6 +9,13 @@ export default mergeConfig(base, defineConfig({ cacheDir: 'node_modules/.vite-le
     enforce: 'pre',
     transform(code, id) {
         if (!id.split('?')[0].startsWith(`${sourceRoot}/`)) return;
+        if (id.split('?')[0] === `${sourceRoot}/pages/world.tsx`) {
+            // Evidence-only Inertia partial reload: original UI and command
+            // requests stay intact; the harness updates only its World prop.
+            const reload = /router\.reload\(\{\s*only: \['world'\],\s*\}\)/g;
+            if (code.match(reload)?.length !== 1) throw new Error('Original World reload seam changed.');
+            code = code.replace(reload, "window.dispatchEvent(new Event('source-world:reload'))");
+        }
         // Keep the entire original UI dependency tree on original source files.
         // Only the already documented Inertia/Wayfinder facades stay shared.
         return code.replace(/(['"])@\/(components|features|hooks|layouts|lib|theme)\/([^'"]+)\1/g, (_, quote, directory, path) => {

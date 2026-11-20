@@ -16,6 +16,7 @@ import { toLearnerShellProps, toSourceMenuTheme, type LearnerShellProps } from '
 import { JsonRequestError } from './json-request-error';
 import { searchUnavailableMessage } from './world-search-projection';
 import { bookmarkUnavailableMessage } from './world-bookmarks';
+import { bindWorldReload, toolUnavailableMessage, worldReloadUnavailableMessage } from './world-tools';
 
 const worldModules = import.meta.glob<{
     default: ComponentType<Record<string, unknown>>;
@@ -46,6 +47,7 @@ export function WorldRoute() {
         let isMounted = true;
         const controller = new AbortController();
         const signal = controller.signal;
+        let reloadController: AbortController | undefined;
 
         void Promise.all([
             apiClient.GET('/learner/world', { signal }),
@@ -126,6 +128,27 @@ export function WorldRoute() {
             });
             if (!invitation.response.ok || !invitation.data) throw new JsonRequestError('The learner invitation could not be loaded.', invitation.response.status);
             if (!isMounted) return;
+            const sourceInputs = [groups.data, currentUser.data, translations.data, soundPreferences.data] as const;
+            const refreshWorld = () => {
+                if (!isMounted) return;
+                reloadController?.abort();
+                const reload = new AbortController();
+                reloadController = reload;
+                void apiClient.GET('/learner/world', { signal: reload.signal }).then((updated) => {
+                    if (!isMounted || reload.signal.aborted) return;
+                    const empty = updated.response.status === 404 && updated.error?.code === 'not_found';
+                    if (!empty && (!updated.response.ok || !updated.data)) throw new JsonRequestError(worldReloadUnavailableMessage, updated.response.status);
+                    const nextWorld = updated.data ? toWorldPageProps(updated.data, ...sourceInputs).world : null;
+                    if (nextWorld) bindWorldReload(nextWorld as object, refreshWorld);
+                    setState((previous) => previous.kind === 'ready'
+                        ? { ...previous, props: { ...previous.props, world: nextWorld } }
+                        : previous);
+                    setOperationMessage((message) => message === worldReloadUnavailableMessage ? null : message);
+                }).catch(() => {
+                    if (isMounted && !reload.signal.aborted) setOperationMessage(worldReloadUnavailableMessage);
+                });
+            };
+            if (worldProps.world) bindWorldReload(worldProps.world as object, refreshWorld);
             initializeWorldAppearance(currentUser.data.appearance);
             setState({
                 kind: 'ready',
@@ -143,6 +166,7 @@ export function WorldRoute() {
         return () => {
             isMounted = false;
             controller.abort();
+            reloadController?.abort();
         };
     }, []);
 
@@ -157,11 +181,14 @@ export function WorldRoute() {
         const clearBookmarkUnavailable = () => setOperationMessage((message) =>
             message === bookmarkUnavailableMessage ? null : message,
         );
+        const clearToolUnavailable = () => setOperationMessage((message) => message === toolUnavailableMessage ? null : message);
+        window.addEventListener('world:tool-available', clearToolUnavailable);
         window.addEventListener('world:bookmark-available', clearBookmarkUnavailable);
         window.addEventListener('world:source-operation-unavailable', showUnavailableOperation);
         window.addEventListener('world:search-available', clearSearchUnavailable);
 
         return () => {
+            window.removeEventListener('world:tool-available', clearToolUnavailable);
             window.removeEventListener('world:bookmark-available', clearBookmarkUnavailable);
             window.removeEventListener('world:source-operation-unavailable', showUnavailableOperation);
             window.removeEventListener('world:search-available', clearSearchUnavailable);

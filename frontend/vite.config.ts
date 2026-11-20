@@ -9,6 +9,19 @@ const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts'
 export default defineConfig({
     plugins: [
         {
+            name: 'canonical-world-tool-transport',
+            enforce: 'pre',
+            transform(code, id) {
+                if (id.split('?')[0] !== resolve(import.meta.dirname, 'canonical-source/resources/js/pages/world.tsx')) return;
+                const useTool = /await postJson<\{\s*result: \{\s*discovered\?: boolean;\s*isUnlocked\?: boolean;\s*isUseful: boolean;\s*\};\s*\}>\(endpoint, \{\s*tool_id: selectedTool\.id,\s*\}\)/g;
+                const reload = /router\.reload\(\{\s*only: \['world'\],\s*\}\)/g;
+                if (code.match(useTool)?.length !== 1 || code.match(reload)?.length !== 1) {
+                    throw new Error('The pinned World tool transport seams changed.');
+                }
+                return `import { useWorldNodeTool, reloadWorld } from '/src/platform/world-tools.ts';\n${code.replace(useTool, 'await useWorldNodeTool(node, selectedTool, endpoint)').replace(reload, 'reloadWorld(node)')}`;
+            },
+        },
+        {
             name: 'canonical-world-bookmark-transport',
             enforce: 'pre',
             transform(code, id) {

@@ -318,6 +318,140 @@ for (const { name, viewport } of viewports) {
             await source.close();
         });
 
+        for (const action of ['reveal', 'unlock'] as const) {
+            test(`${action} tools preserve source no-op, retry and partial World state`, async ({ page, context }, info) => {
+                test.skip(!process.env.SOURCE_EVIDENCE_BASE_URL, 'Requires the original-source evidence server.');
+                const snapshot = worldSnapshot();
+                const nativeTool = { id: '018f1f8c-4c2f-7b8a-9d0e-000000000071', slug: 'source-lens', title: 'Source lens', description: null, config: {}, image_dark: null, image_light: null, animation_dark: null, animation_light: null };
+                snapshot.tools = [nativeTool];
+                const state = action === 'unlock' ? 'locked' : 'hidden';
+                const visual = action === 'unlock'
+                    ? { unlock: { isUnlockable: true, isToolUnlockable: true, isUnlocked: false } }
+                    : { hideEmptySpace: true, reveal: { isDiscoverable: true, isDiscovered: false } };
+                Object.assign(snapshot.world.maps[0].nodes[0], { state, visual_config: visual });
+                snapshot.world.maps[0].assets.push({ ...snapshot.world.maps[0].assets[0], slug: 'toggle', x: 15, text: 'Toggle keeps state', interaction_mode: 'toggle', width: 10 });
+                snapshot.graph.maps[0].assets.push({ id: '018f1f8c-4c2f-7b8a-9d0e-000000000072', slug: 'toggle' });
+                Object.assign(snapshot.graph.maps[0].nodes[0], { activities: [], starts: [], start_activity_id: null });
+                snapshot.start_routes = [];
+                let reads = 0;
+                let stale: Route | undefined;
+                const canceledReloads: string[] = [];
+                page.on('requestfailed', (request) => {
+                    if (new URL(request.url()).pathname === '/api/v1/learner/world') canceledReloads.push(request.failure()?.errorText ?? 'unknown');
+                });
+                const shell = await routeWorldReads(page, { world: (route) => {
+                    reads++;
+                    if (reads === 2) {
+                        if (action === 'reveal') return route.fulfill({ status: 503 });
+                        stale = route; return;
+                    }
+                    const response = structuredClone(snapshot);
+                    if (reads > 2) Object.assign(response.world.maps[0].nodes[0], { state: 'available', visual_config: {} });
+                    return route.fulfill({ json: response });
+                } });
+                await page.route('**/api/v1/learner/shell', (route) => route.fulfill({ json: { ...shell, tools: [nativeTool], items: [], menu_theme: { map_id: worldIds.map, map_slug: 'orientation-map', background_config: snapshot.world.maps[0].background_config } } }));
+                const props = { ...sourceWorldProps(), name: shell.name, progress: { activities: {} } };
+                props.auth.tools = [{ id: 7, slug: 'source-lens', title: 'Source lens', description: null, config: {}, imageDark: null, imageLight: null, animationDark: null, animationLight: null }];
+                Object.assign(props.world.maps[0].nodes[0], { state, visualConfig: visual, activities: [], startRoutes: [], startActivityId: null });
+                props.world.maps[0].mapAssets.push({ ...props.world.maps[0].mapAssets[0], id: 2, nodeId: null, text: 'Toggle keeps state', interactionMode: 'toggle', width: 10, x: 15 });
+                const source = await context.newPage();
+                await source.addInitScript((props) => { window.sourceWorldEvidence = props; window.sourceWorldEvidenceUrl = '/world?map=orientation-map'; }, props);
+                let sourceReads = 0;
+                await source.route('**/__source-evidence/world', (route) => {
+                    sourceReads++;
+                    const updated = structuredClone(props.world);
+                    Object.assign(updated.maps[0].nodes[0], { state: 'available', visualConfig: {} });
+                    return route.fulfill({ json: { world: updated } });
+                });
+                const commands: string[][] = [[], []];
+                const errors: string[][] = [[], []];
+                for (const [index, target, pattern] of [
+                    [0, page, '**/api/v1/learner/maps/orientation-map/nodes/first-place/use-tool'],
+                    [1, source, `**/learning/nodes/1/${action}-tool`],
+                ] as const) {
+                    target.on('pageerror', (error) => errors[index].push(error.message));
+                    await target.route(pattern, (route) => {
+                        commands[index].push(route.request().method());
+                        expect(route.request().postDataJSON()).toEqual(index === 0 ? { tool_slug: 'source-lens' } : { tool_id: 7 });
+                        if (index === 0) expect(route.request().headers()['x-csrf-token']).toBe('fixture-csrf');
+                        if (commands[index].length === 2) return route.fulfill({ status: 503, json: { message: 'Original tool unavailable.' } });
+                        const success = commands[index].length > 2;
+                        return route.fulfill({ json: index === 0
+                            ? { is_useful: success, discovered: action === 'reveal' && success, is_unlocked: success }
+                            : { result: { isUseful: success, ...(action === 'reveal' ? { discovered: success } : { isUnlocked: success }) } },
+                        });
+                    });
+                }
+                await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-learner-layout-source.html`);
+                await page.goto('/world?map=orientation-map');
+                for (const target of [source, page]) {
+                    await target.evaluate(() => { window.toolDocumentSentinel = 'retained'; });
+                    await target.getByRole('button', { name: 'Toggle keeps state', exact: true }).click();
+                    await target.getByRole('button', { name: 'Open tools', exact: true }).click();
+                    const tool = target.getByRole('button', { name: 'Source lens', exact: true });
+                    await expectBounded(tool, viewport);
+                    await tool.click();
+                    await target.getByRole('button', { name: 'First place', exact: true }).click();
+                }
+                await expect.poll(() => commands.map((list) => list.length)).toEqual([1, 1]);
+                expect([reads, sourceReads]).toEqual([1, 0]);
+                for (const target of [source, page]) await target.getByRole('button', { name: 'First place', exact: true }).click();
+                await expect(page.getByRole('alert')).toHaveText('The tool could not be used.');
+                expect([reads, sourceReads]).toEqual([1, 0]);
+                for (const target of [source, page]) await target.getByRole('button', { name: 'First place', exact: true }).click();
+                await expect.poll(() => [reads, sourceReads]).toEqual([2, 1]);
+                if (action === 'reveal') await expect(page.getByRole('alert')).toHaveText('The World could not be refreshed. Reload the page to see its current state.');
+                await page.getByRole('button', { name: 'First place', exact: true }).click();
+                await expect.poll(() => reads).toBe(3);
+                if (stale) {
+                    await expect.poll(() => canceledReloads).toContain('net::ERR_ABORTED');
+                    await stale.fulfill({ json: snapshot }).catch(() => {}); // already proven aborted
+                }
+                await expect(page.getByRole('alert')).toHaveCount(0);
+                for (const target of [source, page]) {
+                    expect(await target.evaluate(() => window.toolDocumentSentinel)).toBe('retained');
+                    await expect(target.locator('[data-map-asset-mode="toggle"]')).toHaveAttribute('data-map-asset-state', 'second');
+                    await target.getByRole('button', { name: 'Open tools', exact: true }).click(); // clear the retained selected tool
+                    await target.getByRole('button', { name: 'First place', exact: true }).click();
+                    await expect(target.getByRole('heading', { name: 'First place', exact: true })).toBeVisible();
+                    const drawer = target.locator('aside').filter({ has: target.getByRole('heading', { name: 'First place', exact: true }) });
+                    await expect.poll(async () => Math.round((await drawer.boundingBox())!.x)).toBe(viewport.width === 1440 ? 1020 : 0);
+                }
+                expect(await page.locator('aside').filter({ has: page.getByRole('heading', { name: 'First place', exact: true }) }).boundingBox())
+                    .toEqual(await source.locator('aside').filter({ has: source.getByRole('heading', { name: 'First place', exact: true }) }).boundingBox());
+                expect(errors).toEqual([['The tool could not be used.'], ['Original tool unavailable.']]);
+                expect(commands).toEqual([['POST', 'POST', 'POST', 'POST'], ['POST', 'POST', 'POST']]);
+                await info.attach(`main-${action}-after`, { body: await source.screenshot(), contentType: 'image/png' });
+                await info.attach(`rust-${action}-after`, { body: await page.screenshot(), contentType: 'image/png' });
+                await source.close();
+            });
+        }
+
+        test('partial World refresh distinguishes contracted emptiness from an unexpected 404', async ({ page }) => {
+            const snapshot = worldSnapshot();
+            const tool = { id: '018f1f8c-4c2f-7b8a-9d0e-000000000073', slug: 'lens', title: 'Source lens', description: null, config: {}, image_dark: null, image_light: null, animation_dark: null, animation_light: null };
+            snapshot.tools = [tool];
+            snapshot.world.maps[0].nodes[0].visual_config = { reveal: { enabled: true, isDiscoverable: true, isDiscovered: true, toolId: 'lens' } };
+            let reads = 0;
+            const shell = await routeWorldReads(page, { world: (route) => {
+                reads++;
+                return reads === 1 ? route.fulfill({ json: snapshot })
+                    : route.fulfill({ status: 404, json: reads === 2 ? {} : { code: 'not_found', title: 'Not found' } });
+            } });
+            await page.route('**/api/v1/learner/shell', (route) => route.fulfill({ json: { ...shell, tools: [tool], items: [], menu_theme: { map_id: worldIds.map, map_slug: 'orientation-map', background_config: {} } } }));
+            await page.route('**/api/v1/learner/maps/orientation-map/nodes/first-place/use-tool', (route) => route.fulfill({ json: { is_useful: true, is_unlocked: true, discovered: true } }));
+            await page.goto('/world?map=orientation-map');
+            await page.getByRole('button', { name: 'Open tools', exact: true }).click();
+            await page.getByRole('button', { name: 'Source lens', exact: true }).click();
+            await page.getByRole('button', { name: 'First place', exact: true }).click();
+            await expect(page.getByRole('alert')).toHaveText('The World could not be refreshed. Reload the page to see its current state.');
+            await expect(page.getByText('No learning world has been seeded yet.')).toHaveCount(0);
+            await page.getByRole('button', { name: 'First place', exact: true }).click();
+            await expect(page.getByText('No learning world has been seeded yet.')).toBeVisible();
+            await expect(page.getByRole('alert')).toHaveCount(0);
+            expect(reads).toBe(3);
+        });
+
         test('evaluated unlock drawer matches source while locked World selection remains unavailable', async ({ page, context }, info) => {
             test.skip(!process.env.SOURCE_EVIDENCE_BASE_URL, 'Requires the original-source evidence server.');
             const visual = {
