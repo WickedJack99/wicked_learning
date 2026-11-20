@@ -8158,9 +8158,76 @@ export interface components {
             /** @enum {string} */
             run_kind: "route" | "portal" | "revisit" | "recall" | "replay";
             context: components["schemas"]["LearnerPlaybackContext"];
+            graph: components["schemas"]["LearnerPlaybackGraph"];
             items: components["schemas"]["LearnerItem"][];
             tools: components["schemas"]["LearnerTool"][];
             activity: components["schemas"]["LearnerPlaybackActivity"];
+        };
+        /** @description Published navigation definitions for the authorized node, not complete source player props. Unavailable targets, unsupported configurations or graph bounds fail explicitly; private progress and configured resource mappings are separate contracts. */
+        LearnerPlaybackGraph: {
+            /** Format: uuid */
+            node_id: string;
+            /** Format: uuid */
+            start_activity_id: string | null;
+            activities: components["schemas"]["LearnerPlaybackGraphActivity"][];
+            starts: components["schemas"]["LearnerPlaybackGraphStart"][];
+        };
+        LearnerPlaybackGraphActivity: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            introduction: string | null;
+            /** @enum {string} */
+            activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown" | "message_prompt" | "message_wall" | "npc_dialogue" | "portal" | "shared_task";
+            /** @description Existing type-specific learner-safe configuration */
+            config: {
+                [key: string]: unknown;
+            };
+            time_guide_minutes: number | null;
+            check_in: components["schemas"]["LearnerPlaybackCheckIn"];
+            /** @description At most 4000 transitions across the entire graph. A null destination is an authored terminal edge, never a replacement for an unpublished destination. */
+            transitions: components["schemas"]["LearnerPlaybackGraphTransition"][];
+        };
+        LearnerPlaybackGraphTransition: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            to_activity_id: string | null;
+            from_connector: string;
+            to_connector: string;
+            trigger: string;
+            trigger_value: string | null;
+            label: string | null;
+        };
+        LearnerPlaybackGraphStart: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            activity_id: string;
+            label: string;
+            description: string | null;
+            image_dark: string | null;
+            image_light: string | null;
+            button_color_dark: string | null;
+            button_border_color_dark: string | null;
+            button_color_light: string | null;
+            button_border_color_light: string | null;
+            sort_order: number;
+            progress: components["schemas"]["LearnerPlaybackGraphStartProgress"] | null;
+        };
+        LearnerPlaybackGraphStartProgress: {
+            /** Format: uuid */
+            current_activity_id: string | null;
+            /** Format: uuid */
+            play_run_id: string | null;
+            /** @enum {string} */
+            status: "in_progress" | "completed";
+            completion_count: number;
+            /** Format: date-time */
+            last_completed_at: string | null;
+            /** Format: date-time */
+            last_entered_at: string | null;
         };
         LearnerRecallQueue: {
             items: components["schemas"]["LearnerRecallItem"][];

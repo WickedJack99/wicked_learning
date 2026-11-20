@@ -231,7 +231,7 @@ struct MessagePromptUiConfig {
     surface_color_light: Option<String>,
 }
 
-fn learner_safe_config(
+pub(crate) fn learner_safe_config(
     activity_type: &str,
     config: serde_json::Value,
 ) -> Option<serde_json::Value> {
@@ -278,7 +278,7 @@ fn learner_safe_config(
 /// safe configuration.  The browser can only use it after the separately
 /// projected `sounds` collection confirms that the referenced sound is both
 /// published and valid for playback.
-fn with_safe_ambient_sound(
+pub(crate) fn with_safe_ambient_sound(
     mut safe_config: serde_json::Value,
     source_config: &serde_json::Value,
 ) -> serde_json::Value {
@@ -1145,7 +1145,7 @@ async fn load_tools(
     })
 }
 
-fn check_in_context(config: &serde_json::Value) -> LearnerPlaybackCheckIn {
+pub(crate) fn check_in_context(config: &serde_json::Value) -> LearnerPlaybackCheckIn {
     let object = config.as_object();
     let choice_prompt = object
         .and_then(|value| value.get("completionChoicePrompt"))
@@ -1584,6 +1584,23 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     .map_err(|_| LearnerPlaybackReadError)?;
                 return Ok(None);
             };
+            let Some(graph) = crate::learner_playback_graph::load(
+                &mut transaction,
+                principal,
+                &availability,
+                row.node_id,
+                row.map_id,
+                row.activity_id,
+            )
+            .await
+            .map_err(|_| LearnerPlaybackReadError)?
+            else {
+                transaction
+                    .commit()
+                    .await
+                    .map_err(|_| LearnerPlaybackReadError)?;
+                return Ok(None);
+            };
             let activity_config = row.activity_config.clone();
             let check_in = check_in_context(&activity_config);
             let review_context = if is_review_activity(&row.activity_type, &activity_config) {
@@ -1794,6 +1811,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                 start_id: row.start_id.map(|start_id| start_id.to_string()),
                 play_run_id: play_run_id.to_string(),
                 run_kind,
+                graph,
                 context: LearnerPlaybackContext {
                     node_id: row.node_id.to_string(),
                     map_id: row.map_id.to_string(),

@@ -5,7 +5,7 @@ import { administratorStorageStatePath, collaborationStorageStatePath } from './
 
 // This proves a native read prerequisite, not activation of the copied player.
 for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay'] as const) {
-    test(`native ${kind} playback identifies its authorized node and map`, async ({ browser, baseURL }) => {
+    test(`native ${kind} playback identifies its authorized node and map`, async ({ browser, baseURL }, info) => {
         expect(new URL(baseURL!).hostname).toMatch(/^(localhost|127\.0\.0\.1)$/);
         const admin = await browser.newContext({ baseURL, storageState: administratorStorageStatePath });
         const owner = await browser.newContext({ baseURL, storageState: collaborationStorageStatePath('first') });
@@ -67,15 +67,84 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 localSql(`INSERT INTO ${table} (id,principal_id,activity_id) VALUES ('${runId}','${principal}','${activityId}')`);
             }
             const path = `/api/v1/learner/play-runs/${runId}`;
+            const readStarted = performance.now();
             const response = await owner.request.get(path);
             expect(response.status()).toBe(200);
             const playback = await response.json();
+            info.annotations.push({ type: 'native-playback-read', description: `${kind}: ${Math.round(performance.now() - readStarted)} ms; ${Buffer.byteLength(JSON.stringify(playback))} bytes` });
             expect(playback).toMatchObject({ run_kind: kind === 'message' ? 'route' : kind, play_run_id: runId, activity: { id: activityId }, context: { node_id: nodeId, map_id: mapId, node_slug: 'same-playback-place', node_title: 'Same playback place' } });
+            expect.soft(playback.graph).toMatchObject({ node_id: nodeId, activities: [expect.objectContaining({ id: activityId, slug: 'same-activity', activity_type: type, transitions: [] })] });
             const authored = await (await admin.request.get(`/api/v1/admin/world-builder/nodes/${nodeId}`)).json();
             expect(authored.activity_graph.activities).toEqual(expect.arrayContaining([expect.objectContaining({ id: playback.activity.id })]));
             expect(JSON.stringify(playback.activity.config)).not.toContain('isCorrect');
+            expect(JSON.stringify(playback.graph)).not.toContain('isCorrect');
+            if (kind === 'portal') expect(playback.graph.starts).toEqual([]);
+            else expect(playback.graph.starts).toEqual([expect.objectContaining({ id: startId, activity_id: activityId })]);
+            if (kind === 'route') {
+                const secondId = randomUUID(); const secondRouteId = randomUUID(); const secondStartId = randomUUID(); const draftId = randomUUID();
+                const edgeIds = Array.from({ length: 4 }, () => randomUUID());
+                const peerSubject = uuid((await (await peer.request.get('/api/v1/me')).json()).subject_id);
+                const peerPrincipal = uuid(localSql(`SELECT id FROM application_principals WHERE identity_subject_id = '${peerSubject}'`).trim());
+                const question = JSON.stringify({ prompt: 'Graph question', allowMultiple: false, options: [{ key: 'a', label: 'A', body: 'Choose', isCorrect: true }], feedbackCorrect: 'Hidden answer feedback', timeGuideMinutes: 7, evidenceObjective: 'Notice alternatives' });
+                localSql(`
+                    INSERT INTO learning_routes (id,map_asset_id,slug,title,description,position,published_at) VALUES ('${secondRouteId}','${assetId}','alternate','Alternate','',1,NOW());
+                    INSERT INTO learning_activities (id,route_id,slug,title,description,introduction,position,published_at,activity_type,activity_config) VALUES ('${secondId}','${secondRouteId}','same-activity','Alternate question','','Exact source introduction',0,NOW(),'question','${question}');
+                    INSERT INTO learning_activities (id,route_id,slug,title,description,position,activity_type,activity_config) VALUES ('${draftId}','${secondRouteId}','draft','Private draft','',1,'open_practice','{}');
+                    INSERT INTO learning_activity_starts (id,node_id,activity_id,label,sort_order,button_color_light,image_light) VALUES ('${secondStartId}','${nodeId}','${secondId}','Alternate route',2,'#123456','/images/source-start.png');
+                    UPDATE learning_nodes SET start_activity_id = '${secondId}' WHERE id = '${nodeId}';
+                    INSERT INTO learning_activity_transitions (id,from_activity_id,to_activity_id,from_connector,to_connector,trigger,label) VALUES
+                        ('${edgeIds[0]}','${activityId}','${secondId}','completed','in','completed','Next'),
+                        ('${edgeIds[1]}','${activityId}','${activityId}','retry','in','completed','Retry'),
+                        ('${edgeIds[2]}','${activityId}','${secondId}','choice','in','completed','Choice'),
+                        ('${edgeIds[3]}','${secondId}',NULL,'completed',NULL,'completed','Finish');
+                    INSERT INTO learner_route_progress (principal_id,node_id,route_id,current_activity_id,status,activity_start_id,current_play_run_id,completion_count) VALUES ('${peerPrincipal}','${nodeId}','${secondRouteId}','${secondId}','completed','${secondStartId}','${randomUUID()}',7);
+                `);
+                const expandedStarted = performance.now();
+                const expandedResponse = await owner.request.get(path);
+                expect(expandedResponse.status()).toBe(200);
+                const expanded = await expandedResponse.json();
+                info.annotations.push({ type: 'native-playback-graph-read', description: `${Math.round(performance.now() - expandedStarted)} ms; ${Buffer.byteLength(JSON.stringify(expanded))} bytes` });
+                const graph = expanded.graph;
+                expect(graph.start_activity_id).toBe(secondId);
+                expect(graph.activities.map((activity) => activity.id)).toEqual([activityId, secondId]);
+                expect(graph.activities.map((activity) => activity.slug)).toEqual(['same-activity', 'same-activity']);
+                expect(graph.activities[0].transitions.map((edge) => edge.id).sort()).toEqual(edgeIds.slice(0, 3).sort());
+                expect(graph.activities[1]).toMatchObject({ introduction: 'Exact source introduction', time_guide_minutes: 7, check_in: { objective: 'Notice alternatives' }, transitions: [{ id: edgeIds[3], to_activity_id: null, to_connector: 'in', label: 'Finish' }] });
+                expect(graph.starts).toEqual([
+                    expect.objectContaining({ id: startId, progress: expect.objectContaining({ play_run_id: runId, current_activity_id: activityId, status: 'in_progress', completion_count: 0 }) }),
+                    expect.objectContaining({ id: secondStartId, activity_id: secondId, label: 'Alternate route', button_color_light: '#123456', image_light: '/images/source-start.png', progress: null }),
+                ]);
+                expect(JSON.stringify(graph)).not.toContain('Private draft');
+                expect(JSON.stringify(graph)).not.toContain('isCorrect');
+                expect(JSON.stringify(graph)).not.toContain('Hidden answer feedback');
+                const brokenEdgeId = randomUUID();
+                localSql(`INSERT INTO learning_activity_transitions (id,from_activity_id,to_activity_id,from_connector,trigger) VALUES ('${brokenEdgeId}','${activityId}','${draftId}','unavailable','completed')`);
+                expect((await owner.request.get(path)).status()).toBe(503);
+                localSql(`DELETE FROM learning_activity_transitions WHERE id = '${brokenEdgeId}'; UPDATE learning_activities SET activity_config = '{}' WHERE id = '${secondId}'`);
+                expect((await owner.request.get(path)).status()).toBe(503);
+                localSql(`UPDATE learning_activities SET activity_config = '${question}' WHERE id = '${secondId}'; INSERT INTO learning_activities (id,route_id,slug,title,description,position,published_at,activity_type,activity_config) SELECT gen_random_uuid(),'${secondRouteId}','overflow-' || n,'Overflow','',n,NOW(),'open_practice','{}' FROM generate_series(2,1001) AS n`);
+                expect((await owner.request.get(path)).status()).toBe(503);
+                localSql(`DELETE FROM learning_activities WHERE route_id = '${secondRouteId}' AND slug LIKE 'overflow-%'`);
+                expect((await owner.request.get(path)).status()).toBe(200);
+                localSql(`INSERT INTO learning_activities (id,route_id,slug,title,description,position,published_at,activity_type,activity_config) SELECT gen_random_uuid(),'${secondRouteId}','scale-' || n,'Scale fixture','',n,NOW(),'open_practice','{}' FROM generate_series(2,101) AS n`);
+                const scaledStarted = performance.now();
+                const scaledResponse = await owner.request.get(path);
+                expect(scaledResponse.status()).toBe(200);
+                const scaled = await scaledResponse.json();
+                expect(scaled.graph.activities).toHaveLength(102);
+                info.annotations.push({ type: 'native-playback-graph-scale', description: `102 activities: ${Math.round(performance.now() - scaledStarted)} ms; ${Buffer.byteLength(JSON.stringify(scaled))} bytes` });
+                localSql(`DELETE FROM learning_activities WHERE route_id = '${secondRouteId}' AND slug LIKE 'scale-%'`);
+            }
+
             expect((await peer.request.get(path)).status()).toBe(404);
             expect((await anonymous.request.get(path)).status()).toBe(401);
+            localSql(`UPDATE learning_nodes SET state = 'locked' WHERE id = '${nodeId}'`);
+            expect((await owner.request.get(path)).status()).toBe(404);
+            localSql(`UPDATE learning_nodes SET state = 'available', visual_config = '{"schedule":{"lockAt":"2000-01-01T00:00:00Z"}}' WHERE id = '${nodeId}'`);
+            expect((await owner.request.get(path)).status()).toBe(404);
+            localSql(`UPDATE learning_nodes SET state = 'hidden', visual_config = '{}' WHERE id = '${nodeId}'`);
+            expect((await owner.request.get(path)).status()).toBe(404);
+            localSql(`UPDATE learning_nodes SET state = 'available' WHERE id = '${nodeId}'`);
             localSql(`UPDATE learning_maps SET published_at = NULL WHERE id = '${mapId}'`);
             expect((await owner.request.get(path)).status()).toBe(404);
         } finally {

@@ -1023,7 +1023,7 @@ and field mappings are verified.
 | --- | --- | --- |
 | Node UUID in `/learning/nodes/{node}/play`; node/map identity in props | `GET /learner/play-runs/{play_run_id}`, `domain/src/learner_state.rs::LearnerPlaybackContext`, `persistence/src/learner_playback.rs::PlaybackRow` | Actual authorized `node_id` and `map_id` now returned for generic, message, portal-arrival, revisit, recall and replay reads. Existing titles/slugs cannot stand in for these identities. The future adapter must validate route identity against the authorized read before mounting. |
 | Start/resume/reset; ordinary, portal, revisit, recall and replay semantics | Existing `/learner/activity-starts/{start_id}/{start,reset}`, replay/recall/revisit entry endpoints and run repositories | Map source query parameters and restart response URL to typed commands. Preserve distinct run kinds and CSRF; no Laravel GET/session emulation. Inventory clean URL entry and direct activity entry before activation. |
-| Complete `node` with activity graph, start alternatives and portal links | World graph supplies real outline IDs; active-run document supplies one safe activity; native author graph is **not** a learner endpoint | Provide a permission-scoped learner graph/document with every source-consumed activity, transition, configured resource and destination field. Never fill inactive activities with fake config or use author-only payloads. |
+| Complete `node` with activity graph, start alternatives and portal links | World graph supplies real outline IDs; active-run document now adds the published navigation definition described below; native author graph is **not** a learner endpoint | Complete configured resources, source activity metadata, node presentation and portal destinations before building the copied page props. Never fill inactive activities with fake config or use author-only payloads. |
 | `playActivityId`, `playRouteId`, `playRunId`, `revisitActivityId`, `recallQuestionId` | Active activity ID, optional start ID, run ID/kind and owner-scoped recall handle exist | Reconcile question/option identities and source recall question identity versus native recall-item handle. Source numeric identity checks such as alternative `route.id > 0` require an exact transport/identity seam, not invented numeric IDs. |
 | `progress.activities`, `progress.answers`, `progress.recallQuestionIds`, `playState` | Native World activity summaries, question feedback, recall state and type-specific run state | Audit source progress metadata, earlier answers and resume state; current single-activity feedback is not proof of full page-prop parity. |
 | Reached/completed progress and optional check-in | Existing route-entry/progress writes, completion and check-in endpoints; `persistence/src/learner_playback.rs` | Map all source completion fields and returned activity/transition identities, including assistance, outcome and check-in state; do not acknowledge an unmapped write. |
@@ -1057,6 +1057,77 @@ the six reader cases plus existing real World continuation at 1440×900 and
 identity/navigation regression evidence, not playback parity. The ignored
 `frontend/playwright-report/playback-identity/` contains the results. No source
 UI changed, so no new playback screenshot parity is claimed.
+
+### Published playback navigation graph
+
+Source owners: pinned `LearningNodeSerializer::serialize`,
+`LearningActivitySerializer::{serialize,transition}`,
+`LearningNode::activities`, `LoadPlayableNode::handle`, and copied
+`pages/learning/node-play.tsx` / `features/world/activity-panel.tsx`.
+The source selects activities by real identity, follows authored connector
+edges, shows alternate starts and refuses a newly hidden/locked node on entry.
+The active Rust playback document previously lacked the node graph and did not
+recheck source node availability when reading an existing run.
+
+The read extension is a typed, published **navigation definition**, not a
+fabricated `LearningNode` prop: all published activities on the authorized
+node's MapAsset, their introductions, existing learner-safe configuration,
+time/check-in metadata, complete authored transition identities/connectors,
+and eligible starts with own-user continuation. The current activity must be
+in that graph. Reuse the existing safe-config, media URL, start eligibility and
+availability policies. Node/map authorization still comes from the active run.
+
+Bound the graph to 1000 activities, 4000 transitions and 1000 starts, using
+bounded batched queries and explicit failure on overflow. An edge to an
+unpublished or foreign-node activity must not be silently converted into a
+terminal edge or omitted as if the authored route had ended. Private progress,
+answers, type-specific configured resources, portal destinations and full
+source activity metadata remain separately tracked prerequisites; no player
+activation is authorized by this navigation definition alone.
+
+Implementation: `persistence/src/learner_playback_graph.rs` adds four batched
+queries to the existing active-run read, reusing `learner_safe_config`,
+`learner_media_config`, `time_guide_minutes`, `check_in_context`, the existing
+start-type allowlist and `PostgresLearnerNodeAvailability`. It revalidates map,
+node and MapAsset publication/access and rejects current hidden/locked or
+scheduled-locked nodes with 404. The domain/OpenAPI graph types distinguish
+navigation definitions from complete source activity props. Source files and
+all UI resolvers remain unchanged.
+
+The native regression reproduced both the absent graph and the existing
+locked-node read returning 200. Focused graph tests cover real identity with
+repeated slugs, parallel/self/terminal edges, source connector fallbacks,
+eligible preferred starts, input-portal exclusion, question correctness
+exclusion, invalid targets/configuration and all three collection bounds.
+The real PostgreSQL fixture additionally checks draft exclusion, another
+principal's start progress remaining absent, source start presentation,
+unpublished destinations yielding 503, current availability yielding 404, and
+recovery after removing an over-limit or malformed definition.
+
+Before activation, audit native completion's same-route target restriction
+against source transitions between activities on the same MapAsset: this read
+preserves those real endpoints across native route groupings, but does not
+change the completion writer. Also finish question/option identity, sources,
+feedback guidance, configured tools/items/sounds, NPC definitions, portal
+destinations, private answer/progress/play-state projections and the per-player
+transport matrix. None may be substituted with empty source props merely
+because navigation definitions are now readable.
+
+Verification passed: canonical identity, frontend production type/build,
+generated-client drift, Rust fmt/workspace check, twelve playback persistence
+tests (including four graph regressions), three application tests, and eight
+native/browser cases against the rebuilt local PostgreSQL-backed API. The six
+run-kind fixtures exercise the graph and current availability checks; real
+World continuation is still checked at 1440×900 and 390×844 without claiming
+that the unavailable player has been activated. The ignored report is
+`frontend/playwright-report/playback-graph/`.
+
+Local measurements: the two-activity/parallel-edge definition returned 3459
+bytes in 12 ms; a 102-activity definition returned 31453 bytes in 8 ms. These
+single warmed local observations demonstrate payload growth and successful
+bounded reads, not a speedup or production SLA. The implementation performs
+the same four graph queries at both sizes. No source component, database
+migration, production data or traffic ownership changed.
 
 ## Status and purpose
 

@@ -698,6 +698,7 @@ pub struct LearnerPlaybackDocument {
     pub play_run_id: String,
     pub run_kind: LearnerPlaybackRunKind,
     pub context: LearnerPlaybackContext,
+    pub graph: LearnerPlaybackGraph,
     /// The signed-in learner's current held items. The source player exposes
     /// this inventory through its action bar so item-obstacle activities can
     /// accept an existing dragged item rather than inventing a local picker.
@@ -707,6 +708,67 @@ pub struct LearnerPlaybackDocument {
     /// private to the server.
     pub tools: Vec<LearnerTool>,
     pub activity: LearnerPlaybackActivity,
+}
+
+/// Published navigation definitions for one authorized playback node. These
+/// are not complete copied-player props: private progress and configured
+/// resource projections are supplied by their own audited contracts.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackGraph {
+    pub node_id: uuid::Uuid,
+    pub start_activity_id: Option<uuid::Uuid>,
+    pub activities: Vec<LearnerPlaybackGraphActivity>,
+    pub starts: Vec<LearnerPlaybackGraphStart>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackGraphActivity {
+    pub id: uuid::Uuid,
+    pub slug: String,
+    pub title: String,
+    pub introduction: Option<String>,
+    pub activity_type: String,
+    pub config: serde_json::Value,
+    pub time_guide_minutes: Option<i16>,
+    pub check_in: LearnerPlaybackCheckIn,
+    pub transitions: Vec<LearnerPlaybackGraphTransition>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackGraphTransition {
+    pub id: uuid::Uuid,
+    pub to_activity_id: Option<uuid::Uuid>,
+    pub from_connector: String,
+    pub to_connector: String,
+    pub trigger: String,
+    pub trigger_value: Option<String>,
+    pub label: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackGraphStart {
+    pub id: uuid::Uuid,
+    pub activity_id: uuid::Uuid,
+    pub label: String,
+    pub description: Option<String>,
+    pub image_dark: Option<String>,
+    pub image_light: Option<String>,
+    pub button_color_dark: Option<String>,
+    pub button_border_color_dark: Option<String>,
+    pub button_color_light: Option<String>,
+    pub button_border_color_light: Option<String>,
+    pub sort_order: i16,
+    pub progress: Option<LearnerPlaybackGraphStartProgress>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackGraphStartProgress {
+    pub current_activity_id: Option<uuid::Uuid>,
+    pub play_run_id: Option<uuid::Uuid>,
+    pub status: String,
+    pub completion_count: i32,
+    pub last_completed_at: Option<String>,
+    pub last_entered_at: Option<String>,
 }
 
 /// The source's private audio controls. These values are not authored content

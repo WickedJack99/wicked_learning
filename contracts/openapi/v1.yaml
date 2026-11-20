@@ -10832,7 +10832,7 @@ components:
     LearnerPlaybackDocument:
       type: object
       additionalProperties: false
-      required: [start_id, play_run_id, run_kind, context, items, tools, activity]
+      required: [start_id, play_run_id, run_kind, context, graph, items, tools, activity]
       properties:
         start_id:
           type: [string, 'null']
@@ -10845,6 +10845,8 @@ components:
           enum: [route, portal, revisit, recall, replay]
         context:
           $ref: '#/components/schemas/LearnerPlaybackContext'
+        graph:
+          $ref: '#/components/schemas/LearnerPlaybackGraph'
         items:
           type: array
           maxItems: 100
@@ -10855,6 +10857,77 @@ components:
           items: { $ref: '#/components/schemas/LearnerTool' }
         activity:
           $ref: '#/components/schemas/LearnerPlaybackActivity'
+    LearnerPlaybackGraph:
+      type: object
+      additionalProperties: false
+      description: Published navigation definitions for the authorized node, not complete source player props. Unavailable targets, unsupported configurations or graph bounds fail explicitly; private progress and configured resource mappings are separate contracts.
+      required: [node_id, start_activity_id, activities, starts]
+      properties:
+        node_id: { type: string, format: uuid }
+        start_activity_id: { type: [string, 'null'], format: uuid }
+        activities: { type: array, maxItems: 1000, items: { $ref: '#/components/schemas/LearnerPlaybackGraphActivity' } }
+        starts: { type: array, maxItems: 1000, items: { $ref: '#/components/schemas/LearnerPlaybackGraphStart' } }
+    LearnerPlaybackGraphActivity:
+      type: object
+      additionalProperties: false
+      required: [id, slug, title, introduction, activity_type, config, time_guide_minutes, check_in, transitions]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        title: { type: string }
+        introduction: { type: [string, 'null'] }
+        activity_type: { type: string, enum: [open_practice, question, reflection, review, tool_grant, item_grant, item_obstacle, obstacle, markdown, message_prompt, message_wall, npc_dialogue, portal, shared_task] }
+        config: { type: object, additionalProperties: true, description: Existing type-specific learner-safe configuration, excluding question correctness and author review fields. }
+        time_guide_minutes: { type: [integer, 'null'], minimum: 1 }
+        check_in: { $ref: '#/components/schemas/LearnerPlaybackCheckIn' }
+        transitions:
+          type: array
+          maxItems: 4000
+          description: At most 4000 transitions across the entire graph. A null destination is an authored terminal edge, never a replacement for an unpublished destination.
+          items: { $ref: '#/components/schemas/LearnerPlaybackGraphTransition' }
+    LearnerPlaybackGraphTransition:
+      type: object
+      additionalProperties: false
+      required: [id, to_activity_id, from_connector, to_connector, trigger, trigger_value, label]
+      properties:
+        id: { type: string, format: uuid }
+        to_activity_id: { type: [string, 'null'], format: uuid }
+        from_connector: { type: string }
+        to_connector: { type: string }
+        trigger: { type: string }
+        trigger_value: { type: [string, 'null'] }
+        label: { type: [string, 'null'] }
+    LearnerPlaybackGraphStart:
+      type: object
+      additionalProperties: false
+      required: [id, activity_id, label, description, image_dark, image_light, button_color_dark, button_border_color_dark, button_color_light, button_border_color_light, sort_order, progress]
+      properties:
+        id: { type: string, format: uuid }
+        activity_id: { type: string, format: uuid }
+        label: { type: string }
+        description: { type: [string, 'null'] }
+        image_dark: { type: [string, 'null'] }
+        image_light: { type: [string, 'null'] }
+        button_color_dark: { type: [string, 'null'] }
+        button_border_color_dark: { type: [string, 'null'] }
+        button_color_light: { type: [string, 'null'] }
+        button_border_color_light: { type: [string, 'null'] }
+        sort_order: { type: integer, minimum: 0 }
+        progress:
+          anyOf:
+            - { $ref: '#/components/schemas/LearnerPlaybackGraphStartProgress' }
+            - { type: 'null' }
+    LearnerPlaybackGraphStartProgress:
+      type: object
+      additionalProperties: false
+      required: [current_activity_id, play_run_id, status, completion_count, last_completed_at, last_entered_at]
+      properties:
+        current_activity_id: { type: [string, 'null'], format: uuid }
+        play_run_id: { type: [string, 'null'], format: uuid }
+        status: { type: string, enum: [in_progress, completed] }
+        completion_count: { type: integer, minimum: 0 }
+        last_completed_at: { type: [string, 'null'], format: date-time }
+        last_entered_at: { type: [string, 'null'], format: date-time }
     LearnerRecallQueue:
       type: object
       additionalProperties: false
