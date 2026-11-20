@@ -1,10 +1,30 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+
+const canonicalWorldApi = resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/api');
+const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts');
 
 export default defineConfig({
-    plugins: [react(), tailwindcss()],
+    plugins: [
+        {
+            name: 'canonical-world-transport',
+            enforce: 'pre',
+            resolveId(source, importer) {
+                // Relative imports in copied feature components must reach the
+                // same narrow transport seam as the page's aliased import.
+                if (importer && source.startsWith('.')) {
+                    const target = resolve(dirname(importer.split('?')[0]), source);
+                    if (target === canonicalWorldApi || target === `${canonicalWorldApi}.ts`) {
+                        return worldApiAdapter;
+                    }
+                }
+            },
+        },
+        react(),
+        tailwindcss(),
+    ],
     resolve: {
         alias: [
             { find: '@laravel/passkeys/react', replacement: resolve(import.meta.dirname, 'src/platform/passkey-react.ts') },

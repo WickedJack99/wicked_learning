@@ -1,4 +1,5 @@
 import type { components } from './api/schema';
+import { toSourceGroupPage } from './world-groups';
 
 type LearnerGroups = components['schemas']['LearnerGroupPage'];
 type LearnerTranslations = components['schemas']['LearnerPlatformTranslationResponse'];
@@ -16,7 +17,7 @@ export type WorldPageProps = {
     appearance: CurrentUser['appearance'];
     auth: { user: { subjectId: string } };
     bookmarkedNodeIds: number[];
-    groups: unknown[];
+    groups: ReturnType<typeof toSourceGroupPage>['groups'];
     groupsPagination: {
         currentPage: number;
         lastPage: number;
@@ -197,18 +198,14 @@ export function toWorldPageProps(
 
         return nodeId ? [nodeId] : [];
     });
+    const sourceGroups = toSourceGroupPage(groups);
 
     return {
         appearance: currentUser.appearance,
         auth: { user: { subjectId: currentUser.subject_id } },
         bookmarkedNodeIds,
-        groups: groups.groups.map(toSourceGroup),
-        groupsPagination: {
-            currentPage: groups.pagination.current_page,
-            lastPage: groups.pagination.last_page,
-            perPage: groups.pagination.per_page,
-            total: groups.pagination.total,
-        },
+        groups: sourceGroups.groups,
+        groupsPagination: sourceGroups.pagination,
         localization: {
             locale: translations.locale,
             translations: translations.translations,
@@ -220,48 +217,5 @@ export function toWorldPageProps(
             muted: soundPreferences.muted,
         },
         world,
-    };
-}
-
-function toSourceGroup(group: LearnerGroups['groups'][number]) {
-    return {
-        adminChatRequiredVotes: group.admin_chat_required_votes,
-        adminChatVisible: group.admin_chat_visible,
-        adminChatVoteCount: group.admin_chat_vote_count,
-        currentUserVotedForAdminChat: group.current_user_voted_for_admin_chat,
-        description: group.description,
-        // Group IDs remain Rust UUIDs at runtime. The copied component only
-        // compares/interpolates them, and writer calls are blocked by the
-        // World transport facade.
-        id: group.id,
-        memberCount: group.member_count,
-        members: group.members.map((member) => ({
-            email: member.email,
-            id: member.id,
-            name: member.name,
-        })),
-        messages: group.messages.map((message) => ({
-            body: message.body,
-            canResolve: message.can_resolve,
-            createdAt: message.created_at,
-            id: message.id,
-            isHelpRequest: message.is_help_request,
-            resolvedAt: message.resolved_at,
-            resolvedBy: message.resolved_by
-                ? {
-                    email: message.resolved_by.email,
-                    id: message.resolved_by.id,
-                    name: message.resolved_by.name,
-                }
-                : null,
-            user: message.user
-                ? {
-                    email: message.user.email,
-                    id: message.user.id,
-                    name: message.user.name,
-                }
-                : null,
-        })),
-        name: group.name,
     };
 }

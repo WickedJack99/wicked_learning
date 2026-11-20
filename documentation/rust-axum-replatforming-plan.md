@@ -1,11 +1,91 @@
 # Rust/Axum Replatforming Plan
 
+## Active canonical migration completion register
+
+The active goal is complete development/test acceptance of the canonical
+frontend against Rust, without production cutover. Historical implementation
+entries below are evidence inventories, not proof of route-family completion.
+Temporary unavailable controls do not count as migrated behavior. Sequence work
+by complete user journeys and backend dependencies, not the retired World
+Builder P0 ordering. The canonical source remains pinned to
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f` (local `main` verified).
+
+| Route family | Current acceptance status | Next evidence/work required |
+| --- | --- | --- |
+| Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
+| Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
+| Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
+| Learner World and playback | **Incomplete**; group subworkflow verified below | Verify map/activity identity, progress, media, appearance, empty/error semantics, search, bookmarks, tools, route lifecycle and playback. |
+| Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
+| Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
+| Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
+| Platform, asset, localization and support administration | Pending canonical acceptance | Complete each copied panel's document, commands, pagination, media and permission mapping. |
+| World Builder and direct editors | Pending canonical acceptance | Complete copied route families through existing Rust authoring contracts after learner/dependency priorities; historical recreated screens are not acceptance evidence. |
+
+### Current World transport and group contract repair
+
+Source checked against pinned `main` before implementation:
+`resources/js/pages/world.tsx`, `features/world/{api.ts,group-control.tsx}`,
+`components/pagination-controls.tsx`, `hooks/use-platform-translation.ts`,
+`features/messages/message-time.ts`, shared `components/ui/{button,input}.tsx`;
+the matching controller is `app/Http/Controllers/LearningGroupController.php`,
+serializer `app/Learning/Serializers/LearningGroupSerializer.php`, and source
+regression evidence `tests/Feature/LearningGroupsTest.php`.
+
+| Source contract | Rust evidence / compatibility seam | Acceptance requirement |
+| --- | --- | --- |
+| Initial and paginated groups; source camelCase group, member, message and pagination props | `GET /api/v1/learner/groups`; OpenAPI `getLearnerGroups`, `LearnerGroupPage`; `backend/crates/{api,application,persistence}/src/learner_group.rs` | One shared typed mapper for initial reads, subsequent pages and command responses; opaque UUIDs retained for keys/equality/URLs, never fabricated numeric IDs. |
+| Send message/help request | `POST /api/v1/learner/groups/{group_id}/messages`; `sendLearnerGroupMessage` | Preserve `body` and `is_help_request`, CSRF, server membership check and returned group; source error keeps unsent text. |
+| Resolve another member's help request | `POST /api/v1/learner/groups/{group_id}/messages/{message_id}/resolve`; `resolveLearnerGroupHelpRequest` | Preserve server-derived `canResolve`, author/resolver and timestamps; no client-computed success. |
+| Vote for admin access | `POST /api/v1/learner/groups/{group_id}/admin-chat-vote`; `voteForLearnerGroupAdminChatAccess` | Use server vote counts/current-user flag/visibility; preserve source disabled state. |
+| Relative and aliased `features/world/api` imports | Existing Vite alias covers only `@/features/world/api`; copied `GroupControl` imports `./api` | Resolve the exact transport module to the platform adapter for both import forms, without editing source files or intercepting arbitrary fetches. |
+| Loading and failures | Source `GroupControl` owns pending states, retained page/draft and inline errors | Test pagination and command failures at both viewports; unknown operations remain explicit-unavailable while their own contracts are completed. |
+
+**Verified group transport subworkflow:** `frontend/src/platform/world-groups.ts` maps
+initial, paginated and command responses consistently; `world-api.ts` uses the
+existing typed Rust operations; the exact-module Vite resolver also handles
+relative source imports. No canonical source file, Rust endpoint, schema or
+database migration changed. The pre-fix pagination regression failed at both
+viewports, then passed with the repair.
+
+`frontend/e2e/canonical-world.spec.ts` covers source group pagination,
+message/help/vote responses, UUID/CSRF preservation and failed writes retaining
+the draft for 401/403/404/503. Source comparison mounts the whole pinned-main
+`GroupControl` with its original relative transport in the test-only
+`canonical-world-groups-source` harness. Tests verify those original source
+files against the pinned SHA, compare text and panel/control bounds before and
+after pagination, and attach source/Rust screenshots at 1440×900 and 390×844.
+This is component-level light-appearance evidence; full World/player route
+parity remains open. Live screenshot inspection also exposed inconsistent
+World appearance/root dark-class initialization, which is the next repair.
+
+`frontend/e2e/canonical-world-groups-live.spec.ts` uses real local Rust APIs and
+PostgreSQL, without response mocks: two members, two paginated groups, message
+persistence after refresh, another member's help resolution and majority
+voting. It also verifies outsider writes, missing CSRF and self-resolution are
+rejected. Only test-created memberships are cleared afterwards. Source-side
+pagination coverage and live Rust coverage both exercise the copied UI.
+
+Validation: canonical identity (299 source files plus CSS), frontend production
+type/build, generated OpenAPI client drift check, Rust workspace fmt/check,
+the focused Rust `learner_group` regression, and 13 browser tests passed.
+Browser rerun: start the frontend Vite evidence server on port 8082, serve the
+current production build with the local Rust stack on 8081, provision the
+disposable sessions using the existing `rust-local-stack.md` procedure, then
+run from `frontend/`:
+`SOURCE_EVIDENCE_BASE_URL=http://127.0.0.1:8082 PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-world.spec.ts e2e/canonical-world-groups-live.spec.ts --reporter=line,html`.
+The ignored `frontend/playwright-report/` retains the screenshot attachments.
+The source comparison explicitly requires that evidence server; a skipped
+comparison is not parity evidence. Existing unrelated worktree edits remain
+outside this slice.
+
 ## Status and purpose
 
-This is a proposed implementation plan for replacing the Laravel/Inertia
-application with separately deployable React/TypeScript and Rust/Axum
-applications. It is a planning artifact, not an approved implementation, and
-does not change the current Laravel application's architecture or behavior.
+This is the active development/test implementation plan for replacing the
+Laravel/Inertia application with separately deployable React/TypeScript and
+Rust/Axum applications. The active completion register governs canonical
+frontend acceptance. Laravel retains production ownership; this goal does not
+authorize production traffic or data cutover.
 
 The aim is behavioral continuity, not a line-for-line framework translation.
 The learner-facing privacy, accessibility, orientation and agency boundaries in
@@ -677,6 +757,13 @@ unavailable; none is silently represented as successful bootstrap behavior.
 
 ### Canonical learner World read-route activation — 18 November 2026
 
+**Acceptance correction:** this historical entry describes an incomplete read
+activation. The active completion register above governs remaining work.
+The original relative-import and pagination claims were contradicted by the
+new browser regression and repaired in the group subworkflow. Activity
+outlines, local numeric identity, empty/error semantics and playback still
+require source-contract verification; this entry is not full-route acceptance.
+
 **Pinned source verified:** `main` resolves to
 `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`. The mounted source entry is the
 byte-identical copied `resources/js/pages/world.tsx`, including its complete
@@ -698,7 +785,8 @@ interaction helpers; shared UI primitives; and the canonical stylesheet.
 | Source sound preference controls | `GET /api/v1/learner/sound-preferences`; `api/src/learner_sound_preference.rs`; OpenAPI `getLearnerSoundPreferences` | Reused as a read-only volume/mute projection for copied map sounds. The adapter maps only the three source values and never calls its preference writer. |
 | Initial group control and its bounded pagination read | `GET /api/v1/learner/groups`; `api/src/learner_group.rs`; OpenAPI `getLearnerGroups` | Reused and mapped only at the source field-name seam. Opaque Rust UUID group/message identities stay opaque at runtime; the copied component only uses them for equality/keys. |
 | World search | `GET /api/v1/learner/search`; `api/src/learner_desk_search.rs`; OpenAPI `searchLearnerDesk` | `world-api.ts` maps only the copied page's legacy search URL to this typed Rust read. Search result map/node selection remains slug-based; no synthetic server identity is sent. |
-| Bookmarks, tool use, group messages/votes/resolution, route reset and activity start/playback | Existing command families are deliberately **not** activated by this slice. `frontend/src/platform/world-api.ts` rejects every legacy source writer and emits the visible unavailable alert. Source `router.visit` may navigate to a separately explicit-unavailable route, never to a fabricated play/run success. | No Laravel path is called and no Rust writer is called. `/learning/nodes/{id}/play`, portal travel, map-asset editing and all playback are outside this activation. |
+| Group messages/votes/resolution | Activated through the existing Rust contracts by the group repair recorded in the active register above. | Both relative and aliased World transport imports use the platform adapter; source group UI is unchanged. |
+| Bookmarks, tool use, route reset and activity start/playback | Existing command families remain unactivated. Unmapped operations raise the adapter's explicit unavailable state. | `/learning/nodes/{id}/play`, portal travel, map-asset editing and all playback still require full canonical activation. |
 | Empty, authentication, authorization and dependency failures | World handler/OpenAPI `401`, `403`, `404`, `503`; route adapter failure boundary | `404` maps to the copied source's exact empty-World view. `401`, `403`, `503`, missing companion reads or network failure render the bounded explicit World-unavailable state; none becomes an empty or successful map. |
 
 The copied component does not read map access-role lists or portal/activity

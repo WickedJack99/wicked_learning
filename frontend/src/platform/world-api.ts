@@ -1,4 +1,5 @@
-import { apiClient } from './api/client';
+import { apiClient, getCsrfToken } from './api/client';
+import { toSourceGroup, toSourceGroupPage } from './world-groups';
 
 export class JsonRequestError extends Error {
     public constructor(
@@ -25,8 +26,8 @@ function unavailableOperation(): never {
 
 /**
  * The copied World page still names Laravel transport paths. This facade maps
- * only its audited read paths to typed Rust calls; all source writers remain
- * visibly unavailable instead of falling through to Laravel-shaped requests.
+ * only audited paths to typed Rust calls. Unmapped operations never fall
+ * through to Laravel-shaped requests.
  */
 export async function getJson<T>(url: string, _signal?: AbortSignal): Promise<T> {
     const parsed = new URL(url, window.location.origin);
@@ -79,16 +80,55 @@ export async function getJson<T>(url: string, _signal?: AbortSignal): Promise<T>
             throw new JsonRequestError('The group chats could not be loaded.', response.status);
         }
 
-        return data as T;
+        return toSourceGroupPage(data) as T;
     }
 
     return unavailableOperation();
 }
 
 export async function postJson<T>(
-    _url: string,
-    _payload: Record<string, unknown>,
+    url: string,
+    payload: Record<string, unknown>,
 ): Promise<T> {
+    const groupAction = /^\/learning\/groups\/([a-f0-9-]+)\/(messages|admin-chat-vote|messages\/([a-f0-9-]+)\/resolve)$/.exec(url);
+    if (groupAction) {
+        const [, groupId, action, messageId] = groupAction;
+        if (action === 'messages' && (
+            typeof payload.body !== 'string' ||
+            (payload.is_help_request !== undefined && typeof payload.is_help_request !== 'boolean')
+        )) {
+            throw new JsonRequestError('The message could not be sent.', 400);
+        }
+
+        const headers = { 'X-CSRF-Token': await getCsrfToken() };
+        const result = action === 'messages'
+            ? await apiClient.POST('/learner/groups/{group_id}/messages', {
+                params: { path: { group_id: groupId }, header: headers },
+                body: {
+                    body: payload.body as string,
+                    is_help_request: payload.is_help_request === true,
+                },
+            })
+            : action === 'admin-chat-vote'
+                ? await apiClient.POST('/learner/groups/{group_id}/admin-chat-vote', {
+                    params: { path: { group_id: groupId }, header: headers },
+                })
+                : await apiClient.POST('/learner/groups/{group_id}/messages/{message_id}/resolve', {
+                    params: { path: { group_id: groupId, message_id: messageId }, header: headers },
+                });
+
+        if (!result.response.ok || !result.data) {
+            throw new JsonRequestError(
+                action === 'messages'
+                    ? 'The message could not be sent.'
+                    : action === 'admin-chat-vote'
+                        ? 'The vote could not be saved.'
+                        : 'The help request could not be updated.',
+                result.response.status,
+            );
+        }
+        return { group: toSourceGroup(result.data.group) } as T;
+    }
     return unavailableOperation();
 }
 
