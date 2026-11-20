@@ -4,6 +4,7 @@ import type { components } from '../src/platform/api/schema';
 import { toWorldPageProps } from '../src/platform/world-projection';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { mockWorldShell } from './canonical-shell-fixture';
 
 const worldIds = {
     world: '018f1f8c-4c2f-7b8a-9d0e-000000000001',
@@ -30,7 +31,8 @@ for (const { name, viewport } of viewports) {
             page.on('request', (request) => {
                 if (
                     request.url().includes('/api/v1/learner/') &&
-                    request.method() !== 'GET'
+                    request.method() !== 'GET' &&
+                    !/\/(map-location|feedback-prompt\/claim)$/.test(new URL(request.url()).pathname)
                 ) {
                     worldWrites += 1;
                 }
@@ -63,12 +65,12 @@ for (const { name, viewport } of viewports) {
             await node.click();
             await expect(page.getByRole('heading', { name: 'First place' })).toBeVisible();
 
-            await page.getByRole('button', { name: 'Bookmark this tile' }).click();
-            await expect(
-                page.getByText(
-                    'This World action is not available until its Rust migration slice is activated.',
-                ),
-            ).toBeVisible();
+            if (name === 'narrow') {
+                await expectCoveredByLearnerHeader(page);
+            } else {
+                await page.getByRole('button', { name: 'Bookmark this tile' }).click();
+                await expect(page.getByText('This World action is not available until its Rust migration slice is activated.')).toBeVisible();
+            }
 
             await page.getByRole('button', { name: 'Begin orientation' }).click();
             await expect(
@@ -117,16 +119,23 @@ for (const { name, viewport } of viewports) {
             snapshot.start_routes = [];
             await routeWorldReads(page, { world: (route) => route.fulfill({ json: snapshot }) });
             const source = await context.newPage();
-            await source.addInitScript((props) => { window.sourceWorldEvidence = props; }, sourceWorldProps());
-            await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-world-source.html`);
+            await source.addInitScript((props) => { window.sourceWorldEvidence = props; window.sourceWorldEvidenceUrl = '/world?map=orientation-map'; }, sourceWorldProps());
+            await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-learner-layout-source.html`);
             await page.goto('/world');
             for (const target of [source, page]) {
                 await target.getByRole('button', { name: 'First place' }).click();
                 await expect(target.getByLabel('Node completed')).toBeVisible();
                 await expectBounded(target.getByRole('button', { name: 'Start node', exact: true }), viewport);
             }
-            expect(await page.locator('aside').innerText()).toBe(await source.locator('aside').innerText());
-            expect(await page.locator('aside').boundingBox()).toEqual(await source.locator('aside').boundingBox());
+            const drawer = (target: Page) => target.locator('aside').filter({ hasText: 'A source-derived learner place.' });
+            expect(await drawer(page).innerText()).toBe(await drawer(source).innerText());
+            await expect(async () => {
+                expect(await drawer(page).boundingBox()).toEqual(await drawer(source).boundingBox());
+            }).toPass({ timeout: 1500 });
+            if (name === 'narrow') {
+                await expectCoveredByLearnerHeader(page);
+                await expectCoveredByLearnerHeader(source);
+            }
             await testInfo.attach('main-world-place', { body: await source.screenshot(), contentType: 'image/png' });
             await testInfo.attach('rust-world-place', { body: await page.screenshot(), contentType: 'image/png' });
             await source.getByRole('button', { name: 'Start node', exact: true }).click();
@@ -343,7 +352,9 @@ for (const { name, viewport } of viewports) {
                 adminChatRequiredVotes: 2, adminChatVisible: false, adminChatVoteCount: 0,
                 currentUserVotedForAdminChat: false, memberCount: 2, members: [], messages: [],
             });
-            await source.addInitScript((group) => { window.sourceGroupEvidence = [group]; }, sourceGroup(1));
+            await source.addInitScript((props) => { window.sourceWorldEvidence = props; window.sourceWorldEvidenceUrl = '/world?map=orientation-map'; }, {
+                ...sourceWorldProps(), groups: [sourceGroup(1)], groupsPagination: { currentPage: 1, lastPage: 2, perPage: 1, total: 2 },
+            });
             await source.route('**/learning/groups?**', (route) => route.fulfill({ json: {
                 groups: [sourceGroup(2)], pagination: { currentPage: 2, lastPage: 2, perPage: 1, total: 2 },
             } }));
@@ -353,7 +364,8 @@ for (const { name, viewport } of viewports) {
                 return route.fulfill({ json: { groups: [groupFixture(currentPage)],
                     pagination: { current_page: currentPage, last_page: 2, per_page: 1, total: 2 } } });
             });
-            await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-world-groups-source.html`);
+            await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-learner-layout-source.html`);
+            await source.getByRole('button', { name: 'Open groups' }).click();
             await page.goto('/world');
             await page.getByRole('button', { name: 'Open groups' }).click();
             for (const phase of ['initial', 'next-page']) {
@@ -446,6 +458,7 @@ type RouteOptions = {
 
 async function routeWorldReads(page: Page, options: RouteOptions = {}) {
     await page.unrouteAll({ behavior: 'ignoreErrors' });
+    await mockWorldShell(page, { id: worldIds.map, slug: 'orientation-map', background_config: worldSnapshot().world.maps[0].background_config });
     await page.route('**/api/v1/learner/world', async (route) => {
         if (options.world) {
             await options.world(route);
@@ -605,7 +618,8 @@ async function expectBounded(
 function sourceWorldProps() {
     const topic = { competenceHref: '/topics/orientation', href: '/topics/orientation', slug: 'orientation', title: 'Orientation' };
     return {
-        auth: { user: { id: 1, name: 'Learner' } }, appearance: 'light',
+        auth: { user: { id: 1, name: 'Learner', email: 'learner@example.test' }, items: [], tools: [], canViewMediaPaths: false }, appearance: 'light',
+        name: 'Wicked Learning', companion: null, feedbackPrompt: false,
         localization: { locale: 'en', translations: {} },
         soundPreferences: { ambienceVolume: 100, effectsVolume: 100, muted: false },
         groups: [], groupsPagination: { currentPage: 1, lastPage: 1, perPage: 1, total: 0 },
@@ -625,6 +639,20 @@ function sourceWorldProps() {
             }],
         },
     };
+}
+
+async function expectCoveredByLearnerHeader(page: Page) {
+    // Newly observed source defect, not a migration usability acceptance:
+    // the whole pinned header covers this drawer control at 390px. Do not
+    // force-click through it and pretend the source control is usable.
+    const control = page.getByRole('button', { name: 'Bookmark this tile' });
+    await expect(async () => {
+        expect(await control.evaluate((node) => {
+            const box = node.getBoundingClientRect();
+            return Boolean(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+                ?.closest('[data-wl-id="learner.navigation.header"]'));
+        })).toBe(true);
+    }).toPass();
 }
 
 test('World projection keeps identities across ordering and scopes same-slug progress by UUID', () => {

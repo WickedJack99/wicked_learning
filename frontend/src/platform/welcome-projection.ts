@@ -26,8 +26,6 @@ export type WelcomePageProps = {
 export function toWelcomePageProps(
     projection: WelcomeWireProjection,
 ): WelcomePageProps {
-    const presentation = projection.publicPresentation;
-
     return {
         auth: projection.auth,
         appearance: projection.appearance,
@@ -37,50 +35,54 @@ export function toWelcomePageProps(
             locale: 'en',
             translations: {},
         },
-        publicPresentation: {
-            auth: {
-                backgroundImages: {
-                    login: appearanceImages(presentation.auth.login),
-                    register: appearanceImages(presentation.auth.register),
-                    welcome: appearanceImages(presentation.auth.welcome),
-                },
-            },
-            branding: presentation.branding,
-            cursors: {
-                action: cursor(presentation.cursors.action),
-                default: cursor(presentation.cursors.default),
-                denied: cursor(presentation.cursors.denied),
-                grab: cursor(presentation.cursors.grab),
-                text: cursor(presentation.cursors.text),
-            },
-            infoPages: {
-                pages: presentation.information_pages.map((page) => ({
-                    backgrounds: images(page.backgrounds),
-                    key: page.slug,
-                    markdown: page.body,
-                    title: page.title,
-                })),
-            },
-            publicPalette: {
-                dark: publicPalette(presentation.public_palette.dark),
-                light: publicPalette(presentation.public_palette.light),
-            },
-            settingsPalette: {
-                dark: settingsPalette(presentation.settings_palette.dark),
-                light: settingsPalette(presentation.settings_palette.light),
-            },
-            welcome: {
-                pages: presentation.welcome.pages.map((page) => ({
-                    backgrounds: images(page.backgrounds),
-                    body: page.body,
-                    buttons: page.buttons,
-                    eyebrow: page.eyebrow,
-                    primaryLabel: page.buttons[0]?.text ?? '',
-                    title: page.title,
-                })),
-            },
-        } as PublicPresentationSettings,
+        publicPresentation: toSourcePublicPresentation(projection.publicPresentation),
     };
+}
+
+export function toSourcePublicPresentation(presentation: components['schemas']['PublicPresentation']): PublicPresentationSettings {
+    return {
+        auth: {
+            backgroundImages: {
+                login: appearanceImages(presentation.auth.login),
+                register: appearanceImages(presentation.auth.register),
+                welcome: appearanceImages(presentation.auth.welcome),
+            },
+        },
+        branding: presentation.branding,
+        cursors: {
+            action: cursor(presentation.cursors.action),
+            default: cursor(presentation.cursors.default),
+            denied: cursor(presentation.cursors.denied),
+            grab: cursor(presentation.cursors.grab),
+            text: cursor(presentation.cursors.text),
+        },
+        infoPages: {
+            pages: presentation.information_pages.map((page) => ({
+                backgrounds: images(page.backgrounds),
+                key: page.slug,
+                markdown: page.body,
+                title: page.title,
+            })),
+        },
+        publicPalette: {
+            dark: publicPalette(presentation.public_palette.dark),
+            light: publicPalette(presentation.public_palette.light),
+        },
+        settingsPalette: {
+            dark: settingsPalette(presentation.settings_palette.dark),
+            light: settingsPalette(presentation.settings_palette.light),
+        },
+        welcome: {
+            pages: presentation.welcome.pages.map((page) => ({
+                backgrounds: images(page.backgrounds),
+                body: page.body,
+                buttons: page.buttons,
+                eyebrow: page.eyebrow,
+                primaryLabel: page.buttons[0]?.text ?? '',
+                title: page.title,
+            })),
+        },
+    } as PublicPresentationSettings;
 }
 
 function appearanceImages(
@@ -172,5 +174,30 @@ function settingsPalette(value: components['schemas']['SettingsPalette']) {
         scrollbarThumbOpacity: value.scrollbar_thumb_opacity,
         sidebarBackground: value.sidebar_background,
         sidebarBackgroundOpacity: value.sidebar_background_opacity,
+    };
+}
+
+function learnerPalette(value: components['schemas']['LearnerPalette']) {
+    return {
+        accent: value.accent, accentOpacity: value.accent_opacity,
+        actionAccent: value.action_accent, actionAccentOpacity: value.action_accent_opacity,
+        borderColor: value.border_color, borderColorOpacity: value.border_color_opacity,
+        bodyText: value.body_text, bodyTextOpacity: value.body_text_opacity,
+        headerBackground: value.header_background, headerBackgroundOpacity: value.header_background_opacity,
+        headingText: value.heading_text, headingTextOpacity: value.heading_text_opacity,
+        mutedText: value.muted_text, mutedTextOpacity: value.muted_text_opacity,
+        pageBackground: value.page_background, pageBackgroundOpacity: value.page_background_opacity,
+        panelBackground: value.panel_background, panelBackgroundOpacity: value.panel_background_opacity,
+        panelMutedBackground: value.panel_muted_background, panelMutedBackgroundOpacity: value.panel_muted_background_opacity,
+    };
+}
+
+export function toSourceLearnerPresentation(presentation: components['schemas']['PublicPresentation']): PublicPresentationSettings {
+    return {
+        ...toSourcePublicPresentation(presentation),
+        learnerPalette: {
+            dark: learnerPalette(presentation.learner_palette.dark),
+            light: learnerPalette(presentation.learner_palette.light),
+        },
     };
 }

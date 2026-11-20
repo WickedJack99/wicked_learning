@@ -36,7 +36,7 @@ export function CanonicalSourceResolver() {
     }
 
     if (location.pathname === '/world') {
-        return <WorldRoute />;
+        return <WorldRoute key={location.key} />;
     }
 
     if (location.pathname === '/login') {

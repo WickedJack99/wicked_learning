@@ -4,6 +4,7 @@ import base from '../vite.config.ts';
 
 const sourceRoot = resolve(import.meta.dirname, '../../resources/js');
 export default mergeConfig(base, defineConfig({
+    cacheDir: 'node_modules/.vite-journal-evidence',
     publicDir: resolve(import.meta.dirname, '../../public'),
     server: {
         hmr: false,

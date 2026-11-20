@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; group transport, authenticated bootstrap and graph identity verified below | Complete copied shared layout, anonymous access, location persistence, progress writes, media, search, bookmarks, tools, route lifecycle and playback. |
+| Learner World and playback | **Incomplete**; whole copied learner layout, shared transports, authenticated bootstrap, location persistence and graph identity integrated below | Anonymous access, progress writes, remaining media, search, bookmarks, tool application, route lifecycle and playback; retain observed source usability defects as open acceptance limitations. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -197,7 +197,7 @@ Use the earlier source-server setup and run all three `canonical-world*.spec.ts`
 files named above with the HTML reporter to retain comparison screenshots.
 No canonical source, migrations, production data or traffic ownership changed.
 
-### Next integration boundary: complete copied learner shell
+### Copied learner shell contract register
 
 This is a shared learner-navigation dependency, not World Builder priority.
 The owning source tree is `resources/js/layouts/{app-layout.tsx,app/app-sidebar-layout.tsx}`,
@@ -210,24 +210,23 @@ copied modules. Source shared props come from
 
 | Required source behavior | Existing Rust evidence | Concrete remaining contract / adapter |
 | --- | --- | --- |
-| Account name/avatar, media permission, appearance and logout | `/me`, `/session/logout`, `frontend/src/platform/{welcome-inertia,welcome-routes}` and existing Settings account mapping | Reuse the real profile/appearance mapping and typed logout. Verify failure behavior and source `router.flushAll` cleanup; do not fabricate account props. |
-| `auth.items` and `auth.tools`, grant deduplication, tool selection | `/learner/world` inventory; domain `LearnerItem`/`LearnerTool`; source `Learning{Item,Tool}Serializer.php` | Real UUIDs now travel in World/shell holdings and existing tool-grant/playback/obstacle responses. Owned-item/tool media delivery and URL projection are implemented below; connect the complete source controls through the shared-layout adapter. The item-grant display result still needs the source inventory refresh contract. |
-| `name`, learner palette, branding and cursors | `PublicPresentation`, `persistence/src/public_presentation.rs`; source `theme/presentation.ts` | Branding/cursors reused. `/learner/shell` now supplies deployment `APPLICATION_NAME` and typed learner palette with pinned-source defaults. The frontend source-shape mapping remains to be connected. |
-| `menuTheme` remembers the learner's preferred visible map | Source `app/Learning/Queries/LoadCurrentMenuMapTheme.php`, `Services/LearnerMapLocationService.php`; Rust visible World maps | Private preferred-map persistence and visibility revalidation now exist in `/learner/map-location` and `/learner/shell`. Managed menu-background URLs now use the existing learner media route. Connect source World navigation/reload semantics through the typed adapter. |
-| Journal initial theme without loading private notes | `persistence/src/learner_journal.rs`, table `application_journal_feedback_policy`, domain default theme | The shell now reuses the existing theme/policy read without loading journal content. Connect that real theme through the source page-prop adapter. |
-| On-demand complete Journal overlay | `/learner/journal`, `/learner/journal/pages`, page update/delete/feedback request, `/learner/journal/export`; `features/journal/journal-client.ts` | Reuse existing writes, owner scope, search, pagination and theme. `LearnerJournalLearningContext` now carries actual node/activity IDs and published topic context; check-ins/revisits carry actual activity/node IDs. Connect those contracts through the copied client and verify all context links. Preserve export and feedback/revisit errors. |
-| Companion visibility, context, authored dialogue and AI turn | `/learner/companion`, `/learner/companion/turn`; `domain/src/learning_companion.rs` | Map all source fields and 204 absence explicitly. Source `learning-companion-dialogue.tsx` calls direct fetch; provide an exact-module transport seam for that call, never global fetch interception or a replacement dialogue component. |
-| Feedback invitation once per authenticated session | Source `app/Settings/Services/PlatformFeedbackPrompt.php`; Rust `/learner/feedback-prompt-preference` | Native Rust session claim now exists as CSRF-protected `POST /learner/feedback-prompt/claim`, honoring enable/decline/14-day snooze and Settings/Feedback exclusions. Connect it during eligible route navigation; the shell GET remains read-only. |
-| Feedback dismiss, decline and failure recovery | Existing Rust preference PATCH; source `components/platform-feedback-prompt.tsx` | Current Inertia seam only accepts enable/decline and does not call source `onError`. Add the narrowly scoped dismiss and error lifecycle; failed writes must restore the source invitation. |
+| Account name/avatar, media permission, appearance and logout | `/me`, `/session/logout`, `frontend/src/platform/{welcome-inertia,welcome-routes}` and existing Settings account mapping | Connected by `learner-shell-projection.ts` and the existing typed logout. Failed logout retains the session/page with an explicit error; successful logout reloads Welcome, clearing private JavaScript state. |
+| `auth.items` and `auth.tools`, grant deduplication, tool selection | `/learner/world` inventory; domain `LearnerItem`/`LearnerTool`; source `Learning{Item,Tool}Serializer.php` | Real UUIDs now travel in World/shell holdings and existing tool-grant/playback/obstacle responses. Owned-item/tool media delivery and URL projection are implemented below; the complete source controls now mount through the shared-layout adapter. The item-grant display result still needs the source inventory refresh contract. |
+| `name`, learner palette, branding and cursors | `PublicPresentation`, `persistence/src/public_presentation.rs`; source `theme/presentation.ts` | Branding/cursors reused. `/learner/shell` now supplies deployment `APPLICATION_NAME` and typed learner palette with pinned-source defaults. `toSourceLearnerPresentation` maps every learner palette field into the copied layout. |
+| `menuTheme` remembers the learner's preferred visible map | Source `app/Learning/Queries/LoadCurrentMenuMapTheme.php`, `Services/LearnerMapLocationService.php`; Rust visible World maps | Private preferred-map persistence and visibility revalidation now exist in `/learner/map-location` and `/learner/shell`. Managed menu-background URLs now use the existing learner media route. World bootstrap now mirrors source preferred-map redirect and explicit-map persistence before claiming feedback. |
+| Journal initial theme without loading private notes | `persistence/src/learner_journal.rs`, table `application_journal_feedback_policy`, domain default theme | The shell now reuses the existing theme/policy read without loading journal content. The source page-prop adapter now supplies that real theme. |
+| On-demand complete Journal overlay | `/learner/journal`, `/learner/journal/pages`, page update/delete/feedback request, `/learner/journal/export`; `features/journal/journal-client.ts` | Reuse existing writes, owner scope, search, pagination and theme. `LearnerJournalLearningContext` now carries actual node/activity IDs and published topic context; check-ins/revisits carry actual activity/node IDs. The typed copied-client seam and source-derived/live Journal checks below cover these operations and context links; the complete overlay now opens from the copied header. |
+| Companion visibility, context, authored dialogue and AI turn | `/learner/companion`, `/learner/companion/turn`; `domain/src/learning_companion.rs` | All source fields, 204 absence and the exact-module native turn seam are verified below; World now loads the selected-map Companion before mounting the copied layout. |
+| Feedback invitation once per authenticated session | Source `app/Settings/Services/PlatformFeedbackPrompt.php`; Rust `/learner/feedback-prompt-preference` | Native Rust session claim now exists as CSRF-protected `POST /learner/feedback-prompt/claim`, honoring enable/decline/14-day snooze and Settings/Feedback exclusions. World now claims once after successful required projections/location persistence; preferred-map redirects do not consume an invitation. The shell GET remains read-only. |
+| Feedback dismiss, decline and failure recovery | Existing Rust preference PATCH; source `components/platform-feedback-prompt.tsx` | The verified narrow preference adapter below supports dismiss/decline and source `onError`/`onFinish`, restoring invitations after failed writes. |
 
-Execution order: finish shared metadata/identity/session contracts; complete
-Journal and Companion transport/document dependencies; then mount the whole
-copied layout around World and test the complete header, inventory/tool
-selection, Journal, feedback and account journeys at both viewports against
-source and real Rust. Destination route families may retain honest unavailable
-states, but controls within this activated shell cannot be marked complete
-while their operations are absent. A failed required shell projection keeps
-the route unavailable; never hide missing controls by supplying empty data.
+The dependency order above is implemented through whole-layout World mounting.
+Destination route families may retain honest unavailable states, but controls
+within this activated shell cannot be marked complete while their operations
+are absent. A failed required shell projection keeps the route unavailable;
+never hide missing controls by supplying empty data. The next World work is
+its remaining commands and cross-route journeys, not another reconstructed
+layout or World Builder priority.
 
 ### Shared learner shell metadata and session contracts
 
@@ -395,7 +394,7 @@ preserves local overlay state on success. All required shell reads must succeed;
 Companion's documented 204 maps to absence, not fabricated empty dialogue.
 The 200 Companion response proves enabled state. Source IDs retain real UUIDs.
 
-### Verified Journal transport dependency; shared layout still pending
+### Verified Journal transport dependency (before whole-layout integration)
 
 The whole copied `features/journal/{journal-overlay.tsx,journal-client.ts,theme.ts}`
 remains unchanged. Its existing `features/world/api.ts` seam now reaches
@@ -586,9 +585,96 @@ No AI is also a resolved local turn: the source hides assistance choices until a
 new component mount, and Restart retains resolved AI state. Tests preserve this
 behavior instead of inventing a different retry flow.
 
-This is verified Companion transport, not full shared-layout acceptance. The
-next integration boundary remains the complete copied learner layout with its
-real shell, session, Journal, feedback and Companion contracts together.
+The Companion transport dependency is verified. Its integration into the whole
+copied learner layout is recorded next; remaining World operations and inherited
+source defects still prevent complete route-family acceptance.
+
+
+### Whole copied learner layout mounted around World
+
+Source remains byte-identical to `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+The original `resources/js/app.tsx` assigns World the complete
+`layouts/app-layout.tsx` → `layouts/app/app-sidebar-layout.tsx` tree. The Rust
+resolver now does the same through `world-route.tsx`, using all named source
+header, account, inventory/tool, Journal, Companion and feedback components
+from the shell register above, including `components/user-info.tsx`. No
+presentation fragments or substitute layout were introduced.
+
+`frontend/src/platform/learner-shell-projection.ts` maps the existing typed
+`GET /learner/shell` and `/me` documents: complete account identity, real item
+and tool UUIDs/configuration/media, deployment name, Journal theme, learner
+palette, branding/cursors and menu theme. `welcome-projection.ts` shares its
+existing public-presentation conversion without changing Welcome's output.
+World retains its independently verified graph/group/translation/sound
+projections. Missing or malformed required data renders explicit unavailable;
+source props are constructed before any invitation claim.
+
+Source `LearningWorldController::show/syncMapLocation` and
+`LearnerMapLocationService` govern the navigation seam. An omitted map query
+restores a different visible preferred map using a replacement navigation,
+preserving other query parameters and the hash. Explicit valid slug/UUID
+references use native `POST /learner/map-location`; explicit unknown references
+retain the source first-map fallback. The native response supplies the actual
+menu theme. The selected initial map scopes `/learner/companion`; local source
+map transitions retain the original source lifecycle. `POST
+/learner/feedback-prompt/claim` runs only after required reads and location
+writes succeed. Route-key remounting refreshes bootstrap on actual Router
+navigation, without replacing the source's local state/history operations.
+
+`canonical-learner-layout.spec.ts` exercises the real local Rust stack at
+1440×900 and 390×844: header/navigation bounds, real inventory/tools, whole
+Journal opening/closing and focus return, account controls, preferred-map
+redirect/reload and zero claims on required dependency failures (including a
+malformed shell). Its independent shell prop oracle mounts the whole pinned
+original World/layout dependency tree in
+`canonical-learner-layout-source.tsx`; `learner-layout-vite.config.ts` keeps
+original presentation imports on original files. It compares shell styles,
+control text/URLs/bounds and inventory geometry and retains screenshots. The
+source JS/CSS tree is checked against the pin before comparisons. Layout and
+inventory source/Rust screenshots match at both sizes.
+
+`canonical-world.spec.ts` now compares selected-place and group-panel states
+inside that full original layout. An isolated GroupControl harness is not a
+valid oracle for the full page's panel placement. Component fixtures explicitly
+stub their own World identities; `canonical-shell-fixture.ts` takes only real
+local presentation/theme data. Separate live tests exercise unmocked holdings
+and PostgreSQL. No fixtures are used by production adapters.
+
+**Observed inherited source defects:** at 390px the fixed learner header covers
+part of the current-map heading and the selected-place bookmark button. Source
+and copied-route evidence agree, including hit testing that identifies the
+header above the bookmark. The complete fixed-header layout also places the
+fresh-session feedback invitation partly above the viewport, clipping its Close
+control and overlapping account controls. Whole original and Rust screenshots
+and bounds match for that invitation at both sizes; component-only invitation
+tests did not expose this containing-layout issue. A normal page reload removes
+the already-claimed session invitation and permits the independent logout test.
+The tests record these obstructions instead of forcing clicks or claiming
+usability. The previously observed narrow Journal and
+Companion defects remain open. Only the previously authorized Welcome clipping
+has a user-approved waiver; these additional findings are not implied waivers.
+
+Validation/evidence: canonical identity, frontend production type/build and
+OpenAPI client drift checks pass. Focused Rust shell/auth/location tests and
+workspace fmt/check pass without backend changes. The combined browser run has
+56 passing World/group/identity/Welcome/Journal/feedback/Companion/layout checks.
+The final built-container run passes all four layout checks, including original
+source comparisons; the isolated native-session logout check also passes.
+It verifies that a failed logout preserves the page/session, retry revokes that
+session, Welcome becomes anonymous, and a different existing session remains
+valid. The separate fresh-login setup intermittently returns 429 after an expired
+rate-limit window; this reproduced issue is the next bounded authentication
+repair, not a logout failure. No credential-bearing traces are retained.
+Reports are retained under `frontend/playwright-report/learner-layout-verified`,
+`learner-layout-final`, `learner-layout-container` and `learner-logout-container`.
+The two built-container ready measurements were 910 ms and 924 ms (local seeded
+stack, one observation per viewport; not a production performance claim). The local frontend image
+is rebuilt and served through its normal Nginx/Rust origin for container checks.
+Source evidence remains at the separate test-only original-source Vite server.
+
+This completes the whole-layout integration slice, not the World route family.
+Search, bookmarks, tools applied to places, route lifecycle/playback, anonymous
+access and other rows in the active completion register remain incomplete.
 
 ## Status and purpose
 

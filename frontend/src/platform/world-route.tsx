@@ -1,15 +1,19 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
+import { Navigate } from 'react-router';
 
 import AlertError from '@/components/alert-error';
 import { Spinner } from '@/components/ui/spinner';
 import { initializeTheme } from '@/hooks/use-appearance';
 
-import { apiClient } from './api/client';
+import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { SourcePageProjectionProvider } from './page-props';
 import { toWorldPageProps, type WorldPageProps } from './world-projection';
 import { toSourceGroupPage } from './world-groups';
+import { loadCompanion } from './companion-api';
+import { toLearnerShellProps, toSourceMenuTheme, type LearnerShellProps } from './learner-shell-projection';
+import { JsonRequestError } from './json-request-error';
 
 const worldModules = import.meta.glob<{
     default: ComponentType<Record<string, unknown>>;
@@ -21,10 +25,15 @@ if (!loadWorld) {
 }
 
 const SourceWorld = lazy(loadWorld);
+const layoutModules = import.meta.glob<{ default: ComponentType<{ children: React.ReactNode }> }>(
+    '../../canonical-source/resources/js/layouts/app-layout.tsx',
+);
+const SourceLayout = lazy(layoutModules['../../canonical-source/resources/js/layouts/app-layout.tsx']);
 
 type WorldLoadState =
     | { kind: 'loading' }
-    | { kind: 'ready'; props: WorldPageProps }
+    | { kind: 'ready'; props: WorldPageProps & LearnerShellProps }
+    | { kind: 'redirect'; to: string }
     | { kind: 'unavailable'; message: string };
 
 export function WorldRoute() {
@@ -33,14 +42,17 @@ export function WorldRoute() {
 
     useEffect(() => {
         let isMounted = true;
+        const controller = new AbortController();
+        const signal = controller.signal;
 
         void Promise.all([
-            apiClient.GET('/learner/world'),
-            apiClient.GET('/learner/groups', { params: { query: { page: 1, per_page: 1 } } }),
-            apiClient.GET('/me'),
-            apiClient.GET('/learner/platform-translations'),
-            apiClient.GET('/learner/sound-preferences'),
-        ]).then(([world, groups, currentUser, translations, soundPreferences]) => {
+            apiClient.GET('/learner/world', { signal }),
+            apiClient.GET('/learner/groups', { params: { query: { page: 1, per_page: 1 } }, signal }),
+            apiClient.GET('/me', { signal }),
+            apiClient.GET('/learner/platform-translations', { signal }),
+            apiClient.GET('/learner/sound-preferences', { signal }),
+            apiClient.GET('/learner/shell', { signal }),
+        ]).then(async ([world, groups, currentUser, translations, soundPreferences, shell]) => {
             if (!isMounted) {
                 return;
             }
@@ -53,9 +65,10 @@ export function WorldRoute() {
                 !translations.response.ok ||
                 !translations.data ||
                 !soundPreferences.response.ok ||
-                !soundPreferences.data
+                !soundPreferences.data ||
+                !shell.response.ok || !shell.data
             ) {
-                const failedDependency = [groups, currentUser, translations, soundPreferences]
+                const failedDependency = [groups, currentUser, translations, soundPreferences, shell]
                     .find((result) => !result.response.ok || !result.data);
                 setState({
                     kind: 'unavailable',
@@ -64,21 +77,8 @@ export function WorldRoute() {
                 return;
             }
 
-            if (world.response.status === 404 && world.error?.code === 'not_found') {
-                initializeWorldAppearance(currentUser.data.appearance);
-                setState({
-                    kind: 'ready',
-                    props: emptyWorldProps(
-                        currentUser.data,
-                        groups.data,
-                        translations.data,
-                        soundPreferences.data,
-                    ),
-                });
-                return;
-            }
-
-            if (!world.response.ok || !world.data) {
+            const emptyWorld = world.response.status === 404 && world.error?.code === 'not_found';
+            if (!emptyWorld && (!world.response.ok || !world.data)) {
                 setState({
                     kind: 'unavailable',
                     message: unavailableMessageFor(world.response.status),
@@ -86,28 +86,61 @@ export function WorldRoute() {
                 return;
             }
 
+            const maps = world.data?.graph.maps ?? [];
+            const url = new URL(window.location.href);
+            const requested = url.searchParams.get('map');
+            const requestedMap = maps.find((map) => map.slug === requested || map.id === requested);
+            const preferred = maps.find((map) => map.id === shell.data.menu_theme?.map_id);
+            // Mirrors source syncMapLocation before claiming a feedback prompt.
+            // Explicit unknown references retain the source first-map fallback.
+            if (!url.searchParams.has('map') && preferred && preferred.id !== maps[0]?.id) {
+                url.searchParams.set('map', preferred.slug);
+                setState({ kind: 'redirect', to: `${url.pathname}${url.search}${url.hash}` });
+                return;
+            }
+            const selected = requestedMap ?? maps[0];
+            const companion = world.data
+                ? await loadCompanion({ surface: 'world', map_slug: selected?.slug }, signal)
+                : null;
+            const worldProps = world.data ? toWorldPageProps(
+                world.data, groups.data, currentUser.data, translations.data, soundPreferences.data,
+            ) : emptyWorldProps(currentUser.data, groups.data, translations.data, soundPreferences.data);
+            // Validate all required source props before consuming a session invitation.
+            const shellProps = toLearnerShellProps(shell.data, currentUser.data, companion, false);
+            if (!isMounted) return;
+            const headers = { 'X-CSRF-Token': await getCsrfToken() };
+            if (!isMounted) return;
+            const remember = requestedMap ?? (!url.searchParams.has('map') ? selected : undefined);
+            if (remember) {
+                const saved = await apiClient.POST('/learner/map-location', {
+                    params: { header: headers }, body: { map: remember.id }, signal,
+                });
+                if (!saved.response.ok || !saved.data) throw new JsonRequestError('The current map could not be remembered.', saved.response.status);
+                shellProps.menuTheme = toSourceMenuTheme(saved.data);
+            }
+            if (!isMounted) return;
+            const invitation = await apiClient.POST('/learner/feedback-prompt/claim', {
+                params: { header: headers }, body: { surface: 'world' }, signal,
+            });
+            if (!invitation.response.ok || !invitation.data) throw new JsonRequestError('The learner invitation could not be loaded.', invitation.response.status);
+            if (!isMounted) return;
             initializeWorldAppearance(currentUser.data.appearance);
             setState({
                 kind: 'ready',
-                props: toWorldPageProps(
-                    world.data,
-                    groups.data,
-                    currentUser.data,
-                    translations.data,
-                    soundPreferences.data,
-                ),
+                props: { ...worldProps, ...shellProps, feedbackPrompt: invitation.data.show },
             });
-        }).catch(() => {
+        }).catch((error: unknown) => {
             if (isMounted) {
                 setState({
                     kind: 'unavailable',
-                    message: 'The learner World projection is currently unavailable.',
+                    message: error instanceof JsonRequestError ? unavailableMessageFor(error.status) : 'The learner World projection is currently unavailable.',
                 });
             }
         });
 
         return () => {
             isMounted = false;
+            controller.abort();
         };
     }, []);
 
@@ -129,6 +162,8 @@ export function WorldRoute() {
         return <WorldUnavailable message={state.message} />;
     }
 
+    if (state.kind === 'redirect') return <Navigate to={state.to} replace />;
+
     return (
         <MountedWorld
             operationMessage={operationMessage}
@@ -142,7 +177,7 @@ function MountedWorld({
     props,
 }: {
     operationMessage: string | null;
-    props: WorldPageProps;
+    props: WorldPageProps & LearnerShellProps;
 }) {
     return (
         <SourcePageProjectionProvider
@@ -158,7 +193,7 @@ function MountedWorld({
                 </div>
             ) : null}
             <Suspense fallback={<LoadingWorld />}>
-                <SourceWorld {...(props as Record<string, unknown>)} />
+                <SourceLayout><SourceWorld {...(props as Record<string, unknown>)} /></SourceLayout>
             </Suspense>
         </SourcePageProjectionProvider>
     );

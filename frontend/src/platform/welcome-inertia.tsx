@@ -57,8 +57,14 @@ export function Link({
 
                         if (response.ok) {
                             window.location.assign('/');
+                        } else {
+                            throw new Error('Logout unavailable');
                         }
-                    })();
+                    })().catch(() => {
+                        window.dispatchEvent(new CustomEvent('world:source-operation-unavailable', {
+                            detail: { message: 'The session could not be ended. Please try again.' },
+                        }));
+                    });
                 }}
                 type="button"
             >
