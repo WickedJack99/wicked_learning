@@ -224,7 +224,10 @@ fn validate_dialogue(
     }
     Ok(())
 }
-fn checklist_indexes(config: &Value, mut indexes: Vec<i16>) -> Result<Vec<i16>, sqlx::Error> {
+pub(crate) fn checklist_indexes(
+    config: &Value,
+    mut indexes: Vec<i16>,
+) -> Result<Vec<i16>, sqlx::Error> {
     let count = config
         .get("projectSteps")
         .and_then(Value::as_array)

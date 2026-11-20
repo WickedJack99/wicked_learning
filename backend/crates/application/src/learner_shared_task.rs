@@ -263,9 +263,7 @@ pub fn valid_project_step(value: Option<i16>) -> Option<Option<i16>> {
 }
 
 pub fn valid_checklist(indexes: &[i16]) -> bool {
-    indexes.len() <= 6
-        && indexes.iter().all(|index| (0..=5).contains(index))
-        && indexes.windows(2).all(|pair| pair[0] < pair[1])
+    indexes.len() <= 6 && indexes.iter().all(|index| (0..=5).contains(index))
 }
 
 #[cfg(test)]
@@ -296,7 +294,10 @@ mod tests {
         assert_eq!(valid_project_step(Some(5)), Some(Some(5)));
         assert_eq!(valid_project_step(Some(6)), None);
         assert!(valid_checklist(&[0, 2, 5]));
-        assert!(!valid_checklist(&[2, 2]));
+        assert!(valid_checklist(&[2, 0, 2]));
+        assert!(!valid_checklist(&[0; 7]));
+        assert!(!valid_checklist(&[-1]));
+        assert!(!valid_checklist(&[6]));
         assert_eq!(
             SharedTaskResponseType::parse(Some("counterexample")),
             Some(Some(SharedTaskResponseType::Counterexample)),

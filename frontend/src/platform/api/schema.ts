@@ -8292,6 +8292,8 @@ export interface components {
             time_guide_minutes: number | null;
             check_in: components["schemas"]["LearnerPlaybackCheckIn"];
             presentation: components["schemas"]["LearnerPlaybackPresentation"];
+            /** @description Source collaboration state for this authorized published Shared Task, including inactive tasks. Owner submission and run checklist stay private; peer snippets require explicit sharing. Null for other activity types. */
+            shared_task_state: components["schemas"]["LearnerSharedTaskState"] | null;
             /** @description Owner-only latest reflections matching the authored review category, ordered by created_at then id descending. Null for non-review activities; empty for review activities without history. Includes inactive published review activities; blank topic falls back to node title and blank subtopic matches all subtopics. */
             review_context: components["schemas"]["LearnerPlaybackReviewContext"][] | null;
             /** @description At most 4000 transitions across the entire graph. A null destination is an authored terminal edge, never a replacement for an unpublished destination. */
@@ -8618,6 +8620,7 @@ export interface components {
             body: string | null;
         };
         SaveLearnerSharedTaskChecklist: {
+            /** @description Source step indexes; order and duplicates are accepted, then sorted and deduplicated before persistence. */
             completed_step_indexes: number[];
         };
         LearnerNpcDialogue: {

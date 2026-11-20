@@ -10981,7 +10981,7 @@ components:
     LearnerPlaybackGraphActivity:
       type: object
       additionalProperties: false
-      required: [id, slug, title, introduction, activity_type, config, time_guide_minutes, check_in, transitions, presentation, review_context]
+      required: [id, slug, title, introduction, activity_type, config, time_guide_minutes, check_in, transitions, presentation, review_context, shared_task_state]
       properties:
         id: { type: string, format: uuid }
         slug: { type: string }
@@ -10992,6 +10992,11 @@ components:
         time_guide_minutes: { type: [integer, 'null'], minimum: 1 }
         check_in: { $ref: '#/components/schemas/LearnerPlaybackCheckIn' }
         presentation: { $ref: '#/components/schemas/LearnerPlaybackPresentation' }
+        shared_task_state:
+          description: Source collaboration state for this authorized published Shared Task, including inactive tasks. Owner submission and run checklist stay private; peer snippets require explicit sharing. Null for other activity types.
+          anyOf:
+            - $ref: '#/components/schemas/LearnerSharedTaskState'
+            - type: 'null'
         review_context:
           type: [array, 'null']
           maxItems: 3
@@ -11445,7 +11450,7 @@ components:
         completed_step_indexes:
           type: array
           maxItems: 6
-          uniqueItems: true
+          description: Source step indexes; order and duplicates are accepted, then sorted and deduplicated before persistence.
           items: { type: integer, minimum: 0, maximum: 5 }
     LearnerNpcDialogue:
       type: object

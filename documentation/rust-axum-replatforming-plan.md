@@ -1023,7 +1023,7 @@ and field mappings are verified.
 | --- | --- | --- |
 | Node UUID in `/learning/nodes/{node}/play`; node/map identity in props | `GET /learner/play-runs/{play_run_id}`, `domain/src/learner_state.rs::LearnerPlaybackContext`, `persistence/src/learner_playback.rs::PlaybackRow` | Actual authorized `node_id` and `map_id` now returned for generic, message, portal-arrival, revisit, recall and replay reads. Existing titles/slugs cannot stand in for these identities. The future adapter must validate route identity against the authorized read before mounting. |
 | Start/resume/reset; ordinary, portal, revisit, recall and replay semantics | Existing `/learner/activity-starts/{start_id}/{start,reset}`, replay/recall/revisit entry endpoints and run repositories | Map source query parameters and restart response URL to typed commands. Preserve distinct run kinds and CSRF; no Laravel GET/session emulation. Inventory clean URL entry and direct activity entry before activation. |
-| Complete `node` with activity graph, start alternatives and portal links | World graph supplies real outline IDs; active-run document now adds the published navigation definition described below; native author graph is **not** a learner endpoint | The authored-presentation, private-state and node/portal read extensions below now supply these prerequisites. Complete review/shared-task contexts and source identity/transport mapping before mounting; never fill inactive activities with fake config or use author-only payloads. |
+| Complete `node` with activity graph, start alternatives and portal links | World graph supplies real outline IDs; active-run document now adds the published navigation definition described below; native author graph is **not** a learner endpoint | The authored-presentation, private-state and node/portal read extensions below now supply these prerequisites. Review/shared-task contexts are now projected below; complete source identity/transport mapping before mounting; never fill inactive activities with fake config or use author-only payloads. |
 | `playActivityId`, `playRouteId`, `playRunId`, `revisitActivityId`, `recallQuestionId` | Active activity ID, optional start ID, run ID/kind and owner-scoped recall handle exist | Reconcile question/option identities and source recall question identity versus native recall-item handle. Source numeric identity checks such as alternative `route.id > 0` require an exact transport/identity seam, not invented numeric IDs. |
 | `progress.activities`, `progress.answers`, `progress.recallQuestionIds`, `playState` | The typed `LearnerPlaybackDocument.private_state` extension below supplies owner progress, bounded answers, recall membership and saved run/obstacle state | Map these verified native facts into the whole copied page, retaining missing-snapshot unavailable behavior. Copied-player resume/reset acceptance remains required. |
 | Reached/completed progress and optional check-in | Existing route-entry/progress writes, completion and check-in endpoints; `persistence/src/learner_playback.rs` | Map all source completion fields and returned activity/transition identities, including assistance, outcome and check-in state; do not acknowledge an unmapped write. |
@@ -1437,8 +1437,8 @@ node/activity IDs. A display-only target title cannot satisfy that contract.
 | All outgoing portal links: real link/source activity/target activity/map/node IDs, target map/node slugs and titles, label/description, evaluated target state | `LearnerPortalDestination` currently contains only labels/titles/state; `learner_playback.rs::load_portal_state` reads the active route portal; `learning_portal_links` and typed travel commands already persist actual identities | Batch the authorized node's published links and target publication/map access, reuse `PostgresLearnerNodeAvailability` for target state, and return source-required identities. Keep locked/hidden state explicit; route labels alone cannot authorize travel. Test multiple output portals, input portals, inaccessible/unpublished targets and same-slug destinations. |
 | Bookmark and source topic/return URLs | Existing bookmark, topic and node/map identity contracts | Bind URLs and bookmark membership to the authorized node's real identifiers; retain source navigation. A topic link may stay unavailable until its route activation, without inventing topic content. |
 
-After this boundary, finish per-activity shared-task documents (review context
-is now covered below), complete
+Review and Shared Task documents are covered by the following extensions.
+After these boundaries, complete
 typed command/media mappings and source identity seams before mounting the
 whole copied player. This contract does not activate any UI or declare playback
 complete. Existing World selection policy is not changed by the
@@ -1533,9 +1533,64 @@ review categories (zero when none exist); each category returns at most three
 rows. Local measurements are evidence, not an SLA.
 
 The complete player remains unavailable
-until per-activity Shared Task state, command/identity/media mappings, anonymous
-playback and whole copied-route acceptance are complete. This read-only
+until command/identity/media mappings, anonymous playback and whole copied-route
+acceptance are complete. Shared Task state is covered by the next extension. This read-only
 prerequisite does not claim player UI/browser parity.
+
+### Complete-graph Shared Task state contract
+
+Source audit before implementation: pinned `main`
+`32c3113a5bc688c9944c20942cdf40a6a5d57d7f`,
+`app/Learning/Serializers/{LearningNodeSerializer,LearningActivitySerializer,SharedTaskStateSerializer}.php`,
+`tests/Feature/SharedTaskActivityTest.php`, and copied
+`resources/js/{pages/learning/node-play.tsx,features/world/shared-task-activity.tsx,types/learning.ts}`.
+Canonical source files remain unchanged.
+
+| Source requirement | Rust reuse / concrete gap | Required boundary |
+| --- | --- | --- |
+| Every Shared Task activity carries initial `sharedTaskState` | `learner_shared_task.rs::state_for` already reads one active task; graph activities have no collaboration state | Batch the already-authorized published graph and reuse the same projection for command responses. Null for other types; real zero/empty state for tasks without submissions. |
+| Activity-wide accepted count, latest submission, threshold, remaining/completion | Existing `learner_shared_task_submissions`, typed configuration and state | Aggregate by actual activity UUID, independent of current run or learner; never expose contributor identity. |
+| Latest own accepted submission and one revision opportunity | Existing reader uses any received review to set `can_revise`, which can refer to an older submission | Match source `submission()` precisely: latest submission explicitly shared, unrevised, and that exact submission has a review. |
+| Latest five explicitly shared contributions; latest revised body, 500-character snippets | Existing source-shaped state and project-step mapping | Preserve sharing opt-in, source ordering, revised-body selection and Unicode truncation; no unshared peer text or identity. |
+| Peer review enabled only when authored sharing/review are enabled | Existing reader covers submitted review, five reviewable contributions, five received reviews and own follow-ups | Reviewable/received collections require own accepted submission. Reviewable snippets use original body. Received reviews and follow-ups stay contributor-scoped. |
+| Checklist is private to learner/activity/run; duplicate/unsorted input is normalized | Existing private-state batch normalizes correctly; the typed writer incorrectly rejects duplicates and descending order | Reuse private-state read bounds, accept bounded source input, sort/deduplicate before persistence and return. Wrong-run/principal and unavailable-step writes remain rejected. |
+| Source local activity selection, wrong-owner/unpublished/invalid run and read failure | Existing playback graph/run guards | Populate only the authorized graph. Failed state reads remain unavailable; no fallback success or activation of a partial copied player. |
+
+The real-Rust regression also reproduced the checklist validation mismatch:
+`LearningWorldController::updateSharedTaskChecklist` accepts up to six indexes,
+and `LearnerActivityPlayStateService::updateSharedTaskChecklist` sorts and
+deduplicates them. Rust now preserves that behavior; the request schema no
+longer incorrectly requires unique indexes. Out-of-range/oversized input stays
+400; a step outside the current authored brief stays 404, with existing state
+unchanged. The source test sends `[2, 0, 2]` and expects `[0, 2]`.
+
+`learner_shared_task_state.rs` now supplies `graph.activities[].shared_task_state`
+and all existing collaboration command responses. The active-activity reader
+reuses the graph value. It issues at most seven batch statements for the whole
+bounded graph, skips absent kinds, and uses SQL limits of one own submission
+and five snippets/reviews per task. Snippets are reduced to 500 Unicode
+characters in SQL; received-review follow-ups join only this contributor's
+notes. The pre-existing private-state checklist projection remains a separate
+batch. No migration or canonical UI file changed.
+
+Verified: canonical source identity and production frontend type/build,
+OpenAPI client regeneration/consistency, Rust workspace check/format,
+22 persistence playback tests, the updated application input regression,
+and 20 real Rust/PostgreSQL checks across six run kinds and fourteen activity
+types. `canonical-playback-shared-evidence.ts` proves inactive context, null/empty
+states, bounded ordered snippets/reviews, Unicode original/revised-body rules,
+sharing/review toggles, own versus peer state, revision eligibility on the exact
+latest submission, checklist run isolation, mutation/read agreement, CSRF and
+wrong-owner rejection, unpublished omission and invalid-config unavailability.
+The initial graph-field regression and subsequent duplicate-checklist regression
+both failed before their respective fixes.
+
+Report: `frontend/playwright-report/player-shared-context/`. The populated task
+read took 8 ms with 6028 state bytes; a graph with 100 additional empty Shared
+Tasks took 18 ms / 150828 bytes. These local observations are not an SLA.
+No UI changed; these are native contract checks, not desktop/narrow screenshot
+parity. This prerequisite does not activate Shared Task UI or complete the copied player; typed command/identity/media
+mapping and anonymous playback remain separate acceptance requirements.
 
 ## Status and purpose
 

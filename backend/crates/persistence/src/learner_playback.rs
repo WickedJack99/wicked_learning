@@ -41,9 +41,7 @@ use crate::{
         latest_answer_for_completion, question_feedback_for_playback, valid_confidence,
     },
     learner_revisit_completion::{RevisitCompletion, complete_active_revisit},
-    learner_shared_task::{
-        load_state_for_playback, safe_playback_config, shared_task_complete_for_run,
-    },
+    learner_shared_task::{enrich_graph, safe_playback_config, shared_task_complete_for_run},
     learner_tool_grant::configured_tool_slug,
 };
 
@@ -1537,7 +1535,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     .map_err(|_| LearnerPlaybackReadError)?;
                 return Ok(None);
             };
-            let Some((graph, node)) = crate::learner_playback_graph::load(
+            let Some((mut graph, node)) = crate::learner_playback_graph::load(
                 &mut transaction,
                 principal,
                 &availability,
@@ -1554,6 +1552,9 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     .map_err(|_| LearnerPlaybackReadError)?;
                 return Ok(None);
             };
+            enrich_graph(&mut transaction, row.principal_id, play_run_id, &mut graph)
+                .await
+                .map_err(|_| LearnerPlaybackReadError)?;
             let private_state = crate::learner_playback_private_state::load(
                 &mut transaction,
                 row.principal_id,
@@ -1692,26 +1693,11 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                 .await
                 .map_err(|_| LearnerPlaybackReadError)?;
             }
-            let shared_task = if row.activity_type == "shared_task" {
-                let Some(state) = load_state_for_playback(
-                    &mut transaction,
-                    row.principal_id,
-                    play_run_id,
-                    &activity_config,
-                )
-                .await
-                .map_err(|_| LearnerPlaybackReadError)?
-                else {
-                    transaction
-                        .commit()
-                        .await
-                        .map_err(|_| LearnerPlaybackReadError)?;
-                    return Ok(None);
-                };
-                Some(state)
-            } else {
-                None
-            };
+            let shared_task = graph
+                .activities
+                .iter()
+                .find(|activity| activity.id == row.activity_id)
+                .and_then(|activity| activity.shared_task_state.clone());
             let portal = if row.activity_type == "portal" {
                 Some(
                     load_portal_state(

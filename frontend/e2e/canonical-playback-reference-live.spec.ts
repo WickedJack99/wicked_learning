@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, test, type BrowserContext } from '@playwright/test';
 import { verifyPlaybackPortals } from './canonical-playback-node-evidence';
+import { verifyPlaybackSharedState } from './canonical-playback-shared-evidence';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
 const types = ['open_practice', 'question', 'reflection', 'review', 'markdown', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'message_prompt', 'message_wall', 'npc_dialogue', 'shared_task', 'portal'] as const;
@@ -133,6 +134,12 @@ for (const type of types) {
                 expect(presentation.dialogue_typing_sound_sets).toEqual([]);
             }
             if (type === 'portal') await verifyPlaybackPortals(admin, owner, adminHeaders, `/api/v1/learner/play-runs/${run}`, activity, portalTargetId!);
+            if (type === 'shared_task') {
+                const state = playback.graph.activities.find((entry) => entry.id === activity).shared_task_state;
+                expect(state).toMatchObject({ accepted_count: 0, has_submitted: false, submission: null, contributions: [], peer_review: null });
+                expect(playback.graph.activities.find((entry) => entry.id === other).shared_task_state).toBeNull();
+                await verifyPlaybackSharedState(owner, peer, principal, run, activity, other, headers, info);
+            }
             await verifyPrivateState(type, owner, peer, principal, run, activity, other, item, itemSlug, tool);
             const base = `/api/v1/learner/play-runs/${run}/activities`;
             const ref = encodeURIComponent(`id:${activity}`); const otherRef = encodeURIComponent(`id:${other}`);

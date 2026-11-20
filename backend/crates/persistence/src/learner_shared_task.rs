@@ -8,12 +8,11 @@ use wicked_learning_application::learner_shared_task::{
 };
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
-    learner_state::{
-        LearnerSharedTaskChecklist, LearnerSharedTaskContribution, LearnerSharedTaskPeerReview,
-        LearnerSharedTaskReceivedReview, LearnerSharedTaskReviewableContribution,
-        LearnerSharedTaskState, LearnerSharedTaskSubmission, LearnerSharedTaskSubmittedReview,
-    },
+    learner_state::{LearnerPlaybackGraph, LearnerSharedTaskChecklist, LearnerSharedTaskState},
 };
+
+#[path = "learner_shared_task_state.rs"]
+mod state;
 
 pub struct PostgresLearnerSharedTaskRepository<'pool> {
     pool: &'pool PgPool,
@@ -34,32 +33,9 @@ struct CurrentSharedTaskRow {
 
 #[derive(FromRow)]
 struct SubmissionRow {
-    body: String,
     id: Uuid,
-    project_step_index: Option<i16>,
-    revised_at: Option<String>,
     revised_body: Option<String>,
     share_with_peers: bool,
-    task_kind: String,
-}
-
-#[derive(FromRow)]
-struct ContributionRow {
-    accepted_at: String,
-    body: String,
-    project_step_index: Option<i16>,
-    revised_body: Option<String>,
-    task_kind: String,
-}
-
-#[derive(FromRow)]
-struct ReviewRow {
-    body: String,
-    created_at: String,
-    helpful_at: Option<String>,
-    id: Uuid,
-    project_step_index: Option<i16>,
-    response_type: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -657,16 +633,19 @@ async fn save_checklist(
         transaction.commit().await?;
         return Ok(None);
     }
+    let mut completed_step_indexes = completed_step_indexes.to_vec();
+    completed_step_indexes.sort_unstable();
+    completed_step_indexes.dedup();
     sqlx::query("INSERT INTO learner_shared_task_checklists (principal_id, play_run_id, activity_id, completed_step_indexes) VALUES ($1, $2, $3, $4) ON CONFLICT (principal_id, play_run_id, activity_id) DO UPDATE SET completed_step_indexes = EXCLUDED.completed_step_indexes, updated_at = NOW()")
         .bind(current.principal_id)
         .bind(play_run_id)
         .bind(current.activity_id)
-        .bind(completed_step_indexes)
+        .bind(&completed_step_indexes)
         .execute(&mut *transaction)
         .await?;
     transaction.commit().await?;
     Ok(Some(LearnerSharedTaskChecklist {
-        completed_step_indexes: completed_step_indexes.to_vec(),
+        completed_step_indexes,
     }))
 }
 
@@ -693,228 +672,40 @@ async fn state_for(
     play_run_id: Uuid,
     config: &SharedTaskConfig,
 ) -> Result<LearnerSharedTaskState, sqlx::Error> {
-    let (accepted_count, latest_submission_at) = sqlx::query_as::<_, (i64, Option<String>)>(
-        "SELECT COUNT(*)::BIGINT, MAX(to_char(accepted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"')) FROM learner_shared_task_submissions WHERE activity_id = $1 AND status = 'accepted'",
+    state::load(
+        transaction,
+        current.principal_id,
+        play_run_id,
+        &std::collections::HashMap::from([(current.activity_id, config.clone())]),
     )
-    .bind(current.activity_id)
-    .fetch_one(&mut **transaction)
-    .await?;
-    let own_submission = sqlx::query_as::<_, SubmissionRow>(
-        "SELECT to_char(accepted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS accepted_at, body, id, project_step_index, CASE WHEN revised_at IS NULL THEN NULL ELSE to_char(revised_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') END AS revised_at, revised_body, share_with_peers, task_kind FROM learner_shared_task_submissions WHERE activity_id = $1 AND principal_id = $2 AND status = 'accepted' ORDER BY accepted_at DESC, id DESC LIMIT 1",
-    )
-    .bind(current.activity_id)
-    .bind(current.principal_id)
-    .fetch_optional(&mut **transaction)
-    .await?;
-    let contributions = if config.show_contributions {
-        sqlx::query_as::<_, ContributionRow>(
-            "SELECT to_char(accepted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS accepted_at, body, project_step_index, revised_body, task_kind FROM learner_shared_task_submissions WHERE activity_id = $1 AND status = 'accepted' AND share_with_peers ORDER BY accepted_at DESC, id DESC LIMIT 5",
-        )
-        .bind(current.activity_id)
-        .fetch_all(&mut **transaction)
-        .await?
-        .into_iter()
-        .map(|row| contribution_from(row, config))
-        .collect()
-    } else {
-        Vec::new()
-    };
-    let peer_review = if config.peer_review_enabled() {
-        Some(
-            peer_review_for(
-                transaction,
-                current,
-                config,
-                own_submission.as_ref().is_some(),
-            )
-            .await?,
-        )
-    } else {
-        None
-    };
-    let submission = own_submission.map(|submission| {
-        let can_revise = submission.share_with_peers
-            && submission.revised_body.is_none()
-            && peer_review
-                .as_ref()
-                .is_some_and(|peer_review| !peer_review.received_reviews.is_empty());
-        LearnerSharedTaskSubmission {
-            body: submission.body,
-            can_revise,
-            id: submission.id.to_string(),
-            project_step: config.project_step(submission.project_step_index),
-            revised_at: submission.revised_at,
-            revised_body: submission.revised_body,
-        }
-    });
-    let completed_step_indexes = sqlx::query_scalar::<_, Vec<i16>>(
-        "SELECT completed_step_indexes FROM learner_shared_task_checklists WHERE principal_id = $1 AND play_run_id = $2 AND activity_id = $3",
-    )
-    .bind(current.principal_id)
-    .bind(play_run_id)
-    .bind(current.activity_id)
-    .fetch_optional(&mut **transaction)
     .await?
-    .unwrap_or_default();
-    Ok(LearnerSharedTaskState {
-        accepted_count,
-        can_share_contributions: config.show_contributions,
-        checklist: LearnerSharedTaskChecklist {
-            completed_step_indexes,
-        },
-        contributions,
-        has_submitted: submission.is_some(),
-        is_complete: accepted_count >= config.threshold,
-        latest_submission_at,
-        peer_review,
-        remaining: (config.threshold - accepted_count).max(0),
-        submission,
-        threshold: config.threshold,
-    })
+    .remove(&current.activity_id)
+    .ok_or_else(|| sqlx::Error::Protocol("missing shared task state".into()))
 }
 
-fn contribution_from(
-    row: ContributionRow,
-    config: &SharedTaskConfig,
-) -> LearnerSharedTaskContribution {
-    let body = row.revised_body.unwrap_or(row.body);
-    let truncated = body.chars().count() > 500;
-    LearnerSharedTaskContribution {
-        body: body.chars().take(500).collect(),
-        project_step: config.project_step(row.project_step_index),
-        submitted_at: Some(row.accepted_at),
-        task_kind: row.task_kind,
-        truncated,
-    }
-}
-
-async fn peer_review_for(
-    transaction: &mut Transaction<'_, Postgres>,
-    current: &CurrentSharedTaskRow,
-    config: &SharedTaskConfig,
-    has_submitted: bool,
-) -> Result<LearnerSharedTaskPeerReview, sqlx::Error> {
-    let submitted_review = sqlx::query_as::<_, ReviewRow>(
-        "SELECT body, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at, CASE WHEN helpful_at IS NULL THEN NULL ELSE to_char(helpful_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') END AS helpful_at, id, project_step_index, response_type FROM learner_shared_task_reviews WHERE activity_id = $1 AND reviewer_principal_id = $2 ORDER BY created_at DESC, id DESC LIMIT 1",
-    )
-    .bind(current.activity_id)
-    .bind(current.principal_id)
-    .fetch_optional(&mut **transaction)
-    .await?;
-    let reviewable_contributions = if has_submitted {
-        sqlx::query_as::<_, SubmissionRow>(
-            "SELECT to_char(accepted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS accepted_at, body, id, project_step_index, CASE WHEN revised_at IS NULL THEN NULL ELSE to_char(revised_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') END AS revised_at, revised_body, share_with_peers, task_kind FROM learner_shared_task_submissions WHERE activity_id = $1 AND principal_id <> $2 AND status = 'accepted' AND share_with_peers ORDER BY accepted_at DESC, id DESC LIMIT 5",
-        )
-        .bind(current.activity_id)
-        .bind(current.principal_id)
-        .fetch_all(&mut **transaction)
-        .await?
-        .into_iter()
-        .map(|row| {
-            let truncated = row.body.chars().count() > 500;
-            LearnerSharedTaskReviewableContribution {
-                body: row.body.chars().take(500).collect(),
-                id: row.id.to_string(),
-                project_step: config.project_step(row.project_step_index),
-                task_kind: row.task_kind,
-                truncated,
-            }
-        })
-        .collect()
-    } else {
-        Vec::new()
-    };
-    let received_rows = if has_submitted {
-        sqlx::query_as::<_, ReviewRow>(
-            "SELECT reviews.body, to_char(reviews.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at, CASE WHEN reviews.helpful_at IS NULL THEN NULL ELSE to_char(reviews.helpful_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') END AS helpful_at, reviews.id, reviews.project_step_index, reviews.response_type FROM learner_shared_task_reviews AS reviews INNER JOIN learner_shared_task_submissions AS submissions ON submissions.id = reviews.submission_id WHERE reviews.activity_id = $1 AND submissions.principal_id = $2 AND submissions.status = 'accepted' AND submissions.share_with_peers ORDER BY reviews.created_at DESC, reviews.id DESC LIMIT 5",
-        )
-        .bind(current.activity_id)
-        .bind(current.principal_id)
-        .fetch_all(&mut **transaction)
-        .await?
-    } else {
-        Vec::new()
-    };
-    let review_ids = received_rows
-        .iter()
-        .map(|review| review.id)
-        .collect::<Vec<_>>();
-    // The follow-up table has a one-row-per-reviewer constraint. Associate in
-    // one bounded query without ever projecting a reviewer identity.
-    let follow_up_by_review = if review_ids.is_empty() {
-        std::collections::HashMap::new()
-    } else {
-        sqlx::query_as::<_, (Uuid, String)>(
-            "SELECT review_id, body FROM learner_shared_task_review_follow_ups WHERE contributor_principal_id = $1 AND review_id = ANY($2)",
-        )
-        .bind(current.principal_id)
-        .bind(&review_ids)
-        .fetch_all(&mut **transaction)
-        .await?
-        .into_iter()
-        .collect::<std::collections::HashMap<_, _>>()
-    };
-    Ok(LearnerSharedTaskPeerReview {
-        enabled: true,
-        has_reviewed: submitted_review.is_some(),
-        prompt: config.peer_review_prompt.clone(),
-        received_reviews: received_rows
-            .into_iter()
-            .map(|review| LearnerSharedTaskReceivedReview {
-                body: review.body,
-                can_mark_helpful: true,
-                created_at: Some(review.created_at),
-                follow_up: follow_up_by_review.get(&review.id).cloned(),
-                id: review.id.to_string(),
-                is_helpful: review.helpful_at.is_some(),
-                project_step: config.project_step(review.project_step_index),
-                response_type: review.response_type,
-            })
-            .collect(),
-        reviewable_contributions,
-        submitted_review: submitted_review.map(|review| LearnerSharedTaskSubmittedReview {
-            body: review.body,
-            created_at: Some(review.created_at),
-            id: review.id.to_string(),
-            project_step: config.project_step(review.project_step_index),
-            response_type: review.response_type,
-        }),
-    })
-}
-
-/// Used by the playback repository only after it has resolved the same
-/// principal/run/activity ownership boundary as the playback document.
-pub(crate) async fn load_state_for_playback(
+/// The playback reader has already authorized this run and bounded published
+/// graph. This projection grants no command authority to inactive activities.
+pub(crate) async fn enrich_graph(
     transaction: &mut Transaction<'_, Postgres>,
     principal_id: Uuid,
     play_run_id: Uuid,
-    activity_config: &Value,
-) -> Result<Option<LearnerSharedTaskState>, sqlx::Error> {
-    let Some(config) = SharedTaskConfig::parse(activity_config) else {
-        return Ok(None);
-    };
-    let activity_id = sqlx::query_scalar::<_, Uuid>(
-        "SELECT current_activity_id FROM learner_route_progress WHERE principal_id = $1 AND current_play_run_id = $2 AND status = 'in_progress'",
-    )
-    .bind(principal_id)
-    .bind(play_run_id)
-    .fetch_optional(&mut **transaction)
-    .await?;
-    let Some(activity_id) = activity_id else {
-        return Ok(None);
-    };
-    state_for(
-        transaction,
-        &CurrentSharedTaskRow {
-            activity_config: activity_config.clone(),
-            activity_id,
-            principal_id,
-        },
-        play_run_id,
-        &config,
-    )
-    .await
-    .map(Some)
+    graph: &mut LearnerPlaybackGraph,
+) -> Result<(), sqlx::Error> {
+    let configs = graph
+        .activities
+        .iter()
+        .filter(|activity| activity.activity_type == "shared_task")
+        .map(|activity| {
+            SharedTaskConfig::parse(&activity.config)
+                .map(|config| (activity.id, config))
+                .ok_or_else(|| sqlx::Error::Protocol("invalid shared task configuration".into()))
+        })
+        .collect::<Result<std::collections::HashMap<_, _>, _>>()?;
+    let mut states = state::load(transaction, principal_id, play_run_id, &configs).await?;
+    for activity in &mut graph.activities {
+        activity.shared_task_state = states.remove(&activity.id);
+    }
+    Ok(())
 }
 
 /// Completion is a shared threshold, not a client-side affordance. The caller

@@ -238,6 +238,7 @@ fn assemble(
             Ok(LearnerPlaybackGraphActivity {
                 presentation,
                 review_context: None,
+                shared_task_state: None,
                 id: row.id,
                 slug: row.slug,
                 title: row.title,

@@ -835,6 +835,7 @@ pub struct LearnerPlaybackGraphActivity {
     /// Owner-only latest reflections: null outside review activities, empty
     /// when the review category has no history, otherwise at most three.
     pub review_context: Option<Vec<LearnerPlaybackReviewContext>>,
+    pub shared_task_state: Option<LearnerSharedTaskState>,
 }
 
 /// Authored presentation for a published graph activity. Private answers,
