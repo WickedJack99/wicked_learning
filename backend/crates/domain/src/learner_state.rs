@@ -832,6 +832,9 @@ pub struct LearnerPlaybackGraphActivity {
     pub check_in: LearnerPlaybackCheckIn,
     pub transitions: Vec<LearnerPlaybackGraphTransition>,
     pub presentation: LearnerPlaybackPresentation,
+    /// Owner-only latest reflections: null outside review activities, empty
+    /// when the review category has no history, otherwise at most three.
+    pub review_context: Option<Vec<LearnerPlaybackReviewContext>>,
 }
 
 /// Authored presentation for a published graph activity. Private answers,

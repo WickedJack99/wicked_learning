@@ -1437,7 +1437,8 @@ node/activity IDs. A display-only target title cannot satisfy that contract.
 | All outgoing portal links: real link/source activity/target activity/map/node IDs, target map/node slugs and titles, label/description, evaluated target state | `LearnerPortalDestination` currently contains only labels/titles/state; `learner_playback.rs::load_portal_state` reads the active route portal; `learning_portal_links` and typed travel commands already persist actual identities | Batch the authorized node's published links and target publication/map access, reuse `PostgresLearnerNodeAvailability` for target state, and return source-required identities. Keep locked/hidden state explicit; route labels alone cannot authorize travel. Test multiple output portals, input portals, inaccessible/unpublished targets and same-slug destinations. |
 | Bookmark and source topic/return URLs | Existing bookmark, topic and node/map identity contracts | Bind URLs and bookmark membership to the authorized node's real identifiers; retain source navigation. A topic link may stay unavailable until its route activation, without inventing topic content. |
 
-After this boundary, finish per-activity review/shared-task documents, complete
+After this boundary, finish per-activity shared-task documents (review context
+is now covered below), complete
 typed command/media mappings and source identity seams before mounting the
 whole copied player. This contract does not activate any UI or declare playback
 complete. Existing World selection policy is not changed by the
@@ -1494,6 +1495,47 @@ parity. Six run-kind reads took 7–38 ms locally; the 102-activity fixture retu
 58516 bytes in 13 ms, versus 58015 bytes/8 ms before node presentation. Fourteen
 two-activity reads took 6–10 ms. These observations are not an SLA. No canonical
 UI, database migration, production owner or World-selection policy changed.
+
+### Review context for the complete playback graph
+
+Pinned `main` remains `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+Source owners: `app/Learning/Serializers/{LearningNodeSerializer,LearningActivitySerializer}.php`,
+`tests/Feature/LearnerJournalTest.php`, and copied
+`resources/js/{pages/learning/node-play.tsx,features/world/standard-activities.tsx,types/learning.ts}`.
+The copied Reflection/Review component reads each activity's `reviewContext`,
+not only the activity active on the server when the page was loaded.
+
+| Source requirement | Existing Rust evidence and gap | Implemented contract / adapter requirement |
+| --- | --- | --- |
+| Review activities and reflections with `learningIntent: review` receive category history; all other types receive null | `learner_playback.rs::load_review_context` covered only the current activity | `graph.activities[].review_context` uses exact source type eligibility; eventual page adapter maps the field and `created_at` to source camelCase. No UI or endpoint activation in this prerequisite. |
+| Trimmed topic/subtopic; blank topic uses node title; blank subtopic includes all subtopics | Existing current-activity reader had the same category matching, but sanitized graph configs do not carry category authoring fields | `learner_playback_reviews.rs` uses already-loaded raw configs internally; category fields do not need to be exposed or fabricated by the browser. |
+| Latest three own reflections, ordered by timestamp then ID descending, including inactive published activities | Native journal/reflection tables and indexes reusable; per-activity graph projection absent | One batch over deduplicated categories, bounded by the already-authorized 1,000-activity graph. SQL limits each category to three rows and scopes both reflection and journal page to the authenticated principal. |
+| No category history is an empty array; a non-review activity is null | Existing active response uses an array | New graph field preserves null/empty distinction. Existing `activity.review_context` reuses the graph result, retaining its array contract and removing its duplicate SQL query. |
+| Unpublished activities, wrong-owner runs, unavailable reads | Existing playback publication, graph, ownership and error gates | Context is populated only after those gates. Query failure remains unavailable, never an invented empty history. No new writer or anonymous access. |
+
+The pre-change real-Rust regression failed because inactive review context was
+absent. `canonical-playback-review-evidence.ts`, exercised by the native route
+playback test, covers specific/all-subtopic categories, title fallback, shared
+categories, empty/null distinctions, timestamp ties and descending UUID order,
+peer isolation, unpublished activities, active/graph agreement, refresh after
+history deletion, and 100 additional same-category reviews. Fixture journal
+pages and activities are disposable and removed on both success and failure.
+
+Verified: canonical byte identity, frontend production type/build, generated
+OpenAPI client consistency, Rust workspace check/format, 22 persistence playback
+tests, three application playback tests, and 20 real Rust/PostgreSQL playback
+checks across six run kinds and fourteen activity types. Report:
+`frontend/playwright-report/player-review-context/`. No UI changed, so these
+are contract checks, not new desktop/narrow screenshots. The seven-inactive-
+activity fixture read took 7 ms / 8927 bytes; 100 additional same-category
+reviews took 23 ms / 117365 bytes. One SQL round trip handles all distinct
+review categories (zero when none exist); each category returns at most three
+rows. Local measurements are evidence, not an SLA.
+
+The complete player remains unavailable
+until per-activity Shared Task state, command/identity/media mappings, anonymous
+playback and whole copied-route acceptance are complete. This read-only
+prerequisite does not claim player UI/browser parity.
 
 ## Status and purpose
 

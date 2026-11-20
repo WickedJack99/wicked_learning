@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { verifyPlaybackNode } from './canonical-playback-node-evidence';
+import { verifyPlaybackReviews } from './canonical-playback-review-evidence';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
 // These prove native graph/progression prerequisites, not copied-player activation.
@@ -84,6 +85,7 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
             if (kind === 'portal') expect(playback.graph.starts).toEqual([]);
             else expect(playback.graph.starts).toEqual([expect.objectContaining({ id: startId, activity_id: activityId })]);
             if (kind === 'route') {
+                await verifyPlaybackReviews(owner, peer, path, nodeId, activityId, info);
                 const secondId = randomUUID(); const secondRouteId = randomUUID(); const secondStartId = randomUUID(); const draftId = randomUUID();
                 const edgeIds = Array.from({ length: 4 }, () => randomUUID());
                 const peerSubject = uuid((await (await peer.request.get('/api/v1/me')).json()).subject_id);

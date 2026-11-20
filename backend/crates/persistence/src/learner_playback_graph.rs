@@ -158,6 +158,14 @@ pub(crate) async fn load(
         .collect();
     let mut graph = assemble(node_id, node.start_activity_id, rows, transitions, starts)?;
     crate::learner_playback_presentation::enrich(transaction, &mut graph, &configs).await?;
+    crate::learner_playback_reviews::enrich(
+        transaction,
+        availability.principal_id(),
+        &node.title,
+        &mut graph,
+        &configs,
+    )
+    .await?;
     let node =
         crate::learner_playback_node::project(transaction, principal, availability, node, &graph)
             .await?;
@@ -229,6 +237,7 @@ fn assemble(
             )?;
             Ok(LearnerPlaybackGraphActivity {
                 presentation,
+                review_context: None,
                 id: row.id,
                 slug: row.slug,
                 title: row.title,

@@ -16,8 +16,8 @@ use wicked_learning_domain::{
         LearnerNpcDialogueTypingSound, LearnerNpcDialogueTypingSoundSet, LearnerPlaybackActivity,
         LearnerPlaybackCheckIn, LearnerPlaybackCompletion, LearnerPlaybackCompletionResult,
         LearnerPlaybackContext, LearnerPlaybackDocument, LearnerPlaybackLearningArea,
-        LearnerPlaybackReviewContext, LearnerPlaybackRunKind, LearnerPlaybackSound,
-        LearnerPortalDestination, LearnerPortalState, LearnerTool,
+        LearnerPlaybackRunKind, LearnerPlaybackSound, LearnerPortalDestination, LearnerPortalState,
+        LearnerTool,
     },
 };
 
@@ -89,14 +89,6 @@ struct CurrentActivityRow {
     is_revisit: bool,
     principal_id: Uuid,
     route_id: Uuid,
-}
-
-#[derive(FromRow)]
-struct ReviewContextRow {
-    created_at: String,
-    id: Uuid,
-    question: String,
-    reflection: String,
 }
 
 #[derive(FromRow)]
@@ -598,45 +590,6 @@ fn is_review_activity(activity_type: &str, config: &serde_json::Value) -> bool {
             .and_then(|config| config.get("learningIntent"))
             .and_then(serde_json::Value::as_str)
             == Some("review")
-}
-
-async fn load_review_context(
-    transaction: &mut Transaction<'_, Postgres>,
-    principal_id: Uuid,
-    activity_config: &serde_json::Value,
-    node_title: &str,
-) -> Result<Vec<LearnerPlaybackReviewContext>, sqlx::Error> {
-    let topic = activity_config
-        .as_object()
-        .and_then(|config| config.get("topic"))
-        .and_then(serde_json::Value::as_str)
-        .map(str::trim)
-        .filter(|topic| !topic.is_empty())
-        .unwrap_or(node_title);
-    let subtopic = activity_config
-        .as_object()
-        .and_then(|config| config.get("subtopic"))
-        .and_then(serde_json::Value::as_str)
-        .map(str::trim)
-        .unwrap_or_default();
-    let rows = sqlx::query_as::<_, ReviewContextRow>(
-        "SELECT reflections.id, reflections.question, reflections.reflection, to_char(reflections.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_at FROM learner_reflections AS reflections INNER JOIN learner_journal_pages AS pages ON pages.id = reflections.learner_journal_page_id WHERE reflections.principal_id = $1 AND pages.topic = $2 AND ($3 = '' OR pages.subtopic = $3) ORDER BY reflections.created_at DESC, reflections.id DESC LIMIT 3",
-    )
-    .bind(principal_id)
-    .bind(topic)
-    .bind(subtopic)
-    .fetch_all(&mut **transaction)
-    .await?;
-
-    Ok(rows
-        .into_iter()
-        .map(|row| LearnerPlaybackReviewContext {
-            id: row.id.to_string(),
-            question: row.question,
-            reflection: row.reflection,
-            created_at: row.created_at,
-        })
-        .collect())
 }
 
 fn markdown_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
@@ -1611,18 +1564,12 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
             .map_err(|_| LearnerPlaybackReadError)?;
             let activity_config = row.activity_config.clone();
             let check_in = check_in_context(&activity_config);
-            let review_context = if is_review_activity(&row.activity_type, &activity_config) {
-                load_review_context(
-                    &mut transaction,
-                    row.principal_id,
-                    &activity_config,
-                    &row.node_title,
-                )
-                .await
-                .map_err(|_| LearnerPlaybackReadError)?
-            } else {
-                Vec::new()
-            };
+            let review_context = graph
+                .activities
+                .iter()
+                .find(|activity| activity.id == row.activity_id)
+                .and_then(|activity| activity.review_context.clone())
+                .unwrap_or_default();
             let Some(config) = learner_safe_config(&row.activity_type, row.activity_config) else {
                 transaction
                     .commit()

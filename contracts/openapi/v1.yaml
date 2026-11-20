@@ -10981,7 +10981,7 @@ components:
     LearnerPlaybackGraphActivity:
       type: object
       additionalProperties: false
-      required: [id, slug, title, introduction, activity_type, config, time_guide_minutes, check_in, transitions, presentation]
+      required: [id, slug, title, introduction, activity_type, config, time_guide_minutes, check_in, transitions, presentation, review_context]
       properties:
         id: { type: string, format: uuid }
         slug: { type: string }
@@ -10992,6 +10992,11 @@ components:
         time_guide_minutes: { type: [integer, 'null'], minimum: 1 }
         check_in: { $ref: '#/components/schemas/LearnerPlaybackCheckIn' }
         presentation: { $ref: '#/components/schemas/LearnerPlaybackPresentation' }
+        review_context:
+          type: [array, 'null']
+          maxItems: 3
+          description: Owner-only latest reflections matching the authored review category, ordered by created_at then id descending. Null for non-review activities; empty for review activities without history. Includes inactive published review activities; blank topic falls back to node title and blank subtopic matches all subtopics.
+          items: { $ref: '#/components/schemas/LearnerPlaybackReviewContext' }
         transitions:
           type: array
           maxItems: 4000

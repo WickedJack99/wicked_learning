@@ -8292,6 +8292,8 @@ export interface components {
             time_guide_minutes: number | null;
             check_in: components["schemas"]["LearnerPlaybackCheckIn"];
             presentation: components["schemas"]["LearnerPlaybackPresentation"];
+            /** @description Owner-only latest reflections matching the authored review category, ordered by created_at then id descending. Null for non-review activities; empty for review activities without history. Includes inactive published review activities; blank topic falls back to node title and blank subtopic matches all subtopics. */
+            review_context: components["schemas"]["LearnerPlaybackReviewContext"][] | null;
             /** @description At most 4000 transitions across the entire graph. A null destination is an authored terminal edge, never a replacement for an unpublished destination. */
             transitions: components["schemas"]["LearnerPlaybackGraphTransition"][];
         };
