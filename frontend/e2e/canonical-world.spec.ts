@@ -147,7 +147,13 @@ for (const { name, viewport } of viewports) {
             for (const target of [source, page]) {
                 await target.getByRole('button', { name: 'First place Orientation map', exact: true }).click();
                 await expect(target).toHaveURL(/world\?map=orientation-map&focused=first-place$/);
-                if (name === 'narrow') await target.getByRole('button', { name: 'Open map search' }).click();
+                if (name === 'narrow') {
+                    // The complete source drawer covers search. Close it using
+                    // its keyboard path instead of racing its opening animation.
+                    await target.getByRole('button', { name: 'Close node panel', exact: true }).press('Enter');
+                    await expect(target).toHaveURL(/world\?map=orientation-map$/);
+                    await target.getByRole('button', { name: 'Open map search' }).click();
+                }
                 await target.getByRole('button', { name: 'Previous results', exact: true }).click();
                 await target.getByRole('button', { name: 'Topic 0 Topic', exact: true }).click();
                 await expect(target).toHaveURL(/topics\/topic-0$/);
@@ -500,6 +506,43 @@ for (const { name, viewport } of viewports) {
             await info.attach('main-unlock-requirements', { body: await source.screenshot(), contentType: 'image/png' });
             await info.attach('rust-unlock-requirements', { body: await page.screenshot(), contentType: 'image/png' });
             await source.close();
+        });
+
+        test('authored visible states preserve source selection without inventing completion', async ({ page, context }, info) => {
+            test.skip(!process.env.SOURCE_EVIDENCE_BASE_URL, 'Requires the whole pinned-source layout server.');
+            expect(execFileSync('git', ['diff', '--name-only', '32c3113a5bc688c9944c20942cdf40a6a5d57d7f', '--', 'resources/js', 'resources/css/app.css']).toString()).toBe('');
+            for (const state of ['active', 'available', 'completed', 'hinted', 'recommended'] as const) {
+                const snapshot = worldSnapshot();
+                snapshot.world.maps[0].nodes[0].state = state;
+                const shell = await routeWorldReads(page, { world: (route) => route.fulfill({ json: snapshot }) });
+                const source = await context.newPage();
+                const props = { ...sourceWorldProps(), name: shell.name, progress: { activities: {} } };
+                props.world.maps[0].nodes[0].state = state;
+                // Compare the fallback activity start, not independently different
+                // authored start-route labels in the two baseline fixtures.
+                snapshot.start_routes = [];
+                snapshot.graph.maps[0].nodes[0].starts = [];
+                await source.addInitScript((props) => { window.sourceWorldEvidence = props; window.sourceWorldEvidenceUrl = '/world?map=orientation-map'; }, props);
+                await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-learner-layout-source.html`);
+                await page.goto('/world?map=orientation-map');
+                for (const target of [source, page]) {
+                    const tile = target.getByRole('button', { name: 'First place', exact: true });
+                    await expectBounded(tile, viewport);
+                    await tile.click();
+                    await expect(target.getByRole('heading', { name: 'First place', exact: true })).toBeVisible();
+                    await expect(target.getByText('Locked for now', { exact: true })).toHaveCount(0);
+                    await expect(target.getByLabel('Node completed')).toHaveCount(0);
+                    await expectBounded(target.getByRole('button', { name: 'Start node', exact: true }), viewport);
+                }
+                const drawer = (target: Page) => target.locator('aside').filter({ hasText: 'A source-derived learner place.' });
+                await expect.poll(async () => Math.round((await drawer(page).boundingBox())!.x)).toBe(name === 'desktop' ? 1020 : 0);
+                await expect.poll(async () => Math.round((await drawer(source).boundingBox())!.x)).toBe(name === 'desktop' ? 1020 : 0);
+                expect(await drawer(page).innerText()).toBe(await drawer(source).innerText());
+                expect(await drawer(page).boundingBox()).toEqual(await drawer(source).boundingBox());
+                await info.attach(`main-${state}`, { body: await source.screenshot(), contentType: 'image/png' });
+                await info.attach(`rust-${state}`, { body: await page.screenshot(), contentType: 'image/png' });
+                await source.close();
+            }
         });
 
         test('incomplete identity contracts fail explicitly instead of manufacturing record IDs', async ({ page }) => {

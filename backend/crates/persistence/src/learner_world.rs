@@ -556,6 +556,9 @@ fn apply_learner_node_states(
                 node.description.clear();
             }
             node.state = match state {
+                LearnerNodeState::Available if authored == LearnerNodeState::Available => {
+                    node.state.clone()
+                }
                 wicked_learning_domain::learner_availability::LearnerNodeState::Available => {
                     "available".to_owned()
                 }
@@ -740,6 +743,15 @@ mod tests {
                 "locked",
                 json!({"unlock":{"enabled":true,"tool":{"enabled":true,"toolId":"lens"}},"schedule":{"unlockAt":"2099-01-01T00:00:00Z"}}),
             ),
+            ("active", "active", json!({})),
+            ("completed", "completed", json!({})),
+            ("hinted", "hinted", json!({})),
+            ("recommended", "recommended", json!({})),
+            (
+                "scheduled-recommended",
+                "recommended",
+                json!({"schedule":{"lockAt":"2000-01-01T00:00:00Z"}}),
+            ),
         ] {
             let id = Uuid::new_v4();
             sqlx::query("INSERT INTO learning_nodes (id,map_id,slug,state,visual_config,published_at) VALUES ($1,$2,$3,$4,$5,NOW())")
@@ -779,7 +791,13 @@ mod tests {
             .unwrap()
             .unwrap();
         let mut before = world.clone();
-        apply_learner_node_states(&mut before, &availability, &labels);
+        let playable = apply_learner_node_states(&mut before, &availability, &labels);
+        for node in &before.maps[0].nodes[3..7] {
+            assert_eq!(node.state, node.slug);
+            assert!(playable.contains(&("tool-map".into(), node.slug.clone())));
+        }
+        assert_eq!(before.maps[0].nodes[7].state, "locked");
+        assert!(!playable.contains(&("tool-map".into(), "scheduled-recommended".into())));
         assert_eq!(before.maps[0].nodes[0].title, "Undiscovered place");
         assert!(before.maps[0].nodes[0].description.is_empty());
         assert!(before.maps[0].nodes[0].visual_config.get("label").is_none());
@@ -833,6 +851,9 @@ mod tests {
             &labels,
         );
         assert_eq!(peer_world.maps[0].nodes[0].state, "hidden");
+        for node in &peer_world.maps[0].nodes[3..7] {
+            assert_eq!(node.state, node.slug);
+        }
         assert_eq!(
             peer_world.maps[0].nodes[1].visual_config["unlock"]["toolUsed"],
             false

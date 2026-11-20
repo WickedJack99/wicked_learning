@@ -857,9 +857,8 @@ isolation, with CSRF/ownership rejection. Cleanup removes only those disposable
 records and restores the prior learner map preference.
 
 The tool-action adapter and partial World reload are verified in the next
-entry. Remaining availability gaps include answer-event availability and
-source informational visible-state preservation (the existing Rust availability enum currently normalizes active,
-recommended, hinted and completed presentation to available). World-family
+entry. Source informational visible-state preservation is repaired in the
+authored-state entry below. Answer-event availability remains open. World-family
 acceptance remains **Incomplete**.
 
 Verification: 45 combined browser checks passed on the rebuilt native stack,
@@ -948,6 +947,62 @@ Recorded source header/selection defects remain unchanged and are not waived.
 Playback, anonymous World access, remaining availability/media and bounded
 projection gaps still prevent whole-family completion.
 
+
+### Authored visible World states
+
+Source audit (pin `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`, local `main`
+reverified): `app/Learning/Services/LearningNodeStateResolver.php` retains the
+authored state unless concealment, schedule or an actual opening overrides it.
+`app/Learning/Serializers/LearningNodeSerializer.php` exposes that result;
+`resources/js/types/learning.ts`, `pages/world.tsx`, and the whole
+`features/world/{world-map,activity-panel,node-detail-drawer}.tsx` consume it.
+Only `hidden` and `locked` prevent entry; an authored `completed` value does
+not synthesize activity progress or a learner completion badge.
+
+| Contract | Existing Rust evidence | Required correction |
+| --- | --- | --- |
+| Authored active/available/completed/hinted/recommended | OpenAPI `PublicNode.state`, inherited by `LearnerWorldNode`; persisted `learning_nodes.state`; `world-projection.ts` passes the state through | `persistence/src/learner_world.rs::apply_learner_node_states` now preserves these values when evaluated availability permits entry, instead of emitting `available` for all of them. |
+| Concealment, schedule and actual opening precedence | `domain/src/learner_availability.rs`, `persistence/src/learner_node_availability.rs` | Keep the existing authorization enum and evaluated hidden/locked states authoritative. A discovered hidden node or opened locked node becomes available. |
+| Unknown state / API failure | Existing fail-closed authored-state mapping and World unavailable boundary | Do not treat arbitrary persisted strings as playable or fabricate a successful World response. |
+
+This is a read-projection repair using the existing endpoint, with no copied
+frontend changes or new backend contract. Answer-event availability remains
+unimplemented and is not made complete by preserving informational states.
+
+The isolated PostgreSQL regression and real Rust HTTP/browser fixture both
+reproduced `active` being returned as `available` before the correction. The
+database regression now covers all four previously flattened authored states,
+playability, scheduled recommendation remaining locked, concealment, actual
+tool openings and principal isolation. It uses connection-local temporary
+tables and leaves application rows untouched. The correction adds no SQL
+queries or response fields.
+
+`frontend/e2e/canonical-world.spec.ts` compares the complete original-source
+World/layout against the copied page for all five visible states at 1440×900
+and 390×844. It checks selection, drawer bounds, bounded Start controls and
+absence of a fabricated completion badge; the separate existing regression
+still proves real activity progress renders the completion badge. Source and
+Rust screenshots are byte-identical for the inspected completed-state pair at
+both sizes. The inherited narrow header obstruction remains unchanged and is
+not waived. `canonical-world-states-live.spec.ts` creates disposable records
+through native author APIs, publishes only those fixtures locally, verifies
+the actual World response, opens each state through the copied route and
+checks that scheduled recommendations cannot be selected. Its cleanup restores
+the learner's previous map preference and deletes only its created map.
+
+Verification: canonical identity, frontend production type/build and generated
+client drift passed, as did Rust fmt/workspace check, 13 domain availability
+tests, the API authentication regression and the explicit PostgreSQL regression.
+The broader 43-case source/resolver suite initially passed 42 checks and exposed
+one search-test animation race: on narrow screens the open source drawer covers
+the search button. The test now activates the existing Close node panel button
+with Enter before reopening search; both desktop/narrow search cases passed on
+rerun. No production or source control was changed to satisfy that check.
+All six native availability/state/tool browser cases passed against the rebuilt
+local backend. Reports are retained under ignored
+`frontend/playwright-report/world-states-{source,search,native}/`. The six-node
+state fixture returned 44382 bytes in 11–12 ms locally; these are observations,
+not a production performance claim.
 
 ## Status and purpose
 
