@@ -139,21 +139,7 @@ async fn load_page(
         return Ok(None);
     };
     let search = request.search.as_deref().map(escape_like);
-    let journal_settings = sqlx::query_as::<_, JournalSettingsRow>(
-        "SELECT allow_review_requests, theme FROM application_journal_feedback_policy WHERE singleton = TRUE",
-    )
-    .fetch_optional(pool)
-    .await?
-    .map(|settings| {
-        (
-            settings.allow_review_requests,
-            settings
-                .theme
-                .map(|theme| theme.0)
-                .unwrap_or_else(default_learner_journal_theme),
-        )
-    })
-    .unwrap_or_else(|| (false, default_learner_journal_theme()));
+    let journal_settings = load_settings(pool).await?;
     let total = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*) FROM learner_journal_pages WHERE principal_id = $1 AND ($2::text IS NULL OR title ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR topic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR subtopic ILIKE '%' || $2 || '%' ESCAPE E'\\\\' OR markdown ILIKE '%' || $2 || '%' ESCAPE E'\\\\')",
     )
@@ -242,7 +228,7 @@ async fn load_page(
     }))
 }
 
-fn learner_theme(mut theme: LearnerJournalTheme) -> LearnerJournalTheme {
+pub(crate) fn learner_theme(mut theme: LearnerJournalTheme) -> LearnerJournalTheme {
     for mode in [&mut theme.dark, &mut theme.light] {
         mode.background_image = learner_media_url(&mode.background_image);
         for asset in &mut mode.background_assets {
@@ -395,4 +381,25 @@ mod tests {
             format!("/api/v1/learner/media-assets/{media}/content")
         );
     }
+}
+
+pub(crate) async fn load_settings(
+    pool: &PgPool,
+) -> Result<(bool, LearnerJournalTheme), sqlx::Error> {
+    let journal_settings = sqlx::query_as::<_, JournalSettingsRow>(
+        "SELECT allow_review_requests, theme FROM application_journal_feedback_policy WHERE singleton = TRUE",
+    )
+    .fetch_optional(pool)
+    .await?
+    .map(|settings| {
+        (
+            settings.allow_review_requests,
+            settings
+                .theme
+                .map(|theme| theme.0)
+                .unwrap_or_else(default_learner_journal_theme),
+        )
+    })
+    .unwrap_or_else(|| (false, default_learner_journal_theme()));
+    Ok(journal_settings)
 }

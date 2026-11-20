@@ -595,6 +595,7 @@ async fn grant_configured_tool_for_node(
     .execute(&mut **transaction)
     .await?;
     Ok(Some(LearnerTool {
+        id: tool.id,
         animation_dark: tool.animation_dark,
         animation_light: tool.animation_light,
         config: tool.config,

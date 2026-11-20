@@ -12,3 +12,5 @@ pub mod learning_companion;
 pub mod organization;
 pub mod platform_presentation;
 pub mod world_content;
+
+pub mod learner_shell;

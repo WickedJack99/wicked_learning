@@ -132,3 +132,5 @@ pub mod public_search;
 pub mod public_source_links;
 pub mod public_world;
 pub mod temporary_access_login;
+
+pub mod learner_shell;

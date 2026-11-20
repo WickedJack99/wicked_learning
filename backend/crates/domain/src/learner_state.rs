@@ -98,6 +98,7 @@ pub struct LearnerWorldStartIdentity {
 /// source action bar renders. Quantity remains server-owned.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerItem {
+    pub id: uuid::Uuid,
     pub config: serde_json::Value,
     pub description: Option<String>,
     pub image_dark: Option<String>,
@@ -116,9 +117,11 @@ pub struct LearnerPlaybackSound {
 }
 
 /// One learner-owned tool. The slug is the public, authored reference; the
-/// database UUID stays internal and is never accepted from the browser.
+/// UUID is a stable source-rendering identity; commands still authorize the
+/// supplied reference against the current learner and play run.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerTool {
+    pub id: uuid::Uuid,
     pub animation_dark: Option<String>,
     pub animation_light: Option<String>,
     pub config: serde_json::Value,

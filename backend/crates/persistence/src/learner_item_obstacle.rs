@@ -45,6 +45,7 @@ struct FilledSlotRow {
 
 #[derive(FromRow)]
 struct InventoryRow {
+    id: Uuid,
     config: Value,
     description: Option<String>,
     image_dark: Option<String>,
@@ -376,7 +377,7 @@ pub(crate) async fn load_inventory(
     principal_id: Uuid,
 ) -> Result<Vec<LearnerItem>, sqlx::Error> {
     sqlx::query_as::<_, InventoryRow>(
-        "SELECT items.config, items.description, items.image_dark, items.image_light, holdings.quantity, items.slug, items.title FROM learner_item_holdings AS holdings INNER JOIN learning_items AS items ON items.id = holdings.item_id WHERE holdings.principal_id = $1 AND holdings.quantity > 0 ORDER BY holdings.acquired_at ASC NULLS LAST, items.slug ASC LIMIT 100",
+        "SELECT items.id, items.config, items.description, items.image_dark, items.image_light, holdings.quantity, items.slug, items.title FROM learner_item_holdings AS holdings INNER JOIN learning_items AS items ON items.id = holdings.item_id WHERE holdings.principal_id = $1 AND holdings.quantity > 0 ORDER BY holdings.acquired_at ASC NULLS LAST, items.slug ASC LIMIT 100",
     )
     .bind(principal_id)
     .fetch_all(&mut **transaction)
@@ -385,7 +386,7 @@ pub(crate) async fn load_inventory(
         items
             .into_iter()
             .map(|item| LearnerItem {
-                config: item.config,
+                id: item.id,                config: item.config,
                 description: item.description,
                 image_dark: item.image_dark,
                 image_light: item.image_light,

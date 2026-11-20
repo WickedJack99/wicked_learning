@@ -16,7 +16,7 @@ use axum::{
 use futures_util::TryStreamExt;
 use metrics::{Unit, counter, describe_counter, describe_histogram, histogram};
 use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
-use tracing::{Event, Subscriber, subscriber::Interest};
+use tracing::{Event, Subscriber};
 use tracing_subscriber::layer::{Context, Layer};
 
 const HTTP_REQUESTS: &str = "wicked_learning_http_requests_total";
@@ -37,14 +37,6 @@ impl<S> Layer<S> for SqlQueryCountLayer
 where
     S: Subscriber,
 {
-    fn register_callsite(&self, metadata: &'static tracing::Metadata<'static>) -> Interest {
-        if metadata.target() == "sqlx::query" {
-            Interest::always()
-        } else {
-            Interest::never()
-        }
-    }
-
     fn on_event(&self, event: &Event<'_>, _: Context<'_, S>) {
         if event.metadata().target() == "sqlx::query" {
             let _ = REQUEST_DATABASE_QUERY_COUNT.try_with(|count| {
@@ -212,6 +204,28 @@ mod tests {
     use tracing_subscriber::layer::SubscriberExt;
 
     use super::{REQUEST_DATABASE_QUERY_COUNT, SqlQueryCountLayer};
+
+    #[test]
+    fn query_counter_does_not_suppress_application_error_logs() {
+        struct EventCounter(Arc<AtomicU64>);
+        impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for EventCounter {
+            fn on_event(
+                &self,
+                _event: &tracing::Event<'_>,
+                _context: tracing_subscriber::layer::Context<'_, S>,
+            ) {
+                self.0.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+        let events = Arc::new(AtomicU64::new(0));
+        let subscriber = tracing_subscriber::registry()
+            .with(SqlQueryCountLayer)
+            .with(EventCounter(events.clone()));
+        tracing::subscriber::with_default(subscriber, || {
+            tracing::error!(target: "wicked_learning::migration", "migration failure must remain visible");
+        });
+        assert_eq!(events.load(Ordering::Relaxed), 1);
+    }
 
     #[tokio::test]
     async fn sql_query_events_increment_only_the_current_request_count() {

@@ -139,6 +139,7 @@ struct PortalStateRow {
 
 #[derive(FromRow)]
 struct ToolPlaybackRow {
+    id: Uuid,
     animation_dark: Option<String>,
     animation_light: Option<String>,
     config: serde_json::Value,
@@ -967,7 +968,7 @@ async fn enrich_tool_grant_config(
         return Ok(());
     };
     let tool = sqlx::query_as::<_, ToolPlaybackRow>(
-        "SELECT animation_dark, animation_light, config, description, image_dark, image_light, slug, title FROM learning_tools WHERE slug = $1",
+        "SELECT id, animation_dark, animation_light, config, description, image_dark, image_light, slug, title FROM learning_tools WHERE slug = $1",
     )
     .bind(&tool_slug)
     .fetch_optional(&mut **transaction)
@@ -1119,7 +1120,7 @@ async fn load_tools(
     principal_id: Uuid,
 ) -> Result<Vec<LearnerTool>, sqlx::Error> {
     sqlx::query_as::<_, ToolPlaybackRow>(
-        "SELECT tools.animation_dark, tools.animation_light, tools.config, tools.description, tools.image_dark, tools.image_light, tools.slug, tools.title FROM learner_tools AS holdings INNER JOIN learning_tools AS tools ON tools.id = holdings.tool_id WHERE holdings.principal_id = $1 ORDER BY holdings.acquired_at ASC, tools.slug ASC LIMIT 100",
+        "SELECT tools.id, tools.animation_dark, tools.animation_light, tools.config, tools.description, tools.image_dark, tools.image_light, tools.slug, tools.title FROM learner_tools AS holdings INNER JOIN learning_tools AS tools ON tools.id = holdings.tool_id WHERE holdings.principal_id = $1 ORDER BY holdings.acquired_at ASC, tools.slug ASC LIMIT 100",
     )
     .bind(principal_id)
     .fetch_all(&mut **transaction)
@@ -1128,7 +1129,7 @@ async fn load_tools(
         tools
             .into_iter()
             .map(|tool| LearnerTool {
-                animation_dark: tool.animation_dark,
+                id: tool.id,                animation_dark: tool.animation_dark,
                 animation_light: tool.animation_light,
                 config: tool.config,
                 description: tool.description,

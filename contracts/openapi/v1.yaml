@@ -1662,6 +1662,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /learner/shell:
+    get:
+      operationId: getLearnerShell
+      summary: Read the authenticated copied learner shell's metadata, inventory and preferred visible menu theme.
+      description: No Journal page contents, activity payloads or feedback session flag are read or changed. Inventory is bounded and fails rather than truncates.
+      responses:
+        '200':
+          description: Server-owned shell props, even when there is no visible map.
+          content: { application/json: { schema: { $ref: '#/components/schemas/LearnerShell' } } }
+        '401': { description: Authentication is required. }
+        '403': { description: The identity has no application principal. }
+        '503': { description: A required read is unavailable or exceeds its bound. }
+  /learner/map-location:
+    post:
+      operationId: rememberLearnerMap
+      summary: Remember this learner's currently visible map by slug or UUID.
+      parameters: [{ $ref: '#/components/parameters/CsrfTokenHeader' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RememberLearnerMapRequest' } } }
+      responses:
+        '200':
+          description: The authorized map's source menu theme, after the preference was persisted.
+          content: { application/json: { schema: { $ref: '#/components/schemas/LearnerMenuTheme' } } }
+        '400': { description: Invalid map reference. }
+        '422': { description: The JSON document has missing, mistyped or unknown fields. }
+        '401': { description: Authentication is required. }
+        '403': { description: CSRF, origin or principal admission failed. }
+        '404': { description: Map is not published and visible in the current World. }
+        '503': { description: Persistence is unavailable. }
+  /learner/feedback-prompt/claim:
+    post:
+      operationId: claimLearnerFeedbackPrompt
+      summary: Claim the source feedback invitation once in this Rust session.
+      description: An explicit session mutation. Settings and Feedback never claim; declined or still-snoozed preferences suppress it. Updating the preference clears this subject's session claim.
+      parameters: [{ $ref: '#/components/parameters/CsrfTokenHeader' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ClaimFeedbackPromptRequest' } } }
+      responses:
+        '200':
+          description: Whether this surface may show the invitation now.
+          content: { application/json: { schema: { $ref: '#/components/schemas/ClaimFeedbackPromptResponse' } } }
+        '400': { description: Unknown surface. }
+        '422': { description: The JSON document has missing, mistyped or unknown fields. }
+        '401': { description: Authentication is required. }
+        '403': { description: CSRF, origin or principal admission failed. }
+        '503': { description: Preference or native session storage is unavailable. }
   /learner/companion:
     get:
       operationId: getLearnerCompanion
@@ -9420,7 +9468,7 @@ components:
     PublicPresentation:
       type: object
       additionalProperties: false
-      required: [branding, auth, cursors, welcome, information_pages, public_palette, settings_palette]
+      required: [branding, auth, cursors, welcome, information_pages, public_palette, settings_palette, learner_palette]
       properties:
         branding:
           $ref: '#/components/schemas/PublicBranding'
@@ -9441,6 +9489,8 @@ components:
           $ref: '#/components/schemas/PublicPaletteModes'
         settings_palette:
           $ref: '#/components/schemas/SettingsPaletteModes'
+        learner_palette:
+          $ref: '#/components/schemas/LearnerPaletteModes'
     WelcomePageProjection:
       type: object
       additionalProperties: false
@@ -9856,8 +9906,9 @@ components:
     LearnerItem:
       type: object
       additionalProperties: false
-      required: [config, description, image_dark, image_light, quantity, slug, title]
+      required: [id, config, description, image_dark, image_light, quantity, slug, title]
       properties:
+        id: { type: string, format: uuid }
         config:
           type: object
           additionalProperties: true
@@ -9878,8 +9929,9 @@ components:
     LearnerTool:
       type: object
       additionalProperties: false
-      required: [animation_dark, animation_light, config, description, image_dark, image_light, slug, title]
+      required: [id, animation_dark, animation_light, config, description, image_dark, image_light, slug, title]
       properties:
+        id: { type: string, format: uuid }
         animation_dark:
           type: [string, 'null']
         animation_light:
@@ -13098,6 +13150,78 @@ components:
       properties:
         id: { type: string, format: uuid }
         title: { type: string, maxLength: 240 }
+    LearnerPaletteModes:
+      type: object
+      additionalProperties: false
+      required: [dark, light]
+      properties:
+        dark: { $ref: '#/components/schemas/LearnerPalette' }
+        light: { $ref: '#/components/schemas/LearnerPalette' }
+    LearnerPalette:
+      type: object
+      additionalProperties: false
+      required: [page_background, page_background_opacity, header_background, header_background_opacity, panel_background, panel_background_opacity, panel_muted_background, panel_muted_background_opacity, heading_text, heading_text_opacity, body_text, body_text_opacity, muted_text, muted_text_opacity, accent, accent_opacity, action_accent, action_accent_opacity, border_color, border_color_opacity]
+      properties:
+        page_background: { type: string, maxLength: 64 }
+        page_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        header_background: { type: string, maxLength: 64 }
+        header_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        panel_background: { type: string, maxLength: 64 }
+        panel_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        panel_muted_background: { type: string, maxLength: 64 }
+        panel_muted_background_opacity: { type: integer, minimum: 0, maximum: 100 }
+        heading_text: { type: string, maxLength: 64 }
+        heading_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        body_text: { type: string, maxLength: 64 }
+        body_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        muted_text: { type: string, maxLength: 64 }
+        muted_text_opacity: { type: integer, minimum: 0, maximum: 100 }
+        accent: { type: string, maxLength: 64 }
+        accent_opacity: { type: integer, minimum: 0, maximum: 100 }
+        action_accent: { type: string, maxLength: 64 }
+        action_accent_opacity: { type: integer, minimum: 0, maximum: 100 }
+        border_color: { type: string, maxLength: 64 }
+        border_color_opacity: { type: integer, minimum: 0, maximum: 100 }
+    LearnerMenuTheme:
+      type: object
+      additionalProperties: false
+      required: [map_id, map_slug, background_config]
+      properties:
+        map_id: { type: string, format: uuid }
+        map_slug: { type: string }
+        background_config: { type: object, additionalProperties: true }
+    LearnerShell:
+      type: object
+      additionalProperties: false
+      required: [name, items, tools, journal_theme, menu_theme, public_presentation]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        items: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/LearnerItem' } }
+        tools: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/LearnerTool' } }
+        journal_theme: { $ref: '#/components/schemas/LearnerJournalTheme' }
+        menu_theme:
+          anyOf:
+            - { $ref: '#/components/schemas/LearnerMenuTheme' }
+            - { type: 'null' }
+        public_presentation: { $ref: '#/components/schemas/PublicPresentation' }
+    RememberLearnerMapRequest:
+      type: object
+      additionalProperties: false
+      required: [map]
+      properties:
+        map: { type: string, minLength: 1, maxLength: 140, pattern: '^[a-zA-Z0-9-]+$' }
+    ClaimFeedbackPromptRequest:
+      type: object
+      additionalProperties: false
+      required: [surface]
+      properties:
+        surface: { type: string, enum: [world, home, bookmarks, learning, settings, feedback] }
+    ClaimFeedbackPromptResponse:
+      type: object
+      additionalProperties: false
+      required: [show]
+      properties:
+        show: { type: boolean }
     LearnerWorldGraph:
       type: object
       additionalProperties: false

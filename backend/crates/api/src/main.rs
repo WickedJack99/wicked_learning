@@ -133,6 +133,7 @@ mod learner_revisit_invitation;
 mod learner_revisit_run;
 mod learner_route_run;
 mod learner_shared_task;
+mod learner_shell;
 mod learner_sound_preference;
 mod learner_support;
 mod learner_tool_grant;
@@ -219,6 +220,7 @@ pub(crate) struct AppState {
     login_rate_limit_key: [u8; 32],
     media_store: MediaStore,
     email_delivery: email_delivery::EmailDelivery,
+    application_name: String,
     public_origin: String,
     session_cookie_secure: bool,
     totp_secret_cipher: totp_crypto::TotpSecretCipher,
@@ -314,6 +316,7 @@ async fn main() -> ExitCode {
         login_rate_limit_key: configuration.login_rate_limit_key,
         media_store,
         email_delivery,
+        application_name: configuration.application_name,
         public_origin: configuration.public_origin,
         session_cookie_secure: configuration.session_cookie_secure,
         totp_secret_cipher: totp_crypto::TotpSecretCipher::new(configuration.totp_encryption_key),
@@ -1301,6 +1304,9 @@ fn router(state: AppState) -> Router {
             patch(admin_learning_group::sync_members),
         )
         .route("/api/v1/learner/world", get(learner_world::show))
+        .route("/api/v1/learner/shell", get(learner_shell::show))
+        .route("/api/v1/learner/map-location", post(learner_shell::remember_map))
+        .route("/api/v1/learner/feedback-prompt/claim", post(feedback_prompt_preference::claim))
         .route("/api/v1/learner/companion", get(learner_companion::show))
         .route(
             "/api/v1/learner/companion/turn",
@@ -1754,6 +1760,20 @@ mod tests {
         .expect("valid local email configuration")
     }
 
+    #[test]
+    fn embedded_migration_versions_are_unique() {
+        for migrator in [&super::APPLICATION_MIGRATOR, &super::IDENTITY_MIGRATOR] {
+            let mut versions = std::collections::HashSet::new();
+            for migration in migrator.iter() {
+                assert!(
+                    versions.insert(migration.version),
+                    "duplicate migration version {}",
+                    migration.version
+                );
+            }
+        }
+    }
+
     #[tokio::test]
     async fn liveness_does_not_depend_on_a_database_connection() {
         let state = AppState {
@@ -1771,6 +1791,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -1820,6 +1841,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -1934,6 +1956,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -1980,6 +2003,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2026,6 +2050,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2047,7 +2072,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn learner_world_requires_an_authenticated_session() {
+    async fn learner_world_and_shell_require_an_authenticated_session() {
         let state = AppState {
             ai_credential_cipher: ai_credential_crypto::AiCredentialCipher::new(
                 *b"test-ai-credential-key-000000000",
@@ -2063,6 +2088,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2070,26 +2096,28 @@ mod tests {
             webauthn: test_webauthn(),
         };
 
-        let response = router(state)
-            .oneshot(
-                Request::builder()
-                    .uri("/api/v1/learner/world")
-                    .body(Body::empty())
-                    .expect("a valid learner-world request"),
-            )
-            .await
-            .expect("learner-world response");
-
-        assert_eq!(response.status(), 401);
-        assert_eq!(
-            response
-                .into_body()
-                .collect()
+        for path in ["/api/v1/learner/world", "/api/v1/learner/shell"] {
+            let response = router(state.clone())
+                .oneshot(
+                    Request::builder()
+                        .uri(path)
+                        .body(Body::empty())
+                        .expect("a valid learner-world request"),
+                )
                 .await
-                .expect("body bytes")
-                .to_bytes(),
-            "{\"code\":\"authentication_required\",\"title\":\"Authentication is required.\"}"
-        );
+                .expect("learner-world response");
+
+            assert_eq!(response.status(), 401);
+            assert_eq!(
+                response
+                    .into_body()
+                    .collect()
+                    .await
+                    .expect("body bytes")
+                    .to_bytes(),
+                "{\"code\":\"authentication_required\",\"title\":\"Authentication is required.\"}"
+            );
+        }
     }
 
     #[tokio::test]
@@ -2109,6 +2137,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2150,6 +2179,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2196,6 +2226,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2236,6 +2267,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2275,6 +2307,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2321,6 +2354,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2358,6 +2392,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2397,6 +2432,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2436,6 +2472,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2752,6 +2789,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2798,6 +2836,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2846,6 +2885,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),
@@ -2911,6 +2951,7 @@ mod tests {
                 .expect("a syntactically valid test connection URL"),
             login_rate_limit_key: [0; 32],
             media_store: super::MediaStore::in_memory(),
+            application_name: "Learning Worlds".to_owned(),
             public_origin: "http://localhost:8081".to_owned(),
             session_cookie_secure: false,
             totp_secret_cipher: super::totp_crypto::TotpSecretCipher::new([0; 32]),

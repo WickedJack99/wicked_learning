@@ -1306,6 +1306,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/shell": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the authenticated copied learner shell's metadata, inventory and preferred visible menu theme.
+         * @description No Journal page contents, activity payloads or feedback session flag are read or changed. Inventory is bounded and fails rather than truncates.
+         */
+        get: operations["getLearnerShell"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/map-location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remember this learner's currently visible map by slug or UUID. */
+        post: operations["rememberLearnerMap"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/feedback-prompt/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim the source feedback invitation once in this Rust session.
+         * @description An explicit session mutation. Settings and Feedback never claim; declined or still-snoozed preferences suppress it. Updating the preference clears this subject's session claim.
+         */
+        post: operations["claimLearnerFeedbackPrompt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/companion": {
         parameters: {
             query?: never;
@@ -7287,6 +7344,7 @@ export interface components {
             information_pages: components["schemas"]["PublicInformationPage"][];
             public_palette: components["schemas"]["PublicPaletteModes"];
             settings_palette: components["schemas"]["SettingsPaletteModes"];
+            learner_palette: components["schemas"]["LearnerPaletteModes"];
         };
         WelcomePageProjection: {
             auth: components["schemas"]["WelcomePageAuth"];
@@ -7519,6 +7577,8 @@ export interface components {
             node_slug: string;
         };
         LearnerItem: {
+            /** Format: uuid */
+            id: string;
             config: {
                 [key: string]: unknown;
             };
@@ -7530,6 +7590,8 @@ export interface components {
             title: string;
         };
         LearnerTool: {
+            /** Format: uuid */
+            id: string;
             animation_dark: string | null;
             animation_light: string | null;
             config: {
@@ -9655,6 +9717,58 @@ export interface components {
             /** Format: uuid */
             id: string;
             title: string;
+        };
+        LearnerPaletteModes: {
+            dark: components["schemas"]["LearnerPalette"];
+            light: components["schemas"]["LearnerPalette"];
+        };
+        LearnerPalette: {
+            page_background: string;
+            page_background_opacity: number;
+            header_background: string;
+            header_background_opacity: number;
+            panel_background: string;
+            panel_background_opacity: number;
+            panel_muted_background: string;
+            panel_muted_background_opacity: number;
+            heading_text: string;
+            heading_text_opacity: number;
+            body_text: string;
+            body_text_opacity: number;
+            muted_text: string;
+            muted_text_opacity: number;
+            accent: string;
+            accent_opacity: number;
+            action_accent: string;
+            action_accent_opacity: number;
+            border_color: string;
+            border_color_opacity: number;
+        };
+        LearnerMenuTheme: {
+            /** Format: uuid */
+            map_id: string;
+            map_slug: string;
+            background_config: {
+                [key: string]: unknown;
+            };
+        };
+        LearnerShell: {
+            name: string;
+            items: components["schemas"]["LearnerItem"][];
+            tools: components["schemas"]["LearnerTool"][];
+            journal_theme: components["schemas"]["LearnerJournalTheme"];
+            menu_theme: components["schemas"]["LearnerMenuTheme"] | null;
+            public_presentation: components["schemas"]["PublicPresentation"];
+        };
+        RememberLearnerMapRequest: {
+            map: string;
+        };
+        ClaimFeedbackPromptRequest: {
+            /** @enum {string} */
+            surface: "world" | "home" | "bookmarks" | "learning" | "settings" | "feedback";
+        };
+        ClaimFeedbackPromptResponse: {
+            show: boolean;
         };
         LearnerWorldGraph: {
             /** Format: uuid */
@@ -16299,6 +16413,178 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Problem"];
                 };
+            };
+        };
+    };
+    getLearnerShell: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-owned shell props, even when there is no visible map. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerShell"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity has no application principal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A required read is unavailable or exceeds its bound. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rememberLearnerMap: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RememberLearnerMapRequest"];
+            };
+        };
+        responses: {
+            /** @description The authorized map's source menu theme, after the preference was persisted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerMenuTheme"];
+                };
+            };
+            /** @description Invalid map reference. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description CSRF */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Map is not published and visible in the current World. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The JSON document has missing */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Persistence is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    claimLearnerFeedbackPrompt: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimFeedbackPromptRequest"];
+            };
+        };
+        responses: {
+            /** @description Whether this surface may show the invitation now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimFeedbackPromptResponse"];
+                };
+            };
+            /** @description Unknown surface. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description CSRF */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The JSON document has missing */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Preference or native session storage is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

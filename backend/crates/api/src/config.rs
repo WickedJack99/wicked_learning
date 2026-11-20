@@ -20,6 +20,7 @@ pub struct Config {
     pub login_rate_limit_key: [u8; 32],
     pub listen_address: SocketAddr,
     pub media_root: PathBuf,
+    pub application_name: String,
     pub public_origin: String,
     pub session_cookie_secure: bool,
     pub totp_encryption_key: [u8; 32],
@@ -74,6 +75,8 @@ pub enum ConfigError {
     InvalidMailFromAddress,
     #[error("MAIL_FROM_NAME must not be blank or exceed 255 characters")]
     InvalidMailFromName,
+    #[error("APPLICATION_NAME must not be blank or exceed 255 characters")]
+    InvalidApplicationName,
     #[error("SMTP_HOST must not be blank or exceed 255 characters")]
     InvalidSmtpHost,
     #[error("SMTP_PORT must be a valid TCP port: {0}")]
@@ -141,6 +144,7 @@ impl Config {
             media_root: env::var("MEDIA_ROOT")
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| PathBuf::from("/var/lib/wicked-learning/media")),
+            application_name: application_name(env::var("APPLICATION_NAME").ok().as_deref())?,
             public_origin: public_origin()?,
             session_cookie_secure: env::var("SESSION_COOKIE_SECURE")
                 .unwrap_or_else(|_| "true".to_owned())
@@ -364,5 +368,28 @@ mod tests {
             validate_login_rate_limit_key("AQ==".to_owned()),
             Err(ConfigError::InvalidLoginRateLimitKey)
         ));
+    }
+}
+
+fn application_name(value: Option<&str>) -> Result<String, ConfigError> {
+    let name = value.unwrap_or("Learning Worlds").trim();
+    if name.is_empty() || name.chars().count() > 255 {
+        return Err(ConfigError::InvalidApplicationName);
+    }
+    Ok(name.to_owned())
+}
+
+#[cfg(test)]
+mod application_name_tests {
+    use super::application_name;
+    #[test]
+    fn deployment_name_preserves_source_example_default_and_rejects_invalid_values() {
+        assert_eq!(application_name(None).unwrap(), "Learning Worlds");
+        assert_eq!(
+            application_name(Some("  My learning world  ")).unwrap(),
+            "My learning world"
+        );
+        assert!(application_name(Some("  ")).is_err());
+        assert!(application_name(Some(&"x".repeat(256))).is_err());
     }
 }

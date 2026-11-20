@@ -118,6 +118,7 @@ mod tests {
                 light: palette,
             },
             settings_palette: Default::default(),
+            learner_palette: Default::default(),
         }
     }
 }

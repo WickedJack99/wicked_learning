@@ -3,8 +3,8 @@ use std::future::Future;
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     platform_presentation::{
-        PublicAppearanceImages, PublicAppearanceThemes, PublicAuthTheme, PublicCursor,
-        PublicInformationPage, PublicPalette, PublicPresentation, PublicWelcomePage,
+        LearnerPalette, PublicAppearanceImages, PublicAppearanceThemes, PublicAuthTheme,
+        PublicCursor, PublicInformationPage, PublicPalette, PublicPresentation, PublicWelcomePage,
         SettingsPalette,
     },
 };
@@ -102,6 +102,8 @@ pub fn valid_public_presentation(presentation: &PublicPresentation) -> bool {
         && valid_palette(&presentation.public_palette.light)
         && valid_settings_palette(&presentation.settings_palette.dark)
         && valid_settings_palette(&presentation.settings_palette.light)
+        && valid_learner_palette(&presentation.learner_palette.dark)
+        && valid_learner_palette(&presentation.learner_palette.light)
 }
 
 fn valid_cursors(cursor: &PublicCursor) -> bool {
@@ -240,6 +242,37 @@ fn optional_bounded(value: Option<&str>, maximum: usize) -> bool {
     value.is_none_or(|value| bounded(value, maximum))
 }
 
+fn valid_learner_palette(palette: &LearnerPalette) -> bool {
+    [
+        &palette.page_background,
+        &palette.header_background,
+        &palette.panel_background,
+        &palette.panel_muted_background,
+        &palette.heading_text,
+        &palette.body_text,
+        &palette.muted_text,
+        &palette.accent,
+        &palette.action_accent,
+        &palette.border_color,
+    ]
+    .into_iter()
+    .all(|value| bounded(value, 64))
+        && [
+            palette.page_background_opacity,
+            palette.header_background_opacity,
+            palette.panel_background_opacity,
+            palette.panel_muted_background_opacity,
+            palette.heading_text_opacity,
+            palette.body_text_opacity,
+            palette.muted_text_opacity,
+            palette.accent_opacity,
+            palette.action_accent_opacity,
+            palette.border_color_opacity,
+        ]
+        .into_iter()
+        .all(|value| value <= 100)
+}
+
 #[cfg(test)]
 mod tests {
     use std::future::ready;
@@ -344,6 +377,19 @@ mod tests {
                 .unwrap()
                 .is_none()
         );
+    }
+
+    #[test]
+    fn learner_palette_retains_source_defaults_and_rejects_invalid_editor_values() {
+        let mut value = presentation();
+        assert_eq!(value.learner_palette.dark.header_background, "#08111b");
+        assert_eq!(value.learner_palette.light.action_accent, "#0e7490");
+        assert!(super::valid_public_presentation(&value));
+        value.learner_palette.dark.accent_opacity = 101;
+        assert!(!super::valid_public_presentation(&value));
+        value.learner_palette.dark.accent_opacity = 100;
+        value.learner_palette.light.body_text = "x".repeat(65);
+        assert!(!super::valid_public_presentation(&value));
     }
 
     #[tokio::test]
@@ -474,12 +520,21 @@ mod tests {
                     },
                 ],
             },
-            information_pages: vec![],
+            information_pages: vec![super::PublicInformationPage {
+                slug: "about".into(),
+                title: "About".into(),
+                body: "Source information".into(),
+                backgrounds: super::PublicAppearanceImages {
+                    dark: None,
+                    light: None,
+                },
+            }],
             public_palette: PublicPaletteModes {
                 dark: palette.clone(),
                 light: palette,
             },
             settings_palette: Default::default(),
+            learner_palette: Default::default(),
         }
     }
 }

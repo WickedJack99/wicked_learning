@@ -24,6 +24,8 @@ pub struct PublicPresentation {
     /// until the compatibility migration persists the complete value.
     #[serde(default)]
     pub settings_palette: SettingsPaletteModes,
+    #[serde(default)]
+    pub learner_palette: LearnerPaletteModes,
 }
 
 /// The source has five named cursor roles. Their individual values are
@@ -317,4 +319,85 @@ pub struct PublicSourceLink {
 pub struct PublicSourceLinks {
     pub origin: PublicSourceLink,
     pub modified_sources: Vec<PublicSourceLink>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct LearnerPaletteModes {
+    pub dark: LearnerPalette,
+    pub light: LearnerPalette,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct LearnerPalette {
+    pub page_background: String,
+    pub page_background_opacity: u8,
+    pub header_background: String,
+    pub header_background_opacity: u8,
+    pub panel_background: String,
+    pub panel_background_opacity: u8,
+    pub panel_muted_background: String,
+    pub panel_muted_background_opacity: u8,
+    pub heading_text: String,
+    pub heading_text_opacity: u8,
+    pub body_text: String,
+    pub body_text_opacity: u8,
+    pub muted_text: String,
+    pub muted_text_opacity: u8,
+    pub accent: String,
+    pub accent_opacity: u8,
+    pub action_accent: String,
+    pub action_accent_opacity: u8,
+    pub border_color: String,
+    pub border_color_opacity: u8,
+}
+
+impl Default for LearnerPaletteModes {
+    fn default() -> Self {
+        Self {
+            dark: LearnerPalette {
+                page_background: "#08111b".to_owned(),
+                page_background_opacity: 100,
+                header_background: "#08111b".to_owned(),
+                header_background_opacity: 94,
+                panel_background: "#111820".to_owned(),
+                panel_background_opacity: 100,
+                panel_muted_background: "#0b1521".to_owned(),
+                panel_muted_background_opacity: 100,
+                heading_text: "#f8fafc".to_owned(),
+                heading_text_opacity: 100,
+                body_text: "#cbd5e1".to_owned(),
+                body_text_opacity: 100,
+                muted_text: "#94a3b8".to_owned(),
+                muted_text_opacity: 100,
+                accent: "#a78bfa".to_owned(),
+                accent_opacity: 100,
+                action_accent: "#5eead4".to_owned(),
+                action_accent_opacity: 100,
+                border_color: "#ffffff".to_owned(),
+                border_color_opacity: 10,
+            },
+            light: LearnerPalette {
+                page_background: "#f8fafc".to_owned(),
+                page_background_opacity: 100,
+                header_background: "#f8fafc".to_owned(),
+                header_background_opacity: 94,
+                panel_background: "#ffffff".to_owned(),
+                panel_background_opacity: 100,
+                panel_muted_background: "#f1f5f9".to_owned(),
+                panel_muted_background_opacity: 100,
+                heading_text: "#0f172a".to_owned(),
+                heading_text_opacity: 100,
+                body_text: "#334155".to_owned(),
+                body_text_opacity: 100,
+                muted_text: "#475569".to_owned(),
+                muted_text_opacity: 100,
+                accent: "#6d28d9".to_owned(),
+                accent_opacity: 100,
+                action_accent: "#0e7490".to_owned(),
+                action_accent_opacity: 100,
+                border_color: "#cbd5e1".to_owned(),
+                border_color_opacity: 100,
+            },
+        }
+    }
 }

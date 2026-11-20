@@ -211,13 +211,13 @@ copied modules. Source shared props come from
 | Required source behavior | Existing Rust evidence | Concrete remaining contract / adapter |
 | --- | --- | --- |
 | Account name/avatar, media permission, appearance and logout | `/me`, `/session/logout`, `frontend/src/platform/{welcome-inertia,welcome-routes}` and existing Settings account mapping | Reuse the real profile/appearance mapping and typed logout. Verify failure behavior and source `router.flushAll` cleanup; do not fabricate account props. |
-| `auth.items` and `auth.tools`, grant deduplication, tool selection | `/learner/world` inventory; domain `LearnerItem`/`LearnerTool`; source `Learning{Item,Tool}Serializer.php` | Existing rows omit IDs which source inventory/selection uses for equality. Carry real identities consistently across initial reads and grant responses; map media/config fields without substitutes. |
-| `name`, learner palette, branding and cursors | `PublicPresentation`, `persistence/src/public_presentation.rs`; source `theme/presentation.ts` | Branding/cursors reusable. Deployment app name and learner palette have no complete audited projection; add bounded configuration/read support rather than inventing page props. |
-| `menuTheme` remembers the learner's preferred visible map | Source `app/Learning/Queries/LoadCurrentMenuMapTheme.php`, `Services/LearnerMapLocationService.php`; Rust visible World maps | Reuse map visibility and actual background configuration. Preferred-map persistence/selection still needs its source contract; first array element is not a substitute for a saved preference. |
-| Journal initial theme without loading private notes | `persistence/src/learner_journal.rs`, table `application_journal_feedback_policy`, domain default theme | Reuse the existing theme/policy read in bounded shell data. Do not fetch all journal content to paint the header. |
+| `auth.items` and `auth.tools`, grant deduplication, tool selection | `/learner/world` inventory; domain `LearnerItem`/`LearnerTool`; source `Learning{Item,Tool}Serializer.php` | Real UUIDs now travel in World/shell holdings and existing tool-grant/playback/obstacle responses. Complete owned-item/tool media authorization and URL projection before mounting inventory; the item-grant display result still needs the source inventory refresh contract. |
+| `name`, learner palette, branding and cursors | `PublicPresentation`, `persistence/src/public_presentation.rs`; source `theme/presentation.ts` | Branding/cursors reused. `/learner/shell` now supplies deployment `APPLICATION_NAME` and typed learner palette with pinned-source defaults. The frontend source-shape mapping remains to be connected. |
+| `menuTheme` remembers the learner's preferred visible map | Source `app/Learning/Queries/LoadCurrentMenuMapTheme.php`, `Services/LearnerMapLocationService.php`; Rust visible World maps | Private preferred-map persistence and visibility revalidation now exist in `/learner/map-location` and `/learner/shell`. Connect source World navigation/reload semantics through the typed adapter; media URLs still need projection. |
+| Journal initial theme without loading private notes | `persistence/src/learner_journal.rs`, table `application_journal_feedback_policy`, domain default theme | The shell now reuses the existing theme/policy read without loading journal content. Connect that real theme through the source page-prop adapter. |
 | On-demand complete Journal overlay | `/learner/journal`, `/learner/journal/pages`, page update/delete/feedback request, `/learner/journal/export`; `features/journal/journal-client.ts` | Reuse existing writes, owner scope, search, pagination and theme. Complete `LearnerJournalLearningContext` activity destination/topic and check-in/revisit real activity identities before mapping all source context links. Preserve export and feedback/revisit errors. |
 | Companion visibility, context, authored dialogue and AI turn | `/learner/companion`, `/learner/companion/turn`; `domain/src/learning_companion.rs` | Map all source fields and 204 absence explicitly. Source `learning-companion-dialogue.tsx` calls direct fetch; provide an exact-module transport seam for that call, never global fetch interception or a replacement dialogue component. |
-| Feedback invitation once per authenticated session | Source `app/Settings/Services/PlatformFeedbackPrompt.php`; Rust `/learner/feedback-prompt-preference` | Rust has persisted enable/decline/14-day snooze but no session-scoped shown decision. Source `shouldShow` claims that flag, so do not mislabel its equivalent as a pure read or emulate a Laravel session. Use native Rust session state and preserve exclusions for Settings/Feedback. |
+| Feedback invitation once per authenticated session | Source `app/Settings/Services/PlatformFeedbackPrompt.php`; Rust `/learner/feedback-prompt-preference` | Native Rust session claim now exists as CSRF-protected `POST /learner/feedback-prompt/claim`, honoring enable/decline/14-day snooze and Settings/Feedback exclusions. Connect it during eligible route navigation; the shell GET remains read-only. |
 | Feedback dismiss, decline and failure recovery | Existing Rust preference PATCH; source `components/platform-feedback-prompt.tsx` | Current Inertia seam only accepts enable/decline and does not call source `onError`. Add the narrowly scoped dismiss and error lifecycle; failed writes must restore the source invitation. |
 
 Execution order: finish shared metadata/identity/session contracts; complete
@@ -228,6 +228,62 @@ source and real Rust. Destination route families may retain honest unavailable
 states, but controls within this activated shell cannot be marked complete
 while their operations are absent. A failed required shell projection keeps
 the route unavailable; never hide missing controls by supplying empty data.
+
+### Shared learner shell metadata and session contracts
+
+This backend dependency slice does **not** mount or declare acceptance of the
+copied layout. Source remains pinned and unchanged. Additional source owners
+verified for this slice are `app/Models/PlatformPresentationSetting.php`,
+`app/Learning/Serializers/Learning{Item,Tool}Serializer.php`,
+`app/Learning/Queries/LoadCurrentMenuMapTheme.php`,
+`app/Learning/Services/LearnerMapLocationService.php`, and
+`app/Settings/Services/PlatformFeedbackPrompt.php`.
+
+| Required data or operation | Implemented Rust contract and evidence | Remaining activation boundary |
+| --- | --- | --- |
+| Application name, learner colors, inventory identities, Journal theme, menu background | `GET /api/v1/learner/shell`; `crates/{domain,application,persistence,api}/src/learner_shell.rs`; OpenAPI `LearnerShell`; shared inventory/theme queries | Map all source props together when Journal, Companion and media dependencies are complete. A required read failure must keep the route unavailable. |
+| Preferred map across visits | `POST /api/v1/learner/map-location`, `RememberLearnerMapRequest`; migration `0106_learner_map_location.sql` | Source URL navigation must call the command and retain selection on reload. Actual map UUID is private to the principal; reads revalidate publication/roles and fall back to the first visible map. |
+| Session feedback invitation | `POST /api/v1/learner/feedback-prompt/claim`; `api/src/feedback_prompt_preference.rs`; native subject-scoped session flag | Invoke only through the documented adapter. Existing preference PATCH clears the flag after enable/dismiss/decline; source dismiss/error callbacks still need wiring. |
+| Owned visuals and tool animation | Real inventory IDs now available in domain `LearnerItem`/`LearnerTool` and all constructing repositories | `api/src/learner_media_assets.rs` currently authorizes published content/Journal references, not owned inventory references. Implement ownership-scoped serving and rewrite authored media URLs before activating these controls. |
+
+The shell performs two bounded inventory queries and one preferred-map query,
+without fetching the World graph or private Journal pages. More than 100 items
+or tools fails explicitly instead of silently presenting a truncated inventory.
+The empty-World shell still returns the principal's holdings. `APPLICATION_NAME`
+is deployment configuration (default from the source example: `Learning Worlds`).
+`PublicPresentation.learner_palette` uses the exact source dark/light defaults
+for older stored documents and validates bounded colors and opacity on writes.
+
+Verification exposed two inherited runtime problems: duplicate application
+migration version 0067 and a SQL query-count tracing layer that suppressed
+unrelated error events. The already-applied organization migration remains
+0067 with unchanged bytes; the unapplied settings-palette migration is moved
+unchanged to 0107. Its conditional update preserves existing configured palettes.
+Normal local migration applied 0106 and 0107 successfully; no migration ledger
+or checksum was bypassed. Regression tests enforce unique embedded versions and
+prove that application error events reach the other tracing layers.
+
+`canonical-learner-shell-contract.spec.ts` exercises the actual Rust API,
+PostgreSQL and native sessions: guest rejection, private map preferences,
+slug/UUID selection, draft/missing/invalid maps, forged principal fields, CSRF,
+read-only shell requests, one invitation per session and snooze/decline/enable.
+The isolated PostgreSQL regression
+`shell_preserves_owned_inventory_and_revalidates_preferred_map_access` also
+proves owned IDs, empty World inventory, rename continuity, access revocation,
+other-principal isolation and explicit overflow. Its connection-local temporary
+tables leave application data untouched. Run it with the local
+`TEST_APPLICATION_DATABASE_URL` and `cargo test -p wicked-learning-persistence
+shell_preserves_owned -- --ignored`; the existing `graph_outlines` database
+regression also passes after inventory-query reuse.
+
+Validation: 299 copied source files plus CSS remain byte-identical; frontend
+production type/build and generated OpenAPI drift checks pass. Focused Rust
+shell, World, inventory/playback, presentation, feedback, configuration,
+migration and observability tests pass, as do workspace check/fmt and both
+explicit PostgreSQL regressions. The combined World source/live and shell
+contract suite passed 27 checks; existing source comparison screenshots at
+1440×900 and 390×844 remain in the local HTML report. These screenshots prove
+no World page regression, not acceptance of the still-unmounted shared layout.
 
 ## Status and purpose
 

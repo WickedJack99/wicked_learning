@@ -100,6 +100,7 @@ async fn grant_current_tool(
     Ok(Some(LearnerToolGrantResult {
         already_owned: !inserted,
         tool: LearnerTool {
+            id: tool.id,
             animation_dark: tool.animation_dark,
             animation_light: tool.animation_light,
             config: tool.config,
