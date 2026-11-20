@@ -1104,10 +1104,8 @@ principal's start progress remaining absent, source start presentation,
 unpublished destinations yielding 503, current availability yielding 404, and
 recovery after removing an over-limit or malformed definition.
 
-Before activation, audit native completion's same-route target restriction
-against source transitions between activities on the same MapAsset: this read
-preserves those real endpoints across native route groupings, but does not
-change the completion writer. Also finish question/option identity, sources,
+The completion restriction across native route groupings is repaired below.
+Before activation, finish question/option identity, sources,
 feedback guidance, configured tools/items/sounds, NPC definitions, portal
 destinations, private answer/progress/play-state projections and the per-player
 transport matrix. None may be substituted with empty source props merely
@@ -1128,6 +1126,54 @@ single warmed local observations demonstrate payload growth and successful
 bounded reads, not a speedup or production SLA. The implementation performs
 the same four graph queries at both sizes. No source component, database
 migration, production data or traffic ownership changed.
+
+### Playback completion across native route groups
+
+Pinned source evidence: `app/Learning/Services/LearnerRouteProgressService.php`
+(`enterActivity`, `progressForRun`, `completeRouteIfTerminal`) scopes progress
+to the learner, node and play run. `LearningActivitySerializer::transition`
+preserves authored activity destinations. A native `learning_routes` grouping
+does not introduce a source navigation boundary within that node's MapAsset.
+The existing completion endpoint incorrectly required that grouping to match;
+its separate message branch could filter out an invalid destination and mark
+the run completed instead.
+
+`persistence/src/learner_playback.rs` now shares a published destination lookup
+between ordinary and message completion. The authorized current activity's
+MapAsset bounds the destination, including a different published route group.
+The message path resolves the first authored completion edge before validating
+its target, so a foreign, unpublished or malformed destination returns the
+existing 404 instead of completing or skipping to a later edge. A real null
+terminal remains terminal. Run/start identity and the original start's route
+association remain unchanged; no schema migration or generic progress writer
+is introduced. OpenAPI `completeLearnerCurrentActivity` documents the behavior.
+
+`frontend/e2e/canonical-playback-contract-live.spec.ts` extends disposable real
+PostgreSQL fixtures for ordinary and support-message runs. The pre-fix checks
+reproduced 404 for a valid cross-group advance and a false completed status/count
+for an invalid message destination. Coverage checks foreign MapAsset targets,
+unpublished activities/routes, malformed configuration, first-edge ordering,
+another learner, anonymous access, missing CSRF, retained run/start association,
+successful advance/readback, stale commands, explicit null terminals and a
+single completion count after retry. Reset creates a new run at the original
+start; both completion paths preserve an explicit first null edge even with a
+later non-null edge. Source files and UI activation are unchanged.
+
+Verification passed: canonical byte identity, frontend production type/build,
+OpenAPI generated-client drift, Rust workspace fmt/check, twelve persistence
+and three application playback tests, plus eight real API/browser checks
+against the rebuilt local Rust/PostgreSQL stack. Existing World continuation
+checks passed at 1440×900 and 390×844; this is not player UI parity evidence.
+The report is `frontend/playwright-report/playback-completion/`. Ordinary and
+message cross-group completions took 13 ms and 10 ms respectively in single
+local observations. The destination lookup is indexed and bounded; the message
+path adds one point query so it can distinguish a terminal from an invalid target.
+
+Remaining activation gaps include node availability enforcement across all
+player writers and UUID-safe commands when two activities share a slug; the
+existing slug-addressed completion API alone cannot prove stale-command safety
+between identically named activities. These must be reconciled alongside full
+player props and typed commands before activating the copied route.
 
 ## Status and purpose
 

@@ -5697,7 +5697,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Complete the current authorized simple activity in a play run. */
+        /**
+         * Complete the current authorized simple activity in a play run.
+         * @description Advances the server-selected transition within the current node's MapAsset, including another published route grouping. A non-null destination that is unpublished, outside that MapAsset, or unsupported is unavailable and must not be treated as an authored terminal. The original activity-start and play-run identities are retained.
+         */
         post: operations["completeLearnerCurrentActivity"];
         delete?: never;
         options?: never;

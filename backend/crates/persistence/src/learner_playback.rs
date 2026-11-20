@@ -2244,13 +2244,9 @@ async fn complete_current_activity(
 
     let next_activity_id = match next_activity_id {
         Some(next_activity_id) => {
-            let next_activity = sqlx::query_as::<_, NextPlayableActivityRow>(
-                "SELECT activities.activity_config, activities.activity_type, activities.id FROM learning_activities AS activities INNER JOIN learning_routes AS routes ON routes.id = activities.route_id WHERE activities.id = $1 AND routes.id = $2 AND activities.published_at IS NOT NULL",
-            )
-            .bind(next_activity_id)
-            .bind(current.route_id)
-            .fetch_optional(&mut *transaction)
-            .await?;
+            let next_activity =
+                load_next_playable_activity(&mut transaction, current.route_id, next_activity_id)
+                    .await?;
 
             let Some(next_activity) = next_activity else {
                 transaction.commit().await?;
@@ -2372,6 +2368,26 @@ async fn complete_current_activity(
     }))
 }
 
+// Laravel scopes activity progress to the node, not a Rust route grouping.
+// The current activity was authorized against that node's MapAsset above.
+async fn load_next_playable_activity(
+    transaction: &mut Transaction<'_, Postgres>,
+    current_route_id: Uuid,
+    next_activity_id: Uuid,
+) -> Result<Option<NextPlayableActivityRow>, sqlx::Error> {
+    sqlx::query_as::<_, NextPlayableActivityRow>(
+        "SELECT activities.activity_config, activities.activity_type, activities.id \
+         FROM learning_activities AS activities \
+         INNER JOIN learning_routes AS routes ON routes.id = activities.route_id \
+         INNER JOIN learning_routes AS current_route ON current_route.id = $2 AND current_route.map_asset_id = routes.map_asset_id \
+         WHERE activities.id = $1 AND activities.published_at IS NOT NULL AND routes.published_at IS NOT NULL",
+    )
+    .bind(next_activity_id)
+    .bind(current_route_id)
+    .fetch_optional(&mut **transaction)
+    .await
+}
+
 async fn npc_dialogue_reached_end(
     transaction: &mut Transaction<'_, Postgres>,
     principal_id: Uuid,
@@ -2428,30 +2444,26 @@ async fn complete_current_message_activity(
         return Ok(None);
     };
 
-    let next = sqlx::query_as::<_, NextPlayableActivityRow>(
-        "SELECT activities.id, activities.activity_type, activities.activity_config \
-         FROM learning_activity_transitions AS transitions \
-         INNER JOIN learning_activities AS activities ON activities.id = transitions.to_activity_id \
-         WHERE transitions.from_activity_id = $1 AND transitions.from_connector = 'completed' AND transitions.trigger = 'completed' \
-           AND activities.route_id = $2 AND activities.published_at IS NOT NULL \
-         ORDER BY transitions.created_at ASC, transitions.id ASC LIMIT 1",
+    // Resolve the authored edge before checking its destination. Filtering an
+    // invalid destination out of the edge query would falsely complete the run.
+    let next_activity_id = sqlx::query_as::<_, CompletionTransitionRow>(
+        "SELECT to_activity_id FROM learning_activity_transitions WHERE from_activity_id = $1 AND from_connector = 'completed' AND trigger = 'completed' ORDER BY created_at ASC, id ASC LIMIT 1",
     )
     .bind(current.activity_id)
-    .bind(current.route_id)
     .fetch_optional(&mut *transaction)
-    .await?;
-    let next_activity_id = match next {
-        Some(next)
-            if learner_safe_config(&next.activity_type, next.activity_config.clone()).is_some() =>
-        {
-            Some(next.id)
-        }
-        Some(_) => {
+    .await?
+    .and_then(|transition| transition.to_activity_id);
+    if let Some(next_activity_id) = next_activity_id {
+        let next =
+            load_next_playable_activity(&mut transaction, current.route_id, next_activity_id)
+                .await?;
+        if next.is_none_or(|next| {
+            learner_safe_config(&next.activity_type, next.activity_config).is_none()
+        }) {
             transaction.commit().await?;
             return Ok(None);
         }
-        None => None,
-    };
+    }
 
     mark_activity_completed(&mut transaction, current.principal_id, current.activity_id).await?;
     let assistance_level = companion_assistance_level(
