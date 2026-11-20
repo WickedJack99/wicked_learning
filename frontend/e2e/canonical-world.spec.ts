@@ -85,6 +85,116 @@ for (const { name, viewport } of viewports) {
             expect(worldWrites).toBe(0);
         });
 
+        test('search preserves pinned-source loading, pagination, empty state and navigation', async ({ page, context }, info) => {
+            test.skip(!process.env.SOURCE_EVIDENCE_BASE_URL, 'Requires the whole pinned-source layout server.');
+            expect(execFileSync('git', ['diff', '--name-only', '32c3113a5bc688c9944c20942cdf40a6a5d57d7f', '--', 'resources/js', 'resources/css/app.css']).toString()).toBe('');
+            const shell = await routeWorldReads(page);
+            const source = await context.newPage();
+            const props = { ...sourceWorldProps(), name: shell.name, progress: { activities: {} } };
+            await source.addInitScript((props) => { window.sourceWorldEvidence = props; window.sourceWorldEvidenceUrl = '/world?map=orientation-map'; }, props);
+            let release!: () => void;
+            const pending = new Promise<void>((resolve) => { release = resolve; });
+            for (const [target, pattern, original] of [
+                [page, '**/api/v1/learner/search?*', false],
+                [source, '**/learning/search?*', true],
+            ] as const) {
+                await target.route(pattern, async (route) => {
+                    const url = new URL(route.request().url());
+                    expect(url.searchParams.get('per_page')).toBe('5');
+                    const query = url.searchParams.get('query');
+                    if (query === 'unavailable') return route.fulfill({ status: 503, json: { message: 'Search unavailable.' } });
+                    await pending;
+                    return route.fulfill({ json: worldSearchPage(Number(url.searchParams.get('page')), original, query === 'nothing') });
+                });
+            }
+            await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-learner-layout-source.html`);
+            await page.goto('/world?map=orientation-map');
+            const input = (target: Page) => target.getByRole('textbox', { name: 'Search maps, places and topics' });
+            for (const target of [source, page]) {
+                if (name === 'narrow') await target.getByRole('button', { name: 'Open map search' }).click();
+                await expectBounded(input(target), viewport);
+                await input(target).fill('orientation');
+                await expect(target.getByText('Searching...', { exact: true }).filter({ visible: true })).toBeVisible();
+            }
+            await info.attach('main-search-loading', { body: await source.screenshot(), contentType: 'image/png' });
+            await info.attach('rust-search-loading', { body: await page.screenshot(), contentType: 'image/png' });
+            release();
+            for (const target of [source, page]) await expect(target.getByRole('button', { name: 'Orientation map World map', exact: true })).toBeVisible();
+            for (const controlName of ['Topic 0 Topic', 'Orientation map World map', 'Next results']) {
+                const actual = page.getByRole('button', { name: controlName, exact: true });
+                await expectBounded(actual, viewport);
+                expect(await actual.boundingBox()).toEqual(await source.getByRole('button', { name: controlName, exact: true }).boundingBox());
+            }
+            await info.attach('main-search-results', { body: await source.screenshot(), contentType: 'image/png' });
+            await info.attach('rust-search-results', { body: await page.screenshot(), contentType: 'image/png' });
+            for (const target of [source, page]) {
+                await input(target).fill('nothing');
+                await expect(target.getByText('No visible maps, places or topics found.', { exact: true }).filter({ visible: true })).toBeVisible();
+                await input(target).fill('unavailable');
+            }
+            await expect(page.getByRole('alert')).toHaveText('The World search is currently unavailable.');
+            await expect(source.getByText('No visible maps, places or topics found.', { exact: true }).filter({ visible: true })).toBeVisible();
+            for (const target of [source, page]) {
+                await input(target).fill('orientation');
+                await target.getByRole('button', { name: 'Orientation map World map', exact: true }).click();
+                await expect(target).toHaveURL(/world\?map=orientation-map$/);
+                if (name === 'narrow') await target.getByRole('button', { name: 'Open map search' }).click();
+                await target.getByRole('button', { name: 'Next results', exact: true }).click();
+                await expectBounded(target.getByRole('button', { name: 'First place Orientation map', exact: true }), viewport);
+            }
+            await expect(page.getByRole('alert')).toHaveCount(0);
+            expect(await page.getByRole('button', { name: 'First place Orientation map', exact: true }).boundingBox())
+                .toEqual(await source.getByRole('button', { name: 'First place Orientation map', exact: true }).boundingBox());
+            for (const target of [source, page]) {
+                await target.getByRole('button', { name: 'First place Orientation map', exact: true }).click();
+                await expect(target).toHaveURL(/world\?map=orientation-map&focused=first-place$/);
+                if (name === 'narrow') await target.getByRole('button', { name: 'Open map search' }).click();
+                await target.getByRole('button', { name: 'Previous results', exact: true }).click();
+                await target.getByRole('button', { name: 'Topic 0 Topic', exact: true }).click();
+                await expect(target).toHaveURL(/topics\/topic-0$/);
+            }
+            await expect(page.getByRole('heading', { name: 'This page is not available yet' })).toBeVisible();
+            await source.close();
+        });
+
+        test('source Companion wrapper obstructs pointer search while keyboard search remains usable', async ({ page, context }, info) => {
+            test.skip(!process.env.SOURCE_EVIDENCE_BASE_URL, 'Requires the whole pinned-source layout server.');
+            const shell = await routeWorldReads(page);
+            await page.route('**/api/v1/learner/companion?*', (route) => route.fulfill({ json: searchCompanionFixture(false) }));
+            await page.route('**/api/v1/learner/search?*', (route) => route.fulfill({ json: worldSearchPage(1, false) }));
+            const source = await context.newPage();
+            await source.route('**/learning/search?*', (route) => route.fulfill({ json: worldSearchPage(1, true) }));
+            await source.addInitScript((props) => { window.sourceWorldEvidence = props; window.sourceWorldEvidenceUrl = '/world?map=orientation-map'; }, {
+                ...sourceWorldProps(), name: shell.name, companion: searchCompanionFixture(true), progress: { activities: {} },
+            });
+            await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-learner-layout-source.html`);
+            await page.goto('/world?map=orientation-map');
+            const control = (target: Page) => name === 'narrow'
+                ? target.getByRole('button', { name: 'Open map search' })
+                : target.getByRole('textbox', { name: 'Search maps, places and topics' });
+            for (const target of [source, page]) {
+                await expect(target.getByRole('button', { name: 'Open Guide', exact: true })).toBeVisible();
+                await expectBounded(control(target), viewport);
+                expect(await control(target).evaluate((node) => {
+                    const box = node.getBoundingClientRect();
+                    const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+                    return Boolean(hit?.querySelector('button[aria-controls="learning-companion-panel"]'));
+                })).toBe(true);
+            }
+            expect(await control(page).boundingBox()).toEqual(await control(source).boundingBox());
+            await info.attach('main-search-companion-obstruction', { body: await source.screenshot(), contentType: 'image/png' });
+            await info.attach('rust-search-companion-obstruction', { body: await page.screenshot(), contentType: 'image/png' });
+            for (const target of [source, page]) {
+                await control(target).focus();
+                if (name === 'narrow') await control(target).press('Enter');
+                await target.getByRole('textbox', { name: 'Search maps, places and topics' }).fill('orientation');
+                await expectBounded(target.getByRole('button', { name: 'Orientation map World map', exact: true }), viewport);
+                await target.getByRole('button', { name: 'Orientation map World map', exact: true }).click();
+                await expect(target).toHaveURL(/world\?map=orientation-map$/);
+            }
+            await source.close();
+        });
+
         test('completion includes non-start activities and preferred starts keep their identities', async ({ page }) => {
             const snapshot = worldSnapshot();
             await routeWorldReads(page, { world: (route) => route.fulfill({ json: snapshot }) });
@@ -458,7 +568,7 @@ type RouteOptions = {
 
 async function routeWorldReads(page: Page, options: RouteOptions = {}) {
     await page.unrouteAll({ behavior: 'ignoreErrors' });
-    await mockWorldShell(page, { id: worldIds.map, slug: 'orientation-map', background_config: worldSnapshot().world.maps[0].background_config });
+    const shell = await mockWorldShell(page, { id: worldIds.map, slug: 'orientation-map', background_config: worldSnapshot().world.maps[0].background_config });
     await page.route('**/api/v1/learner/world', async (route) => {
         if (options.world) {
             await options.world(route);
@@ -485,6 +595,7 @@ async function routeWorldReads(page: Page, options: RouteOptions = {}) {
         contentType: 'application/json',
         body: JSON.stringify({ ambience_volume: 100, effects_volume: 100, muted: false }),
     }));
+    return shell;
 }
 
 function worldSnapshot(): components['schemas']['LearnerWorldSnapshot'] {
@@ -693,3 +804,43 @@ test('World projection keeps identities across ordering and scopes same-slug pro
     expect(after.bookmarkedNodeIds).toEqual(before.bookmarkedNodeIds);
     expect((after.world as { maps: unknown[] }).maps).toEqual([...beforeMaps].reverse());
 });
+
+
+function worldSearchPage(page: number, original: boolean, empty = false) {
+    const common = Array.from({ length: 4 }, (_, index) => ({
+        href: `/topics/topic-${index}`, id: `topic:018f1f8c-4c2f-7b8a-9d0e-00000000010${index}`, kind: 'topic', subtitle: 'Topic', title: `Topic ${index}`,
+    }));
+    const map = { href: '/world?map=orientation-map', id: `map:${worldIds.map}`, kind: 'map', subtitle: 'World map', title: 'Orientation map' };
+    const node = { href: '/world?map=orientation-map&focused=first-place', id: `node:${worldIds.node}`, kind: 'node', subtitle: 'Orientation map', title: 'First place' };
+    const results = original ? [
+        ...common,
+        { ...map, mapId: 1, mapSlug: 'orientation-map' },
+        { ...node, mapId: 1, mapSlug: 'orientation-map', nodeId: 1, nodeSlug: 'first-place' },
+    ] : [
+        ...common.map((row) => ({ ...row, map_id: null, node_id: null, map_slug: null, node_slug: null })),
+        { ...map, map_id: worldIds.map, map_slug: 'orientation-map', node_id: null, node_slug: null },
+        { ...node, map_id: worldIds.map, map_slug: 'orientation-map', node_id: worldIds.node, node_slug: 'first-place' },
+    ];
+    return {
+        pagination: original
+            ? { currentPage: empty ? 1 : page, lastPage: empty ? 1 : 2, perPage: 5, total: empty ? 0 : 6 }
+            : { current_page: empty ? 1 : page, last_page: empty ? 1 : 2, per_page: 5, total: empty ? 0 : 6 },
+        results: empty ? [] : results.slice((page - 1) * 5, page * 5),
+    };
+}
+
+
+function searchCompanionFixture(original: boolean) {
+    const context = { actions: [], activity: null, map: null, node: null, route: null, surface: 'world', topic: null, world: null };
+    return original ? {
+        avatarColor: '#123456', avatarPositionX: 50, avatarPositionY: 50, avatarScale: 100, avatarUrl: null,
+        configuration: { aiEnabled: false, mode: 'scripted', sourceScope: 'platform' },
+        context: { ...context, playRunId: null, postAttemptAvailable: false },
+        dialogue: null, displayName: 'Guide', enabled: true, message: 'Choose your own direction.',
+    } : {
+        avatar_color: '#123456', avatar_position_x: 50, avatar_position_y: 50, avatar_scale: 100, avatar_url: null,
+        configuration: { ai_enabled: false, mode: 'scripted', source_scope: 'platform' },
+        context: { ...context, play_run_id: null, post_attempt_available: false },
+        dialogue: null, display_name: 'Guide', message: 'Choose your own direction.',
+    };
+}

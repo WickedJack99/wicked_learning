@@ -1879,12 +1879,14 @@ reader. It accepts the source `query`, `page` and `per_page` parameters and
 preserves the source's 5-item frontend default, 24-item server maximum,
 literal case-insensitive matching, deterministic topic/map/node category
 order, title/identifier ordering within a category, visible-map role scope,
-hidden-place exclusion and locked-place label. The result contains only a
-presentation key, title/subtitle and source-equivalent destination slugs; no
-database identifier is accepted by a writer. React lifts the original Desk
-search markup, debounce, result-panel pagination and first-result submit
-behavior, navigating only to existing typed React destinations. The legacy
-standalone `/learning/search` URL stays unavailable.
+hidden-place exclusion and locked-place label. The result contains a
+presentation key, title/subtitle and source-equivalent destination slugs. The
+canonical World adapter also requires explicit nullable map/node UUIDs for
+local identity matching; these are now included in the same bounded read.
+They confer no write authority. The canonical frontend preserves the original
+search markup, debounce, result-panel pagination and navigation through narrow
+typed adapters. Unactivated destination families remain explicitly unavailable.
+The legacy standalone `/learning/search` URL stays unavailable.
 
 The fresh schema currently has one published World. The reader selects that
 sole current World deterministically (earliest published-world record) instead

@@ -14,6 +14,7 @@ import { toSourceGroupPage } from './world-groups';
 import { loadCompanion } from './companion-api';
 import { toLearnerShellProps, toSourceMenuTheme, type LearnerShellProps } from './learner-shell-projection';
 import { JsonRequestError } from './json-request-error';
+import { searchUnavailableMessage } from './world-search-projection';
 
 const worldModules = import.meta.glob<{
     default: ComponentType<Record<string, unknown>>;
@@ -149,9 +150,16 @@ export function WorldRoute() {
             const message = (event as CustomEvent<{ message?: string }>).detail?.message;
             setOperationMessage(message ?? 'This World action is currently unavailable.');
         };
+        const clearSearchUnavailable = () => setOperationMessage((message) =>
+            message === searchUnavailableMessage ? null : message,
+        );
         window.addEventListener('world:source-operation-unavailable', showUnavailableOperation);
+        window.addEventListener('world:search-available', clearSearchUnavailable);
 
-        return () => window.removeEventListener('world:source-operation-unavailable', showUnavailableOperation);
+        return () => {
+            window.removeEventListener('world:source-operation-unavailable', showUnavailableOperation);
+            window.removeEventListener('world:search-available', clearSearchUnavailable);
+        };
     }, []);
 
     if (state.kind === 'loading') {

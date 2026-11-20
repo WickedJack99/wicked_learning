@@ -26,4 +26,5 @@ export async function mockWorldShell(page: Page, map: { id: string; slug: string
     await page.route('**/api/v1/security/csrf', (route) => route.fulfill({ json: { token: 'fixture-csrf' } }));
     await page.route('**/api/v1/learner/map-location', (route) => route.fulfill({ json: menu }));
     await page.route('**/api/v1/learner/feedback-prompt/claim', (route) => route.fulfill({ json: { show: false } }));
+    return shell;
 }

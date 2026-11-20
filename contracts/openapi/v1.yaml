@@ -10594,14 +10594,16 @@ components:
     LearnerDeskSearchResult:
       type: object
       additionalProperties: false
-      required: [href, id, kind, map_slug, node_slug, subtitle, title]
+      required: [href, id, kind, map_id, map_slug, node_id, node_slug, subtitle, title]
       properties:
-        href: { type: string, pattern: '^/(topics/[a-z0-9-]+|world\\?map=[a-z0-9-]+(&focused=[a-z0-9-]+)?)$' }
+        href: { type: string, pattern: '^/(topics/[a-z0-9-]+|world[?]map=[a-z0-9-]+(&focused=[a-z0-9-]+)?)$' }
         id: { type: string, pattern: '^(topic|map|node):[0-9a-f-]{36}$' }
         kind: { type: string, enum: [topic, map, node] }
+        map_id: { type: [string, 'null'], format: uuid }
         map_slug:
           type: [string, 'null']
           pattern: '^[a-z0-9-]+$'
+        node_id: { type: [string, 'null'], format: uuid }
         node_slug:
           type: [string, 'null']
           pattern: '^[a-z0-9-]+$'

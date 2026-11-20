@@ -1,5 +1,6 @@
 import { apiClient, getCsrfToken } from './api/client';
 import { toSourceGroup, toSourceGroupPage } from './world-groups';
+import { searchUnavailableMessage, toSourceSearchResponse } from './world-search-projection';
 
 import { JsonRequestError } from './json-request-error';
 import { journalRead, journalWrite, isJournalWrite } from './journal-api';
@@ -31,38 +32,32 @@ export async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> 
     }
 
     if (parsed.pathname === '/learning/search') {
-        const { data, response } = await apiClient.GET('/learner/search', {
-            params: {
-                query: {
-                    page: Number(parsed.searchParams.get('page') ?? '1'),
-                    per_page: Number(parsed.searchParams.get('per_page') ?? '5'),
-                    query: parsed.searchParams.get('query') ?? '',
+        if (parsed.origin !== window.location.origin) return unavailableOperation();
+        try {
+            const { data, response } = await apiClient.GET('/learner/search', {
+                signal,
+                params: {
+                    query: {
+                        page: Number(parsed.searchParams.get('page') ?? '1'),
+                        per_page: Number(parsed.searchParams.get('per_page') ?? '5'),
+                        query: parsed.searchParams.get('query') ?? '',
+                    },
                 },
-            },
-        });
-        if (!response.ok || !data) {
-            throw new JsonRequestError('The World search is currently unavailable.', response.status);
+            });
+            if (!response.ok || !data) {
+                throw new JsonRequestError(searchUnavailableMessage, response.status);
+            }
+            const result = toSourceSearchResponse(data);
+            window.dispatchEvent(new Event('world:search-available'));
+            return result as T;
+        } catch (error) {
+            if (!signal?.aborted) {
+                window.dispatchEvent(new CustomEvent('world:source-operation-unavailable', {
+                    detail: { message: searchUnavailableMessage },
+                }));
+            }
+            throw error;
         }
-
-        return {
-            pagination: {
-                currentPage: data.pagination.current_page,
-                lastPage: data.pagination.last_page,
-                perPage: data.pagination.per_page,
-                total: data.pagination.total,
-            },
-            results: data.results.map((result) => ({
-                href: result.href,
-                id: result.id,
-                kind: result.kind,
-                mapId: 0,
-                mapSlug: result.map_slug,
-                nodeId: 0,
-                nodeSlug: result.node_slug,
-                subtitle: result.subtitle,
-                title: result.title,
-            })),
-        } as T;
     }
 
     if (parsed.pathname === '/learning/groups') {

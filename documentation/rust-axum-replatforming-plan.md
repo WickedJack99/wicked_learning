@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; whole copied learner layout, shared transports, authenticated bootstrap, location persistence and graph identity integrated below | Anonymous access, progress writes, remaining media, search, bookmarks, tool application, route lifecycle and playback; retain observed source usability defects as open acceptance limitations. |
+| Learner World and playback | **Incomplete**; whole copied learner layout, shared transports, authenticated bootstrap, location persistence, graph identity and search transport integrated below | Anonymous access, progress writes, remaining media, bookmarks, tool application, route lifecycle and playback; retain observed source usability defects as open acceptance limitations. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -675,6 +675,75 @@ Source evidence remains at the separate test-only original-source Vite server.
 This completes the whole-layout integration slice, not the World route family.
 Search, bookmarks, tools applied to places, route lifecycle/playback, anonymous
 access and other rows in the active completion register remain incomplete.
+
+
+### World search transport and source-state verification
+
+Pinned source owners: `resources/js/pages/world.tsx`,
+`features/world/{world-search.tsx,api.ts}`, `types/learning-search.ts`,
+`components/pagination-controls.tsx`, `components/ui/{button,input}.tsx` and
+`hooks/use-platform-translation.ts`, within the complete copied learner layout.
+Source server behavior is `LearningWorldController::search` and
+`app/Learning/Queries/SearchLearningWorld.php`. No copied presentation edits
+are permitted for this slice.
+
+| Source requirement | Current Rust evidence | Verified change / evidence |
+| --- | --- | --- |
+| Discriminated topic/map/node results; real map/node identities | `GET /api/v1/learner/search`; `LearnerDeskSearchResult`; `persistence/src/learner_desk_search.rs` | The bounded reader now exposes nullable `map_id`/`node_id`, including the node's parent map UUID. `world-search-projection.ts` maps exact result variants and removes zero placeholders; topics receive no invented map/node props. Incomplete required identities reject explicitly. |
+| Visible published content, category order, pagination, literal search | Existing application request bounds and persistence filters/count/category windows | Existing filters and category windows are retained. An isolated PostgreSQL regression proves real identities, restricted/hidden/empty-space exclusion, locked labels and cross-category pagination. At most three counts plus three bounded result queries remain; no per-result reads were added. |
+| Debounced search and stale-request cancellation | Source owns 180 ms debounce and AbortController | The adapter now forwards the original signal. The pre-cancelled regression makes no request, rejects with AbortError and emits no unavailable alert. |
+| Loading, empty results and API failure | Complete copied `WorldSearch`; source catches failures and clears results | The copied component retains its loading/empty transitions. Transport and malformed-contract failures reject and use the existing World operation alert; successful retry clears only the matching search alert. No empty success document is fabricated. |
+| Local map/place focus and topic destination | Source `goToSearchResult` and exact source URLs | Source map/place selection retains UUID equality, slugs and query/history behavior. Source comparison and native Rust tests pass at both viewports. Topic URL/navigation is preserved; its destination remains explicitly unavailable until its own route family is activated. |
+
+
+The new browser contract regressions failed before the repair on fabricated
+identity fields and ignored cancellation; the PostgreSQL regression failed on
+the missing map identity. All now pass. OpenAPI and its generated TypeScript
+client include the nullable UUID fields. A separate regression found the
+existing search-destination regex rejected literal `?` in source World URLs;
+the bounded pattern now uses `[?]` and accepts source map/place destinations
+while rejecting external URLs.
+
+`canonical-world.spec.ts` compares the whole pinned original World/layout tree
+with the copied route for search loading, result/control bounds, pagination,
+empty results, failed transport and recovery, local map/place focus and topic
+navigation. Fixtures supply the actual local deployment name to both trees.
+The original uses its source HTTP helper; the copied tree uses the typed Rust
+adapter. `canonical-world-search.spec.ts` covers exact result variants, opaque
+identities, cancellation, 401/503 and malformed identity failures.
+`canonical-world-search-live.spec.ts` exercises the built local Nginx/Rust stack
+without search response mocks, cross-checking each result against the actual
+World identity graph, opening copied search results and navigating map/place
+state at 1440×900 and 390×844. It also checks anonymous rejection and the
+OpenAPI destination pattern.
+
+**Observed inherited source defect:** when Companion is enabled, its fixed
+launcher wrapper includes the left margin used to position its button. That
+transparent wrapper intercepts pointer input over the desktop search input and
+the narrow Open map search button. Full original/canonical hit tests and
+screenshots reproduce the same obstruction. The native integration test uses
+the available keyboard path; it does not force-click, hide Companion, modify
+source styles or count pointer interaction as accepted. Pointer acceptance
+remains an open source defect, alongside the previously recorded header,
+feedback, Journal and Companion clipping findings.
+
+Validation: 35 combined World/group/identity/search browser checks pass,
+including all original-source comparisons and both native viewport journeys.
+The final source-fixture comparison is retained separately under
+`frontend/playwright-report/world-search-source-final`; the combined evidence
+is `frontend/playwright-report/world-search-verified`. Canonical identity,
+frontend production type/build, Rust workspace check/fmt, three persistence
+search checks (including PostgreSQL), request-bound and authenticated-World API
+checks pass. The local backend/frontend images are rebuilt and their normal
+origin exercised. No database migration is needed.
+
+The existing ADR-047 current-World locator remains a declared extraction
+boundary before multiple published Worlds are supported; this slice does not
+broaden search across Worlds. The real four-result response measured 1,303
+bytes and 7–8 ms in two local observations, with the same bounded SQL query
+count as before. These are fixture-scale observations, not production latency
+claims. Search transport is verified; remaining World commands and recorded
+source usability defects still prevent full World-family acceptance.
 
 ## Status and purpose
 

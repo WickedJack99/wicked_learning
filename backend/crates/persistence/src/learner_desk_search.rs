@@ -53,6 +53,7 @@ struct MapRow {
 #[derive(FromRow)]
 struct NodeRow {
     id: uuid::Uuid,
+    map_id: uuid::Uuid,
     map_slug: String,
     map_title: String,
     slug: String,
@@ -87,6 +88,8 @@ async fn search(
                     href: format!("/topics/{}", row.slug),
                     id: format!("topic:{}", row.id),
                     kind: "topic".to_owned(),
+                    map_id: None,
+                    node_id: None,
                     map_slug: None,
                     node_slug: None,
                     subtitle: "Topic".to_owned(),
@@ -104,6 +107,8 @@ async fn search(
                     href: format!("/world?map={}", row.slug),
                     id: format!("map:{}", row.id),
                     kind: "map".to_owned(),
+                    map_id: Some(row.id),
+                    node_id: None,
                     map_slug: Some(row.slug),
                     node_slug: None,
                     subtitle: "World map".to_owned(),
@@ -121,6 +126,8 @@ async fn search(
                     href: format!("/world?map={}&focused={}", row.map_slug, row.slug),
                     id: format!("node:{}", row.id),
                     kind: "node".to_owned(),
+                    map_id: Some(row.map_id),
+                    node_id: Some(row.id),
                     map_slug: Some(row.map_slug),
                     node_slug: Some(row.slug),
                     subtitle: format!(
@@ -310,7 +317,7 @@ WHERE worlds.id = (
 "#;
 
 const NODE_RESULTS_SQL: &str = r#"
-SELECT nodes.id, maps.slug AS map_slug, maps.title AS map_title, nodes.slug, nodes.state, nodes.title
+SELECT nodes.id, maps.id AS map_id, maps.slug AS map_slug, maps.title AS map_title, nodes.slug, nodes.state, nodes.title
 FROM learning_nodes AS nodes
 INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id
 INNER JOIN learning_worlds AS worlds ON worlds.id = maps.world_id
@@ -361,5 +368,103 @@ mod tests {
             category_window(9, &mut offset, &mut remaining),
             Some((1, 5))
         );
+    }
+
+    #[tokio::test]
+    #[ignore = "requires TEST_APPLICATION_DATABASE_URL pointing to the migrated local test stack"]
+    async fn source_search_preserves_identities_visibility_and_category_pagination() {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(1)
+            .idle_timeout(None)
+            .max_lifetime(None)
+            .connect(&std::env::var("TEST_APPLICATION_DATABASE_URL").expect("test database URL"))
+            .await
+            .unwrap();
+        for table in [
+            "learning_topics",
+            "learning_worlds",
+            "learning_maps",
+            "learning_nodes",
+        ] {
+            sqlx::query(&format!(
+                "CREATE TEMP TABLE {table} AS SELECT * FROM public.{table} WITH NO DATA"
+            ))
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+        let world = uuid::Uuid::new_v4();
+        let topic = uuid::Uuid::new_v4();
+        let map = uuid::Uuid::new_v4();
+        let restricted_map = uuid::Uuid::new_v4();
+        let node = uuid::Uuid::new_v4();
+        sqlx::query("INSERT INTO learning_worlds (id, slug, created_at, published_at) VALUES ($1, 'test-world', NOW(), NOW())")
+            .bind(world).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO learning_topics (id, slug, title, published_at) VALUES ($1, 'needle-topic', 'Needle topic', NOW())")
+            .bind(topic).execute(&pool).await.unwrap();
+        for (id, slug, roles) in [
+            (map, "needle-map", r#"["public"]"#),
+            (restricted_map, "needle-private", r#"["administrator"]"#),
+        ] {
+            sqlx::query("INSERT INTO learning_maps (id, world_id, slug, title, published_at, access_roles) VALUES ($1, $2, $3, 'Needle map', NOW(), $4::jsonb)")
+                .bind(id).bind(world).bind(slug).bind(roles).execute(&pool).await.unwrap();
+        }
+        for (id, parent, slug, state, visual) in [
+            (node, map, "needle-place", "locked", "{}"),
+            (uuid::Uuid::new_v4(), map, "needle-hidden", "hidden", "{}"),
+            (
+                uuid::Uuid::new_v4(),
+                map,
+                "needle-empty",
+                "open",
+                r#"{"hideEmptySpace":true}"#,
+            ),
+            (
+                uuid::Uuid::new_v4(),
+                restricted_map,
+                "needle-private-place",
+                "open",
+                "{}",
+            ),
+        ] {
+            sqlx::query("INSERT INTO learning_nodes (id, map_id, slug, title, state, visual_config, published_at) VALUES ($1, $2, $3, 'Needle place', $4, $5::jsonb, NOW())")
+                .bind(id).bind(parent).bind(slug).bind(state).bind(visual).execute(&pool).await.unwrap();
+        }
+        let principal = wicked_learning_domain::identity_access::AuthorizedPrincipal {
+            subject_id: uuid::Uuid::new_v4(),
+            roles: vec!["learner".into()],
+            capabilities: vec![],
+        };
+        let first = super::search(
+            &pool,
+            &principal,
+            &super::LearnerDeskSearchRequest::parse(Some("needle"), Some(1), Some(2)).unwrap(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(first.pagination.total, 3);
+        assert_eq!(first.pagination.last_page, 2);
+        let first = serde_json::to_value(first).unwrap();
+        assert_eq!(first["results"][0]["id"], format!("topic:{topic}"));
+        assert!(first["results"][0]["map_id"].is_null());
+        assert_eq!(first["results"][1]["map_id"], map.to_string());
+        assert!(first["results"][1]["node_id"].is_null());
+        let second = super::search(
+            &pool,
+            &principal,
+            &super::LearnerDeskSearchRequest::parse(Some("needle"), Some(2), Some(2)).unwrap(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(second.results.len(), 1);
+        let second = serde_json::to_value(second).unwrap();
+        assert_eq!(second["results"][0]["map_id"], map.to_string());
+        assert_eq!(second["results"][0]["node_id"], node.to_string());
+        assert_eq!(second["results"][0]["subtitle"], "Needle map - locked");
+        assert_eq!(
+            second["results"][0]["href"],
+            "/world?map=needle-map&focused=needle-place"
+        );
+        pool.close().await;
     }
 }

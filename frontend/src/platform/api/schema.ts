@@ -8030,7 +8030,11 @@ export interface components {
             id: string;
             /** @enum {string} */
             kind: "topic" | "map" | "node";
+            /** Format: uuid */
+            map_id: string | null;
             map_slug: string | null;
+            /** Format: uuid */
+            node_id: string | null;
             node_slug: string | null;
             subtitle: string;
             title: string;
