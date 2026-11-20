@@ -15,6 +15,7 @@ import { loadCompanion } from './companion-api';
 import { toLearnerShellProps, toSourceMenuTheme, type LearnerShellProps } from './learner-shell-projection';
 import { JsonRequestError } from './json-request-error';
 import { searchUnavailableMessage } from './world-search-projection';
+import { bookmarkUnavailableMessage } from './world-bookmarks';
 
 const worldModules = import.meta.glob<{
     default: ComponentType<Record<string, unknown>>;
@@ -153,10 +154,15 @@ export function WorldRoute() {
         const clearSearchUnavailable = () => setOperationMessage((message) =>
             message === searchUnavailableMessage ? null : message,
         );
+        const clearBookmarkUnavailable = () => setOperationMessage((message) =>
+            message === bookmarkUnavailableMessage ? null : message,
+        );
+        window.addEventListener('world:bookmark-available', clearBookmarkUnavailable);
         window.addEventListener('world:source-operation-unavailable', showUnavailableOperation);
         window.addEventListener('world:search-available', clearSearchUnavailable);
 
         return () => {
+            window.removeEventListener('world:bookmark-available', clearBookmarkUnavailable);
             window.removeEventListener('world:source-operation-unavailable', showUnavailableOperation);
             window.removeEventListener('world:search-available', clearSearchUnavailable);
         };

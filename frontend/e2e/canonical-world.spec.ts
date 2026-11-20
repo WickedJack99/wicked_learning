@@ -68,8 +68,7 @@ for (const { name, viewport } of viewports) {
             if (name === 'narrow') {
                 await expectCoveredByLearnerHeader(page);
             } else {
-                await page.getByRole('button', { name: 'Bookmark this tile' }).click();
-                await expect(page.getByText('This World action is not available until its Rust migration slice is activated.')).toBeVisible();
+                await expectBounded(page.getByRole('button', { name: 'Bookmark this tile' }), viewport);
             }
 
             await page.getByRole('button', { name: 'Begin orientation' }).click();
@@ -192,6 +191,69 @@ for (const { name, viewport } of viewports) {
                 await target.getByRole('button', { name: 'Orientation map World map', exact: true }).click();
                 await expect(target).toHaveURL(/world\?map=orientation-map$/);
             }
+            await source.close();
+        });
+
+        test('bookmark commands retain source labels, failure state and authoritative add/remove results', async ({ page, context }, info) => {
+            test.skip(!process.env.SOURCE_EVIDENCE_BASE_URL, 'Requires the whole pinned-source layout server.');
+            const shell = await routeWorldReads(page);
+            const source = await context.newPage();
+            await source.addInitScript((props) => { window.sourceWorldEvidence = props; window.sourceWorldEvidenceUrl = '/world?map=orientation-map'; }, {
+                ...sourceWorldProps(), name: shell.name, progress: { activities: {} },
+            });
+            const commands: string[][] = [[], []];
+            const errors: string[][] = [[], []];
+            for (const [index, target, pattern, original] of [
+                [0, page, '**/api/v1/learner/maps/orientation-map/nodes/first-place/bookmark', false],
+                [1, source, '**/learning/nodes/1/bookmark', true],
+            ] as const) {
+                target.on('pageerror', (error) => errors[index].push(error.message));
+                await target.route(pattern, (route) => {
+                    const method = route.request().method();
+                    commands[index].push(method);
+                    if (!original) expect(route.request().headers()['x-csrf-token']).toBe('fixture-csrf');
+                    if (commands[index].length === 1) return route.fulfill({ status: 503, json: { message: 'Bookmark unavailable.' } });
+                    const bookmarked = method === 'POST';
+                    return route.fulfill({ json: original
+                        ? { bookmarked, bookmarkedNodeIds: bookmarked ? [1] : [] }
+                        : { bookmarked, bookmarked_nodes: bookmarked ? [{ map_slug: 'orientation-map', node_slug: 'first-place' }] : [] },
+                    });
+                });
+            }
+            await source.goto(`${process.env.SOURCE_EVIDENCE_BASE_URL}/e2e/canonical-learner-layout-source.html`);
+            await page.goto('/world?map=orientation-map');
+            const toggle = async (target: Page, label: string) => {
+                const button = target.getByRole('button', { name: label, exact: true });
+                if (name === 'narrow') {
+                    // The pinned header covers this pointer target; retain the
+                    // existing source-defect evidence and use keyboard input.
+                    await button.focus(); await button.press('Enter');
+                } else { await expectBounded(button, viewport); await button.click(); }
+            };
+            for (const target of [source, page]) {
+                await target.getByRole('button', { name: 'First place', exact: true }).click();
+                await toggle(target, 'Bookmark this tile');
+            }
+            await expect(page.getByRole('alert')).toHaveText('The bookmark could not be updated.');
+            for (const target of [source, page]) {
+                await expect(target.getByRole('button', { name: 'Bookmark this tile', exact: true })).toBeVisible();
+                await toggle(target, 'Bookmark this tile');
+                await expect(target.getByRole('button', { name: 'Remove bookmark', exact: true })).toBeVisible();
+            }
+            await expect(page.getByRole('alert')).toHaveCount(0);
+            expect(await page.getByRole('button', { name: 'Remove bookmark', exact: true }).boundingBox())
+                .toEqual(await source.getByRole('button', { name: 'Remove bookmark', exact: true }).boundingBox());
+            await info.attach('main-world-bookmarked', { body: await source.screenshot(), contentType: 'image/png' });
+            await info.attach('rust-world-bookmarked', { body: await page.screenshot(), contentType: 'image/png' });
+            for (const target of [source, page]) {
+                await toggle(target, 'Remove bookmark');
+                await expect(target.getByRole('button', { name: 'Bookmark this tile', exact: true })).toBeVisible();
+            }
+            expect(commands).toEqual([['POST', 'POST', 'DELETE'], ['POST', 'POST', 'DELETE']]);
+            // The pinned async callback does not catch rejection. Preserve its
+            // state semantics and record the expected failure, not silent success.
+            expect(errors[0]).toEqual(['The bookmark could not be updated.']);
+            expect(errors[1]).toEqual(['Bookmark unavailable.']);
             await source.close();
         });
 

@@ -1,5 +1,6 @@
 import type { components } from './api/schema';
 import { toSourceGroupPage } from './world-groups';
+import { registerBookmarkWorld } from './world-bookmarks';
 
 type LearnerGroups = components['schemas']['LearnerGroupPage'];
 type LearnerTranslations = components['schemas']['LearnerPlatformTranslationResponse'];
@@ -180,6 +181,8 @@ export function toWorldPageProps(
             };
         }),
     };
+
+    registerBookmarkWorld(world, nodeIds);
 
     const bookmarkedNodeIds = snapshot.bookmarked_nodes.flatMap((bookmark) => {
         const nodeId = nodeIds.get(`${bookmark.map_slug}:${bookmark.node_slug}`);

@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; whole copied learner layout, shared transports, authenticated bootstrap, location persistence, graph identity and search transport integrated below | Anonymous access, progress writes, remaining media, bookmarks, tool application, route lifecycle and playback; retain observed source usability defects as open acceptance limitations. |
+| Learner World and playback | **Incomplete**; whole copied learner layout, shared transports, authenticated bootstrap, location persistence, graph identity and search transport integrated below | Anonymous access, progress writes, remaining media, bookmark projection bounds, tool application, route lifecycle and playback; retain observed source usability defects as open acceptance limitations. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -744,6 +744,68 @@ bytes and 7–8 ms in two local observations, with the same bounded SQL query
 count as before. These are fixture-scale observations, not production latency
 claims. Search transport is verified; remaining World commands and recorded
 source usability defects still prevent full World-family acceptance.
+
+
+### World bookmark command adapter
+
+Pinned owners: `resources/js/pages/world.tsx::toggleBookmark`,
+`features/world/{node-detail-drawer.tsx,activity-panel.tsx,api.ts}`, source
+`LearningBookmarkController::{store,destroy}` and
+`LearningBookmarkService`. The whole copied World remains the presentation
+owner. Existing native POST/DELETE
+`/api/v1/learner/maps/{map_slug}/nodes/{node_slug}/bookmark`, OpenAPI
+`LearnerBookmarkResult`, and `backend/crates/{api,application,persistence}/src/learner_bookmark.rs`
+already supply CSRF, principal ownership, idempotence, visible-map/hidden-node
+checks and the bounded authoritative bookmark set (ADR-025).
+
+The adapter supplies source UUID → existing native slug target and native
+bookmark references → source UUID set. It binds only the copied World's two
+bookmark transport calls through a fail-closed exact-module Vite transform.
+It retains each projected node object's verified target and World identity index
+in a WeakMap; do not create a mutable global current-map registry or refetch a
+whole World for each toggle. Reject unknown node objects and incomplete native
+responses. No new endpoint or backend writer is needed. Preserve source labels,
+local state and known narrow header obstruction; API failures must retain the
+prior bookmark label and expose the existing operation-unavailable alert.
+The dedicated Bookmarks route family remains a separate complete-source activation.
+
+| Source contract | Adapter / existing Rust evidence | Failure boundary |
+| --- | --- | --- |
+| `toggleBookmark(node, isBookmarked)` returns authoritative `bookmarkedNodeIds` | `src/platform/world-bookmarks.ts`; `world-projection.ts` registers exact graph objects; `vite.config.ts` replaces exactly the two pinned calls | Unknown/copied node objects fail before CSRF or a write. Source component files stay byte-identical. |
+| Add/delete current learner bookmark | Native POST/DELETE above with generated client and same-origin CSRF | No arbitrary source HTTP emulation; source label changes only after valid success. |
+| Preserve other bookmarks, including duplicate node slugs across maps | Per-World map/node → UUID index; complete returned references mapped by both slugs | Reject unknown references, contradictory `bookmarked`, or an absent newly saved target. |
+| Native unavailable response | Existing World operation alert; successful bookmark retry clears only its own error | The original async callback does not catch rejection; the expected page error and unchanged prior label are covered explicitly. |
+
+Focused source browser regression first failed at both viewports against the
+previous generic unavailable adapter. The implemented checks compare original
+and copied source labels, control bounds, add/remove/retry and screenshots at
+1440×900 and 390×844. Native browser checks save, reload, remove and reload
+through local PostgreSQL-backed Rust, restore original fixture state, verify
+missing-CSRF rejection and another principal's unchanged bookmark state.
+The narrow original header still covers the bookmark pointer target; keyboard
+activation is verified without hiding the header or forcing a click. This is
+an open source usability defect, not a waiver or a completed pointer check.
+
+The existing native result remains bounded to 500 bookmarks. The adapter does
+not invent missing identities or claim success for a newly saved target omitted
+by that limit. Full bookmark projection/pagination acceptance remains open;
+this slice establishes the command transport for complete native responses.
+It adds no backend endpoint, database query or whole-World refetch per toggle.
+
+Verification: canonical identity (299 JS files plus CSS), production frontend
+build, API generation/drift, Rust workspace formatting/check, two application
+bookmark tests and the API World/shell authentication test passed. The combined
+World/search/group/identity run passed 43 checks; its remaining narrow bookmark
+check encountered a concurrent Playwright artifact-directory collision. The
+isolated final bookmark run passed all three checks against the rebuilt local
+frontend, including both native viewport journeys and the adapter negative
+contracts. The native anonymous contract check also passed. Evidence reports:
+`frontend/playwright-report/world-bookmark-verified` and
+`frontend/playwright-report/world-bookmark-native-final`; source comparison
+screenshots in the former retain the known header obstruction. No production
+resources were changed. World remains **Incomplete**.
+
+
 
 ## Status and purpose
 

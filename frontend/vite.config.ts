@@ -9,6 +9,19 @@ const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts'
 export default defineConfig({
     plugins: [
         {
+            name: 'canonical-world-bookmark-transport',
+            enforce: 'pre',
+            transform(code, id) {
+                if (id.split('?')[0] !== resolve(import.meta.dirname, 'canonical-source/resources/js/pages/world.tsx')) return;
+                const remove = /await deleteJson<\{ bookmarkedNodeIds: number\[\] \}>\(\s*`\/learning\/nodes\/\$\{node\.id\}\/bookmark`,\s*\)/g;
+                const add = /await postJson<\{ bookmarkedNodeIds: number\[\] \}>\(\s*`\/learning\/nodes\/\$\{node\.id\}\/bookmark`,\s*\{\},\s*\)/g;
+                if (code.match(remove)?.length !== 1 || code.match(add)?.length !== 1) {
+                    throw new Error('The pinned World bookmark transport seams changed.');
+                }
+                return `import { bookmarkNode } from '/src/platform/world-bookmarks.ts';\n${code.replace(remove, "await bookmarkNode(node, 'DELETE')").replace(add, "await bookmarkNode(node, 'POST')")}`;
+            },
+        },
+        {
             name: 'canonical-companion-turn-transport',
             enforce: 'pre',
             transform(code, id) {
