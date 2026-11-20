@@ -9180,11 +9180,55 @@ export interface components {
             /** @constant */
             version: 1;
             start: string;
-            nodes: Record<string, never>[];
+            nodes: components["schemas"]["LearningCompanionDialogueNode"][];
         };
+        /** @description Normalized authored node; graph parsing also checks unique IDs and that every target exists. */
+        LearningCompanionDialogueNode: {
+            id: string;
+            /** @enum {string} */
+            type: "message" | "end" | "choice" | "ai";
+            title?: string;
+            next?: string;
+            position?: {
+                x: number;
+                y: number;
+            };
+            message?: string;
+            prompt?: string;
+            instruction?: string;
+            /** @enum {string} */
+            response_mode?: "message" | "choice";
+            capabilities?: ("current-context" | "topic-context" | "route-context" | "nearby-places" | "navigation-alternatives" | "revisit-options")[];
+            choices?: components["schemas"]["LearningCompanionDialogueChoice"][];
+        } & ({
+            /** @enum {unknown} */
+            type?: "message" | "end";
+        } | {
+            /** @constant */
+            type?: "choice";
+        } | {
+            /** @constant */
+            type?: "ai";
+        });
+        LearningCompanionDialogueChoice: {
+            key: string;
+            label: string;
+            next?: string;
+            /** @enum {string} */
+            action?: "current-map" | "learning-desk" | "topics" | "continue-exploring";
+        } | unknown | unknown;
         SaveAdminLearningCompanionDialogueRequest: {
             name: string;
-            dialogue_graph?: components["schemas"]["LearningCompanionDialogueGraph"] | null;
+            dialogue_graph?: components["schemas"]["LearningCompanionDialogueGraphInput"] | null;
+        };
+        /** @description Authored graph before Rust normalization. The node parser validates the typed output fields, accepts null optional strings, removes unknown fields and rejects duplicate IDs/keys or missing navigation targets. */
+        LearningCompanionDialogueGraphInput: {
+            /** @constant */
+            version: 1;
+            start: string;
+            nodes: {
+                [key: string]: unknown;
+            }[];
         };
         AdminLearningCompanionAssignment: {
             /** @enum {string} */

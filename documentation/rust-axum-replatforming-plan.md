@@ -535,6 +535,61 @@ frontend source identity/type/build, Rust workspace check/fmt and OpenAPI
 client generation. This is backend/media evidence; complete copied Companion
 browser and full-layout acceptance are still pending.
 
+### Copied Companion transport contract
+
+Pinned source owners are the whole
+`features/world/learning-companion-{panel,dialogue}.tsx`,
+`components/learning-companion-avatar.tsx`, `types/learning.ts`,
+`hooks/use-platform-translation.ts` and `lib/json-response.ts`.
+Turn behavior comes from `app/Http/Controllers/LearningCompanionController.php`,
+`app/Http/Requests/LearningCompanionTurnRequest.php` and
+`app/Learning/Services/LearningCompanion{Context,TurnService}.php` at the pinned
+SHA. No canonical component is edited or replaced.
+
+| Source requirement | Rust evidence and adapter rule |
+| --- | --- |
+| Enabled/absent Companion, full resolved appearance and context | `GET /learner/companion` returns a scoped document or 204; `companion-api.ts` maps every field, retains UUIDs, and maps 204 to null. Other read failures remain errors. |
+| Whole message/choice/AI/end graph, Back/Restart/history | Reuse `parse_dialogue_graph` in `application/src/admin_learning_companion_dialogue.rs`. OpenAPI now names normalized node/choice/position fields; authored input normalization remains separate. Local interaction state stays in copied components. |
+| One direct source turn request | A fail-closed Vite transform binds only the exact fetch call in the exact copied dialogue module to `companionFetch(companion, …)`. A WeakMap retains that projected object's real authorized query without injecting props or a mutable global current-map. No generic fetch interception. |
+| Map/node/activity/run identities | Compare every source context ID against the read document; map its retained real map slug to the native request. Rust rechecks scope, ownership and capabilities. Unknown objects, altered IDs and unknown authored nodes cannot send turns. |
+| Assistance, disclosure, provider failure and retry | Existing CSRF-protected `POST /learner/companion/turn`; preserve native reply and source assistance event. Map problem titles to source errors with actual HTTP status. AI Off remains source-local. No private learner text is introduced. |
+| Action URLs and avatar cropping | Preserve server action URLs and copied Link/avatar components; managed-avatar authorization is verified above. Unactivated destinations remain unavailable. |
+
+**Verified transport dependency:** `canonical-companion.spec.ts` mounts the
+whole pinned original panel/dialogue separately from the copied Rust-bound
+modules. Desktop and narrow checks compare exact text, panel geometry, action
+URLs and avatar crop styles, and attach source/Rust screenshots. They exercise
+message/choice/end traversal, Back/Restart, Escape/focus return, local No AI,
+rejected and retried native turns, disclosure and post-attempt assistance
+events with opaque map/node/activity/run UUIDs. A separate negative check
+rejects unknown projection objects, changed map IDs, unknown graph nodes and
+extra private-response fields before any request, and proves interleaved
+contexts retain their respective map slugs. 204 absence and read failure are
+distinct states.
+
+The real Rust browser cases temporarily create their own map-assigned dialogue,
+load it using an existing learner session, follow the copied controls and
+receive the native 422 provider-unavailable result without fabricating a reply.
+They delete only their own dialogue and restore the prior platform settings.
+The test-only evidence server proxies native API traffic with the local
+deployment Origin; normal Rust cookie/CSRF verification remains active.
+Evidence is under `frontend/playwright-report/companion-verified` and
+`companion-attribution`. Rust graph normalization and source turn/authentication
+checks, workspace check/fmt and canonical frontend identity/type/build pass.
+
+**Observed inherited source defect:** on the 390×844 viewport, the expanded AI
+assistance panel extends above the viewport and clips its heading/close control.
+The original and canonical screenshots and geometry agree. This is preserved
+source behavior, not a newly approved usability waiver; full usability
+acceptance must retain that distinction. The normal message panel is bounded.
+No AI is also a resolved local turn: the source hides assistance choices until a
+new component mount, and Restart retains resolved AI state. Tests preserve this
+behavior instead of inventing a different retry flow.
+
+This is verified Companion transport, not full shared-layout acceptance. The
+next integration boundary remains the complete copied learner layout with its
+real shell, session, Journal, feedback and Companion contracts together.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

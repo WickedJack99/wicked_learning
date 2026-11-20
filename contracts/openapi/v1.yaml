@@ -12383,14 +12383,79 @@ components:
           type: array
           minItems: 1
           maxItems: 24
-          items: { type: object }
+          items: { $ref: '#/components/schemas/LearningCompanionDialogueNode' }
+    LearningCompanionDialogueNode:
+      type: object
+      additionalProperties: false
+      required: [id, type]
+      description: Normalized authored node; graph parsing also checks unique IDs and that every target exists.
+      properties:
+        id: { type: string, minLength: 1, maxLength: 80 }
+        type: { type: string, enum: [message, end, choice, ai] }
+        title: { type: string, minLength: 1, maxLength: 120 }
+        next: { type: string, minLength: 1, maxLength: 80 }
+        position:
+          type: object
+          additionalProperties: false
+          required: [x, y]
+          properties:
+            x: { type: integer, minimum: -10000, maximum: 10000 }
+            y: { type: integer, minimum: -10000, maximum: 10000 }
+        message: { type: string, minLength: 1, maxLength: 2000 }
+        prompt: { type: string, minLength: 1, maxLength: 1000 }
+        instruction: { type: string, minLength: 1, maxLength: 1000 }
+        response_mode: { type: string, enum: [message, choice] }
+        capabilities:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items: { type: string, enum: [current-context, topic-context, route-context, nearby-places, navigation-alternatives, revisit-options] }
+        choices:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items: { $ref: '#/components/schemas/LearningCompanionDialogueChoice' }
+      oneOf:
+        - properties: { type: { enum: [message, end] } }
+          required: [message]
+        - properties: { type: { const: choice } }
+          required: [prompt, choices]
+        - properties: { type: { const: ai } }
+          required: [instruction]
+    LearningCompanionDialogueChoice:
+      type: object
+      additionalProperties: false
+      required: [key, label]
+      properties:
+        key: { type: string, minLength: 1, maxLength: 80 }
+        label: { type: string, minLength: 1, maxLength: 240 }
+        next: { type: string, minLength: 1, maxLength: 80 }
+        action: { type: string, enum: [current-map, learning-desk, topics, continue-exploring] }
+      anyOf:
+        - required: [next]
+        - required: [action]
     SaveAdminLearningCompanionDialogueRequest:
       type: object
       additionalProperties: false
       required: [name]
       properties:
         name: { type: string, minLength: 1, maxLength: 120 }
-        dialogue_graph: { oneOf: [ { $ref: '#/components/schemas/LearningCompanionDialogueGraph' }, { type: 'null' } ] }
+        dialogue_graph: { oneOf: [ { $ref: '#/components/schemas/LearningCompanionDialogueGraphInput' }, { type: 'null' } ] }
+    LearningCompanionDialogueGraphInput:
+      type: object
+      required: [version, start, nodes]
+      description: >-
+        Authored graph before Rust normalization. The node parser validates the
+        typed output fields, accepts null optional strings, removes unknown
+        fields and rejects duplicate IDs/keys or missing navigation targets.
+      properties:
+        version: { type: integer, const: 1 }
+        start: { type: string, minLength: 1, maxLength: 80 }
+        nodes:
+          type: array
+          minItems: 1
+          maxItems: 24
+          items: { type: object, additionalProperties: true }
     AdminLearningCompanionAssignment:
       type: object
       additionalProperties: false

@@ -486,6 +486,34 @@ mod tests {
     use super::CompanionDialogueForm;
 
     #[test]
+    fn learner_dialogue_projection_preserves_all_normalized_node_fields() {
+        let graph = json!({"version": 1, "start": "hello", "nodes": [
+            {"id": "hello", "type": "message", "message": " Hello ", "title": " Introduction ", "position": {"x": -100, "y": 200}, "next": "choose", "private_extra": "discard"},
+            {"id": "choose", "type": "choice", "prompt": "Choose", "choices": [
+                {"key": "ai", "label": "Ask", "next": "ai"},
+                {"key": "desk", "label": "Desk", "action": "learning-desk", "next": null}
+            ]},
+            {"id": "ai", "type": "ai", "instruction": "Use authored context", "response_mode": "choice", "capabilities": ["current-context", "topic-context", "route-context"], "next": "end"},
+            {"id": "end", "type": "end", "message": "Done", "title": null, "next": null}
+        ]});
+        let parsed = super::parse_dialogue_graph(&graph).unwrap();
+        assert_eq!(
+            parsed["nodes"][0],
+            json!({"id": "hello", "type": "message", "message": "Hello", "title": "Introduction", "position": {"x": -100, "y": 200}, "next": "choose"})
+        );
+        assert_eq!(
+            parsed["nodes"][1]["choices"][1],
+            json!({"key": "desk", "label": "Desk", "action": "learning-desk"})
+        );
+        assert_eq!(parsed["nodes"][2], graph["nodes"][2]);
+        assert_eq!(
+            parsed["nodes"][3],
+            json!({"id": "end", "type": "end", "message": "Done"})
+        );
+        assert_eq!(super::parse_dialogue_graph(&parsed), Some(parsed));
+    }
+
+    #[test]
     fn dialogue_graph_requires_known_targets_and_allowlisted_actions() {
         assert!(CompanionDialogueForm::parse(
             "Guide",

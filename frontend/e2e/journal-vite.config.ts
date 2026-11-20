@@ -25,6 +25,11 @@ export default mergeConfig(base, defineConfig({
             // Original overlay/client use the original Laravel-shaped transport.
             // The canonical overlay separately resolves the typed Rust adapter.
             const path = id.split('?')[0];
+            if (path === `${sourceRoot}/features/world/learning-companion-panel.tsx`) {
+                return code
+                    .replaceAll('@/features/world/learning-companion-dialogue', `/@fs/${sourceRoot}/features/world/learning-companion-dialogue.tsx`)
+                    .replaceAll('@/components/learning-companion-avatar', `/@fs/${sourceRoot}/components/learning-companion-avatar.tsx`);
+            }
             if (path === `${sourceRoot}/features/journal/journal-overlay.tsx`) {
                 return code.replaceAll('@/features/journal/journal-client', `/@fs/${sourceRoot}/features/journal/journal-client.ts`);
             }

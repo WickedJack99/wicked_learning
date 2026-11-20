@@ -9,6 +9,16 @@ const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts'
 export default defineConfig({
     plugins: [
         {
+            name: 'canonical-companion-turn-transport',
+            enforce: 'pre',
+            transform(code, id) {
+                if (id.split('?')[0] !== resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/learning-companion-dialogue.tsx')) return;
+                const call = "void fetch('/learning/companion/turn',";
+                if (code.split(call).length !== 2) throw new Error('The pinned Companion transport seam changed.');
+                return `import { companionFetch } from '/src/platform/companion-api.ts';\n${code.replace(call, "void companionFetch(companion, '/learning/companion/turn',")}`;
+            },
+        },
+        {
             name: 'canonical-journal-download',
             configureServer(server) {
                 server.middlewares.use((request, response, next) => {
