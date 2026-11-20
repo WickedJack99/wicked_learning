@@ -150,7 +150,13 @@ pub(crate) async fn load(
     .bind((MAX_STARTS + 1) as i64)
     .fetch_all(&mut **transaction)
     .await?;
-    assemble(node_id, node.start_activity_id, rows, transitions, starts).map(Some)
+    let configs = rows
+        .iter()
+        .map(|row| (row.id, row.activity_config.clone()))
+        .collect();
+    let mut graph = assemble(node_id, node.start_activity_id, rows, transitions, starts)?;
+    crate::learner_playback_presentation::enrich(transaction, &mut graph, &configs).await?;
+    Ok(Some(graph))
 }
 
 fn assemble(
@@ -211,7 +217,13 @@ fn assemble(
                 .ok_or_else(incomplete_graph)?;
             let config =
                 learner_media_config(with_safe_ambient_sound(config, &row.activity_config));
+            let presentation = crate::learner_playback_presentation::metadata(
+                row.id,
+                &row.activity_type,
+                &row.activity_config,
+            )?;
             Ok(LearnerPlaybackGraphActivity {
+                presentation,
                 id: row.id,
                 slug: row.slug,
                 title: row.title,

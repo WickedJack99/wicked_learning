@@ -710,9 +710,9 @@ pub struct LearnerPlaybackDocument {
     pub activity: LearnerPlaybackActivity,
 }
 
-/// Published navigation definitions for one authorized playback node. These
-/// are not complete copied-player props: private progress and configured
-/// resource projections are supplied by their own audited contracts.
+/// Published navigation and authored presentation for one authorized node.
+/// These are not complete copied-player props: private progress and interactive
+/// state are supplied by their own audited contracts.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerPlaybackGraph {
     pub node_id: uuid::Uuid,
@@ -732,6 +732,86 @@ pub struct LearnerPlaybackGraphActivity {
     pub time_guide_minutes: Option<i16>,
     pub check_in: LearnerPlaybackCheckIn,
     pub transitions: Vec<LearnerPlaybackGraphTransition>,
+    pub presentation: LearnerPlaybackPresentation,
+}
+
+/// Authored presentation for a published graph activity. Private answers,
+/// progress, dialogue cursors and shared-task state remain separate contracts.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct LearnerPlaybackPresentation {
+    pub sources: Vec<LearnerPlaybackSourceReference>,
+    pub feedback_guidance: Option<LearnerPlaybackFeedbackGuidance>,
+    pub completion_choice_prompt: Option<String>,
+    pub configured_items: Vec<LearnerItem>,
+    pub configured_tool: Option<LearnerTool>,
+    pub configured_sounds: Vec<LearnerPlaybackConfiguredSound>,
+    pub dialogue_typing_sound_sets: Vec<LearnerNpcDialogueTypingSoundSet>,
+    pub npc_dialogue_nodes: Vec<LearnerNpcDialogueNode>,
+    pub npc_dialogue_transitions: Vec<LearnerPlaybackNpcTransition>,
+    pub question: Option<LearnerPlaybackQuestion>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackSourceReference {
+    pub title: String,
+    pub url: String,
+    pub publisher: Option<String>,
+    pub published_at: Option<String>,
+    pub rights: Option<String>,
+    pub anchor: Option<String>,
+    pub excerpt: Option<String>,
+    pub concepts: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackFeedbackGuidance {
+    pub purpose: Option<String>,
+    pub evidence: Option<String>,
+    pub next_action: Option<String>,
+    pub response_feedback: Option<String>,
+    pub independent_check_prompt: Option<String>,
+    pub independent_check_feedback: Option<String>,
+    pub rubric: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackConfiguredSound {
+    pub id: uuid::Uuid,
+    pub name: String,
+    pub slug: String,
+    pub icon: Option<String>,
+    pub url: String,
+    pub volume: i16,
+    pub play_seconds: Option<f64>,
+    pub looped: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackNpcTransition {
+    pub id: uuid::Uuid,
+    pub from_node_id: Option<uuid::Uuid>,
+    pub to_node_id: uuid::Uuid,
+    pub from_connector: String,
+    pub to_connector: String,
+}
+
+/// Rust stores a question on its activity; option keys are the stable native
+/// identities used by the existing answer command, not invented numeric IDs.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackQuestion {
+    pub activity_id: uuid::Uuid,
+    pub prompt: String,
+    pub allow_multiple: bool,
+    pub options: Vec<LearnerPlaybackQuestionOption>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackQuestionOption {
+    pub key: String,
+    pub label: String,
+    pub body: String,
+    pub outcome_key: Option<String>,
+    pub weights: std::collections::BTreeMap<String, f64>,
 }
 
 #[derive(Clone, Debug, Serialize)]

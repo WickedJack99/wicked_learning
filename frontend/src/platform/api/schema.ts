@@ -8189,8 +8189,80 @@ export interface components {
             };
             time_guide_minutes: number | null;
             check_in: components["schemas"]["LearnerPlaybackCheckIn"];
+            presentation: components["schemas"]["LearnerPlaybackPresentation"];
             /** @description At most 4000 transitions across the entire graph. A null destination is an authored terminal edge, never a replacement for an unpublished destination. */
             transitions: components["schemas"]["LearnerPlaybackGraphTransition"][];
+        };
+        /** @description Published authored presentation, not private progress or interactive player state. Missing authored catalog references retain source null/empty semantics. Collection overflow makes the read unavailable. */
+        LearnerPlaybackPresentation: {
+            sources: components["schemas"]["LearnerPlaybackSourceReference"][];
+            feedback_guidance: components["schemas"]["LearnerPlaybackFeedbackGuidance"] | null;
+            completion_choice_prompt: string | null;
+            /** @description Actual referenced catalog items. Quantity is zero as in the source catalog serializer; owned quantities remain in the private inventory projection. */
+            configured_items: components["schemas"]["LearnerItem"][];
+            configured_tool: components["schemas"]["LearnerTool"] | null;
+            configured_sounds: components["schemas"]["LearnerPlaybackConfiguredSound"][];
+            dialogue_typing_sound_sets: components["schemas"]["LearnerNpcDialogueTypingSoundSet"][];
+            npc_dialogue_nodes: components["schemas"]["LearnerNpcDialogueNode"][];
+            npc_dialogue_transitions: components["schemas"]["LearnerPlaybackNpcTransition"][];
+            question: components["schemas"]["LearnerPlaybackQuestion"] | null;
+        };
+        LearnerPlaybackSourceReference: {
+            title: string;
+            url: string;
+            publisher: string | null;
+            published_at: string | null;
+            rights: string | null;
+            anchor: string | null;
+            excerpt: string | null;
+            concepts: string[];
+        };
+        LearnerPlaybackFeedbackGuidance: {
+            purpose: string | null;
+            evidence: string | null;
+            next_action: string | null;
+            response_feedback: string | null;
+            independent_check_prompt: string | null;
+            independent_check_feedback: string | null;
+            rubric: string[];
+        };
+        LearnerPlaybackConfiguredSound: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+            icon: string | null;
+            url: string;
+            volume: number;
+            play_seconds: number | null;
+            looped: boolean;
+        };
+        LearnerPlaybackNpcTransition: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            from_node_id: string | null;
+            /** Format: uuid */
+            to_node_id: string;
+            from_connector: string;
+            to_connector: string;
+        };
+        /** @description Rust embeds the question on its activity; its activity UUID and stable option keys are native identities. Correctness, answer feedback and explanation stay behind the evaluated-answer contract. */
+        LearnerPlaybackQuestion: {
+            /** Format: uuid */
+            activity_id: string;
+            prompt: string;
+            allow_multiple: boolean;
+            options: components["schemas"]["LearnerPlaybackQuestionOption"][];
+        };
+        LearnerPlaybackQuestionOption: {
+            key: string;
+            label: string;
+            body: string;
+            outcome_key: string | null;
+            weights: {
+                [key: string]: number;
+            };
         };
         LearnerPlaybackGraphTransition: {
             /** Format: uuid */

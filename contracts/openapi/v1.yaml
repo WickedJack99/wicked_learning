@@ -10872,7 +10872,7 @@ components:
     LearnerPlaybackGraphActivity:
       type: object
       additionalProperties: false
-      required: [id, slug, title, introduction, activity_type, config, time_guide_minutes, check_in, transitions]
+      required: [id, slug, title, introduction, activity_type, config, time_guide_minutes, check_in, transitions, presentation]
       properties:
         id: { type: string, format: uuid }
         slug: { type: string }
@@ -10882,11 +10882,100 @@ components:
         config: { type: object, additionalProperties: true, description: Existing type-specific learner-safe configuration, excluding question correctness and author review fields. }
         time_guide_minutes: { type: [integer, 'null'], minimum: 1 }
         check_in: { $ref: '#/components/schemas/LearnerPlaybackCheckIn' }
+        presentation: { $ref: '#/components/schemas/LearnerPlaybackPresentation' }
         transitions:
           type: array
           maxItems: 4000
           description: At most 4000 transitions across the entire graph. A null destination is an authored terminal edge, never a replacement for an unpublished destination.
           items: { $ref: '#/components/schemas/LearnerPlaybackGraphTransition' }
+    LearnerPlaybackPresentation:
+      type: object
+      additionalProperties: false
+      description: Published authored presentation, not private progress or interactive player state. Missing authored catalog references retain source null/empty semantics. Collection overflow makes the read unavailable.
+      required: [sources, feedback_guidance, completion_choice_prompt, configured_items, configured_tool, configured_sounds, dialogue_typing_sound_sets, npc_dialogue_nodes, npc_dialogue_transitions, question]
+      properties:
+        sources: { type: array, maxItems: 5, items: { $ref: '#/components/schemas/LearnerPlaybackSourceReference' } }
+        feedback_guidance: { anyOf: [{ $ref: '#/components/schemas/LearnerPlaybackFeedbackGuidance' }, { type: 'null' }] }
+        completion_choice_prompt: { type: [string, 'null'] }
+        configured_items:
+          type: array
+          maxItems: 4096
+          description: Actual referenced catalog items. Quantity is zero as in the source catalog serializer; owned quantities remain in the private inventory projection.
+          items: { $ref: '#/components/schemas/LearnerItem' }
+        configured_tool: { anyOf: [{ $ref: '#/components/schemas/LearnerTool' }, { type: 'null' }] }
+        configured_sounds: { type: array, maxItems: 4096, items: { $ref: '#/components/schemas/LearnerPlaybackConfiguredSound' } }
+        dialogue_typing_sound_sets: { type: array, maxItems: 256, items: { $ref: '#/components/schemas/LearnerNpcDialogueTypingSoundSet' } }
+        npc_dialogue_nodes: { type: array, maxItems: 4096, items: { $ref: '#/components/schemas/LearnerNpcDialogueNode' } }
+        npc_dialogue_transitions: { type: array, maxItems: 8192, items: { $ref: '#/components/schemas/LearnerPlaybackNpcTransition' } }
+        question: { anyOf: [{ $ref: '#/components/schemas/LearnerPlaybackQuestion' }, { type: 'null' }] }
+    LearnerPlaybackSourceReference:
+      type: object
+      additionalProperties: false
+      required: [title, url, publisher, published_at, rights, anchor, excerpt, concepts]
+      properties:
+        title: { type: string }
+        url: { type: string }
+        publisher: { type: [string, 'null'] }
+        published_at: { type: [string, 'null'] }
+        rights: { type: [string, 'null'] }
+        anchor: { type: [string, 'null'] }
+        excerpt: { type: [string, 'null'], maxLength: 800 }
+        concepts: { type: array, maxItems: 8, items: { type: string, maxLength: 120 } }
+    LearnerPlaybackFeedbackGuidance:
+      type: object
+      additionalProperties: false
+      required: [purpose, evidence, next_action, response_feedback, independent_check_prompt, independent_check_feedback, rubric]
+      properties:
+        purpose: { type: [string, 'null'] }
+        evidence: { type: [string, 'null'] }
+        next_action: { type: [string, 'null'] }
+        response_feedback: { type: [string, 'null'] }
+        independent_check_prompt: { type: [string, 'null'] }
+        independent_check_feedback: { type: [string, 'null'] }
+        rubric: { type: array, maxItems: 3, items: { type: string, maxLength: 300 } }
+    LearnerPlaybackConfiguredSound:
+      type: object
+      additionalProperties: false
+      required: [id, name, slug, icon, url, volume, play_seconds, looped]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        icon: { type: [string, 'null'] }
+        url: { type: string }
+        volume: { type: integer, minimum: 0, maximum: 100 }
+        play_seconds: { type: [number, 'null'] }
+        looped: { type: boolean }
+    LearnerPlaybackNpcTransition:
+      type: object
+      additionalProperties: false
+      required: [id, from_node_id, to_node_id, from_connector, to_connector]
+      properties:
+        id: { type: string, format: uuid }
+        from_node_id: { type: [string, 'null'], format: uuid }
+        to_node_id: { type: string, format: uuid }
+        from_connector: { type: string }
+        to_connector: { type: string }
+    LearnerPlaybackQuestion:
+      type: object
+      additionalProperties: false
+      description: Rust embeds the question on its activity; its activity UUID and stable option keys are native identities. Correctness, answer feedback and explanation stay behind the evaluated-answer contract.
+      required: [activity_id, prompt, allow_multiple, options]
+      properties:
+        activity_id: { type: string, format: uuid }
+        prompt: { type: string }
+        allow_multiple: { type: boolean }
+        options: { type: array, minItems: 1, maxItems: 24, items: { $ref: '#/components/schemas/LearnerPlaybackQuestionOption' } }
+    LearnerPlaybackQuestionOption:
+      type: object
+      additionalProperties: false
+      required: [key, label, body, outcome_key, weights]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        body: { type: string }
+        outcome_key: { type: [string, 'null'] }
+        weights: { type: object, maxProperties: 128, additionalProperties: { type: number } }
     LearnerPlaybackGraphTransition:
       type: object
       additionalProperties: false

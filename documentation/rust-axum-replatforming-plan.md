@@ -1081,9 +1081,9 @@ Bound the graph to 1000 activities, 4000 transitions and 1000 starts, using
 bounded batched queries and explicit failure on overflow. An edge to an
 unpublished or foreign-node activity must not be silently converted into a
 terminal edge or omitted as if the authored route had ended. Private progress,
-answers, type-specific configured resources, portal destinations and full
-source activity metadata remain separately tracked prerequisites; no player
-activation is authorized by this navigation definition alone.
+answers and portal destinations remain separately tracked prerequisites. The
+authored presentation/resources extension is recorded below; neither read
+definition alone authorizes player activation.
 
 Implementation: `persistence/src/learner_playback_graph.rs` adds four batched
 queries to the existing active-run read, reusing `learner_safe_config`,
@@ -1105,11 +1105,12 @@ unpublished destinations yielding 503, current availability yielding 404, and
 recovery after removing an over-limit or malformed definition.
 
 The completion restriction across native route groupings is repaired below.
-Before activation, finish question/option identity, sources,
-feedback guidance, configured tools/items/sounds, NPC definitions, portal
-destinations, private answer/progress/play-state projections and the per-player
-transport matrix. None may be substituted with empty source props merely
-because navigation definitions are now readable.
+The authored presentation extension below supplies question/option keys, sources,
+feedback guidance, configured resources and NPC definitions. Before activation,
+finish source identity adaptation, portal destinations, private
+answer/progress/play-state projections and the per-player transport matrix.
+None may be substituted with empty source props merely because definitions
+are now readable.
 
 Verification passed: canonical identity, frontend production type/build,
 generated-client drift, Rust fmt/workspace check, twelve playback persistence
@@ -1240,6 +1241,67 @@ workflow acceptance.
 This is a prerequisite contract, not player activation. Node availability on
 all writers, complete player props, full command mappings and source-derived
 browser acceptance remain open.
+
+### Published player presentation contract
+
+Pinned `main` remains `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+Source owners are `app/Learning/Serializers/{LearningActivitySerializer,
+LearningItemSerializer,LearningToolSerializer,DialogueTypingSoundSetSerializer}.php`,
+`app/Learning/Services/{ActivitySourceReferenceConfiguration,
+ActivityFeedbackGuidanceConfiguration,ActivityCompletionChoiceConfiguration}.php`,
+and the whole copied `resources/js/pages/learning/node-play.tsx`,
+`types/learning.ts`, `features/world/{activity-panel,activity-ambient-sound,
+standard-activities,tool-grant-activity,item-grant-activity,item-obstacle-activity,
+npc-dialogue-player}.tsx`. No source component is edited or selectively recreated.
+
+| Source presentation dependency | Native graph contract and evidence |
+| --- | --- |
+| Sources, feedback guidance, completion choices | `LearnerPlaybackGraphActivity.presentation`; reuse the existing administrative source-reference/feedback normalizers, first-five source references, bounded excerpts/concepts/rubrics and optional null semantics. The already verified `check_in` and `time_guide_minutes` fields supply evidence context and time guidance. |
+| Configured items and tool | Batch only authored item/tool references, preserving actual catalog UUIDs and native slugs. Configured item quantity is zero as in the source catalog serializer; holdings remain a separate private inventory. The later source adapter must resolve native catalog slugs to these UUIDs for source controls and map commands back through the typed contract. |
+| Configured sounds and typing sound sets | Batch referenced published sound UUIDs, retaining the existing Rust audio publication boundary, and the enabled NPC nodes' selected/default sets. Preserve name/icon, volume, duration, looping, letter keys and real sound identities. Disabled nodes expose no typing sets. |
+| NPC authored graph | Batch node definitions and transitions, including real transition IDs, nullable start endpoint and connector names. Private dialogue cursors/history are not fabricated from these definitions. |
+| Question and options | Question identity is the native activity UUID; option identities are existing native option keys. Preserve prompt, multiple-choice flag, labels/body, outcome keys and authored weights, while excluding correctness, answer feedback and explanation. Canonical numeric-ID assumptions still need the documented identity seam. |
+| Media transport | Reuse `learner_media` URL/config conversion. This does not itself prove delivery authorization for every unowned configured catalog resource; that remains an activation requirement. |
+
+Implementation owners: `domain/src/learner_state.rs`,
+`persistence/src/learner_playback_{graph,presentation}.rs`, and the corresponding
+OpenAPI/generated client types. Presentation enrichment runs only after the
+active run's published node graph is authorized. Catalog references and NPC
+rows are fetched in bounded batches, with maps by resource/activity identity
+for assembly. No per-activity database reads are added. The existing four
+graph queries remain; enrichment adds at most seven queries, skipping absent
+resource kinds. Global limits are 4096 items/tools/sounds/NPC nodes per kind,
+8192 NPC edges, 256 sound sets and 6656 typing sounds. Overflow returns the
+existing unavailable response rather than a truncated player definition.
+Missing authored catalog references retain the source's null/empty behavior;
+this is distinct from a missing Rust contract.
+
+Verification passed: canonical byte identity, production frontend type/build,
+generated-client drift, Rust workspace fmt/check, fifteen persistence playback
+tests (including three presentation regressions), three application playback
+tests, and all 22 native/browser cases against the rebuilt local API and
+PostgreSQL. The new source-derived fixture first reproduced absent presentation
+props, then verified metadata normalization, real catalog IDs distinct from
+slugs, configured-versus-owned quantities, sound fields, private question-field
+exclusion, NPC transition identities, explicit/default/disabled typing sets,
+unpublished sound exclusion, and 503/recovery for an oversized NPC graph. Existing run-kind/command guards
+and World continuation at 1440×900 and 390×844 remain passing. This is backend
+presentation and unchanged World evidence, not player screenshot parity.
+
+The report is `frontend/playwright-report/playback-presentation/`. The fourteen
+representative two-activity reads took 6–12 ms locally and returned 4.5–11.4 KB.
+The existing 102-activity fixture returned 57850 bytes in 8 ms, compared with
+31453 bytes/8 ms before authored presentation was included. These single local
+observations describe the additional payload, not a performance guarantee.
+No canonical UI, database migration or production ownership changed.
+
+This completes the authored-presentation prerequisite, not the player route.
+Before activation, reconcile node/topic props, portal destinations, private
+answers/progress/play-state and per-activity review/shared-task state; all
+player transport, availability and media boundaries still need their own
+complete source-derived acceptance. Question option-weight authoring must also
+be checked against the source; exposing stored weights is not evidence that
+all source authoring controls persist them.
 
 ## Status and purpose
 
