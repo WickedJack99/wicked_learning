@@ -1004,6 +1004,60 @@ local backend. Reports are retained under ignored
 state fixture returned 44382 bytes in 11–12 ms locally; these are observations,
 not a production performance claim.
 
+### Canonical playback prerequisites (activation remains pending)
+
+Entry audit against pinned `main`:
+`app/Http/Controllers/LearningWorldController.php::play`,
+`app/Learning/Serializers/{LearningNodeSerializer,LearningActivitySerializer,LearnerProgressSerializer}.php`,
+`resources/js/pages/learning/node-play.tsx`, `types/learning.ts`, and
+`features/world/{activity-panel,active-activity,learning-check-in,api}.ts*`.
+The complete player imports `standard-activities`, `markdown-activity`,
+`tool-grant-activity`, `item-grant-activity`, `item-obstacle-activity`,
+`obstacle-activity`, `message-activities`, `npc-dialogue-player`,
+`shared-task-activity` and `activity-ambient-sound`. These whole source modules,
+their transitive controls and the existing copied layout remain the only UI
+target. This prerequisite audit does not declare that their complete command
+and field mappings are verified.
+
+| Source requirement | Reusable Rust evidence | Concrete remaining contract / adapter work |
+| --- | --- | --- |
+| Node UUID in `/learning/nodes/{node}/play`; node/map identity in props | `GET /learner/play-runs/{play_run_id}`, `domain/src/learner_state.rs::LearnerPlaybackContext`, `persistence/src/learner_playback.rs::PlaybackRow` | Actual authorized `node_id` and `map_id` now returned for generic, message, portal-arrival, revisit, recall and replay reads. Existing titles/slugs cannot stand in for these identities. The future adapter must validate route identity against the authorized read before mounting. |
+| Start/resume/reset; ordinary, portal, revisit, recall and replay semantics | Existing `/learner/activity-starts/{start_id}/{start,reset}`, replay/recall/revisit entry endpoints and run repositories | Map source query parameters and restart response URL to typed commands. Preserve distinct run kinds and CSRF; no Laravel GET/session emulation. Inventory clean URL entry and direct activity entry before activation. |
+| Complete `node` with activity graph, start alternatives and portal links | World graph supplies real outline IDs; active-run document supplies one safe activity; native author graph is **not** a learner endpoint | Provide a permission-scoped learner graph/document with every source-consumed activity, transition, configured resource and destination field. Never fill inactive activities with fake config or use author-only payloads. |
+| `playActivityId`, `playRouteId`, `playRunId`, `revisitActivityId`, `recallQuestionId` | Active activity ID, optional start ID, run ID/kind and owner-scoped recall handle exist | Reconcile question/option identities and source recall question identity versus native recall-item handle. Source numeric identity checks such as alternative `route.id > 0` require an exact transport/identity seam, not invented numeric IDs. |
+| `progress.activities`, `progress.answers`, `progress.recallQuestionIds`, `playState` | Native World activity summaries, question feedback, recall state and type-specific run state | Audit source progress metadata, earlier answers and resume state; current single-activity feedback is not proof of full page-prop parity. |
+| Reached/completed progress and optional check-in | Existing route-entry/progress writes, completion and check-in endpoints; `persistence/src/learner_playback.rs` | Map all source completion fields and returned activity/transition identities, including assistance, outcome and check-in state; do not acknowledge an unmapped write. |
+| Question/reflection/grants/obstacles/messages/dialogue/shared-task/portal commands | Existing typed `/learner/play-runs/{run}/activities/{slug}/...` operations and persistence modules | Complete per-player source request/response and media mapping before mounting the route family. Preserve the server's active-run authority even where source state selects the next activity locally. |
+| Companion refresh, shared layout, appearance, inventory, bookmarks and return-to-map | Existing shell and World adapters, companion context/turn, bookmark and map-location operations | Bind to actual node/activity/run context. Source partial reload of Companion must remain scoped; failed reads/writes keep explicit unavailable/error behavior. |
+| Anonymous playback and invalid/unpublished/unowned runs | Anonymous source branch exists; native playback currently requires authentication | Anonymous source parity remains missing. Keep the route unavailable until its required contracts exist; 401/404/503 must not produce a fabricated player document. |
+
+Implementation order: finish the bounded playback read prerequisites, complete
+the source-shaped graph/progress and per-player command matrix, then activate
+the whole copied route with native run/refresh/navigation coverage. Playback
+acceptance must include both required viewports and actual Rust integration;
+read-contract tests alone do not establish UI parity or route completion.
+
+**Verified identity prerequisite:** added required UUID fields to the existing
+OpenAPI context and regenerated the typed client. Every read branch obtains
+them from its existing authorized node/map joins; no new query, endpoint,
+schema migration, writer or canonical component was added. The initial native
+regression failed on the absent fields. `frontend/e2e/canonical-playback-contract-live.spec.ts`
+then passed all six reader branches, cross-checking real author activity IDs,
+distinct portal source/target nodes, 404 for another principal, 401 without a
+session, 404 after unpublishing the fixture map and question-answer exclusion.
+The scoped SQL fixtures seed only newly created run records; they do not claim
+entry-writer or playback UI acceptance. Cleanup deletes their created map and
+cascaded fixture records.
+
+Verification passed: canonical identity, frontend production type/build,
+generated-client drift, Rust fmt/workspace check, eight playback persistence
+unit tests and three application tests. All eight native/browser checks passed:
+the six reader cases plus existing real World continuation at 1440×900 and
+390×844. The latter still reaches the explicit unavailable player route; it is
+identity/navigation regression evidence, not playback parity. The ignored
+`frontend/playwright-report/playback-identity/` contains the results. No source
+UI changed, so no new playback screenshot parity is claimed.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

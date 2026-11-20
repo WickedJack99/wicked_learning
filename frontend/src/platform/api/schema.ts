@@ -8210,6 +8210,16 @@ export interface components {
             removed: true;
         };
         LearnerPlaybackContext: {
+            /**
+             * Format: uuid
+             * @description Actual authorized node identity for the source player URL.
+             */
+            node_id: string;
+            /**
+             * Format: uuid
+             * @description Actual map identity owning the authorized node.
+             */
+            map_id: string;
             node_slug: string;
             node_title: string;
             map_slug: string;

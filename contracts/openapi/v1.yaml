@@ -10911,8 +10911,10 @@ components:
     LearnerPlaybackContext:
       type: object
       additionalProperties: false
-      required: [node_slug, node_title, map_slug, map_title, route_label]
+      required: [node_id, map_id, node_slug, node_title, map_slug, map_title, route_label]
       properties:
+        node_id: { type: string, format: uuid, description: Actual authorized node identity for the source player URL. }
+        map_id: { type: string, format: uuid, description: Actual map identity owning the authorized node. }
         node_slug:
           type: string
           pattern: '^[a-z0-9-]+$'

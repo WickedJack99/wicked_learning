@@ -840,6 +840,9 @@ pub enum LearnerPlaybackRunKind {
 /// server-owned commands.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerPlaybackContext {
+    /// Actual authorized identities for the copied player URL and page props.
+    pub node_id: String,
+    pub map_id: String,
     pub node_slug: String,
     pub node_title: String,
     pub map_slug: String,
