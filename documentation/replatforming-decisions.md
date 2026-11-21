@@ -534,6 +534,14 @@ without changing entry time or progress, allowing the source's chained
 translation read to retain the current authored translated copy; it does not reopen other run kinds or broaden
 any activity-specific mutation command. Output portals retain ADR-053's
 separate pending-arrival exception.
+The source's persisted clean player URL also resolves the caller's current
+ordinary run through `GET /api/v1/learner/nodes/{node_id}/resume`. Selection
+matches `LearnerRouteProgressService::progressForNode`: latest-entered unfinished
+work first, otherwise latest-updated completed work. The selected run goes
+through this same reader; an inaccessible selection does not fall back to an
+older available route. The lookup neither starts nor resets a run, and a
+principal/node index scopes its history query. It does not supply new implicit,
+anonymous or nonordinary entry. Existing read-side visit bookkeeping remains.
 The first reader and route-start policy support only `open_practice`; adding a
 different activity type requires its own server validation, OpenAPI contract,
 writer and lifted original React component.

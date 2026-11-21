@@ -1498,6 +1498,10 @@ fn router(state: AppState) -> Router {
             post(learner_route_run::reset),
         )
         .route(
+            "/api/v1/learner/nodes/{node_id}/resume",
+            get(learner_playback::resume_node),
+        )
+        .route(
             "/api/v1/learner/play-runs/{play_run_id}",
             get(learner_playback::show),
         )
@@ -2121,6 +2125,7 @@ mod tests {
         for path in [
             "/api/v1/learner/world",
             "/api/v1/learner/shell",
+            "/api/v1/learner/nodes/00000000-0000-0000-0000-000000000001/resume",
             "/api/v1/learner/companion/avatar/00000000-0000-0000-0000-000000000001?surface=desk",
         ] {
             let response = router(state.clone())

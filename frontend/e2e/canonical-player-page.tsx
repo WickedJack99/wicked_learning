@@ -18,7 +18,7 @@ import '../canonical-source/resources/css/app.css';
 const original = window.name === 'pinned-main';
 function Evidence() {
     const [entry] = useState(() => new URL(location.href));
-    const state = usePlaybackPageDocument(entry.searchParams.get('run'), entry.pathname.split('/')[3], entry.searchParams.get('route'));
+    const state = usePlaybackPageDocument(entry.searchParams.get('run'), entry.pathname.split('/')[3], entry.searchParams.get('route'), entry.searchParams.size === 0);
     if (state.kind === 'loading') return <Spinner />;
     if (state.kind === 'unavailable') return <AlertError errors={[state.message]} />;
     const Page = original ? MainPage : CopiedPage;

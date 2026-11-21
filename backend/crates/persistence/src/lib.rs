@@ -100,6 +100,7 @@ pub mod learner_journal_page;
 pub mod learner_language_preference;
 pub mod learner_media;
 pub mod learner_node_availability;
+pub mod learner_node_resume;
 pub mod learner_node_tool;
 mod learner_npc_answer;
 pub mod learner_npc_dialogue;

@@ -7,7 +7,8 @@ use axum_login::AuthSession;
 use serde::Deserialize;
 use uuid::Uuid;
 use wicked_learning_application::learner_playback::{
-    LearnerPlaybackCompletionCommand, LearnerPlaybackQuery, LearnerPlaybackReachCommand,
+    LearnerNodeResumeQuery, LearnerPlaybackCompletionCommand, LearnerPlaybackQuery,
+    LearnerPlaybackReachCommand,
 };
 use wicked_learning_domain::learner_state::{
     LearnerPlaybackActivityState, LearnerPlaybackCompletionResult, LearnerPlaybackDocument,
@@ -40,6 +41,25 @@ pub async fn reach_current_activity(
     let repository = PostgresLearnerPlaybackReachRepository::new(&state.application_database);
     LearnerPlaybackReachCommand::new(&repository)
         .execute(&principal, run, &reference)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
+}
+
+pub async fn resume_node(
+    State(state): State<AppState>,
+    Path(node_id): Path<String>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<LearnerPlaybackDocument>, ApiError> {
+    let node = Uuid::parse_str(&node_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    let repository =
+        wicked_learning_persistence::learner_node_resume::PostgresLearnerNodeResumeRepository::new(
+            &state.application_database,
+        );
+    LearnerNodeResumeQuery::new(&repository)
+        .execute(&principal, node)
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)

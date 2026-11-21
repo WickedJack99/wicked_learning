@@ -75,6 +75,10 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                     }
                     expect(mutations).toEqual([]);
                     page.off('request', recordMutation);
+                    await page.goto(`http://localhost:8084/learning/nodes/${randomUUID()}/play`);
+                    await expect(page.getByText('The player is currently unavailable.', { exact: true })).toBeVisible();
+                    await bounded(page.getByText('The player is currently unavailable.', { exact: true }), viewport);
+                    await expect(page.getByText('First source step', { exact: true })).toHaveCount(0);
                     await page.goto(`http://localhost:8084/learning/nodes/${randomUUID()}/play?route=${start}`);
                     await expect(page.getByText('The player entry is currently unavailable.', { exact: true })).toBeVisible();
                     expect(sql(`SELECT current_play_run_id FROM learner_route_progress WHERE principal_id='${principals[index]}' AND activity_start_id='${start}'`).trim()).toBe(runs[index]);
@@ -136,6 +140,24 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                 await expect.poll(() => sql(`SELECT note FROM learner_activity_check_ins WHERE principal_id='${principals[index]}' AND activity_id='${first}' AND play_run_id='${runs[index]}'`).trim()).toBe('An actual private observation.');
                 await expect.poll(() => sql(`SELECT status FROM learner_activity_progress WHERE principal_id='${principals[index]}' AND activity_id='${second}'`).trim()).toBe('reached');
                 expect(documents).toEqual([]); expect(new URL(page.url()).searchParams.get('activity_id')).toBe(second);
+                if (!failure) {
+                    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('learning.activeActivity')!));
+                    expect(saved.playHref).toBe(`/learning/nodes/${node.node_id}/play`);
+                    const entryCommands: string[] = [];
+                    const recordEntry = (request: import('@playwright/test').Request) => { if (request.method() === 'POST' && /\/activity-starts\//.test(request.url())) entryCommands.push(request.url()); };
+                    page.on('request', recordEntry);
+                    await page.goto(`http://localhost:8084${saved.playHref}`);
+                    await expect(page.getByText('Second source step', { exact: true })).toBeVisible();
+                    expect(new URL(page.url()).searchParams.get('run')).toBe(runs[index]);
+                    expect(new URL(page.url()).searchParams.get('route')).toBe(start);
+                    expect(entryCommands).toEqual([]);
+                    await page.goto(`http://localhost:8084${saved.playHref}?activity_id=${second}`);
+                    await expect(page.getByText('The player entry is currently unavailable.', { exact: true })).toBeVisible();
+                    expect(entryCommands).toEqual([]);
+                    await page.goto(`http://localhost:8084${saved.playHref}`);
+                    await expect(page.getByText('Second source step', { exact: true })).toBeVisible();
+                    page.off('request', recordEntry);
+                }
             }
             await compare(pages, 'next-activity', info);
             for (const [index, page] of pages.entries()) {

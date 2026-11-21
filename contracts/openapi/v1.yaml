@@ -6983,6 +6983,26 @@ paths:
         '404': { description: The private page does not exist for this learner. }
         '422': { description: Review requests are disabled, destination access was lost, or this page was already reviewed. }
         '503': { description: The application database is unavailable. }
+  /learner/nodes/{node_id}/resume:
+    get:
+      operationId: getLearnerNodeResume
+      summary: Resolve the learner's clean player URL to their current ordinary run.
+      description: Selects only the authenticated principal's current route history at this node. Prefers in-progress work by latest entry and creation, otherwise latest updated completed work. Reuses the existing playback publication, role, evaluated availability, configuration and bounded graph checks. An unavailable selected run is not replaced by an older run. Does not start, reset or advance a route; existing playback visit bookkeeping still applies. No ordinary history, unsupported or inaccessible selected state returns not found. Anonymous and new direct entry are not supplied by this endpoint.
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The actual current run's complete authorized playback document.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerPlaybackDocument' }
+        '401': { description: Authentication is required. }
+        '403': { description: The identity has no application principal or role assignment. }
+        '404': { description: No owned current ordinary run at this node, or the selected run is unavailable. }
+        '503': { description: Persistence is unavailable. }
   /learner/play-runs/{play_run_id}:
     get:
       operationId: getLearnerPlayback

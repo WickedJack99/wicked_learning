@@ -5671,6 +5671,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/nodes/{node_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve the learner's clean player URL to their current ordinary run.
+         * @description Selects only the authenticated principal's current route history at this node. Prefers in-progress work by latest entry and creation, otherwise latest updated completed work. Reuses the existing playback publication, role, evaluated availability, configuration and bounded graph checks. An unavailable selected run is not replaced by an older run. Does not start, reset or advance a route; existing playback visit bookkeeping still applies. No ordinary history, unsupported or inaccessible selected state returns not found. Anonymous and new direct entry are not supplied by this endpoint.
+         */
+        get: operations["getLearnerNodeResume"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}": {
         parameters: {
             query?: never;
@@ -33011,6 +33031,56 @@ export interface operations {
                 content?: never;
             };
             /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerNodeResume: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The actual current run's complete authorized playback document. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerPlaybackDocument"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No owned current ordinary run at this node */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Persistence is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

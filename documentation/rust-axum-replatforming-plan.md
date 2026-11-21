@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins, Companion context/recovery, ordinary output-portal travel and completed ordinary refresh integrated below | Anonymous and implicit entry, Recall reconciliation, nonordinary entry/continuation/restart, completed nonordinary and finished-portal refreshes, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
+| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins, Companion context/recovery, ordinary output-portal travel, completed ordinary refresh and clean-URL return integrated below | Anonymous and implicit entry, Recall reconciliation, nonordinary entry/continuation/restart, completed nonordinary and finished-portal refreshes, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -2118,6 +2118,60 @@ coverage is not pointer acceptance. Reports are ignored under
 `frontend/playwright-report/player-completed-translation/` and
 `frontend/playwright-report/player-completed-translation-contract/`.
 Production NodePlay remains unavailable; no canonical source file changed.
+
+### Clean-URL player return
+
+Pinned source: `pages/learning/node-play.tsx` persists
+`features/world/active-activity.ts::persistActiveActivity` with
+`useCleanPlayHref: true`; shared `LearnerSurfaceNavigation` returns to that
+bare `/learning/nodes/{id}/play` URL. `LearningWorldController::play` uses
+`LearnerRouteProgressService::progressForNode` when no explicit run is supplied:
+prefer an in-progress route by descending last-entered/created time, otherwise
+choose the most recently updated current route. The whole copied-page desktop
+regression reproduces unavailable entry when following that exact saved URL.
+
+| Contract | Source/Rust mapping | Required evidence |
+| --- | --- | --- |
+| Resolve a clean node URL without creating another run | New bounded `GET /learner/nodes/{node_id}/resume`, returning existing `LearnerPlaybackDocument`; reuse `PostgresLearnerPlaybackRepository` after selecting the caller's current ordinary run | Prefer unfinished work over a more recently completed route; within unfinished work prefer latest entry. When all are completed, use latest update. Return exactly that run, never silently choose an older available route if the selected one fails its read gates. |
+| Ownership, publication and availability | Actual principal/node-scoped selection followed by the existing playback graph/configuration/access gates | No progress, another principal, wrong node, locked/unpublished selected content and stale data remain unavailable. No supplied principal or activity can select another learner's run. |
+| Source URL/history/local state | `playback-page-bootstrap.ts` consumes the typed resume document when run/start are absent; copied page restores its own full URL | Follow the actual persisted clean href at both viewports using whole main/copy trees; retain the saved activity and run and issue no start/reset command. |
+| Bounded persistence | One principal/node lookup with LIMIT 1; additive principal/node index; existing bounded playback reader | Record local timing and verify the index/migration, with no history or route-progress mutation in selection. Existing playback visit bookkeeping remains unchanged. |
+
+A clean URL with no ordinary history still has no projection. New implicit
+entry without an authored start, `activity` shorthand, anonymous entry and
+nonordinary return selection are separate unresolved source contracts; this
+lookup must not invent a default route or treat those cases as completed.
+Production NodePlay remains closed until the complete family is accepted.
+
+**Verified:** `canonical-player-node-resume-live.spec.ts` exercises actual local
+Rust start/completion commands and PostgreSQL: latest unfinished selection,
+unfinished-over-completed ordering, latest completed selection, no history,
+wrong node, principal isolation, anonymous rejection, superseded runs and
+locked/unpublished/role-restricted selected content without fallback. Every
+resume checks that route-progress rows remain unchanged. Migration 0115 and
+the principal/node index were applied and verified on the local test stack;
+the index is additive and may remain when rolling back to the previous binary.
+Local reads took 6–7 ms in the final run; this is not a production benchmark.
+
+`canonical-player-page-live.spec.ts` follows the actual source-persisted clean
+href in both whole source trees at 1440×900 and 390×844. It retains the current
+activity/run/start, sends no start/reset command, rejects an unsupported
+activity-only query, and verifies a bounded unavailable state for a clean URL
+without resumable history. The final run, including
+`canonical-playback-contract-live.spec.ts`, passed all 11 tests. Of 16 screenshot
+pairs, 15 are pixel-identical; one existing narrow check-in pair differs only
+in the small icon region `(358,553)–(361,555)`. Both clean-return screenshots
+are identical and were visually inspected. The inherited mobile toolbar
+overlap remains an open source-defect acceptance limitation; keyboard fallback
+does not prove pointer usability.
+
+Frontend canonical identity, production type/build, generated OpenAPI client,
+Rust formatting/workspace checks, four application tests, 183 API tests and
+129 persistence unit tests passed (two API and six persistence database tests
+are explicitly ignored by the unit suites; the live coverage above ran against
+the migrated database). Local evidence:
+`frontend/playwright-report/player-node-resume-final/`. No copied presentation
+files or production routing changed.
 
 ### Copied player page-prop adapter
 

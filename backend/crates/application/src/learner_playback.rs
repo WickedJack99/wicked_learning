@@ -56,6 +56,34 @@ pub trait LearnerPlaybackRepository {
     ) -> impl Future<Output = Result<Option<LearnerPlaybackDocument>, LearnerPlaybackReadError>> + Send;
 }
 
+pub trait LearnerNodeResumeRepository {
+    fn load_node_resume(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+    ) -> impl Future<Output = Result<Option<LearnerPlaybackDocument>, LearnerPlaybackReadError>> + Send;
+}
+
+pub struct LearnerNodeResumeQuery<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository: LearnerNodeResumeRepository>
+    LearnerNodeResumeQuery<'repository, Repository>
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+    ) -> Result<Option<LearnerPlaybackDocument>, LearnerPlaybackReadError> {
+        self.repository.load_node_resume(principal, node_id).await
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LearnerPlaybackCompletionError;
 
@@ -151,6 +179,39 @@ mod tests {
 
     struct RecordingRepository {
         received: Mutex<Option<(Uuid, Uuid)>>,
+    }
+
+    impl super::LearnerNodeResumeRepository for RecordingRepository {
+        async fn load_node_resume(
+            &self,
+            principal: &AuthorizedPrincipal,
+            node_id: Uuid,
+        ) -> Result<Option<LearnerPlaybackDocument>, LearnerPlaybackReadError> {
+            *self.received.lock().expect("test mutex is available") =
+                Some((principal.subject_id, node_id));
+            Ok(None)
+        }
+    }
+
+    #[tokio::test]
+    async fn delegates_clean_node_resume_without_inventing_an_entry_run() {
+        let repository = RecordingRepository {
+            received: Mutex::new(None),
+        };
+        let principal = AuthorizedPrincipal {
+            subject_id: Uuid::new_v4(),
+            roles: vec!["learner".into()],
+            capabilities: vec![],
+        };
+        let node = Uuid::new_v4();
+        let result = super::LearnerNodeResumeQuery::new(&repository)
+            .execute(&principal, node)
+            .await;
+        assert!(matches!(result, Ok(None)));
+        assert_eq!(
+            *repository.received.lock().expect("test mutex is available"),
+            Some((principal.subject_id, node))
+        );
     }
 
     struct CompletionAbsentRepository;
