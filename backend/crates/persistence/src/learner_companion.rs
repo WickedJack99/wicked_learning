@@ -191,6 +191,7 @@ struct ResolvedCompanionConfiguration {
 }
 
 struct ResolvedCompanionScope {
+    run: Option<ActivityContextStateRow>,
     configuration: ResolvedCompanionConfiguration,
     scope: Option<ScopeRow>,
 }
@@ -203,7 +204,14 @@ async fn load(
     let Some(resolved) = resolve_companion_scope(pool, principal, request).await? else {
         return Ok(None);
     };
-    let context = context(pool, principal, request.surface, resolved.scope.as_ref()).await?;
+    let context = context(
+        pool,
+        principal,
+        request.surface,
+        resolved.scope.as_ref(),
+        resolved.run,
+    )
+    .await?;
     Ok(Some(LearnerCompanion {
         avatar_color: resolved.configuration.avatar_color,
         avatar_position_x: resolved.configuration.avatar_position_x,
@@ -256,7 +264,11 @@ async fn resolve_companion_scope(
         LearnerCompanionSurface::World | LearnerCompanionSurface::Activity
     ) && scope.is_none()
     {
-        return Ok(None);
+        return if request.play_run_id.is_some() {
+            Err(LearnerCompanionError::NotFound)
+        } else {
+            Ok(None)
+        };
     }
     if let Some(scope) = scope.as_ref()
         && let (Some(node_id), Some(node_state), Some(node_visual_config)) = (
@@ -269,15 +281,38 @@ async fn resolve_companion_scope(
             .await
             .map_err(unavailable)?
         else {
-            return Ok(None);
+            return if request.play_run_id.is_some() {
+                Err(LearnerCompanionError::NotFound)
+            } else {
+                Ok(None)
+            };
         };
         if !availability
             .state_for_node(node_id, node_state, node_visual_config)
             .can_play()
         {
-            return Ok(None);
+            return if request.play_run_id.is_some() {
+                Err(LearnerCompanionError::NotFound)
+            } else {
+                Ok(None)
+            };
         }
     }
+
+    let run = if let Some(run) = request.play_run_id {
+        Some(
+            owned_run_context(
+                pool,
+                principal,
+                request.activity_id.expect("validated activity run"),
+                run,
+            )
+            .await?
+            .ok_or(LearnerCompanionError::NotFound)?,
+        )
+    } else {
+        None
+    };
 
     let assigned_graphs = assigned_graphs(pool, scope.as_ref()).await?;
     let configuration = resolve_configuration(&settings, scope.as_ref(), &assigned_graphs);
@@ -285,6 +320,7 @@ async fn resolve_companion_scope(
         return Ok(None);
     }
     Ok(Some(ResolvedCompanionScope {
+        run,
         configuration,
         scope,
     }))
@@ -297,7 +333,10 @@ async fn prepare_turn(
 ) -> Result<PreparedCompanionTurn, LearnerCompanionTurnError> {
     let resolved = resolve_companion_scope(pool, principal, &request.scope)
         .await
-        .map_err(|_| LearnerCompanionTurnError::Unavailable)?
+        .map_err(|error| match error {
+            LearnerCompanionError::NotFound => LearnerCompanionTurnError::Invalid,
+            LearnerCompanionError::Unavailable => LearnerCompanionTurnError::Unavailable,
+        })?
         .ok_or(LearnerCompanionTurnError::Invalid)?;
     let configuration = resolved.configuration;
     if !configuration.ai_enabled || !matches!(configuration.mode.as_str(), "guided_ai" | "open_ai")
@@ -319,13 +358,6 @@ async fn prepare_turn(
         .and_then(Value::as_object)
         .ok_or(LearnerCompanionTurnError::Invalid)?;
     let activity_id = resolved.scope.as_ref().and_then(|scope| scope.activity_id);
-    if let Some(play_run_id) = request.play_run_id
-        && !owns_run_for_activity(pool, principal, activity_id, play_run_id)
-            .await
-            .map_err(|_| LearnerCompanionTurnError::Unavailable)?
-    {
-        return Err(LearnerCompanionTurnError::Invalid);
-    }
     if activity_id.is_some()
         && matches!(
             request.assistance_level,
@@ -783,8 +815,8 @@ fn valid_hex_color(value: &str) -> bool {
 #[derive(FromRow)]
 struct ActivityContextStateRow {
     play_run_id: Uuid,
-    route_start_id: Uuid,
-    route_start_label: String,
+    route_start_id: Option<Uuid>,
+    route_start_label: Option<String>,
 }
 
 async fn context(
@@ -792,6 +824,7 @@ async fn context(
     principal: &AuthorizedPrincipal,
     surface: LearnerCompanionSurface,
     scope: Option<&ScopeRow>,
+    requested_run: Option<ActivityContextStateRow>,
 ) -> Result<LearnerCompanionContext, LearnerCompanionError> {
     match surface {
         LearnerCompanionSurface::Desk => Ok(LearnerCompanionContext {
@@ -853,7 +886,10 @@ async fn context(
         LearnerCompanionSurface::Activity => {
             let scope = scope.expect("a visible activity request has scope");
             let activity_id = scope.activity_id.expect("activity scope activity id");
-            let active_run = active_run(pool, principal, activity_id).await?;
+            let active_run = match requested_run {
+                Some(run) => Some(run),
+                None => active_run(pool, principal, activity_id).await?,
+            };
             let post_attempt_available = completed_activity(pool, principal, activity_id).await?;
             Ok(LearnerCompanionContext {
                 actions: vec![
@@ -890,7 +926,8 @@ async fn context(
                 post_attempt_available,
                 route: active_run
                     .as_ref()
-                    .map(|run| reference(run.route_start_id, &run.route_start_label)),
+                    .and_then(|run| run.route_start_id.zip(run.route_start_label.as_deref()))
+                    .map(|(id, label)| reference(id, label)),
                 surface: surface.as_str().to_owned(),
                 topic: scope
                     .topic_id
@@ -917,22 +954,40 @@ async fn active_run(
     .map_err(unavailable)
 }
 
-async fn owns_run_for_activity(
+/// The source page supplies its actual run. One-activity runs have no authored
+/// route reference; never borrow a simultaneous ordinary route's identity.
+async fn owned_run_context(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
-    activity_id: Option<Uuid>,
+    activity_id: Uuid,
     play_run_id: Uuid,
-) -> Result<bool, LearnerCompanionError> {
-    let Some(activity_id) = activity_id else {
-        return Ok(false);
-    };
-    sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS (SELECT 1 FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activities AS activities ON activities.id = $2 INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = routes.map_asset_id WHERE principals.identity_subject_id = $1 AND progress.node_id = nodes.id AND progress.current_play_run_id = $3)",
-    )
+) -> Result<Option<ActivityContextStateRow>, LearnerCompanionError> {
+    sqlx::query_as::<_, ActivityContextStateRow>(r#"
+        WITH owner AS (SELECT id FROM application_principals WHERE identity_subject_id = $1)
+        SELECT progress.current_play_run_id AS play_run_id, starts.id AS route_start_id,
+               COALESCE(NULLIF(BTRIM(starts.label), ''), 'Current route') AS route_start_label
+        FROM learner_route_progress AS progress
+        INNER JOIN owner ON owner.id = progress.principal_id
+        INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id
+        INNER JOIN learning_activities AS activities ON activities.id = $2
+        INNER JOIN learning_routes AS routes ON routes.id = activities.route_id
+        INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = routes.map_asset_id
+        WHERE progress.node_id = nodes.id AND progress.current_play_run_id = $3
+        UNION ALL
+        SELECT runs.id, NULL::uuid, NULL::text FROM learner_activity_replay_runs AS runs
+        INNER JOIN owner ON owner.id = runs.principal_id WHERE runs.id = $3 AND runs.activity_id = $2
+        UNION ALL
+        SELECT runs.id, NULL::uuid, NULL::text FROM learner_revisit_runs AS runs
+        INNER JOIN owner ON owner.id = runs.principal_id WHERE runs.id = $3 AND runs.activity_id = $2
+        UNION ALL
+        SELECT runs.id, NULL::uuid, NULL::text FROM learner_portal_arrival_runs AS runs
+        INNER JOIN owner ON owner.id = runs.principal_id WHERE runs.id = $3 AND runs.target_activity_id = $2
+        LIMIT 1
+    "#)
     .bind(principal.subject_id)
     .bind(activity_id)
     .bind(play_run_id)
-    .fetch_one(pool)
+    .fetch_optional(pool)
     .await
     .map_err(unavailable)
 }
@@ -1047,8 +1102,8 @@ mod tests {
             capabilities: vec![],
         };
         let repository = PostgresLearnerCompanionRepository::new(&pool);
-        let desk = LearnerCompanionRequest::parse("desk", None, None).unwrap();
-        let map = LearnerCompanionRequest::parse("world", Some("map"), None).unwrap();
+        let desk = LearnerCompanionRequest::parse("desk", None, None, None).unwrap();
+        let map = LearnerCompanionRequest::parse("world", Some("map"), None, None).unwrap();
         assert_eq!(
             repository.avatar_asset_id(&principal, &desk).await.unwrap(),
             Some(platform_asset)
@@ -1251,6 +1306,6 @@ mod tests {
         assert!(prompt.contains("Ask one brief reflective question."));
         assert!(prompt.contains("Allowed context: current-context"));
         assert!(!prompt.contains("Reveal the learner journal."));
-        assert!(LearnerCompanionRequest::parse("desk", None, None).is_some());
+        assert!(LearnerCompanionRequest::parse("desk", None, None, None).is_some());
     }
 }

@@ -6209,7 +6209,7 @@ export interface paths {
         put?: never;
         /**
          * Record one private, optional reflection after a completed activity.
-         * @description The server requires the caller's completed activity progress and current route-run identity. Explicit id:<UUID> activity references may address a published completed activity in any route group on that run's MapAsset. Legacy slugs remain scoped to the original route group to avoid duplicate-slug ambiguity. Foreign places, other learners, incomplete activities and superseded run IDs are unavailable.
+         * @description The server requires the caller's completed activity progress and currently playable published content. An ordinary run must be the current route-run identity; explicit id:<UUID> activity references may address a completed activity in any route group on that run's MapAsset, while legacy slugs remain scoped to the original group. A completed replay, revisit or portal-arrival run authorizes only its one actual activity, with the owned run and progress locked during the write. Recall runs never authorize check-ins, even if ordinary completed progress exists. Foreign places, other learners, locked/hidden nodes, incomplete activities and superseded route-run IDs are unavailable. This command does not advance or reset an authored route or create evidence.
          */
         post: operations["recordLearnerActivityCheckIn"];
         delete?: never;
@@ -17199,6 +17199,8 @@ export interface operations {
                 map_slug?: string;
                 /** @description Required for an activity projection; its visible map/node context is resolved server-side. */
                 activity_id?: string;
+                /** @description Optional only on the activity surface. Resolves the caller-owned ordinary, replay, revisit or portal-arrival run for this exact activity; Recall is unavailable. Omission retains inferred ordinary context. */
+                play_run_id?: string;
             };
             header?: never;
             path?: never;
@@ -17243,6 +17245,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description The explicit run/activity context is unavailable or not owned by this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description The identity or application database is unavailable. */
             503: {
                 headers: {
@@ -17258,6 +17267,8 @@ export interface operations {
                 surface: "desk" | "world" | "activity";
                 map_slug?: string;
                 activity_id?: string;
+                /** @description Optional only on the activity surface. Resolves the caller-owned ordinary, replay, revisit or portal-arrival run for this exact activity; Recall is unavailable. Omission retains inferred ordinary context. */
+                play_run_id?: string;
             };
             header?: never;
             path: {

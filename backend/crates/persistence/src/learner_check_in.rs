@@ -1,3 +1,4 @@
+use crate::learner_node_availability::PostgresLearnerNodeAvailability;
 use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::learner_check_in::{
@@ -50,6 +51,9 @@ struct CompletedActivityRow {
     activity_slug: String,
     activity_id: Uuid,
     principal_id: Uuid,
+    node_id: Uuid,
+    node_state: String,
+    node_visual_config: serde_json::Value,
 }
 
 #[derive(FromRow)]
@@ -65,6 +69,9 @@ async fn record_completed_activity_check_in(
     activity_slug: &str,
     input: &LearnerCheckInInput,
 ) -> Result<Option<LearnerActivityCheckInResult>, sqlx::Error> {
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
     let mut transaction = pool.begin().await?;
     let Some(activity) =
         load_completed_activity_for_update(&mut transaction, principal, play_run_id, activity_slug)
@@ -73,6 +80,17 @@ async fn record_completed_activity_check_in(
         transaction.commit().await?;
         return Ok(None);
     };
+    if !availability
+        .state_for_node(
+            activity.node_id,
+            &activity.node_state,
+            &activity.node_visual_config,
+        )
+        .can_play()
+    {
+        transaction.rollback().await?;
+        return Ok(None);
+    }
 
     let check_in = sqlx::query_as::<_, CheckInRow>(
         "INSERT INTO learner_activity_check_ins (principal_id, activity_id, play_run_id, feeling, note, next_direction) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, to_char(recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at",
@@ -135,13 +153,66 @@ async fn load_completed_activity_for_update(
     // Authored connections can cross route groups within a MapAsset. Explicit
     // identities follow that boundary; legacy slugs retain the original group
     // because two groups can contain activities with the same slug.
-    sqlx::query_as::<_, CompletedActivityRow>(
-        "SELECT activities.id AS activity_id, activities.slug AS activity_slug, progress.principal_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_routes AS routes ON routes.map_asset_id = nodes.map_asset_id INNER JOIN learning_activities AS activities ON activities.route_id = routes.id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id INNER JOIN learner_activity_progress AS activity_progress ON activity_progress.principal_id = progress.principal_id AND activity_progress.activity_id = activities.id AND activity_progress.status = 'completed' WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3 AND activities.route_id = progress.route_id)) AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress, activity_progress",
+    let ordinary = sqlx::query_as::<_, CompletedActivityRow>(
+        "SELECT nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config, activities.id AS activity_id, activities.slug AS activity_slug, progress.principal_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_routes AS routes ON routes.map_asset_id = nodes.map_asset_id INNER JOIN learning_activities AS activities ON activities.route_id = routes.id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id INNER JOIN learner_activity_progress AS activity_progress ON activity_progress.principal_id = progress.principal_id AND activity_progress.activity_id = activities.id AND activity_progress.status = 'completed' WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3 AND activities.route_id = progress.route_id)) AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress, activity_progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
     .bind(activity_slug)
     .bind(&principal.roles)
     .fetch_optional(&mut **transaction)
-    .await
+    .await?;
+    if ordinary.is_some() {
+        return Ok(ordinary);
+    }
+
+    // Completed one-activity runs remain valid for the source's optional
+    // check-in after their active playback document has closed. These are fixed
+    // storage identifiers, never request input. Lock both the owned run and
+    // progress so history/scheduling writes keep the same transaction boundary.
+    // Recall is intentionally absent (ADR-037).
+    for (table, activity_column) in [
+        ("learner_activity_replay_runs", "activity_id"),
+        ("learner_revisit_runs", "activity_id"),
+        ("learner_portal_arrival_runs", "target_activity_id"),
+    ] {
+        let query = format!(
+            r#"
+            SELECT activities.id AS activity_id, activities.slug AS activity_slug,
+                   runs.principal_id, nodes.id AS node_id, nodes.state AS node_state,
+                   nodes.visual_config AS node_visual_config
+            FROM {table} AS runs
+            INNER JOIN application_principals AS principals ON principals.id = runs.principal_id
+            INNER JOIN learning_activities AS activities ON activities.id = runs.{activity_column}
+            INNER JOIN learning_routes AS routes ON routes.id = activities.route_id
+            INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id
+            INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id
+            INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id
+            INNER JOIN learner_activity_progress AS activity_progress
+                ON activity_progress.principal_id = runs.principal_id
+                AND activity_progress.activity_id = activities.id
+                AND activity_progress.status = 'completed'
+            WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'completed'
+                AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3))
+                AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL
+                AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL
+                AND activities.published_at IS NOT NULL
+                AND (maps.access_roles @> '["public"]'::jsonb OR EXISTS (
+                    SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role)
+                    WHERE access_role.role = ANY($4)))
+            FOR UPDATE OF runs, activity_progress
+        "#
+        );
+        let completed = sqlx::query_as::<_, CompletedActivityRow>(&query)
+            .bind(principal.subject_id)
+            .bind(play_run_id)
+            .bind(activity_slug)
+            .bind(&principal.roles)
+            .fetch_optional(&mut **transaction)
+            .await?;
+        if completed.is_some() {
+            return Ok(completed);
+        }
+    }
+    Ok(None)
 }

@@ -17,8 +17,10 @@ use crate::{
 };
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct LearnerCompanionQueryParameters {
     activity_id: Option<String>,
+    play_run_id: Option<Uuid>,
     map_slug: Option<String>,
     surface: String,
 }
@@ -50,6 +52,9 @@ pub async fn show(
                 if let Some(id) = request.activity_id {
                     query.append_pair("activity_id", &id.to_string());
                 }
+                if let Some(id) = request.play_run_id {
+                    query.append_pair("play_run_id", &id.to_string());
+                }
                 companion.avatar_url = Some(format!(
                     "/api/v1/learner/companion/avatar/{asset_id}?{}",
                     query.finish()
@@ -70,9 +75,13 @@ fn context_request(
         .map(Uuid::parse_str)
         .transpose()
         .map_err(|_| ApiError::invalid_request())?;
-    let request =
-        LearnerCompanionRequest::parse(&query.surface, query.map_slug.as_deref(), activity_id)
-            .ok_or_else(ApiError::invalid_request)?;
+    let request = LearnerCompanionRequest::parse(
+        &query.surface,
+        query.map_slug.as_deref(),
+        activity_id,
+        query.play_run_id,
+    )
+    .ok_or_else(ApiError::invalid_request)?;
     Ok(request)
 }
 
@@ -102,6 +111,7 @@ pub async fn avatar(
 
 fn map_error(error: LearnerCompanionError) -> ApiError {
     match error {
+        LearnerCompanionError::NotFound => ApiError::not_found(),
         LearnerCompanionError::Unavailable => ApiError::service_unavailable(),
     }
 }

@@ -25,18 +25,27 @@ impl LearnerCompanionSurface {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LearnerCompanionRequest {
     pub activity_id: Option<Uuid>,
+    pub play_run_id: Option<Uuid>,
     pub map_slug: Option<String>,
     pub surface: LearnerCompanionSurface,
 }
 
 impl LearnerCompanionRequest {
-    pub fn parse(surface: &str, map_slug: Option<&str>, activity_id: Option<Uuid>) -> Option<Self> {
+    pub fn parse(
+        surface: &str,
+        map_slug: Option<&str>,
+        activity_id: Option<Uuid>,
+        play_run_id: Option<Uuid>,
+    ) -> Option<Self> {
         let surface = match surface {
             "activity" => LearnerCompanionSurface::Activity,
             "desk" => LearnerCompanionSurface::Desk,
             "world" => LearnerCompanionSurface::World,
             _ => return None,
         };
+        if play_run_id.is_some() && surface != LearnerCompanionSurface::Activity {
+            return None;
+        }
         let map_slug = map_slug
             .map(str::trim)
             .filter(|slug| !slug.is_empty())
@@ -49,6 +58,7 @@ impl LearnerCompanionRequest {
         }
         Some(Self {
             activity_id,
+            play_run_id,
             map_slug,
             surface,
         })
@@ -57,6 +67,7 @@ impl LearnerCompanionRequest {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LearnerCompanionError {
+    NotFound,
     Unavailable,
 }
 
@@ -98,14 +109,29 @@ mod tests {
     #[test]
     fn companion_context_accepts_only_the_source_surface_shape() {
         assert_eq!(
-            LearnerCompanionRequest::parse("desk", None, None)
+            LearnerCompanionRequest::parse("desk", None, None, None)
                 .expect("a desk request")
                 .surface,
             LearnerCompanionSurface::Desk
         );
-        assert!(LearnerCompanionRequest::parse("desk", Some("first-path"), None).is_none());
-        assert!(LearnerCompanionRequest::parse("world", None, Some(Uuid::new_v4())).is_none());
-        assert!(LearnerCompanionRequest::parse("activity", None, None).is_none());
-        assert!(LearnerCompanionRequest::parse("unknown", None, None).is_none());
+        assert!(LearnerCompanionRequest::parse("desk", Some("first-path"), None, None).is_none());
+        assert!(
+            LearnerCompanionRequest::parse("world", None, Some(Uuid::new_v4()), None).is_none()
+        );
+        assert!(LearnerCompanionRequest::parse("activity", None, None, None).is_none());
+        assert!(LearnerCompanionRequest::parse("unknown", None, None, None).is_none());
+    }
+
+    #[test]
+    fn an_explicit_run_requires_an_activity_surface_and_identity() {
+        let run = Uuid::new_v4();
+        let activity = Uuid::new_v4();
+        let request =
+            LearnerCompanionRequest::parse("activity", None, Some(activity), Some(run)).unwrap();
+        assert_eq!(request.play_run_id, Some(run));
+        assert_eq!(request.activity_id, Some(activity));
+        assert!(LearnerCompanionRequest::parse("activity", None, None, Some(run)).is_none());
+        assert!(LearnerCompanionRequest::parse("desk", None, None, Some(run)).is_none());
+        assert!(LearnerCompanionRequest::parse("world", Some("map"), None, Some(run)).is_none());
     }
 }

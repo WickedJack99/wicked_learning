@@ -15,8 +15,9 @@ pub struct LearnerCheckInInput {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LearnerCheckInError;
 
-/// The repository must resolve the activity from the caller-owned route run,
-/// prove that it is completed, and write only that principal's observation.
+/// Resolve currently playable, completed activity progress from the caller's
+/// authored run or completed replay/revisit/portal-arrival run. Recall never
+/// authorizes an ordinary check-in. Write only that principal's observation.
 pub trait LearnerCheckInRepository {
     fn record_completed_activity_check_in(
         &self,

@@ -58,9 +58,8 @@ export async function playbackPageWrite(method: 'POST' | 'DELETE', url: string, 
             ? contextForActivity(activity[1]) : contextForActivity(activity[1], payload.play_run_id);
         const params = { path: { play_run_id: context.run, activity_slug: `id:${context.id}` }, header: { 'X-CSRF-Token': await getCsrfToken() } };
         if (activity[2] === 'check-in') {
-            // The existing native writer authorizes ordinary runs only. Do not
-            // invent a receipt or write Recall evidence to cover that gap.
-            if (context.document.run_kind !== 'route') return unavailable(501);
+            // Recall has no ordinary progress/check-in contract (ADR-037).
+            if (context.document.run_kind === 'recall') return unavailable(501);
             const result = successful(await apiClient.POST('/learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins', {
                 params, body: checkIn(payload),
             }));
@@ -74,7 +73,8 @@ export async function playbackPageWrite(method: 'POST' | 'DELETE', url: string, 
             return { progress: toSourceActivityReceipt(receipt, context.activity) };
         }
         if (payload.status !== 'completed' || payload.is_revisit !== (context.document.run_kind === 'revisit')) return unavailable(400);
-        if (context.document.run_kind === 'recall' || context.activity.activity_type === 'portal') return unavailable(501);
+        if (context.document.run_kind === 'recall' ||
+            (context.activity.activity_type === 'portal' && context.activity.config.portalMode !== 'input')) return unavailable(501);
         const type = context.activity.activity_type;
         const result = ['question', 'reflection', 'review'].includes(type)
             ? await completeResponseActivity(context.id, context.run, {

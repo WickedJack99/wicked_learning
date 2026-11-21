@@ -38,7 +38,7 @@ impl LearnerCompanionTurnRequest {
         assistance_level: &str,
         play_run_id: Option<Uuid>,
     ) -> Option<Self> {
-        let scope = LearnerCompanionRequest::parse(surface, map_slug, activity_id)?;
+        let scope = LearnerCompanionRequest::parse(surface, map_slug, activity_id, play_run_id)?;
         let dialogue_node_id = dialogue_node_id.trim();
         if dialogue_node_id.is_empty() || dialogue_node_id.chars().count() > 80 {
             return None;

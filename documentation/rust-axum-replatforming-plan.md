@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; whole copied learner layout, shared transports, authenticated bootstrap, location persistence, graph identity, search, bookmarks and tool transport integrated below | Anonymous access, progress writes, remaining media, bookmark/inventory projection bounds, availability gaps, route lifecycle and playback; retain observed source usability defects as open acceptance limitations. |
+| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins and explicit Companion run context integrated below | Anonymous and implicit entry, output-portal travel, Recall reconciliation, nonordinary continuation/restart, Companion reload failure recovery, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -1661,10 +1661,10 @@ children and transport adapters; do not build another player presentation.
 | Initial page and private state | `GET /learner/play-runs/{run}`, existing `toPlaybackPageProps`, current user, shell, platform translations, sound preferences and Companion | Bind the actual document for the whole copied page and layout. Initial missing/dead run is unavailable; do not fabricate initial activity, shell or progress. Explicit route entry is covered below; entry without both run and route, and anonymous read, remain required contracts. |
 | Active activity reached, then translation | `POST .../activities/{id:UUID}/reach`, `GET .../translation` | Source `status: reached` selects only this typed entry command. Source translation handling retains original copy on unavailable/stale reads. |
 | Completion and local continuation | Existing typed `/complete`, actual activity-state/next-target receipt and child-specific completion adapters | Parent must reuse real completion receipts, including completed terminal runs; browser outcome/attempt/calibration cannot overwrite evaluated Rust facts. Output-portal travel is an atomic native command, not ordinary completion. |
-| Optional check-in | `POST .../check-ins`, existing state receipt | Bind the run from the exact active page because the source request has no run field. Preserve skip/hide/draft/error behavior. Current native writer only resolves ordinary runs; replay/revisit/arrival require a source-derived contract repair before acceptance. |
+| Optional check-in | `POST .../check-ins`, existing state receipt | Bind the run from the exact active page because the source request has no run field. Preserve skip/hide/draft/error behavior. Ordinary and completed replay/revisit/arrival scopes are supported below; Recall remains excluded. |
 | Restart and alternatives | `/learner/activity-starts/{id}/reset` and `/start` | Preserve returned real run/node/start identities and source URLs. Source `route.id > 0` requires an opaque-ID compatibility seam. No invented numeric IDs or fabricated redirect receipt. |
 | Bookmark | Existing map/node-slug bookmark POST/DELETE | Resolve IDs/slugs from the actual page document, and return the actual boolean. Do not require a fabricated full World snapshot to update one bookmark. |
-| Companion activity reload | Existing `loadCompanion({surface:'activity', activity_id})`; verify its returned run identity | Replace only the page's exact `only:['companion']` reload; preserve local page/check-in state and reject stale reloads. This GET does not accept a run selector. Generic Inertia reload emulation is not permitted. |
+| Companion activity reload | `loadCompanion({surface:'activity', activity_id, play_run_id})`; verify its returned run identity | Replace only the page's exact `only:['companion']` reload; preserve local page/check-in state and reject stale reloads. The bounded explicit run contract is verified below; failure/recovery remains open. Generic Inertia reload emulation is not permitted. |
 | Recall completion/check-in | ADR-037 forbids ordinary progress/check-ins; native completion returns null ordinary progress | The source parent dereferences a progress receipt and can open an ordinary check-in. Reconcile this actual source/accepted-contract conflict explicitly; do not fabricate persisted progress or silently write forbidden Recall evidence. |
 
 The first browser integration must mount the whole copied page and layout,
@@ -1706,7 +1706,7 @@ therefore does not establish unobstructed visibility. The
 canonical source is unchanged. Production player activation remains closed.
 
 Remaining whole-page gates include entry without both run and route,
-anonymous playback, nonordinary check-ins,
+anonymous playback, nonordinary entry/local restart/authored continuation,
 atomic output-portal travel, Recall's accepted-contract conflict, and explicit
 Companion reload failure/recovery without losing local draft state. The
 evidence host is not a production resolver or a claim that the route family
@@ -1776,6 +1776,82 @@ persistence tests (six opt-in ignored), the route-command application test,
 and 26 focused playback persistence tests after the portal repair. Local
 Compose was rebuilt and readiness returned 200. There is no migration or
 production route activation in this slice.
+
+### Completed nonordinary player check-ins and Companion context
+
+Pinned `LearningWorldController::recordActivityCheckIn`,
+`LearnerActivityAccessService::assertCanPlay`,
+`LearnerProgressService::recordCheckIn` and `LearnerProgressSerializer` require
+currently playable content and the principal's completed activity. The source
+check-in is not restricted to an authored route. ADR-032 requires a server-owned
+run; ADR-033 and ADR-040 keep revisit/replay independent of authored progress;
+ADR-037 explicitly excludes Recall. Reuse the existing normalized check-in
+writer and bounded history, with a completed-run authorization path for replay,
+revisit and portal arrival. Each such run authorizes its one actual activity,
+never another activity on the same map. Recall must remain unavailable even
+when ordinary progress exists. Reuse the existing evaluated node-availability
+service for both ordinary and nonordinary check-ins before writing; publication
+and map roles alone do not satisfy the source's `canPlay` check.
+
+The six whole-page revisit/replay/arrival checks then exposed a missing
+Companion contract: its read infers only ordinary active routes, while the
+pinned `LearningCompanionContext::forActivity` receives the actual page run.
+Extend the existing Companion document/avatar query with an optional activity
+`play_run_id`, resolving an owned ordinary/replay/revisit/arrival run and its
+actual activity before returning context. A one-activity run has no authored
+route reference; retain null rather than inventing one. Preserve the old
+inferred ordinary context when no run is supplied. Reuse that ownership check
+for the existing typed Companion turn; Recall stays excluded while its wider
+page contract is unresolved. Invalid explicit contexts must be unavailable,
+not disguised as disabled Companion or rewritten by the frontend.
+
+**Implemented:** `learner_check_in.rs` preserves the existing ordinary-run
+resolution and adds at most three indexed, fixed-table lookups for completed
+replay/revisit/arrival runs. Each locks the owning run and completed activity
+progress before using the same private history/scheduling writer. Evaluated
+node availability is loaded once; locked/hidden places cannot accept a note.
+No schema migration, authored-route progression or evidence write is added.
+The page adapter permits these real receipts and native input-portal completion;
+output portals and Recall still require their separate contracts.
+
+`learner_companion.rs` now resolves explicit activity runs from their actual
+owned records. The existing implicit ordinary-context behavior is preserved.
+The same bounded read validates document, selected avatar and typed turn
+context; missing/foreign/wrong-activity run contexts return unavailable rather
+than a substituted ordinary run. Nonordinary context has a real run UUID and
+null authored-route reference. The copied page passes its actual run for initial
+Companion loading and subsequent activity-only reloads. Native off-level turns
+verify the expanded ownership boundary without invoking an external provider.
+Recall Companion requests are rejected, and Recall check-ins remain rejected
+even when separate completed ordinary progress exists.
+
+**Verified:** 26 checks passed against rebuilt local Rust/PostgreSQL (1.7
+minutes): six native playback cases, six whole copied replay/revisit/arrival
+page comparisons, four ordinary-page journeys/retries, and ten existing
+Companion/media checks. `canonical-playback-check-in-evidence.ts` covers owner
+isolation, CSRF, incomplete runs, locked/hidden nodes, actual persisted notes,
+three-day revisit scheduling/clearing and unchanged authored-route/evidence
+state. `canonical-player-completed-run-live.spec.ts` covers both source trees
+at 1440×900 and 390×844, completion, retained notes after a real locked-place
+404, retry and terminal navigation. All 12 initial/failure screenshot pairs
+are byte-identical; desktop and narrow evidence was visually inspected.
+Reports are in ignored `frontend/playwright-report/player-completed-runs-verified/`.
+An additional real-media replay check passed (2.6 seconds;
+`player-run-avatar-verified/`): the selected avatar URL retains the actual run,
+delivers the original bytes only to its owner, rejects guest/foreign/forged-run
+and wrong-asset reads, and removes its fixture after map cleanup.
+Canonical identity, frontend production types/build, generated-client drift,
+Rust workspace check/format, 183 API tests (two opt-in ignored), 129 persistence
+tests (six opt-in ignored), three Companion application tests and the check-in
+application test passed.
+
+These are completed-activity/check-in and scripted Companion acceptance paths,
+not full nonordinary route-family acceptance. Their entry writers, the source's
+local `From beginning` behavior and outgoing transitions versus isolated-run
+semantics, provider-backed assistance, Recall and output-portal travel still
+need end-to-end reconciliation. The mobile toolbar obstruction remains an open
+source defect pending an explicit decision; the production player resolver
+remains unavailable.
 
 ### Copied player page-prop adapter
 

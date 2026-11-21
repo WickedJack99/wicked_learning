@@ -57,7 +57,7 @@ export function usePlaybackPageDocument(run: string | null, node: string, start:
             }
             const page = toPlaybackPageProps(document);
             const companionFor = async (activity: string, signal: AbortSignal) => {
-                const companion = await loadCompanion({ surface: 'activity', activity_id: activity }, signal);
+                const companion = await loadCompanion({ surface: 'activity', activity_id: activity, play_run_id: activeRun }, signal);
                 if (companion && (companion.context.activity?.id !== activity || companion.context.playRunId !== activeRun)) {
                     throw new JsonRequestError('The Companion does not match this player.', 503);
                 }

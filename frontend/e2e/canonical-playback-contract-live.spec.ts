@@ -6,6 +6,7 @@ import { verifyPlaybackNode } from './canonical-playback-node-evidence';
 import { verifyPlaybackProjection } from './canonical-playback-projection-evidence';
 import { verifyPlaybackReviews } from './canonical-playback-review-evidence';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
+import { verifyCompletedRunCheckIn } from './canonical-playback-check-in-evidence';
 
 // These prove native graph/progression prerequisites, not copied-player activation.
 for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay'] as const) {
@@ -22,6 +23,7 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
         const subject = uuid((await currentUser.json()).subject_id);
         const principal = uuid(localSql(`SELECT id FROM application_principals WHERE identity_subject_id = '${subject}'`).trim());
         let mapId: string | undefined;
+        let avatarId: string | undefined;
         try {
             const created = await admin.request.post('/api/v1/admin/world-builder/maps', { headers, data: { title: `Playback ${randomUUID()}`, description: null, slug: null } });
             expect(created.status()).toBe(201);
@@ -77,6 +79,43 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
             const response = await owner.request.get(path);
             expect(response.status()).toBe(200);
             const playback = await response.json();
+            const companionConfig: Record<string, unknown> = { enabled: true, mode: 'guided_ai', ai: { enabled: true }, dialogue_graph: { version: 1, start: 'ai', nodes: [
+                { id: 'ai', type: 'ai', instruction: 'Use only authored context.', next: 'end', capabilities: ['current-context'], response_mode: 'message' },
+                { id: 'end', type: 'end', message: 'Continue at your own pace.' },
+            ] } };
+            const avatarBytes = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="#123456"/></svg>');
+            if (kind === 'replay') {
+                const uploaded = await admin.request.post('/api/v1/admin/media-assets', { headers, multipart: { file: { name: 'run-avatar.svg', mimeType: 'image/svg+xml', buffer: avatarBytes } } });
+                expect(uploaded.status()).toBe(201); avatarId = uuid((await uploaded.json()).asset.id);
+                companionConfig.avatar_url = `/api/v1/admin/media-assets/${avatarId}/content`;
+            }
+            localSql(`UPDATE learning_activities SET companion_config='${JSON.stringify(companionConfig).replaceAll("'", "''")}' WHERE id='${activityId}'`);
+            const companionPath = `/api/v1/learner/companion?surface=activity&activity_id=${activityId}&play_run_id=${runId}`;
+            const companion = await owner.request.get(companionPath);
+            expect(companion.status()).toBe(kind === 'recall' ? 404 : 200);
+            if (kind !== 'recall') {
+                expect((await companion.json()).context).toMatchObject({ activity: { id: activityId }, play_run_id: runId, route: ['route', 'message'].includes(kind) ? { id: startId, title: 'Current route' } : null });
+            }
+            if (avatarId) {
+                const avatar = (await companion.json()).avatar_url;
+                expect(new URL(avatar, baseURL).searchParams.get('play_run_id')).toBe(runId);
+                const delivered = await owner.request.get(avatar); expect(delivered.status()).toBe(200); expect(await delivered.body()).toEqual(avatarBytes);
+                expect((await peer.request.get(avatar)).status()).toBe(404);
+                expect((await anonymous.request.get(avatar)).status()).toBe(401);
+                expect((await owner.request.get(avatar.replace(runId, randomUUID()))).status()).toBe(404);
+                expect((await owner.request.get(avatar.replace(avatarId, randomUUID()))).status()).toBe(404);
+            }
+            expect((await peer.request.get(companionPath)).status()).toBe(404);
+            expect((await owner.request.get(companionPath.replace(activityId, randomUUID()))).status()).toBe(404);
+            expect((await owner.request.get(companionPath.replace(runId, randomUUID()))).status()).toBe(404);
+            expect((await owner.request.get(companionPath.replace(runId, 'invalid'))).status()).toBe(400);
+            expect((await owner.request.get(`/api/v1/learner/companion?surface=world&play_run_id=${runId}`)).status()).toBe(400);
+            const turn = { surface: 'activity', activity_id: activityId, play_run_id: runId, dialogue_node_id: 'ai', assistance_level: 'off' };
+            const turnHeaders = { Origin: new URL(baseURL!).origin, 'X-CSRF-Token': (await (await owner.request.get('/api/v1/security/csrf')).json()).token };
+            const off = await owner.request.post('/api/v1/learner/companion/turn', { headers: turnHeaders, data: turn });
+            expect(off.status()).toBe(kind === 'recall' ? 422 : 200);
+            if (kind !== 'recall') expect(await off.json()).toEqual({ node_id: 'ai', text: '', assistance_level: 'untracked', disclosure: null });
+            expect((await peer.request.post('/api/v1/learner/companion/turn', { headers: { ...turnHeaders, 'X-CSRF-Token': (await (await peer.request.get('/api/v1/security/csrf')).json()).token }, data: turn })).status()).toBe(422);
             const props = verifyPlaybackProjection(playback);
             expect(props.recallQuestionId).toBe(kind === 'recall' ? activityId : null);
             expect(props.revisitActivityId).toBe(kind === 'revisit' ? activityId : null);
@@ -282,6 +321,7 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                     expect((await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} })).status()).toBe(404);
                     localSql(`INSERT INTO learner_activity_progress (principal_id,activity_id,status,attempt_count,revisit_status,revisit_available_at,revisit_check_in_id) SELECT '${principal}','${activityId}','completed',1,'pending',NOW() - INTERVAL '1 day',check_in_id FROM learner_revisit_runs WHERE id = '${runId}'`);
                 }
+                expect((await owner.request.post(`${activityPath}/check-ins`, { headers: ownerHeaders, data: { note: 'This run is not completed yet.' } })).status()).toBe(404);
                 const completed = await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} });
                 expect(completed.status()).toBe(200);
                 const receipt = await completed.json();
@@ -294,6 +334,7 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                     expect(localSql(`SELECT count(*) FROM learner_portal_arrival_runs WHERE id='${runId}' AND principal_id='${principal}' AND target_activity_id='${activityId}' AND status='completed' AND completed_at IS NOT NULL`).trim()).toBe('1');
                 }
                 expect((await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} })).status()).toBe(404);
+                await verifyCompletedRunCheckIn(owner, peer, runId, activityId, principal, nodeId, kind === 'recall');
             }
             expect((await owner.request.get(path)).status()).toBe(404);
             expect((await owner.request.post(`${path}/activities/${encodeURIComponent(`id:${activityId}`)}/reach`, {
@@ -307,6 +348,7 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 localSql(`DELETE FROM learning_activity_transitions WHERE from_activity_id IN (SELECT a.id FROM learning_activities a JOIN learning_routes r ON r.id=a.route_id JOIN learning_map_assets m ON m.id=r.map_asset_id WHERE m.map_id='${mapId}')`);
                 expect((await admin.request.delete(`/api/v1/admin/world-builder/maps/${mapId}`, { headers })).status()).toBe(204);
             }
+            if (avatarId) expect((await admin.request.delete(`/api/v1/admin/media-assets/${avatarId}`, { headers })).status()).toBe(204);
             await admin.close(); await owner.close(); await peer.close(); await anonymous.close();
         }
     });
