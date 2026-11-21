@@ -495,4 +495,39 @@ async function verifyDirectNodeRead(owner: BrowserContext, peer: BrowserContext,
     expect(snapshot()).toBe(before);
     const invalid = structuredClone(document); invalid.graph.node_id = randomUUID();
     expect(() => toDirectPlaybackPageProps(invalid)).toThrow('player projection is currently unavailable');
+    const reachPath = `/api/v1/learner/nodes/${node}/activities/${activity}/reach`;
+    const headers = { Origin: new URL(response.url()).origin, 'X-CSRF-Token': (await (await owner.request.get('/api/v1/security/csrf')).json()).token };
+    expect((await owner.request.post(reachPath)).status()).toBe(403);
+    expect((await owner.request.post(`/api/v1/learner/nodes/${randomUUID()}/activities/${activity}/reach`, { headers })).status()).toBe(404);
+    expect((await owner.request.post(`/api/v1/learner/nodes/${node}/activities/${randomUUID()}/reach`, { headers })).status()).toBe(404);
+    if (playback.activity.activity_type === 'open_practice') {
+        for (const [hide, restore] of [
+            [`UPDATE learning_nodes SET state='locked' WHERE id='${node}'`, `UPDATE learning_nodes SET state='available' WHERE id='${node}'`],
+            [`UPDATE learning_nodes SET state='hidden' WHERE id='${node}'`, `UPDATE learning_nodes SET state='available' WHERE id='${node}'`],
+            [`UPDATE learning_maps SET access_roles='[]' WHERE id='${uuid(playback.node.map_id)}'`, `UPDATE learning_maps SET access_roles='["public"]' WHERE id='${uuid(playback.node.map_id)}'`],
+            [`UPDATE learning_activities SET published_at=NULL WHERE id='${activity}'`, `UPDATE learning_activities SET published_at=NOW() WHERE id='${activity}'`],
+        ]) {
+            sql(hide);
+            try { expect((await owner.request.post(reachPath, { headers })).status()).toBe(404); }
+            finally { sql(restore); }
+        }
+    }
+    expect(snapshot()).toBe(before);
+    const routeFacts = () => { const { activities, ...facts } = JSON.parse(snapshot()); return facts; };
+    const facts = routeFacts();
+    try {
+        const reached = await owner.request.post(reachPath, { headers }); expect(reached.status()).toBe(200);
+        const state = await reached.json();
+        expect(state).toEqual({ activity_id: activity, progress: { activity_id: activity, status: 'reached', completed_at: null }, item_obstacle: null, obstacle_resolved_at: null });
+        const repeated = await owner.request.post(reachPath, { headers }); expect(repeated.status()).toBe(200); expect(await repeated.json()).toEqual(state);
+        expect((await (await owner.request.get(path)).json()).private_state.activities).toEqual([state.progress]);
+        const peerHeaders = { ...headers, 'X-CSRF-Token': (await (await peer.request.get('/api/v1/security/csrf')).json()).token };
+        const peerReached = await peer.request.post(reachPath, { headers: peerHeaders }); expect(peerReached.status()).toBe(200);
+        expect((await peerReached.json()).progress.status).toBe('reached');
+        sql(`UPDATE learner_activity_progress SET status='completed',completed_at='2026-01-02T00:00:00Z' WHERE principal_id='${principal}' AND activity_id='${activity}'`);
+        const preserved = await owner.request.post(reachPath, { headers }); expect(preserved.status()).toBe(200);
+        expect((await preserved.json()).progress).toEqual({ activity_id: activity, status: 'completed', completed_at: '2026-01-02T00:00:00.000000Z' });
+        expect((await (await peer.request.get(path)).json()).private_state.activities[0].status).toBe('reached');
+        expect(routeFacts()).toEqual(facts);
+    } finally { sql(`DELETE FROM learner_activity_progress WHERE activity_id='${activity}'`); }
 }

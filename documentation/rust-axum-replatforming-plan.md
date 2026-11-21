@@ -2283,6 +2283,44 @@ writers. In particular `LearnerProgressService::mark` preserves a prior
 completed status when reached again, and only runs route entry/topic visits
 when `playRunId` is present.
 
+### Runless reached-activity command
+
+Source `NodePlay` posts
+`status: reached` with a null `play_run_id` on authenticated direct entry.
+`LearningWorldController::markActivity` and `LearnerProgressService::mark`
+authorize the playable activity, preserve an existing completed status/time,
+and do not enter/advance a route or visit competence topics without a run.
+`POST /learner/nodes/{node_id}/activities/{activity_id}/reach`
+(`reachLearnerNodeActivity`) now uses the existing CSRF boundary, published
+node/map/asset/route/activity membership, map-role and evaluated-node checks.
+Content rows remain shared-locked through the transaction. The command reuses
+`mark_activity_reached` and the actual private activity-state serializer after
+those checks; it never calls the run-bound reach writer or inserts a start/run.
+
+**Verified:** `canonical-playback-reference-live.spec.ts` checks actual new and
+repeated reached facts for all 14 supported kinds, preserves completed status
+and its original timestamp, keeps peer facts independent, rejects missing
+CSRF and wrong node/activity, and checks locked/hidden/unpublished/role-restricted
+failures. Existing route rows, evidence count and last-visited topics remain
+unchanged. `canonical-player-direct-read-live.spec.ts` also proves reach at a
+node with no authored start or route history and rejects anonymous writes.
+The focused run, including existing run-kind contracts, passed all 21 cases.
+Frontend canonical identity/type/build and OpenAPI generation, Rust formatting/
+workspace checks and 183 API tests passed (two explicitly ignored). Report:
+`frontend/playwright-report/player-direct-reach/`. This adds no frontend
+activation; the preceding whole-page regression evidence remains applicable
+to the unchanged ordinary page/adapter.
+
+Completion, check-ins, specialized commands and frontend activation remain
+incomplete. Source `LearnerProgressService::recordCheckIn` requires a completed
+owner/activity fact, retains the last 30 private observations and updates the
+revisit invitation without requiring a play-run ID. The existing Rust
+`learner_check_in.rs` command and migration 0027 require a non-null
+`learner_activity_check_ins.play_run_id`; this is a concrete missing runless
+contract, not justification to mint a synthetic run. Audit its downstream
+readers/revisit joins before changing persistence. Ordinary run-bound
+completion/check-in authority must remain intact.
+
 ### Copied player page-prop adapter
 
 Source owners checked against pinned `main`: `resources/js/pages/learning/node-play.tsx`,

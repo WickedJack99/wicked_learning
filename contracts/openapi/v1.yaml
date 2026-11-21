@@ -7008,6 +7008,31 @@ paths:
         '403': { description: A valid same-origin CSRF request and application principal are required. }
         '404': { description: No authored start for this node/activity, or it is unavailable to this learner. No progress is changed. }
         '503': { description: Persistence is unavailable. }
+  /learner/nodes/{node_id}/activities/{activity_id}/reach:
+    post:
+      operationId: reachLearnerNodeActivity
+      summary: Record a playable activity reached without entering an ordinary run.
+      description: Requires the authenticated principal, same-origin CSRF, published node/map/asset/route/activity membership, map access and evaluated node availability. Inserts the learner activity fact or preserves its existing status/completion time. Does not select or create a route/run, advance route progress, record topic visits or award completion evidence. Returns the actual private activity state; this endpoint cannot complete an activity.
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: path
+          name: activity_id
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The persisted private activity fact and existing obstacle state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerPlaybackActivityState' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and application principal are required. }
+        '404': { description: This node/activity is unavailable to the learner or has unsupported configuration. }
+        '503': { description: Persistence is unavailable. }
   /learner/nodes/{node_id}/playback:
     get:
       operationId: getLearnerNodePlayback

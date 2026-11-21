@@ -560,6 +560,13 @@ readers accept an absent run only to omit run-specific NPC/checklist state;
 existing run readers and commands still pass their verified run IDs. This is
 the data prerequisite for source direct entry, not an alternate authorization
 path into the ordinary completion writers or a production route activation.
+
+**Runless reach refinement:** The typed node/activity `reach` command may
+record the actual principal's reached fact after CSRF, published membership,
+map roles and evaluated node availability checks. It preserves an existing
+completed fact and timestamp and performs no route/run, topic-visit or evidence
+mutation, matching source null-run progress. It reuses the activity-state
+receipt and does not grant direct-entry completion or check-in authority.
 The first reader and route-start policy support only `open_practice`; adding a
 different activity type requires its own server validation, OpenAPI contract,
 writer and lifted original React component.

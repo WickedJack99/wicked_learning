@@ -51,6 +51,16 @@ test('runless node reads preserve empty and unstarted source state without route
         expect((await owner.request.get(path)).status()).toBe(404);
         sql(`UPDATE learning_maps SET published_at=NOW() WHERE id='${map}'`);
         await read(); noWrites();
+        const reachPath = `/api/v1/learner/nodes/${node.node_id}/activities/${activity}/reach`;
+        expect((await anonymous.request.post(reachPath)).status()).toBe(401);
+        const reachHeaders = { Origin: new URL(baseURL!).origin, 'X-CSRF-Token': (await (await owner.request.get('/api/v1/security/csrf')).json()).token };
+        const reached = await owner.request.post(reachPath, { headers: reachHeaders }); expect(reached.status()).toBe(200);
+        expect((await reached.json()).progress.status).toBe('reached');
+        expect((await read()).private_state.activities).toEqual([{ activity_id: activity, status: 'reached', completed_at: null }]);
+        expect(sql(`SELECT count(*) FROM learner_route_progress WHERE node_id='${node.node_id}'`).trim()).toBe('0');
+        expect(sql(`SELECT count(*) FROM learner_evidence_events WHERE activity_id='${activity}'`).trim()).toBe('0');
+        sql(`DELETE FROM learner_activity_progress WHERE activity_id='${activity}'`);
+        noWrites();
         sql(`INSERT INTO learning_activities(id,route_id,slug,title,description,position,published_at,activity_type,activity_config) SELECT gen_random_uuid(),route_id,'overflow-' || n,'Overflow','',n,NOW(),'open_practice','{}' FROM learning_activities CROSS JOIN generate_series(1,1000) n WHERE id='${activity}'`);
         expect((await owner.request.get(path)).status()).toBe(503);
         noWrites();

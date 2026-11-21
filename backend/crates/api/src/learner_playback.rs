@@ -47,6 +47,26 @@ pub async fn reach_current_activity(
         .ok_or_else(ApiError::not_found)
 }
 
+pub async fn reach_node_activity(
+    State(state): State<AppState>,
+    Path((node_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<LearnerPlaybackActivityState>, ApiError> {
+    let node = Uuid::parse_str(&node_id).map_err(|_| ApiError::not_found())?;
+    let activity = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = wicked_learning_persistence::learner_node_playback::PostgresLearnerNodePlaybackRepository::new(&state.application_database);
+    wicked_learning_application::learner_node_playback::LearnerNodeReachCommand::new(&repository)
+        .execute(&principal, node, activity)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NodePlaybackSelection {

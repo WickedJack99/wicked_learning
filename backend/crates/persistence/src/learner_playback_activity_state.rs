@@ -17,9 +17,10 @@ struct StateRow {
     obstacle_resolved_at: Option<String>,
 }
 
-/// Called only after a command has locked and authorized this principal/run/
-/// activity. Read before its commit so the response describes that same write,
-/// including terminal runs that cannot subsequently be read as active.
+/// Called only after a command has locked and authorized this principal/activity
+/// and its run or direct node context. Read before commit so the response
+/// describes that same write, including terminal runs that cannot subsequently
+/// be read as active.
 pub(crate) async fn load(
     transaction: &mut Transaction<'_, Postgres>,
     principal_id: Uuid,

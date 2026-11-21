@@ -5691,6 +5691,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/nodes/{node_id}/activities/{activity_id}/reach": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a playable activity reached without entering an ordinary run.
+         * @description Requires the authenticated principal, same-origin CSRF, published node/map/asset/route/activity membership, map access and evaluated node availability. Inserts the learner activity fact or preserves its existing status/completion time. Does not select or create a route/run, advance route progress, record topic visits or award completion evidence. Returns the actual private activity state; this endpoint cannot complete an activity.
+         */
+        post: operations["reachLearnerNodeActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/nodes/{node_id}/playback": {
         parameters: {
             query?: never;
@@ -33128,6 +33148,60 @@ export interface operations {
                 content?: never;
             };
             /** @description No authored start for this node/activity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Persistence is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reachLearnerNodeActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The persisted private activity fact and existing obstacle state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerPlaybackActivityState"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and application principal are required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description This node/activity is unavailable to the learner or has unsupported configuration. */
             404: {
                 headers: {
                     [name: string]: unknown;
