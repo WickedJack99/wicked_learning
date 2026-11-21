@@ -2942,16 +2942,35 @@ its last page without manufacturing a receipt or navigation. That inherited
 source defect is not waived, and parent route/check-in/replay navigation and
 anonymous acceptance remain open.
 
-**Remaining managed-video prerequisite:** the copied renderer distinguishes
-video by the URL pathname extension. Native reusable-media `/content` URLs
-carry no extension, so images/links are covered here but a managed uploaded
-video would still be rendered as an image. Before whole player activation,
-project the authorized media kind through a bounded Rust read and bind the
-renderer classification seam to that actual metadata (or provide a verified
-source-compatible delivery URL). Do not infer MIME type from a UUID or claim
-image-only media evidence proves video playback. Static/external video URLs
-retain the original source renderer behavior. This is the next concrete
-Markdown prerequisite, alongside the still-open parent route lifecycle.
+**Next prerequisite — complete map-scoped Markdown video media:** source
+`pages/settings/worlds/{edit-markdown-activity,markdown-activity-fields}.tsx`
+uses `use-node-image-upload.ts` → `/settings/worlds/node-images` →
+`AdminWorldController::uploadNodeImage`, `AdminWorldRules::uploadNodeImage`,
+`NodeImageUploadService`, `ProtectedMapMedia`, and `ProtectedMapMediaController`.
+These eight inspected source dependencies match the pin. The pinned
+`tests/Feature/Settings/AdminWorldsTest.php` was inspected with `git show`
+because the current branch has additional tests: its Markdown test preserves
+a WEBM body reference, but does not prove browser video playback.
+
+The source accepts 50 MiB files and GIF/JPEG/JPG/M4V/MOV/MP4/OGG/OGV/PNG/SVG/WEBM/WEBP
+extensions, checks map edit scope on upload, and protects map-bound delivery
+through map view access. Its delivery URL retains the extension; the copied
+renderer uses that extension to select the whole video or image element.
+
+| Boundary | Reusable Rust evidence | Required next work |
+| --- | --- | --- |
+| Scoped upload and unsaved preview | `api/src/admin_world_map_visual_media.rs`, `/admin/world-builder/maps/{map_id}/visual-media` and its creator-scoped preview; existing 50 MiB/map-editor/CSRF checks | Reuse this scoped boundary where compatible. Its parser and preview predicate are currently image-only. Add source-supported video with real type validation, size limits and failed-storage cleanup. Generic image-library upload is not equivalent authorization. |
+| Saved references and lifecycle | `persistence/src/admin_world_markdown.rs::{media_references,synchronize_media_references}`, reusable-media reference table and native Markdown writer | Reuse actual activity references; prove replacement, removal/deletion and delivery revocation. Never synthesize video from an unreferenced UUID. |
+| Learner delivery | `api/src/learner_media_assets.rs` checks published activity references and map roles; `learner_media.rs` maps managed paths | Verify actual video bytes, MIME, playback and any needed range behavior, including publication/role/reference rejection. Current `/content` paths have no extension. |
+| Copied video classification | `MarkdownRenderer::mediaKind`, scoped `?learner-markdown` facade; `LearnerPlaybackPresentation` has no managed-media-kind collection | Project bounded authorized media kinds in the existing playback read and bind only classification to actual metadata, or provide verified source-compatible delivery URLs. Avoid per-element metadata requests; preserve authored text and all source video controls. |
+| Acceptance | Image/link evidence covers only those media | Actual Rust upload/save/read/play/replace/remove journey and source comparison at both viewports, including unauthorized and unavailable cases. Keep production player activation pending the whole-route gates. |
+
+Static/external video URLs retain the original renderer path and require their
+own playback evidence. Rust's reusable image uploader is intentionally
+image-only, whereas the source Markdown uploader accepts videos. This is a
+missing scoped contract, not permission to infer MIME from UUIDs or broaden
+unrelated upload permissions. Parent NodePlay lifecycle and anonymous
+acceptance remain separate open dependencies.
 
 **Verified read/control slice:** 14 Markdown browser cases passed across
 1440×900 and 390×844: source start-edge selection, keyboard/back/refresh,
