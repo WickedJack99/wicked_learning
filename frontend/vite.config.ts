@@ -9,6 +9,23 @@ const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts'
 export default defineConfig({
     plugins: [
         {
+            name: 'canonical-player-recall-transport',
+            enforce: 'pre',
+            transform(code, id) {
+                if (id.split('?')[0] !== resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/standard-activities.tsx')) return;
+                const queue = /queueRecallQuestion\(question\.id\)/g;
+                const remove = /removeRecallQuestion\(question\.id\)/g;
+                const feedback = /saveRecallFeedback\(\s*question\.id,\s*confidenceAfterFeedback,?\s*\)/g;
+                if (code.match(queue)?.length !== 1 || code.match(remove)?.length !== 1 || code.match(feedback)?.length !== 2) {
+                    throw new Error('The pinned question Recall transport seams changed.');
+                }
+                return `import { queuePlaybackRecall, removePlaybackRecall, savePlaybackRecallFeedback } from '/src/platform/playback-response-api.ts';\n${code
+                    .replace(queue, 'queuePlaybackRecall(question.id, playRunId)')
+                    .replace(remove, 'removePlaybackRecall(question.id, playRunId)')
+                    .replace(feedback, 'savePlaybackRecallFeedback(question.id, playRunId, confidenceAfterFeedback)')}`;
+            },
+        },
+        {
             name: 'canonical-world-tool-transport',
             enforce: 'pre',
             transform(code, id) {

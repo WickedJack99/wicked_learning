@@ -2,19 +2,10 @@ import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { JsonRequestError } from './json-request-error';
 import { toSourceSharedTaskState } from './playback-projection';
+import { playbackContext } from './playback-context';
+export { bindPlaybackDocument as bindSharedTaskPlayback } from './playback-context';
 
-type Playback = components['schemas']['LearnerPlaybackDocument'];
-const documents = new Map<string, { document: Playback }>();
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
-
-/** A route owns its binding; disposing an older render cannot unbind a newer one. */
-export function bindSharedTaskPlayback(document: Playback) {
-    const binding = { document };
-    documents.set(document.play_run_id, binding);
-    return () => {
-        if (documents.get(document.play_run_id) === binding) documents.delete(document.play_run_id);
-    };
-}
 
 const sourcePath = /^\/learning\/activities\/([a-f0-9-]+)\/shared-task-(submissions|reviews|checklist)(?:\/([a-f0-9-]+)\/(revision|helpfulness|follow-up))?$/;
 
@@ -29,8 +20,7 @@ export async function sharedTaskWrite(method: 'POST' | 'PATCH', url: string, pay
     const [, activityId, collection, recordId, action] = match;
     const run = identity(payload.play_run_id);
     identity(activityId);
-    const document = documents.get(run)?.document;
-    if (!document || !document.graph.activities.some((activity) => activity.id === activityId && activity.activity_type === 'shared_task')) return unavailable(409);
+    playbackContext(run, activityId, ['shared_task']);
     if (recordId) identity(recordId);
     const params = {
         path: { play_run_id: run, activity_slug: `id:${activityId}` },

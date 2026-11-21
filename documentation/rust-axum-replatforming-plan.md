@@ -1929,6 +1929,77 @@ explicit run-bound transport adapters, then collect whole-source browser
 evidence at both required viewports. The player route remains unavailable;
 these native contracts alone do not complete copied-control acceptance.
 
+### Copied question and reflection command transport
+
+Pre-implementation audit: whole pinned `features/world/standard-activities.tsx`
+and dependencies `activity-utils.tsx`, `portal-scene.tsx`, `api.ts`,
+`features/learning/{recall-items,review-outcomes}.ts`, `components/ui/button.tsx`,
+`hooks/{use-appearance.tsx,use-platform-translation.ts}`, `lib/utils.ts` and
+`types/learning.ts` (all under `resources/js/`). Canonical bytes stay unchanged.
+
+| Source command | Typed native mapping / constraints |
+| --- | --- |
+| Question `option_id` or `option_ids`, optional confidence, deferred completion | `answerLearnerQuestion`: preserve opaque authored option keys, validate the bound question/run and run-kind flags, map the full real evaluated answer including destination, feedback and earlier attempts. Answering must not complete the activity. |
+| Queue, remove and post-feedback Recall controls | The three verified current-question contracts; inject the component's existing `playRunId` only at exact Recall transport call sites. No global-current-run lookup. |
+| Reflection/review and independent response | `saveLearnerReflection`: forward writing, optional context/cues and independent-check flag; Rust derives topic/category and permissions. Only the real `saved` response advances copied local UI state. |
+| Completion callback for these response types | Use the actual completion receipt; question correctness/attempt/calibration and reflection evidence are server-derived. Preserve optional confidence and source review outcome. Recall's absent ordinary progress stays null. Full NodePlay check-in/navigation integration remains separate. |
+| Failure and disposal | Bound-document identity guard, owned disposable binding, native CSRF and actual errors. No success fallback, generic Inertia or substituted presentation. |
+
+Test-only hosts mount whole original/copied exports for both required viewports,
+with real Rust-backed commands and persisted-state checks. Their component-level
+evidence does not activate or accept a partial production NodePlay route.
+
+`frontend/src/platform/playback-response-api.ts` now implements those narrow
+commands. `playback-context.ts` shares the existing owned-document binding with
+Shared Task; disposing an older render cannot release a newer binding. The
+answer mapper in `playback-projection.ts` is shared by initial saved answers and
+command responses, preserving opaque option keys, retries, feedback, resolved
+destinations and nullable Recall schedules. The exact-file Vite transform
+replaces only the four Recall call sites in the copied `standard-activities.tsx`
+with typed commands carrying its existing `playRunId`. No canonical JSX, style,
+control, Rust endpoint, OpenAPI schema or migration changed.
+
+`frontend/e2e/canonical-player-response{.html,.tsx,-live.spec.ts}` exercises
+single/multiple questions, isolated Recall, transfer with a fresh independent
+response, and Review at 1440×900 and 390×844. Commands use real Rust/PostgreSQL;
+checks cover retry/history persistence, deferred completion, the actual Recall
+interval, queue/remove/feedback, private journal responses and cues, Review
+outcome/confidence, stale-run failures, invalid/unbound adapter requests and
+bounded primary controls. Recall completion retains its actual null ordinary
+progress. Source-vs-copied comparisons use the whole pinned-main component and
+dependency tree, with identical real read projections: initial states for all
+five cases, and reloaded saved-answer states for questions. Post-save reflection
+screenshots are Rust-only evidence; they do not claim a second Laravel-backed
+write or full-page parity.
+
+**Open source/acceptance limits:** pinned Reflection/Review has `try/finally`
+without an inline error catch. A real rejected save retains the draft and makes
+no journal record, but produces an unhandled rejection without visible error
+copy. This is recorded, not waived or redesigned. The copied Question callback
+can emit an authored next activity even after an isolated Recall run completes;
+the future owning-page adapter must follow the actual terminal run receipt.
+These hosts observe callbacks only: NodePlay navigation, check-ins, Companion,
+other activity types and complete route activation remain open.
+
+Validation: canonical identity (299 source files plus CSS), production frontend
+type/build, generated OpenAPI-client consistency, Rust workspace fmt/check,
+65 focused persistence tests (six pre-existing ignored tests), one application
+reflection test and four application Recall tests passed. The combined real
+Rust browser run passed all 36 tests: ten response-control cases, two Shared
+Task regressions, four native question/Recall cases and twenty native playback
+contract/reference cases. Every paired source/copied screenshot in this run is
+byte-identical; representative desktop and narrow screenshots were also
+visually inspected. Report: ignored
+`frontend/playwright-report/player-response-final/`.
+
+Rerun against the local Rust stack on 8081 and the current
+`e2e/learner-layout-vite.config.ts` evidence server on 8084, from `frontend/`:
+`PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-response-live.spec.ts e2e/canonical-player-shared-live.spec.ts e2e/canonical-player-answer-live.spec.ts e2e/canonical-playback-contract-live.spec.ts e2e/canonical-playback-reference-live.spec.ts --reporter=line,html`.
+Restart the evidence server after base Vite configuration changes: an existing
+process was observed serving the old Recall call sites until restarted. Initial
+test-fixture/locator errors were corrected; interrupted disposable maps were
+removed. No production or unrelated worktree artifacts were changed.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

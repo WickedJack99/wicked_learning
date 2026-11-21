@@ -38,23 +38,7 @@ export function toPlaybackPageProps(document: Playback) {
         const question = required(required(byId.get(answer.activity_id)).presentation.question);
         if (answer.selected_option_keys.some((key) => !question.options.some((option) => option.key === key))) return unavailable();
         if (answer.next_activity_id !== null && !byId.has(answer.next_activity_id)) return unavailable();
-        return [answer.activity_id, {
-            optionId: answer.selected_option_keys[0] ?? null,
-            optionIds: [...answer.selected_option_keys],
-            isCorrect: answer.is_correct,
-            attemptNumber: answer.attempt_number,
-            confidence: answer.confidence,
-            calibration: answer.calibration,
-            feedback: answer.feedback,
-            explanation: answer.explanation,
-            nextActivityId: answer.next_activity_id,
-            nextTransitionLabel: answer.next_transition_label,
-            earlierAttempts: answer.earlier_attempts.map((attempt) => ({
-                answeredAt: attempt.answered_at, calibration: attempt.calibration,
-                confidence: attempt.confidence, isCorrect: attempt.is_correct,
-                optionLabel: attempt.option_label, optionLabels: [...attempt.option_labels],
-            })),
-        }];
+        return [answer.activity_id, toSourceQuestionAnswer(answer)];
     }));
     const playState: Record<string, {
         npcDialogue?: { currentNodeId: string; history: string[] };
@@ -119,6 +103,29 @@ export function toPlaybackPageProps(document: Playback) {
             })),
             activities: graph.activities.map(toSourcePlaybackActivity),
         },
+    };
+}
+
+export function toSourceQuestionAnswer(answer: Schema['LearnerPlaybackAnswerProgress'] | Schema['LearnerQuestionAnswerResult']) {
+    return {
+        optionId: answer.selected_option_keys[0] ?? null,
+        optionIds: [...answer.selected_option_keys],
+        isCorrect: answer.is_correct,
+        attemptNumber: answer.attempt_number,
+        confidence: answer.confidence,
+        calibration: answer.calibration,
+        feedback: answer.feedback,
+        explanation: answer.explanation,
+        nextActivityId: answer.next_activity_id,
+        nextTransitionLabel: answer.next_transition_label,
+        earlierAttempts: answer.earlier_attempts.map((attempt) => ({
+            answeredAt: attempt.answered_at, calibration: attempt.calibration,
+            confidence: attempt.confidence, isCorrect: attempt.is_correct,
+            optionLabel: attempt.option_label, optionLabels: [...attempt.option_labels],
+        })),
+        ...('recall' in answer ? { recall: answer.recall ? {
+            intervalDays: answer.recall.interval_days, nextReviewAt: answer.recall.next_review_at,
+        } : null } : {}),
     };
 }
 
