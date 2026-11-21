@@ -1,3 +1,4 @@
+import { isPlaybackPageUrl, playbackPageRead, playbackPageWrite } from './playback-page-api';
 import { isPlaybackNpcPost, playbackNpcPost } from './playback-npc-api';
 import { apiClient, getCsrfToken } from './api/client';
 import { toSourceGroup, toSourceGroupPage } from './world-groups';
@@ -31,6 +32,7 @@ function unavailableOperation(): never {
  * through to Laravel-shaped requests.
  */
 export async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
+    if (isPlaybackPageUrl(url)) return await playbackPageRead(url, signal) as T;
     if (isPlaybackMessageUrl(url)) return await playbackMessageRead(url, signal) as T;
     const parsed = new URL(url, window.location.origin);
 
@@ -90,6 +92,7 @@ export async function postJson<T>(
     url: string,
     payload: Record<string, unknown>,
 ): Promise<T> {
+    if (isPlaybackPageUrl(url)) return await playbackPageWrite('POST', url, payload) as T;
     if (isPlaybackNpcPost(url)) return await playbackNpcPost(url, payload) as T;
     if (isJournalWrite('POST', url)) return await journalWrite('POST', url, payload) as T;
     if (isSharedTaskWrite(url)) return await sharedTaskWrite('POST', url, payload) as T;
@@ -140,6 +143,7 @@ export async function postJson<T>(
 }
 
 export async function deleteJson<T>(url: string): Promise<T> {
+    if (isPlaybackPageUrl(url)) return await playbackPageWrite('DELETE', url) as T;
     if (isJournalWrite('DELETE', url)) return await journalWrite('DELETE', url) as T;
     return unavailableOperation();
 }

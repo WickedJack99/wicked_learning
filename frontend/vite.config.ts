@@ -1,3 +1,4 @@
+import { transformPlaybackPage } from './src/platform/playback-page-source-transform.ts';
 import { bindMarkdownRenderer, transformMarkdownRenderer } from './src/platform/markdown-source-transform.ts';
 import { transformNpcSource } from './src/platform/npc-source-transform.ts';
 import { defineConfig } from 'vite';
@@ -13,6 +14,12 @@ const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts'
 
 export default defineConfig({
     plugins: [
+        {
+            name: 'canonical-player-page-transport', enforce: 'pre',
+            transform(code, id) {
+                if (id.split('?')[0] === resolve(import.meta.dirname, 'canonical-source/resources/js/pages/learning/node-play.tsx')) return transformPlaybackPage(code);
+            },
+        },
         {
             name: 'canonical-markdown-media-transport',
             enforce: 'pre',

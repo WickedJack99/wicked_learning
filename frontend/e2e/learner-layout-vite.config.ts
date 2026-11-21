@@ -1,7 +1,8 @@
+import { transformPlaybackPage } from '../src/platform/playback-page-source-transform.ts';
 import { bindMarkdownRenderer, transformMarkdownRenderer } from '../src/platform/markdown-source-transform.ts';
 import { transformNpcSource } from '../src/platform/npc-source-transform.ts';
 import { defineConfig, mergeConfig } from 'vite';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import base from './journal-vite.config.ts';
 import { transformGrantSource } from '../src/platform/grant-source-transform.ts';
@@ -12,6 +13,12 @@ const sourceRoot = resolve(import.meta.dirname, '../../resources/js');
 export default mergeConfig(base, defineConfig({ cacheDir: 'node_modules/.vite-learner-layout-source', plugins: [{
     name: 'whole-original-learner-layout-evidence',
     enforce: 'pre',
+    resolveId(source, importer) {
+        if (importer && source.startsWith('.')) {
+            const target = resolve(dirname(importer.split('?')[0]), source);
+            if (target === `${sourceRoot}/features/world/api` || target === `${sourceRoot}/features/world/api.ts`) return resolve(import.meta.dirname, '../src/platform/world-api.ts');
+        }
+    },
     configureServer(server) {
         server.middlewares.use((request, _response, next) => {
             // Exact evidence-only URL lets the whole source action bar use its
@@ -19,11 +26,15 @@ export default mergeConfig(base, defineConfig({ cacheDir: 'node_modules/.vite-le
             if (request.url?.split('?')[0] === '/learning/obstacle-evidence') {
                 request.url = request.url.replace('/learning/obstacle-evidence', '/e2e/canonical-player-obstacle.html');
             }
+            if (/^\/learning\/nodes\/[a-f0-9-]{36}\/play(?:\?|$)/.test(request.url ?? '')) {
+                request.url = request.url!.replace(/^\/learning\/nodes\/[a-f0-9-]{36}\/play/, '/e2e/canonical-player-page.html');
+            }
             next();
         });
     },
     transform(code, id) {
         if (!id.split('?')[0].startsWith(`${sourceRoot}/`)) return;
+        if (id.split('?')[0] === `${sourceRoot}/pages/learning/node-play.tsx`) code = transformPlaybackPage(code).replace("from '@/features/world/api'", "from '/src/platform/world-api.ts'");
         if (id.split('?')[0] === `${sourceRoot}/features/world/markdown-activity.tsx`) code = bindMarkdownRenderer(code, `${sourceRoot}/features/platform-info/markdown-renderer.tsx`);
         if (id === `${sourceRoot}/features/platform-info/markdown-renderer.tsx?learner-markdown`) code = transformMarkdownRenderer(code);
         if (id.split('?')[0] === `${sourceRoot}/features/world/npc-dialogue-player.tsx`) {

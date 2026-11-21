@@ -1646,6 +1646,81 @@ application playback tests and one check-in application test passed. These
 are native contract checks; no desktop/narrow UI parity claim or player
 activation is made by this prerequisite.
 
+### Whole copied player lifecycle integration (in progress)
+
+Next integration owner is the entire pinned `pages/learning/node-play.tsx`,
+with `features/world/{activity-panel,learning-check-in,active-activity}`,
+`features/localization/activity-translation`, `layouts/app-layout.tsx` and its
+existing learner shell dependencies. These and the owning
+`LearningWorldController`, `LearnerProgressService` and
+`LearnerProgressSerializer` match pinned main. Reuse the existing activity
+children and transport adapters; do not build another player presentation.
+
+| Source boundary | Existing Rust mapping | Required integration / incomplete rule |
+| --- | --- | --- |
+| Initial page and private state | `GET /learner/play-runs/{run}`, existing `toPlaybackPageProps`, current user, shell, platform translations, sound preferences and Companion | Bind the actual document for the whole copied page and layout. Initial missing/dead run is unavailable; do not fabricate initial activity, shell or progress. Entry without a run and anonymous read remain separate required entry contracts. |
+| Active activity reached, then translation | `POST .../activities/{id:UUID}/reach`, `GET .../translation` | Source `status: reached` selects only this typed entry command. Source translation handling retains original copy on unavailable/stale reads. |
+| Completion and local continuation | Existing typed `/complete`, actual activity-state/next-target receipt and child-specific completion adapters | Parent must reuse real completion receipts, including completed terminal runs; browser outcome/attempt/calibration cannot overwrite evaluated Rust facts. Output-portal travel is an atomic native command, not ordinary completion. |
+| Optional check-in | `POST .../check-ins`, existing state receipt | Bind the run from the exact active page because the source request has no run field. Preserve skip/hide/draft/error behavior. Current native writer only resolves ordinary runs; replay/revisit/arrival require a source-derived contract repair before acceptance. |
+| Restart and alternatives | `/learner/activity-starts/{id}/reset` and `/start` | Preserve returned real run/node/start identities and source URLs. Source `route.id > 0` requires an opaque-ID compatibility seam. No invented numeric IDs or fabricated redirect receipt. |
+| Bookmark | Existing map/node-slug bookmark POST/DELETE | Resolve IDs/slugs from the actual page document, and return the actual boolean. Do not require a fabricated full World snapshot to update one bookmark. |
+| Companion activity reload | Existing `loadCompanion({surface:'activity', activity_id})`; verify its returned run identity | Replace only the page's exact `only:['companion']` reload; preserve local page/check-in state and reject stale reloads. This GET does not accept a run selector. Generic Inertia reload emulation is not permitted. |
+| Recall completion/check-in | ADR-037 forbids ordinary progress/check-ins; native completion returns null ordinary progress | The source parent dereferences a progress receipt and can open an ordinary check-in. Reconcile this actual source/accepted-contract conflict explicitly; do not fabricate persisted progress or silently write forbidden Recall evidence. |
+
+The first browser integration must mount the whole copied page and layout,
+compare against the whole pinned source tree, and prove reached→completion→
+check-in→next activity→terminal navigation plus restart/bookmark/refresh and
+failure retention at both viewports. A successful child harness does not
+establish these page transitions. Production activation stays unavailable
+until all entry/run kinds, portal and anonymous contracts pass acceptance.
+
+**Implemented ordinary-run integration:** `frontend/src/platform/playback-page-bootstrap.ts`
+loads the real run, current user, shell, translation, sound and Companion
+contracts, then claims the existing feedback invitation. It checks the URL's
+node/start against the authorized run before any claim or player write.
+`playback-page-api.ts` binds these page commands to that actual document and
+reuses the existing completion/answer/NPC adapters. Restart reads the returned
+new run before constructing the unchanged source destination. The two exact
+Vite seams in `playback-page-source-transform.ts` replace Companion-only reload
+and the numeric alternative-route test; no source JSX, styling or files change.
+
+`frontend/e2e/canonical-player-page-live.spec.ts` mounts the entire copied
+`node-play` and `AppLayout` against the entire pinned source tree. Its native
+Rust/PostgreSQL journey covers reached state, bookmark and refresh, restart,
+completion, hide/show check-in, retained private notes after an actual 404,
+retry, local next-activity movement without document reload, skipped check-in
+and terminal World navigation. Missing runs and mismatched URL node/start
+identities render unavailable without issuing writes. The alternative-route
+link's UUID and source URL are checked, but clicking/entry without a run is
+still incomplete and is not claimed by this test.
+
+**Open source usability defect:** at 390×844, the pinned full-page `Player
+actions` floating toolbar covers the center of both the transition and terminal
+continuation buttons. The same obstruction is asserted in both source trees;
+the test then uses actual keyboard focus/Enter to verify persisted lifecycle
+behavior. This is not pointer-control acceptance or an extension of the
+previous Welcome-only source-defect waiver. Check-in content scrolls inside
+its source container; failure text is scrolled into view for evidence, where
+the same toolbar also obscures part of the inline error. Bounded geometry
+therefore does not establish unobstructed visibility. The
+canonical source is unchanged. Production player activation remains closed.
+
+Remaining whole-page gates include scoped entry/start/resume without a run,
+alternative-route navigation, anonymous playback, nonordinary check-ins,
+atomic output-portal travel, Recall's accepted-contract conflict, and explicit
+Companion reload failure/recovery without losing local draft state. The
+evidence host is not a production resolver or a claim that the route family
+is complete.
+
+**Verified:** four whole-page journey/failure checks passed at 1440×900 and
+390×844 against local Rust and PostgreSQL (36.2 seconds), with source/copy
+screenshots in ignored `frontend/playwright-report/player-page-final/`.
+The 42 existing response, NPC and Markdown browser checks also passed
+(`player-page-regression/`). Canonical source identity, frontend production
+types/build and generated OpenAPI drift passed; 182 API tests passed (two
+opt-in tests ignored), alongside 26 persistence playback and three application
+playback tests. This slice changes no Rust contract or production routing.
+
 ### Copied player page-prop adapter
 
 Source owners checked against pinned `main`: `resources/js/pages/learning/node-play.tsx`,
