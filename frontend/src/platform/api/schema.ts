@@ -5719,7 +5719,7 @@ export interface paths {
         put?: never;
         /**
          * Complete the current authorized simple activity in a play run.
-         * @description Advances the server-selected transition within the current node's MapAsset, including another published route grouping. A non-null destination that is unpublished, outside that MapAsset, or unsupported is unavailable and must not be treated as an authored terminal. The original activity-start and play-run identities are retained. Message prompts, including private support, and message walls may complete without contributing. Their current node must still be playable; completion never fabricates a message or bypasses publication, map access or authored destination checks. NPC completion rechecks current node access and resolves its authored end or null exit before cursor persistence, prioritizing a dialogue-end connector over the first completed-trigger fallback. Unanswered questions require an already-owned configured tool to skip; terminal reflections require saved evidence for that exact node and run.
+         * @description Advances the server-selected transition within the current node's MapAsset, including another published route grouping. A non-null destination that is unpublished, outside that MapAsset, or unsupported is unavailable and must not be treated as an authored terminal. The original activity-start and play-run identities are retained. Message prompts, including private support, and message walls may complete without contributing. Their current node must still be playable; completion never fabricates a message or bypasses publication, map access or authored destination checks. NPC completion rechecks current node access and resolves its authored end or null exit before cursor persistence, prioritizing a dialogue-end connector over the first completed-trigger fallback. Unanswered questions require an already-owned configured tool to skip; terminal reflections require saved evidence for that exact node and run. Markdown completion rechecks evaluated node availability, ordinary start-node identity and the intact bounded Markdown configuration before any progress or evidence write.
          */
         post: operations["completeLearnerCurrentActivity"];
         delete?: never;
@@ -8591,6 +8591,7 @@ export interface components {
             description: string;
             /** @enum {string} */
             activity_type: "open_practice" | "question" | "reflection" | "review" | "tool_grant" | "item_grant" | "item_obstacle" | "obstacle" | "markdown" | "message_prompt" | "message_wall" | "npc_dialogue" | "portal" | "shared_task";
+            /** @description Markdown preserves ordered pages, duplicate identifiers, first-edge traversal and authored strings. Reads reject more than 1000 pages, 4000 edges, 2 MiB of projected text, or source field-length overflow instead of truncating. Embedded Markdown media URLs remain authored text; the copied renderer maps exact managed content URL sinks to authorized learner delivery. */
             config: {
                 [key: string]: unknown;
             };

@@ -2901,6 +2901,84 @@ then the five `canonical-player-{grant,obstacle,response,shared,message}-live.sp
 files serially. Reports are retained under ignored
 `frontend/playwright-report/player-npc-{ui-final,shared-obstacle,shared-response,shared-grant-message}/`.
 
+### Markdown player source contract reconciliation
+
+Pinned source: complete `features/world/markdown-activity.tsx`,
+`features/platform-info/markdown-renderer.tsx`, `features/world/activity-utils.tsx`,
+`components/ui/button.tsx`, appearance/translation hooks, `lib/{media-url,utils}.ts`,
+source types and CSS. `LearningActivitySerializer::learnerConfig` preserves the
+stored page graph. `MarkdownActivityConfiguration` and `AdminActivityRules`
+bound individual IDs/titles/bodies to 100/160/20000 characters but impose no
+30-page/60-edge cap. The Rust authoring form currently does impose those caps;
+that is a separate outstanding authoring contract gap, not a source rule.
+
+| Source dependency | Rust evidence / required boundary |
+| --- | --- |
+| Complete ordered pages and edges, string identities, body and visual values | Shared `learner_playback.rs::markdown_safe_config` feeds current activity and navigation graph. Existing `.take(30/60)`, trimming, de-duplication and dangling-edge removal can change the source's first-match traversal and prematurely complete a page graph. Replace silent changes with intact bounded reads; oversized/malformed reads must fail explicitly. |
+| Page/back history, first authored start, missing/terminal edges, keyboard behavior and empty view | Whole copied MarkdownActivity owns this local state; refresh starts at its authored first page, not a fabricated persisted cursor. No Markdown cursor endpoint is needed. |
+| Completion and parent destination | Reuse bound typed playback completion and its actual receipt; do not acknowledge an optimistic source destination. Parent NodePlay/check-in/navigation remains an open route gate. |
+| Markdown media/link URLs | Original renderer and media normalizer remain presentation owners. Managed admin-content URLs embedded in body text currently bypass recursive whole-string media rewriting. A narrowly scoped renderer transport seam must map only exact managed paths; preserve body text and all unrelated URLs. Existing learner-media endpoint independently verifies saved publication/role references. |
+| Failure, unavailable and source comparison | Real Rust fixtures must prove long graph preservation, traversal/back/refresh, completion denial, empty state and managed media at both viewports. Preserve source failures without counting them as accepted route recovery. |
+
+Implemented read boundary: preserve up to 1000 pages, 4000 edges and 2 MiB of
+projected text, with the source's individual field limits; exceedance rejects
+the whole read. The source's empty-string/default semantics, duplicate IDs and
+first dangling edge remain intact. The initial regression failed on 31→30 page
+loss. Rust authoring's smaller 30/60 limits remain open for its own route family.
+
+The `?learner-markdown` renderer import scopes the URL facade to Markdown
+playback. Only the original renderer's media normalization and link URL sink
+receive exact managed-path rewrites; other uses of the shared renderer,
+authored body text (including visible inline code), external/custom/malformed
+URLs and source JSX remain untouched. `playback-markdown-api.ts` reuses the
+existing document binding and deduplicated typed completion receipt.
+
+The initial real browser failure also proved Markdown completion could write
+after its node became locked. Completion now evaluates native availability and
+validates ordinary start-node identity and the complete Markdown configuration
+under the run transaction before progress/evidence writes. Source Markdown has
+no completion catch/pending/inline-error UI; the failure evidence must retain
+its last page without manufacturing a receipt or navigation. That inherited
+source defect is not waived, and parent route/check-in/replay navigation and
+anonymous acceptance remain open.
+
+**Remaining managed-video prerequisite:** the copied renderer distinguishes
+video by the URL pathname extension. Native reusable-media `/content` URLs
+carry no extension, so images/links are covered here but a managed uploaded
+video would still be rendered as an image. Before whole player activation,
+project the authorized media kind through a bounded Rust read and bind the
+renderer classification seam to that actual metadata (or provide a verified
+source-compatible delivery URL). Do not infer MIME type from a UUID or claim
+image-only media evidence proves video playback. Static/external video URLs
+retain the original source renderer behavior. This is the next concrete
+Markdown prerequisite, alongside the still-open parent route lifecycle.
+
+**Verified read/control slice:** 14 Markdown browser cases passed across
+1440×900 and 390×844: source start-edge selection, keyboard/back/refresh,
+31 pages and 61 edges, empty state, whole-read overflow, ordinary and replay
+completion, and both kinds of denied completion. Actual managed SVG bytes,
+rendered dimensions, mapped image/link URLs, unchanged visible inline-code URL,
+and delivery rejection after map unpublication are asserted. Both learners
+use separate real runs; cross-owner reads reject. The copied component invokes
+native completion and retains its original failure behavior. No Laravel HTTP
+request or fabricated parent navigation occurs.
+
+The 14 shared playback-reference checks and 10 response checks passed with
+those cases (38 total). All 26 Markdown screenshot pairs are byte-identical;
+desktop/narrow media renders were visually inspected and control bounds pass.
+The ignored report is `frontend/playwright-report/player-markdown-verified/`.
+Rerun using the Rust stack on 8081 and the learner-layout Vite evidence server
+on 8084: `npx playwright test e2e/canonical-player-markdown-live.spec.ts
+e2e/canonical-playback-reference-live.spec.ts e2e/canonical-player-response-live.spec.ts
+--reporter=line,html`. Restart that evidence server after changing its Vite
+configuration; a stale running process does not prove the new seams are loaded.
+Canonical identity, production frontend type/build, OpenAPI client drift,
+Rust workspace fmt/check and 129 persistence tests passed (six opt-in database
+tests ignored; the browser suites provide real PostgreSQL coverage). The old
+truncation unit expectation was replaced with exact-source preservation and
+whole-read rejection checks, including Unicode and aggregate text budgets.
+
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

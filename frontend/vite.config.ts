@@ -1,3 +1,4 @@
+import { bindMarkdownRenderer, transformMarkdownRenderer } from './src/platform/markdown-source-transform.ts';
 import { transformNpcSource } from './src/platform/npc-source-transform.ts';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -12,6 +13,15 @@ const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts'
 
 export default defineConfig({
     plugins: [
+        {
+            name: 'canonical-markdown-media-transport',
+            enforce: 'pre',
+            transform(code, id) {
+                const root = resolve(import.meta.dirname, 'canonical-source/resources/js');
+                if (id.split('?')[0] === `${root}/features/world/markdown-activity.tsx`) return bindMarkdownRenderer(code, `${root}/features/platform-info/markdown-renderer.tsx`);
+                if (id === `${root}/features/platform-info/markdown-renderer.tsx?learner-markdown`) return transformMarkdownRenderer(code);
+            },
+        },
         {
             name: 'canonical-player-npc-seams',
             enforce: 'pre',

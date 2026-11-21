@@ -87,6 +87,10 @@ struct CurrentActivityRow {
     is_revisit: bool,
     principal_id: Uuid,
     route_id: Uuid,
+    node_id: Uuid,
+    node_state: String,
+    node_visual_config: serde_json::Value,
+    source_node_matches: bool,
 }
 
 #[derive(FromRow)]
@@ -595,105 +599,64 @@ fn is_review_activity(activity_type: &str, config: &serde_json::Value) -> bool {
 }
 
 fn markdown_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
+    // Source traversal uses array order and first matching IDs/edges, including
+    // duplicate IDs and dangling first edges. Never prune or shorten that graph.
+    // These are read budgets, not authoring limits: reject rather than truncate.
     let object = config.as_object()?;
+    let empty = Vec::new();
     let pages = object
         .get("markdownPages")
         .and_then(serde_json::Value::as_array)
-        .map_or_else(Vec::new, |pages| {
-            pages
-                .iter()
-                .take(30)
-                .enumerate()
-                .filter_map(|(index, page)| {
-                    let page = page.as_object()?;
-                    let id = page
-                        .get("id")
-                        .and_then(serde_json::Value::as_str)
-                        .and_then(|value| bounded_text(value, 100))
-                        .unwrap_or_else(|| format!("page-{}", index + 1));
-                    let title = page
-                        .get("title")
-                        .and_then(serde_json::Value::as_str)
-                        .and_then(|value| bounded_text(value, 160))
-                        .unwrap_or_else(|| format!("Page {}", index + 1));
-                    let body = page
-                        .get("body")
-                        .and_then(serde_json::Value::as_str)
-                        .and_then(|value| bounded_text(value, 20_000))
-                        .unwrap_or_default();
-                    let visual = page.get("visual").and_then(serde_json::Value::as_object);
-                    let color = |name: &str, fallback: &str| {
-                        visual
-                            .and_then(|visual| visual.get(name))
-                            .and_then(serde_json::Value::as_str)
-                            .filter(|value| valid_hex_color(value))
-                            .map(ToOwned::to_owned)
-                            .unwrap_or_else(|| fallback.to_owned())
-                    };
-
-                    Some(json!({
-                        "body": body,
-                        "id": id,
-                        "title": title,
-                        "visual": {
-                            "borderColorDark": color("borderColorDark", "#2dd4bf"),
-                            "borderColorLight": color("borderColorLight", "#0891b2"),
-                            "headingColorDark": color("headingColorDark", "#67e8f9"),
-                            "headingColorLight": color("headingColorLight", "#0e7490"),
-                            "pageColorDark": color("pageColorDark", "#0f172a"),
-                            "pageColorLight": color("pageColorLight", "#ffffff"),
-                            "textColorDark": color("textColorDark", "#f8fafc"),
-                            "textColorLight": color("textColorLight", "#0f172a"),
-                        },
-                    }))
-                })
-                .fold(Vec::new(), |mut pages, page| {
-                    let duplicate = page
-                        .get("id")
-                        .and_then(serde_json::Value::as_str)
-                        .is_some_and(|id| {
-                            pages.iter().any(|existing: &serde_json::Value| {
-                                existing.get("id").and_then(serde_json::Value::as_str) == Some(id)
-                            })
-                        });
-                    if !duplicate {
-                        pages.push(page);
-                    }
-                    pages
-                })
-        });
-    let page_ids = pages
-        .iter()
-        .filter_map(|page| page.get("id").and_then(serde_json::Value::as_str))
-        .collect::<Vec<_>>();
+        .unwrap_or(&empty);
     let transitions = object
         .get("markdownTransitions")
         .and_then(serde_json::Value::as_array)
-        .map_or_else(Vec::new, |transitions| {
-            transitions
-                .iter()
-                .take(60)
-                .filter_map(|transition| {
-                    let transition = transition.as_object()?;
-                    let from = transition
-                        .get("from")
-                        .and_then(serde_json::Value::as_str)
-                        .and_then(|value| bounded_text(value, 100))?;
-                    let to = transition
-                        .get("to")
-                        .and_then(serde_json::Value::as_str)
-                        .and_then(|value| bounded_text(value, 100))?;
-                    ((from == "start" || page_ids.contains(&from.as_str()))
-                        && (to == "end" || page_ids.contains(&to.as_str())))
-                    .then(|| json!({ "from": from, "to": to }))
-                })
-                .collect()
-        });
-
-    Some(json!({
-        "markdownPages": pages,
-        "markdownTransitions": transitions,
-    }))
+        .unwrap_or(&empty);
+    if pages.len() > 1000 || transitions.len() > 4000 {
+        return None;
+    }
+    let mut remaining_bytes: usize = 2 * 1024 * 1024;
+    let mut text =
+        |value: Option<&serde_json::Value>, fallback: &str, maximum: usize| -> Option<String> {
+            let value = value
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or(fallback);
+            if value.chars().count() > maximum {
+                return None;
+            }
+            remaining_bytes = remaining_bytes.checked_sub(value.len())?;
+            Some(value.to_owned())
+        };
+    let pages = pages
+        .iter()
+        .filter_map(serde_json::Value::as_object)
+        .enumerate()
+        .map(|(index, page)| {
+            let id = text(page.get("id"), &format!("page-{}", index + 1), 100)?;
+            let title = text(page.get("title"), &format!("Page {}", index + 1), 160)?;
+            let body = text(page.get("body"), "", 20_000)?;
+            let visual = page.get("visual").and_then(serde_json::Value::as_object);
+            let mut colors = serde_json::Map::new();
+            for (key, fallback) in [
+                ("borderColorDark", "#2dd4bf"),
+                ("borderColorLight", "#0891b2"),
+                ("headingColorDark", "#67e8f9"),
+                ("headingColorLight", "#0e7490"),
+                ("pageColorDark", "#0f172a"),
+                ("pageColorLight", "#ffffff"),
+                ("textColorDark", "#f8fafc"),
+                ("textColorLight", "#0f172a"),
+            ] {
+                let color = text(visual.and_then(|value| value.get(key)), fallback, 100)?;
+                colors.insert(key.into(), json!(color));
+            }
+            Some(json!({ "id": id, "title": title, "body": body, "visual": colors }))
+        })
+        .collect::<Option<Vec<_>>>()?;
+    let transitions = transitions.iter().filter_map(serde_json::Value::as_object).map(|edge| {
+        Some(json!({ "from": text(edge.get("from"), "", 100)?, "to": text(edge.get("to"), "", 100)? }))
+    }).collect::<Option<Vec<_>>>()?;
+    Some(json!({ "markdownPages": pages, "markdownTransitions": transitions }))
 }
 
 fn obstacle_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
@@ -1877,6 +1840,25 @@ async fn complete_current_activity(
         return Ok(None);
     };
 
+    if current.activity_type == "markdown" {
+        let availability = PostgresLearnerNodeAvailability::load(pool, principal).await?;
+        if !current.source_node_matches
+            || markdown_safe_config(current.activity_config.clone()).is_none()
+            || !availability.is_some_and(|facts| {
+                facts
+                    .state_for_node(
+                        current.node_id,
+                        &current.node_state,
+                        &current.node_visual_config,
+                    )
+                    .can_play()
+            })
+        {
+            transaction.rollback().await?;
+            return Ok(None);
+        }
+    }
+
     if current.activity_type != "question"
         && current.activity_type != "reflection"
         && current.activity_type != "review"
@@ -2641,7 +2623,7 @@ async fn load_current_activity_for_update(
     activity_slug: &str,
 ) -> Result<Option<CurrentActivityRow>, sqlx::Error> {
     let route = sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT activities.activity_config, activities.activity_type, progress.current_activity_id AS activity_id, FALSE AS is_recall, FALSE AS is_replay, FALSE AS is_revisit, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue', 'shared_task', 'portal') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+        "SELECT nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config, (nodes.id = progress.node_id) AS source_node_matches, activities.activity_config, activities.activity_type, progress.current_activity_id AS activity_id, FALSE AS is_recall, FALSE AS is_replay, FALSE AS is_revisit, progress.principal_id, routes.id AS route_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue', 'shared_task', 'portal') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
@@ -2654,7 +2636,7 @@ async fn load_current_activity_for_update(
     }
 
     let revisit = sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT activities.activity_config, activities.activity_type, activities.id AS activity_id, FALSE AS is_recall, FALSE AS is_replay, TRUE AS is_revisit, runs.principal_id, routes.id AS route_id FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
+        "SELECT nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config, TRUE AS source_node_matches, activities.activity_config, activities.activity_type, activities.id AS activity_id, FALSE AS is_recall, FALSE AS is_replay, TRUE AS is_revisit, runs.principal_id, routes.id AS route_id FROM learner_revisit_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learner_activity_check_ins AS check_ins ON check_ins.id = runs.check_in_id AND check_ins.principal_id = runs.principal_id AND check_ins.activity_id = runs.activity_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review') AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
@@ -2667,7 +2649,7 @@ async fn load_current_activity_for_update(
     }
 
     let recall = sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT activities.activity_config, activities.activity_type, activities.id AS activity_id, TRUE AS is_recall, FALSE AS is_replay, FALSE AS is_revisit, runs.principal_id, routes.id AS route_id FROM learner_recall_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'question' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
+        "SELECT nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config, TRUE AS source_node_matches, activities.activity_config, activities.activity_type, activities.id AS activity_id, TRUE AS is_recall, FALSE AS is_replay, FALSE AS is_revisit, runs.principal_id, routes.id AS route_id FROM learner_recall_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'question' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
@@ -2679,7 +2661,7 @@ async fn load_current_activity_for_update(
         return Ok(recall);
     }
     let replay = sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT activities.activity_config, activities.activity_type, activities.id AS activity_id, FALSE AS is_recall, TRUE AS is_replay, FALSE AS is_revisit, runs.principal_id, routes.id AS route_id FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue') AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
+        "SELECT nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config, TRUE AS source_node_matches, activities.activity_config, activities.activity_type, activities.id AS activity_id, FALSE AS is_recall, TRUE AS is_replay, FALSE AS is_revisit, runs.principal_id, routes.id AS route_id FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type IN ('open_practice', 'question', 'reflection', 'review', 'tool_grant', 'item_grant', 'item_obstacle', 'obstacle', 'markdown', 'npc_dialogue') AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
@@ -2817,62 +2799,68 @@ mod tests {
     }
 
     #[test]
-    fn markdown_config_exposes_a_bounded_valid_page_graph() {
-        let oversized_body = "x".repeat(20_001);
-        let config = markdown_safe_config(json!({
-            "markdownPages": [
-                {
-                    "id": "first",
-                    "title": "First page",
-                    "body": oversized_body,
-                    "visual": {
-                        "pageColorDark": "not-a-colour",
-                        "pageColorLight": "#ffffff"
-                    }
-                },
-                {
-                    "id": "first",
-                    "title": "Duplicate page",
-                    "body": "must not be exposed"
-                },
-                {
-                    "id": "second",
-                    "title": "Second page",
-                    "body": "A valid page"
-                }
-            ],
-            "markdownTransitions": [
-                { "from": "start", "to": "first" },
-                { "from": "first", "to": "second" },
-                { "from": "second", "to": "end" },
-                { "from": "missing", "to": "second" }
-            ]
-        }))
-        .expect("a JSON object has a safe Markdown projection");
+    fn markdown_projection_preserves_the_complete_source_graph() {
+        let pages = (0..31)
+            .map(|index| {
+                json!({
+                    "id": format!("page-{index}"), "title": format!("Page {index}"),
+                    "body": "  A complete source page.  "
+                })
+            })
+            .collect::<Vec<_>>();
+        let transitions = (0..61)
+            .map(|index| {
+                json!({
+                    "from": format!("page-{}", index % 31), "to": "end"
+                })
+            })
+            .collect::<Vec<_>>();
+        let config = markdown_safe_config(
+            json!({"markdownPages": pages, "markdownTransitions": transitions}),
+        )
+        .unwrap();
+        assert_eq!(config["markdownPages"].as_array().unwrap().len(), 31);
+        assert_eq!(config["markdownTransitions"], json!(transitions));
+        assert_eq!(
+            config["markdownPages"][0]["body"],
+            "  A complete source page.  "
+        );
+    }
 
-        assert_eq!(
-            config["markdownPages"]
-                .as_array()
-                .expect("pages are an array")
-                .len(),
-            2
+    #[test]
+    fn markdown_projection_retains_source_first_match_and_empty_string_semantics() {
+        let config = markdown_safe_config(json!({
+            "markdownPages": [null, {"id":"", "title":"", "body":"", "visual":{"pageColorDark":""}},
+                {"id":"same", "body":"first"}, {"id":"same", "body":"second"}],
+            "markdownTransitions": [{"from":"same", "to":"missing"}, {"from":"same", "to":"end"}]
+        }))
+        .unwrap();
+        assert_eq!(config["markdownPages"].as_array().unwrap().len(), 3);
+        assert_eq!(config["markdownPages"][0]["id"], "");
+        assert_eq!(config["markdownPages"][0]["visual"]["pageColorDark"], "");
+        assert_eq!(config["markdownPages"][2]["body"], "second");
+        assert_eq!(config["markdownTransitions"][0]["to"], "missing");
+    }
+
+    #[test]
+    fn markdown_projection_rejects_overflow_without_a_partial_graph() {
+        assert!(
+            markdown_safe_config(json!({"markdownPages": [{"body": "x".repeat(20_001)}]}))
+                .is_none()
         );
-        assert_eq!(
-            config["markdownPages"][0]["body"].as_str().map(str::len),
-            Some(20_000)
+        assert!(markdown_safe_config(json!({"markdownPages": vec![json!({}); 1001]})).is_none());
+        assert!(
+            markdown_safe_config(json!({"markdownTransitions": vec![json!({}); 4001]})).is_none()
         );
-        assert_eq!(
-            config["markdownPages"][0]["visual"]["pageColorDark"],
-            "#0f172a"
+        assert!(
+            markdown_safe_config(
+                json!({"markdownPages": vec![json!({"body": "x".repeat(20_000)}); 110]})
+            )
+            .is_none()
         );
-        assert_eq!(
-            config["markdownTransitions"],
-            json!([
-                { "from": "start", "to": "first" },
-                { "from": "first", "to": "second" },
-                { "from": "second", "to": "end" }
-            ])
-        );
+        let unicode = "界".repeat(20_000);
+        let config = markdown_safe_config(json!({"markdownPages": [{"body": unicode}]})).unwrap();
+        assert_eq!(config["markdownPages"][0]["body"], unicode);
     }
 
     #[test]

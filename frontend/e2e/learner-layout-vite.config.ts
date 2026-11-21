@@ -1,3 +1,4 @@
+import { bindMarkdownRenderer, transformMarkdownRenderer } from '../src/platform/markdown-source-transform.ts';
 import { transformNpcSource } from '../src/platform/npc-source-transform.ts';
 import { defineConfig, mergeConfig } from 'vite';
 import { resolve } from 'node:path';
@@ -23,6 +24,8 @@ export default mergeConfig(base, defineConfig({ cacheDir: 'node_modules/.vite-le
     },
     transform(code, id) {
         if (!id.split('?')[0].startsWith(`${sourceRoot}/`)) return;
+        if (id.split('?')[0] === `${sourceRoot}/features/world/markdown-activity.tsx`) code = bindMarkdownRenderer(code, `${sourceRoot}/features/platform-info/markdown-renderer.tsx`);
+        if (id === `${sourceRoot}/features/platform-info/markdown-renderer.tsx?learner-markdown`) code = transformMarkdownRenderer(code);
         if (id.split('?')[0] === `${sourceRoot}/features/world/npc-dialogue-player.tsx`) {
             code = transformNpcSource(code).replace("from './api'", "from '/src/platform/world-api.ts'");
         }
