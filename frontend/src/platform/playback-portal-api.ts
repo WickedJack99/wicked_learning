@@ -2,12 +2,13 @@ import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { JsonRequestError } from './json-request-error';
 import { playbackContext, playbackIdentity } from './playback-context';
+import { completePlaybackActivityOnce } from './playback-completion';
 import { toSourceActivityReceipt } from './playback-projection';
 
 type Playback = components['schemas']['LearnerPlaybackDocument'];
 type Travel = components['schemas']['LearnerPortalTravelResult'];
 type Context = ReturnType<typeof playbackContext>;
-export type PortalFailure = { message: string; retry: () => void; dismiss: () => void };
+export type PortalFailure = { message: string; retry: () => void; dismiss: () => void; dismissLabel?: string };
 type Binding = {
     document: Playback; controller: AbortController; fail: (failure: PortalFailure | null) => void;
     departures: Map<string, Promise<Travel>>; busy?: Promise<void>;
@@ -26,6 +27,42 @@ export function performPortalAction(node: unknown, activity: unknown, action: ()
     const matches = [...pages.values()].filter((page) => page.document.node.id === node && page.document.graph.activities.some((entry) => entry.id === activity && entry.activity_type === 'portal'));
     if (matches.length !== 1) return unavailable(409);
     void perform(matches[0], action);
+}
+
+/** An automatic source effect keeps its original continuation pending until a
+ * real completion succeeds. Abort rejects it instead of navigating a retired page. */
+export function completeAutomaticPortal(node: unknown, activity: unknown, action: () => Promise<void>): Promise<void> {
+    const matches = [...pages.values()].filter((page) => page.document.node.id === node &&
+        page.document.run_kind === 'portal' && page.document.activity.id === activity &&
+        page.document.activity.config.portalMode === 'input');
+    if (matches.length !== 1) return Promise.reject(new JsonRequestError('This portal is currently unavailable.', 409));
+    const page = matches[0];
+    const signal = page.controller.signal;
+    const pending = new Promise<void>((resolve, reject) => {
+        const cancel = () => reject(new DOMException('The player was closed.', 'AbortError'));
+        signal.addEventListener('abort', cancel, { once: true });
+        void perform(page, async () => {
+            await action();
+            signal.throwIfAborted();
+            signal.removeEventListener('abort', cancel);
+            resolve();
+        }, {
+            dismissLabel: 'Return to map',
+            dismiss: () => {
+                signal.removeEventListener('abort', cancel);
+                cancel();
+                const node = page.document.node;
+                window.location.assign(`/world?map=${encodeURIComponent(node.map_slug)}&focused=${encodeURIComponent(node.slug)}`);
+            },
+        });
+    });
+    return pending;
+}
+
+export function completeInputPortal(context: Context) {
+    const page = bindingFor(context.run);
+    if (page.document !== context.document || context.document.run_kind !== 'portal' || context.activity.config.portalMode !== 'input') return unavailable(409);
+    return completePlaybackActivityOnce(context, {}, page.controller.signal);
 }
 
 export async function completeOutputPortal(context: Context) {
@@ -84,13 +121,13 @@ function bindingFor(run: string) {
     if (!page || page.controller.signal.aborted) return unavailable(409);
     return page;
 }
-function perform(page: Binding, action: () => Promise<void>): Promise<void> {
+function perform(page: Binding, action: () => Promise<void>, recovery?: Pick<PortalFailure, 'dismiss' | 'dismissLabel'>): Promise<void> {
     if (page.busy || page.controller.signal.aborted) return page.busy ?? Promise.resolve();
     page.fail(null);
     const pending = Promise.resolve().then(action).catch((error: unknown) => {
         if (!page.controller.signal.aborted) page.fail({
             message: error instanceof JsonRequestError ? error.message : 'The portal connection is unavailable.',
-            retry: () => { void perform(page, action); }, dismiss: () => page.fail(null),
+            retry: () => { void perform(page, action, recovery); }, dismiss: () => page.fail(null), ...recovery,
         });
     }).finally(() => { if (page.busy === pending) page.busy = undefined; });
     page.busy = pending;

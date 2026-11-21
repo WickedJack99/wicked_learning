@@ -2525,6 +2525,10 @@ async fn complete_current_message_activity(
 struct PortalArrivalCompletionRow {
     activity_id: Uuid,
     principal_id: Uuid,
+    node_id: Uuid,
+    node_state: String,
+    node_visual_config: serde_json::Value,
+    status: String,
 }
 
 async fn complete_portal_arrival(
@@ -2535,7 +2539,7 @@ async fn complete_portal_arrival(
 ) -> Result<Option<LearnerPlaybackCompletionResult>, sqlx::Error> {
     let mut transaction = pool.begin().await?;
     let current = sqlx::query_as::<_, PortalArrivalCompletionRow>(
-        "SELECT activities.id AS activity_id, runs.principal_id \
+        "SELECT activities.id AS activity_id, runs.principal_id, runs.status, nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config \
          FROM learner_portal_arrival_runs AS runs \
          INNER JOIN application_principals AS principals ON principals.id = runs.principal_id \
          INNER JOIN learning_activities AS activities ON activities.id = runs.target_activity_id \
@@ -2543,7 +2547,7 @@ async fn complete_portal_arrival(
          INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id \
          INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id \
          INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id \
-         WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' \
+         WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND (runs.status = 'in_progress' OR (runs.status = 'completed' AND runs.completed_at IS NOT NULL AND EXISTS (SELECT 1 FROM learner_activity_progress AS progress WHERE progress.principal_id = runs.principal_id AND progress.activity_id = activities.id AND progress.status = 'completed' AND progress.completed_at IS NOT NULL))) \
            AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'portal' \
            AND COALESCE(activities.activity_config ->> 'portalMode', 'output') = 'input' \
            AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL \
@@ -2561,8 +2565,24 @@ async fn complete_portal_arrival(
         transaction.commit().await?;
         return Ok(None);
     };
-    mark_activity_completed(&mut transaction, current.principal_id, current.activity_id).await?;
-    let updated = sqlx::query(
+    // Both first completion and a lost-response retry require current access.
+    let availability = PostgresLearnerNodeAvailability::load(pool, principal).await?;
+    if !availability.is_some_and(|facts| {
+        facts
+            .state_for_node(
+                current.node_id,
+                &current.node_state,
+                &current.node_visual_config,
+            )
+            .can_play()
+    }) {
+        transaction.rollback().await?;
+        return Ok(None);
+    }
+    if current.status == "in_progress" {
+        mark_activity_completed(&mut transaction, current.principal_id, current.activity_id)
+            .await?;
+        let updated = sqlx::query(
         "UPDATE learner_portal_arrival_runs SET status = 'completed', completed_at = NOW(), updated_at = NOW() WHERE id = $1 AND principal_id = $2 AND target_activity_id = $3 AND status = 'in_progress'",
     )
     .bind(play_run_id)
@@ -2571,9 +2591,10 @@ async fn complete_portal_arrival(
     .execute(&mut *transaction)
     .await?
     .rows_affected();
-    if updated != 1 {
-        transaction.commit().await?;
-        return Ok(None);
+        if updated != 1 {
+            transaction.rollback().await?;
+            return Ok(None);
+        }
     }
     let activity_state = crate::learner_playback_activity_state::load(
         &mut transaction,

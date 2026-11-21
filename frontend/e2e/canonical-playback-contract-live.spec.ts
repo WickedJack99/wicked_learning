@@ -333,7 +333,9 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 if (kind === 'portal') {
                     expect(localSql(`SELECT count(*) FROM learner_portal_arrival_runs WHERE id='${runId}' AND principal_id='${principal}' AND target_activity_id='${activityId}' AND status='completed' AND completed_at IS NOT NULL`).trim()).toBe('1');
                 }
-                expect((await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} })).status()).toBe(404);
+                const repeated = await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} });
+                expect(repeated.status()).toBe(kind === 'portal' ? 200 : 404);
+                if (kind === 'portal') await expect(repeated.json()).resolves.toEqual(receipt);
                 await verifyCompletedRunCheckIn(owner, peer, runId, activityId, principal, nodeId, kind === 'recall');
             }
             expect((await owner.request.get(path)).status()).toBe(404);

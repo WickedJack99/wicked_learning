@@ -8,6 +8,6 @@ export function PlaybackPortalRecovery({ state }: { state: PortalFailure | null 
     return <section aria-label="Portal connection" className="fixed inset-x-4 top-4 z-[100] mx-auto grid max-w-xl gap-2 rounded-lg border bg-background p-4 shadow-lg">
         <AlertError title="Portal is unavailable." errors={[state.message]} />
         <Button onClick={state.retry}>Retry portal</Button>
-        <Button variant="outline" onClick={state.dismiss}>Dismiss portal error</Button>
+        <Button variant="outline" onClick={state.dismiss}>{state.dismissLabel ?? 'Dismiss portal error'}</Button>
     </section>;
 }

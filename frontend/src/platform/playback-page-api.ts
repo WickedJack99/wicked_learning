@@ -6,7 +6,7 @@ import { completePlaybackActivityOnce } from './playback-completion';
 import { completeResponseActivity } from './playback-response-api';
 import { completeNpcActivity } from './playback-npc-api';
 import { toSourceActivityReceipt } from './playback-projection';
-import { completeOutputPortal } from './playback-portal-api';
+import { completeInputPortal, completeOutputPortal } from './playback-portal-api';
 
 type Playback = components['schemas']['LearnerPlaybackDocument'];
 type Page = { document: Playback; reloadCompanion: (activity: string) => Promise<boolean> };
@@ -82,7 +82,7 @@ export async function playbackPageWrite(method: 'POST' | 'DELETE', url: string, 
                 confidence: payload.confidence, confidenceAfterFeedback: payload.confidence_after_feedback, outcome: payload.outcome,
             })
             : type === 'npc_dialogue' ? await completeNpcActivity(context.id, context.run)
-                : await completePlaybackActivityOnce(context, {});
+                : type === 'portal' ? await completeInputPortal(context) : await completePlaybackActivityOnce(context, {});
         // Rust derives the destination, answer calibration/attempt/outcome,
         // assistance and saved cues. Source display hints cannot overwrite them.
         if (!result.progress) return unavailable(503);

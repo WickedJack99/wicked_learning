@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins, Companion context/recovery and ordinary output-portal travel integrated below | Anonymous and implicit entry, Recall reconciliation, nonordinary entry/continuation/restart, other completed-run refreshes, automatic-arrival failure recovery, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
+| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins, Companion context/recovery and ordinary output-portal travel integrated below | Anonymous and implicit entry, Recall reconciliation, nonordinary entry/continuation/restart, other completed-run refreshes, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -1991,8 +1991,8 @@ The existing mobile source toolbar obstruction is identified before keyboard
 fallback; it remains unaccepted pointer behavior. Source/copy screenshot
 attachments cover departure, check-in, arrival and both transport failures.
 Production player activation stays closed until the remaining family gates
-are satisfied; automatic-arrival failure handling and completed arrival refresh
-are not established by the automatic-arrival happy path.
+are satisfied. Completed arrival refresh remains open; the automatic-arrival
+failure contract is handled by the bounded refinement below.
 
 Verification: 40 real-stack browser/contract checks passed (2.6 minutes),
 covering all six native run kinds, fourteen activity types, ordinary and
@@ -2010,6 +2010,53 @@ evidence Vite host and run `canonical-player-portal-live.spec.ts`, the two
 `canonical-playback-{contract,reference}-live.spec.ts` files, and the ordinary,
 completed-run and Companion-reload whole-player live suites. Restart that host
 when changing its Vite transforms; HMR is disabled for source evidence.
+
+### Automatic portal arrival recovery
+
+Pinned owners: `resources/js/features/world/standard-activities.tsx` (the whole
+`PortalActivity` effect and its original continuation),
+`resources/js/pages/learning/node-play.tsx` (completion, check-in and map URL),
+and the shared player layout already listed above. The source effect catches
+a failed completion without exposing a retry, leaving its automatic-arrival
+copy visible. No canonical source bytes or JSX are changed.
+
+| Required contract | Rust/adapter evidence | Acceptance requirement |
+| --- | --- | --- |
+| Complete only the owned input-portal arrival under current access | `persistence/src/learner_playback.rs::complete_portal_arrival`; existing `completeLearnerCurrentActivity` | Recheck evaluated node playability as well as map roles and every publication boundary before writing. The new regression reproduced a locked destination incorrectly completing with HTTP 200. |
+| Recover a lost successful completion response | Same command, locked arrival row and existing activity receipt | Completed arrival retries repeat authorization and return stored completion without changing arrival/progress timestamps or another authored route. No fabricated completion or new arrival is allowed. |
+| Retry the source automatic effect | `playback-page-source-transform.ts`, `playback-portal-api.ts::completeAutomaticPortal` | Replace only the exact `void onComplete(activity)` transport invocation; the source `.then` continuation and `.catch` remain intact. Keep its promise pending through transport errors. |
+| Leave an unavailable automatic arrival | Existing `PlaybackPortalRecovery` and actual document map/node slugs | Offer bounded Retry portal / Return to map controls. Returning rejects the pending source promise and uses the source World URL; it does not complete the arrival. |
+| Retire a player document | `completeInputPortal`, `playback-completion.ts`, existing document release | Input completion shares the bound page AbortSignal and rejects an aborted receipt before invoking source completion. Other activity commands keep their existing signatures/behavior. |
+
+The whole-page regression extends `canonical-player-portal-live.spec.ts` with
+real locked-arrival rejection, actual completion followed by a dropped response,
+retry, and return-to-map. Completed retries are also checked against another
+principal, wrong activity, missing CSRF, revoked map roles, locked destination,
+and unpublished map/node/MapAsset/route/activity. It compares complete stored
+arrival/progress rows before and after retries and preserves independent target
+route progress. Both source trees and both viewports are exercised. The four
+new real-stack cases passed, with 14 byte-identical source/copy screenshot
+pairs. Desktop and narrow error panels were visually inspected; both actions
+are inside the viewport and hit-tested. The initial new test caught locked
+arrival completion returning 200. After implementation, test assertions were
+corrected to wait for the actual retried request/check-in and to preserve the
+source's legitimate reached progress rather than expect no row at all.
+Completed-arrival refresh and the inherited narrow toolbar obstruction remain
+open; this refinement does not activate production NodePlay.
+
+Verification: canonical identity (299 files plus CSS), frontend production
+TypeScript/build, generated OpenAPI/client drift, Rust workspace check/fmt,
+26 persistence playback tests, 183 API tests (two ignored) and one portal
+application test passed. The combined 44-case real-stack run passed 43 checks;
+its sole failure was the pre-existing assertion that repeated portal completion
+must return 404. That assertion now requires the same complete receipt for
+portal arrivals, retaining 404 for other run kinds. All six native contract
+cases passed on rerun (16.6 seconds); the 38 other combined checks passed
+without changes. All 36 portal screenshot pairs in the combined report are
+byte-identical. Evidence reports are ignored under
+`frontend/playwright-report/player-auto-portal-final/` and
+`frontend/playwright-report/player-auto-portal-contract-final/`.
+
 
 ### Copied player page-prop adapter
 

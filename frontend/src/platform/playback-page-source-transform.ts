@@ -12,10 +12,12 @@ export function transformPlaybackPage(code: string): string {
             .replace(portalVisit, (_match, link) => `navigatePlaybackPortal(playRunId, ${link}, router.visit)`);
 }
 
-/** One source async portal action; errors go to the platform boundary. */
+/** Exact manual and automatic source async portal actions; errors go to the platform boundary. */
 export function transformPortalAction(code: string): string {
     const action = 'void enterPortal()';
-    if (code.split(action).length !== 2) throw new Error('The pinned portal action seam changed.');
-    return "import { performPortalAction } from '/src/platform/playback-portal-api.ts';\n" +
-        code.replace(action, 'void performPortalAction(node.id, activity.id, enterPortal)');
+    const automatic = 'void onComplete(activity)';
+    if (code.split(action).length !== 2 || code.split(automatic).length !== 2) throw new Error('The pinned portal action seam changed.');
+    return "import { completeAutomaticPortal, performPortalAction } from '/src/platform/playback-portal-api.ts';\n" +
+        code.replace(action, 'void performPortalAction(node.id, activity.id, enterPortal)')
+            .replace(automatic, 'void completeAutomaticPortal(node.id, activity.id, () => onComplete(activity))');
 }

@@ -8,8 +8,8 @@ test.beforeAll(() => {
     expect(execFileSync('git', ['diff', '--exit-code', '32c3113a5bc688c9944c20942cdf40a6a5d57d7f', '--', ':(top)resources/js', ':(top)resources/css/app.css']).length).toBe(0);
 });
 
-for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) for (const scenario of ['journey', 'recovery', 'automatic']) {
-    const recovery = scenario === 'recovery'; const automatic = scenario === 'automatic';
+for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) for (const scenario of ['journey', 'recovery', 'automatic', 'automatic-recovery', 'automatic-return']) {
+    const recovery = scenario === 'recovery'; const automatic = scenario.startsWith('automatic'); const automaticRecovery = scenario === 'automatic-recovery' || scenario === 'automatic-return';
     test(`whole portal ${scenario} at ${viewport.width}`, async ({ browser, baseURL }, info) => {
         test.setTimeout(100_000);
         expect(new URL(baseURL!).hostname).toMatch(/^(localhost|127\.0\.0\.1)$/);
@@ -100,6 +100,23 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                     sql(`UPDATE learning_nodes SET state='available' WHERE id='${nodes[0].node_id}'; UPDATE learning_nodes SET state='locked' WHERE id='${nodes[1].node_id}'`);
                 }
                 await info.attach(`departure-check-in-${index ? 'main' : 'canonical'}`, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' });
+                let arrivalAttempts = 0;
+                let completedArrival = '';
+                let completedProgress = '';
+                let deniedStatus: number | undefined;
+                if (automaticRecovery) await page.route('**/complete', async (route) => {
+                    if (!decodeURIComponent(new URL(route.request().url()).pathname).endsWith(`/activities/id:${input}/complete`)) return route.continue();
+                    arrivalAttempts++;
+                    if (arrivalAttempts === 1) {
+                        sql(`UPDATE learning_nodes SET state='locked' WHERE id='${nodes[1].node_id}'`);
+                        const denied = await route.fetch(); deniedStatus = denied.status(); await route.fulfill({ response: denied });
+                    } else if (arrivalAttempts === 2) {
+                        const saved = await route.fetch(); expect(saved.status()).toBe(200);
+                        completedArrival = sql(`SELECT row_to_json(r)::text FROM learner_portal_arrival_runs r WHERE id='${arrival}'`).trim();
+                        completedProgress = sql(`SELECT row_to_json(p)::text FROM learner_activity_progress p WHERE principal_id='${principal}' AND activity_id='${input}'`).trim();
+                        await route.abort('failed');
+                    } else await route.continue();
+                });
                 await page.getByRole('button', { name: automatic ? 'Continue without answering' : 'Save note and continue', exact: true }).click();
                 if (recovery) {
                     await expect(failure).toBeVisible();
@@ -110,6 +127,56 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                     await failure.getByRole('button', { name: 'Retry portal', exact: true }).click();
                 }
                 await expect(page).toHaveURL(new RegExp(`/learning/nodes/${nodes[1].node_id}/play\\?.*run=${arrival}`));
+                if (automaticRecovery) {
+                    await expect(failure).toBeVisible();
+                    expect(deniedStatus).toBe(404);
+                    await boundedRecovery(page, viewport, 'Return to map');
+                    await expect(page.getByText('Continuing from this exit portal...', { exact: true })).toBeVisible();
+                    expect(sql(`SELECT status FROM learner_portal_arrival_runs WHERE id='${arrival}'`).trim()).toBe('in_progress');
+                    await info.attach(`automatic-unavailable-${index ? 'main' : 'canonical'}`, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' });
+                    sql(`UPDATE learning_nodes SET state='available' WHERE id='${nodes[1].node_id}'`);
+                    if (scenario === 'automatic-return') {
+                        const unfinishedProgress = sql(`SELECT row_to_json(p)::text FROM learner_activity_progress p WHERE principal_id='${principal}' AND activity_id='${input}'`).trim();
+                        await failure.getByRole('button', { name: 'Return to map', exact: true }).click();
+                        await expect(page).toHaveURL(/\/world\?map=[^&]+&focused=/);
+                        expect(sql(`SELECT status FROM learner_portal_arrival_runs WHERE id='${arrival}'`).trim()).toBe('in_progress');
+                        expect(sql(`SELECT count(*) FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${input}' AND status='completed'`).trim()).toBe('0');
+                        expect(sql(`SELECT row_to_json(p)::text FROM learner_activity_progress p WHERE principal_id='${principal}' AND activity_id='${input}'`).trim()).toBe(unfinishedProgress);
+                        expect(targetProgress()).toBe(beforeTarget);
+                        expect(arrivalAttempts).toBe(1); expect(errors).toEqual([]); expect(legacy).toEqual([]);
+                        await page.close();
+                        continue;
+                    }
+                    await failure.getByRole('button', { name: 'Retry portal', exact: true }).click();
+                    await expect(failure).toBeVisible();
+                    expect(completedArrival).not.toBe('');
+                    const completionUrl = `/api/v1/learner/play-runs/${arrival}/activities/id:${input}/complete`;
+                    expect((await owner.request.post(completionUrl, { data: {} })).status()).toBe(403);
+                    const peer = owners[1 - index];
+                    expect((await peer.request.post(completionUrl, { headers: await headers(peer), data: {} })).status()).toBe(404);
+                    expect((await owner.request.post(completionUrl.replace(input, output), { headers: await headers(owner), data: {} })).status()).toBe(404);
+                    for (const [table, where] of [
+                        ['learning_maps', `id='${maps[1]}'`], ['learning_nodes', `id='${nodes[1].node_id}'`],
+                        ['learning_map_assets', `id='${nodes[1].asset_id}'`], ['learning_routes', `map_asset_id='${nodes[1].asset_id}'`],
+                        ['learning_activities', `id='${input}'`],
+                    ]) {
+                        const timestamp = sql(`SELECT published_at FROM ${table} WHERE ${where}`).trim();
+                        sql(`UPDATE ${table} SET published_at=NULL WHERE ${where}`);
+                        try { expect((await owner.request.post(completionUrl, { headers: await headers(owner), data: {} })).status()).toBe(404); }
+                        finally { sql(`UPDATE ${table} SET published_at='${timestamp}' WHERE ${where}`); }
+                    }
+                    sql(`UPDATE learning_nodes SET state='locked' WHERE id='${nodes[1].node_id}'`);
+                    expect((await owner.request.post(completionUrl, { headers: await headers(owner), data: {} })).status()).toBe(404);
+                    sql(`UPDATE learning_nodes SET state='available' WHERE id='${nodes[1].node_id}'; UPDATE learning_maps SET access_roles='["unassigned-portal-test-role"]' WHERE id='${maps[1]}'`);
+                    expect((await owner.request.post(completionUrl, { headers: await headers(owner), data: {} })).status()).toBe(404);
+                    sql(`UPDATE learning_maps SET access_roles='["public"]' WHERE id='${maps[1]}'`);
+                    await failure.getByRole('button', { name: 'Retry portal', exact: true }).click();
+                    await expect(failure).toHaveCount(0);
+                    await expect.poll(() => arrivalAttempts).toBe(3);
+                    await expect(page.getByRole('heading', { name: 'A small pause after Arrival portal', exact: true })).toBeVisible();
+                    expect(sql(`SELECT row_to_json(r)::text FROM learner_portal_arrival_runs r WHERE id='${arrival}'`).trim()).toBe(completedArrival);
+                    expect(sql(`SELECT row_to_json(p)::text FROM learner_activity_progress p WHERE principal_id='${principal}' AND activity_id='${input}'`).trim()).toBe(completedProgress);
+                }
                 if (!automatic) await expect(page.getByText('This portal is configured as the exit point for paths that arrive here.', { exact: true })).toBeVisible();
                 else await expect(page.getByRole('heading', { name: 'A small pause after Arrival portal', exact: true })).toBeVisible();
                 expect(new URL(page.url()).searchParams.get('activity_id')).toBe(input);
@@ -148,11 +215,11 @@ async function activate(page: Page, name: string, width: number, info: TestInfo)
     if (obstruction !== null && width === 390) { expect(obstruction).toBe('Player actions'); info.annotations.push({ type: 'source-defect', description: 'Inherited mobile toolbar obstruction: keyboard activation tests the lifecycle, not pointer acceptance.' }); await button.focus(); await button.press('Enter'); }
     else { expect(obstruction).toBeNull(); await button.click(); }
 }
-async function boundedRecovery(page: Page, viewport: { width: number; height: number }) {
+async function boundedRecovery(page: Page, viewport: { width: number; height: number }, dismiss = 'Dismiss portal error') {
     const region = page.getByRole('region', { name: 'Portal connection' });
     const bounds = await region.boundingBox(); expect(bounds!.x).toBeGreaterThanOrEqual(0); expect(bounds!.y).toBeGreaterThanOrEqual(0);
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width); expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height);
-    for (const name of ['Retry portal', 'Dismiss portal error']) {
+    for (const name of ['Retry portal', dismiss]) {
         expect(await region.getByRole('button', { name, exact: true }).evaluate((element) => { const box = element.getBoundingClientRect(); return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)); })).toBe(true);
     }
 }
