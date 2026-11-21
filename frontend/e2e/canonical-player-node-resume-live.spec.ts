@@ -40,8 +40,9 @@ test('clean player return selects only the caller current source-ordered ordinar
             expect((await context.request.get(path)).status()).toBe(404);
             expect(progress()).toBe(before);
         };
+        const alias = (index: number) => `/api/v1/learner/nodes/${node.node_id}/activities/${activities[index]}/start`;
         const enter = async (index: number, context = owner) => {
-            const response = await context.request.post(`/api/v1/learner/activity-starts/${starts[index]}/start`, { headers: await headersFor(context) });
+            const response = await context.request.post(alias(index), { headers: await headersFor(context) });
             expect(response.status()).toBe(200); return uuid((await response.json()).play_run_id);
         };
         const complete = async (run: string, index: number) => {
@@ -51,7 +52,20 @@ test('clean player return selects only the caller current source-ordered ordinar
         expect((await anonymous.request.get(path)).status()).toBe(401);
         await unavailable();
         expect((await owner.request.get(`/api/v1/learner/nodes/${randomUUID()}/resume`)).status()).toBe(404);
+        const empty = progress();
+        expect((await anonymous.request.post(alias(0))).status()).toBe(401);
+        expect((await owner.request.post(alias(0))).status()).toBe(403);
+        for (const [requestedNode, requestedActivity] of [[randomUUID(), activities[0]], [node.node_id, randomUUID()], [node.node_id, 'invalid']]) {
+            expect((await owner.request.post(`/api/v1/learner/nodes/${requestedNode}/activities/${requestedActivity}/start`, { headers: ownerHeaders })).status()).toBe(404);
+        }
+        sql(`DELETE FROM learning_activity_starts WHERE id='${starts[0]}'`);
+        expect((await owner.request.post(alias(0), { headers: ownerHeaders })).status()).toBe(404);
+        sql(`INSERT INTO learning_activity_starts(id,node_id,activity_id,label,sort_order) VALUES ('${starts[0]}','${node.node_id}','${activities[0]}','Resume 0',0)`);
+        expect(progress()).toBe(empty);
         const first = await enter(0), second = await enter(1);
+        expect(await enter(1)).toBe(second);
+        const explicit = await owner.request.post(`/api/v1/learner/activity-starts/${starts[1]}/start?node_id=${node.node_id}`, { headers: ownerHeaders });
+        expect(explicit.status()).toBe(200); expect((await explicit.json()).play_run_id).toBe(second);
         await resume(second); // Most recently entered unfinished route.
         await unavailable(peer);
         await complete(second, 1);
@@ -60,12 +74,19 @@ test('clean player return selects only the caller current source-ordered ordinar
         await resume(first); // All completed: most recently updated route.
         sql(`UPDATE learning_activities SET published_at=NULL WHERE id='${activities[0]}'`);
         await unavailable(); // Do not silently fall back to the older second route.
+        const completed = progress();
+        expect((await owner.request.post(alias(0), { headers: ownerHeaders })).status()).toBe(404);
+        expect(progress()).toBe(completed);
         sql(`UPDATE learning_activities SET published_at=NOW() WHERE id='${activities[0]}'; UPDATE learning_nodes SET state='locked' WHERE id='${node.node_id}'`);
         await unavailable();
+        expect((await owner.request.post(alias(0), { headers: ownerHeaders })).status()).toBe(404);
+        expect(progress()).toBe(completed);
         sql(`UPDATE learning_nodes SET state='available' WHERE id='${node.node_id}'; UPDATE learning_maps SET published_at=NULL WHERE id='${map}'`);
         await unavailable();
         sql(`UPDATE learning_maps SET published_at=NOW(),access_roles='["admin"]' WHERE id='${map}'`);
         await unavailable();
+        expect((await owner.request.post(alias(0), { headers: ownerHeaders })).status()).toBe(404);
+        expect(progress()).toBe(completed);
         sql(`UPDATE learning_maps SET access_roles='["public"]' WHERE id='${map}'`);
         await resume(first);
         const peerRun = await enter(1, peer);

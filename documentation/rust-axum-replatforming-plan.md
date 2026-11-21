@@ -2138,7 +2138,7 @@ regression reproduces unavailable entry when following that exact saved URL.
 | Bounded persistence | One principal/node lookup with LIMIT 1; additive principal/node index; existing bounded playback reader | Record local timing and verify the index/migration, with no history or route-progress mutation in selection. Existing playback visit bookkeeping remains unchanged. |
 
 A clean URL with no ordinary history still has no projection. New implicit
-entry without an authored start, `activity` shorthand, anonymous entry and
+entry without an authored start, direct `activity_id` entry, anonymous entry and
 nonordinary return selection are separate unresolved source contracts; this
 lookup must not invent a default route or treat those cases as completed.
 Production NodePlay remains closed until the complete family is accepted.
@@ -2172,6 +2172,68 @@ are explicitly ignored by the unit suites; the live coverage above ran against
 the migrated database). Local evidence:
 `frontend/playwright-report/player-node-resume-final/`. No copied presentation
 files or production routing changed.
+
+### Authored-start activity-query entry
+
+The pinned World `startNode`
+constructs `?activity={id}` with an optional `route`. The controller's
+`routeFromRequest` resolves `activity` to an existing authored start within
+that node, with explicit `route` taking precedence. This is distinct from
+`requestedActivityFromRequest`'s `activity_id`, which can request an activity
+without an authored start (`DashboardTest.php`, “learners can open a requested
+activity within a playable node”). The latter, anonymous entry and no-history
+default entry still need their own bounded read/write contracts. Do not
+manufacture an authored start to satisfy them.
+
+The typed `POST /learner/nodes/{node_id}/activities/{activity_id}/start`
+(`startLearnerNodeActivity`) resolves the actual authored association under a
+shared row lock inside the existing start/resume transaction. The existing
+unique `(node_id, activity_id)` index bounds the lookup; no migration or extra
+authored route is needed. The same command rechecks publication, ownership,
+map roles and evaluated availability. `playback-page-bootstrap.ts` maps only
+this exact entry seam, verifies the returned start/run against the read, and
+retains explicit `route` precedence. Copied World/player URLs and JSX remain
+unchanged.
+
+**Verified authored-start alias:** The desktop browser regression failed on
+this exact source URL before the adapter. The final live suite passed all 11
+cases, including the six existing playback run-kind contracts; the four
+whole-page cases passed again after adding immediate-entry screenshots.
+`canonical-player-node-resume-live.spec.ts` now starts actual runs through the
+alias and verifies explicit-start compatibility, repeated resume, principal
+isolation, missing authored association, wrong node/activity, malformed ID,
+anonymous/CSRF rejection and unpublished/locked/role-restricted failures
+without progress changes. `canonical-player-page-live.spec.ts` enters both
+whole source trees with `activity`, checks explicit-route precedence, then
+continues the existing start/reset/refresh/check-in lifecycle at both sizes.
+Immediate-entry pairs are pixel-identical and visually inspected. The final
+18 screenshot pairs include 15 identical pairs and three existing narrow
+check-in icon differences within `(358,553)–(361,555)`; the source toolbar
+overlap remains an open acceptance limitation. Evidence reports are
+`frontend/playwright-report/player-node-activity-entry/` and
+`frontend/playwright-report/player-node-activity-entry-final/`.
+
+Canonical identity, frontend production type/build, OpenAPI generation, Rust
+formatting/workspace check, the affected application/persistence tests and
+183 API tests passed (two API tests explicitly ignored). No production player
+activation or schema migration is included in this refinement.
+
+**Remaining direct-entry semantics:** Source `LearningWorldController::play`
+and `LoadPlayableNode` allow the playable node document without a run;
+`NodePlay::getStartActivity` chooses the first authored start, then preferred
+activity, then first activity. `requestedActivityFromRequest` handles the
+separate `activity_id` destination. `markActivity` accepts a null play-run ID
+under `LearnerActivityAccessService::assertCanPlay`; `LearnerProgressService::mark`
+then persists reached/completed activity facts but skips route entry/exit,
+route completion and `awardActivityCompletion`. Therefore making a hidden
+ordinary route/run for these links would incorrectly create route/evidence
+semantics. Before implementing direct entry, map its nullable-run props,
+anonymous local completion, authenticated progress/check-ins, each specialized
+activity command, Companion and refresh behavior separately. Reuse existing
+bounded graph/presentation/access helpers; do not claim that the run-required
+`LearnerPlaybackDocument` or an ordinary start command already supplies this
+contract. Source tests include `DashboardTest.php`'s requested-activity case
+and public/private node entry cases. These remain incomplete requirements.
 
 ### Copied player page-prop adapter
 

@@ -83,9 +83,16 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                     await expect(page.getByText('The player entry is currently unavailable.', { exact: true })).toBeVisible();
                     expect(sql(`SELECT current_play_run_id FROM learner_route_progress WHERE principal_id='${principals[index]}' AND activity_start_id='${start}'`).trim()).toBe(runs[index]);
                 }
-                await page.goto(`http://localhost:8084/learning/nodes/${node.node_id}/play?route=${start}${failure ? `&run=${runs[index]}` : ''}`);
+                await page.goto(`http://localhost:8084/learning/nodes/${node.node_id}/play?${failure ? `route=${start}&run=${runs[index]}` : `activity=${first}`}`);
                 await expect(page.getByText('First source step', { exact: true })).toBeVisible();
                 expect(new URL(page.url()).searchParams.get('run')).toBe(runs[index]);
+                if (!failure) {
+                    expect(new URL(page.url()).searchParams.get('route')).toBe(start);
+                    await info.attach(`activity-entry-${index ? 'main' : 'canonical'}`, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' });
+                    await page.goto(`http://localhost:8084/learning/nodes/${node.node_id}/play?route=${start}&activity=${second}`);
+                    await expect(page.getByText('First source step', { exact: true })).toBeVisible();
+                    expect(new URL(page.url()).searchParams.get('run')).toBe(runs[index]);
+                }
                 await expect.poll(() => sql(`SELECT status FROM learner_activity_progress WHERE principal_id='${principals[index]}' AND activity_id='${first}'`).trim()).toBe('reached');
                 await page.getByRole('button', { name: 'Bookmark this place', exact: true }).click();
                 await expect(page.getByRole('button', { name: 'Remove place bookmark', exact: true })).toHaveAttribute('aria-pressed', 'true');
@@ -144,7 +151,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('learning.activeActivity')!));
                     expect(saved.playHref).toBe(`/learning/nodes/${node.node_id}/play`);
                     const entryCommands: string[] = [];
-                    const recordEntry = (request: import('@playwright/test').Request) => { if (request.method() === 'POST' && /\/activity-starts\//.test(request.url())) entryCommands.push(request.url()); };
+                    const recordEntry = (request: import('@playwright/test').Request) => { if (request.method() === 'POST' && /\/(?:start|reset)(?:\?|$)/.test(request.url())) entryCommands.push(request.url()); };
                     page.on('request', recordEntry);
                     await page.goto(`http://localhost:8084${saved.playHref}`);
                     await expect(page.getByText('Second source step', { exact: true })).toBeVisible();

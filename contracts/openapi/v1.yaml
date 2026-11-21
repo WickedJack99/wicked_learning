@@ -6983,6 +6983,31 @@ paths:
         '404': { description: The private page does not exist for this learner. }
         '422': { description: Review requests are disabled, destination access was lost, or this page was already reviewed. }
         '503': { description: The application database is unavailable. }
+  /learner/nodes/{node_id}/activities/{activity_id}/start:
+    post:
+      operationId: startLearnerNodeActivity
+      summary: Resolve the source activity query to an existing authored start at this node.
+      description: Locks the actual node/activity start association and reuses the ordinary start/resume transaction, including publication, map roles, node availability and current principal checks. It never creates an authored start or accepts an arbitrary activity as route authority. The returned start/run are server-owned; repeated entry resumes unfinished work. Direct activity_id entry without an authored start remains a separate contract.
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: path
+          name: activity_id
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The actual authored start and authorized current play run.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerRouteRun' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and application principal are required. }
+        '404': { description: No authored start for this node/activity, or it is unavailable to this learner. No progress is changed. }
+        '503': { description: Persistence is unavailable. }
   /learner/nodes/{node_id}/resume:
     get:
       operationId: getLearnerNodeResume

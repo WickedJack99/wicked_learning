@@ -1498,6 +1498,10 @@ fn router(state: AppState) -> Router {
             post(learner_route_run::reset),
         )
         .route(
+            "/api/v1/learner/nodes/{node_id}/activities/{activity_id}/start",
+            post(learner_route_run::start_from_activity),
+        )
+        .route(
             "/api/v1/learner/nodes/{node_id}/resume",
             get(learner_playback::resume_node),
         )

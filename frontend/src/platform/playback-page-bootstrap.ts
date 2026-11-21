@@ -21,7 +21,7 @@ type State = { kind: 'loading' } | { kind: 'unavailable'; message: string } | { 
 /** A real run bootstrap for the whole copied page. An explicit source route
  * can start/resume only inside its URL node. A clean URL resolves existing
  * owned ordinary history; it never fabricates a default route. */
-export function usePlaybackPageDocument(run: string | null, node: string, start: string | null, cleanNodeEntry = false) {
+export function usePlaybackPageDocument(run: string | null, node: string, start: string | null, cleanNodeEntry = false, entryActivity: string | null = null) {
     const [state, setState] = useState<State>({ kind: 'loading' });
     const [companionRecovery, setCompanionRecovery] = useState<CompanionRecovery | null>(null);
     const [portalFailure, setPortalFailure] = useState<PortalFailure | null>(null);
@@ -37,7 +37,8 @@ export function usePlaybackPageDocument(run: string | null, node: string, start:
             playbackIdentity(node);
             if (start !== null) playbackIdentity(start);
             let activeRun = run;
-            if (activeRun === null && start === null && !cleanNodeEntry) throw new JsonRequestError('The player entry is currently unavailable.', 501);
+            let selectedStart = start;
+            if (activeRun === null && start === null && entryActivity === null && !cleanNodeEntry) throw new JsonRequestError('The player entry is currently unavailable.', 501);
             if (activeRun === null && start !== null) {
                 const entered = await apiClient.POST('/learner/activity-starts/{start_id}/start', {
                     signal,
@@ -46,6 +47,16 @@ export function usePlaybackPageDocument(run: string | null, node: string, start:
                 if (!entered.response.ok || !entered.data || entered.data.start_id !== start) {
                     throw new JsonRequestError('The player entry is currently unavailable.', entered.response.status);
                 }
+                activeRun = entered.data.play_run_id;
+            }
+            if (activeRun === null && start === null && entryActivity !== null) {
+                playbackIdentity(entryActivity);
+                const entered = await apiClient.POST('/learner/nodes/{node_id}/activities/{activity_id}/start', {
+                    signal,
+                    params: { path: { node_id: node, activity_id: entryActivity }, header: { 'X-CSRF-Token': await getCsrfToken() } },
+                });
+                if (!entered.response.ok || !entered.data) throw new JsonRequestError('The player entry is currently unavailable.', entered.response.status);
+                selectedStart = playbackIdentity(entered.data.start_id);
                 activeRun = entered.data.play_run_id;
             }
             if (activeRun !== null) playbackIdentity(activeRun);
@@ -62,7 +73,7 @@ export function usePlaybackPageDocument(run: string | null, node: string, start:
                 throw new JsonRequestError('The player is currently unavailable.', 503);
             }
             const document = playback.data;
-            if ((activeRun !== null && document.play_run_id !== activeRun) || document.node.id !== node || (start !== null && document.start_id !== start)) {
+            if ((activeRun !== null && document.play_run_id !== activeRun) || document.node.id !== node || (selectedStart !== null && document.start_id !== selectedStart)) {
                 throw new JsonRequestError('The player context is unavailable.', 503);
             }
             activeRun = playbackIdentity(document.play_run_id);
@@ -98,6 +109,6 @@ export function usePlaybackPageDocument(run: string | null, node: string, start:
             if (alive) setState({ kind: 'unavailable', message: error instanceof Error ? error.message : 'The player is currently unavailable.' });
         });
         return () => { alive = false; controller.abort(); companionRefresh?.dispose(); releasePortals?.(); release?.(); };
-    }, [run, node, start, cleanNodeEntry]);
+    }, [run, node, start, cleanNodeEntry, entryActivity]);
     return { ...state, companionRecovery, portalFailure };
 }

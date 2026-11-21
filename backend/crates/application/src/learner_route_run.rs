@@ -8,6 +8,12 @@ use wicked_learning_domain::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LearnerRouteRunCommandError;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LearnerRouteStart {
+    AuthoredStart(Uuid),
+    NodeActivity { node_id: Uuid, activity_id: Uuid },
+}
+
 /// Owns the transaction boundary for entering or resetting an authored route.
 /// A repository must apply visibility, publication and principal checks before
 /// it writes; an absent result is deliberately indistinguishable from a route
@@ -16,7 +22,7 @@ pub trait LearnerRouteRunRepository {
     fn start_or_resume(
         &self,
         principal: &AuthorizedPrincipal,
-        start_id: Uuid,
+        start: LearnerRouteStart,
         expected_node_id: Option<Uuid>,
     ) -> impl Future<Output = Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError>> + Send;
 
@@ -47,7 +53,29 @@ where
         expected_node_id: Option<Uuid>,
     ) -> Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError> {
         self.repository
-            .start_or_resume(principal, start_id, expected_node_id)
+            .start_or_resume(
+                principal,
+                LearnerRouteStart::AuthoredStart(start_id),
+                expected_node_id,
+            )
+            .await
+    }
+
+    pub async fn start_from_activity(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        activity_id: Uuid,
+    ) -> Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError> {
+        self.repository
+            .start_or_resume(
+                principal,
+                LearnerRouteStart::NodeActivity {
+                    node_id,
+                    activity_id,
+                },
+                Some(node_id),
+            )
             .await
     }
 
@@ -80,7 +108,7 @@ mod tests {
         fn start_or_resume(
             &self,
             _principal: &AuthorizedPrincipal,
-            _start_id: Uuid,
+            _start: super::LearnerRouteStart,
             _expected_node_id: Option<Uuid>,
         ) -> impl Future<Output = Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError>> + Send
         {
@@ -111,5 +139,9 @@ mod tests {
             .await;
 
         assert!(matches!(result, Ok(None)));
+        let alias_result = LearnerRouteRunCommand::new(&AbsentRepository)
+            .start_from_activity(&principal, Uuid::new_v4(), Uuid::new_v4())
+            .await;
+        assert!(matches!(alias_result, Ok(None)));
     }
 }

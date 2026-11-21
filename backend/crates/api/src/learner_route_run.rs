@@ -44,6 +44,26 @@ pub async fn start_or_resume(
         .ok_or_else(ApiError::not_found)
 }
 
+pub async fn start_from_activity(
+    State(state): State<AppState>,
+    Path((node_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<LearnerRouteRun>, ApiError> {
+    let node = Uuid::parse_str(&node_id).map_err(|_| ApiError::not_found())?;
+    let activity = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresLearnerRouteRunRepository::new(&state.application_database);
+    LearnerRouteRunCommand::new(&repository)
+        .start_from_activity(&principal, node, activity)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
+}
+
 pub async fn reset(
     State(state): State<AppState>,
     Path(start_id): Path<String>,

@@ -474,6 +474,14 @@ only current-run state. Progress is keyed by `(principal_id, activity_start_id)`
 while retaining `route_id` as a query aid. Unknown and unauthorized starts both
 produce the same not-found result.
 
+**Canonical entry refinement:** The source World can link with an `activity`
+query instead of a start ID. `POST /api/v1/learner/nodes/{node_id}/activities/{activity_id}/start`
+resolves that pair to an existing authored start under a shared row lock in
+the same start/resume transaction. It then applies the existing visibility,
+publication, availability and principal gates. The adapter gives an explicit
+`route` precedence, as the source controller does. This is not direct
+`activity_id` playback or permission to create an implicit authored start.
+
 **Why:** It preserves Laravel's `LearnerRouteProgressService` behavior while
 keeping authorization, current-run identity and replay prevention in Rust and
 PostgreSQL. The database now has a durable activity type/configuration boundary

@@ -3,6 +3,7 @@ use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::learner_route_run::{
     LearnerRouteRunCommandError, LearnerRouteRunRepository as LearnerRouteRunRepositoryPort,
+    LearnerRouteStart,
 };
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal, learner_state::LearnerRouteRun,
@@ -44,13 +45,13 @@ impl LearnerRouteRunRepositoryPort for PostgresLearnerRouteRunRepository<'_> {
     fn start_or_resume(
         &self,
         principal: &AuthorizedPrincipal,
-        start_id: Uuid,
+        start: LearnerRouteStart,
         expected_node_id: Option<Uuid>,
     ) -> impl std::future::Future<
         Output = Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError>,
     > + Send {
         async move {
-            start_or_resume(self.pool, principal, start_id, expected_node_id)
+            start_or_resume(self.pool, principal, start, expected_node_id)
                 .await
                 .map_err(|error| {
                     tracing::error!(%error, "could not start or resume learner route run");
@@ -102,13 +103,28 @@ struct ProgressRow {
 async fn start_or_resume(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
-    start_id: Uuid,
+    target: LearnerRouteStart,
     expected_node_id: Option<Uuid>,
 ) -> Result<Option<LearnerRouteRun>, sqlx::Error> {
     let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
         return Ok(None);
     };
     let mut transaction = pool.begin().await?;
+    let start_id = match target {
+        LearnerRouteStart::AuthoredStart(id) => id,
+        LearnerRouteStart::NodeActivity {
+            node_id,
+            activity_id,
+        } => {
+            // Lock the authored association until the ordinary start command
+            // commits, so an author cannot retarget it between these reads.
+            let start = sqlx::query_scalar::<_, Uuid>(
+                "SELECT id FROM learning_activity_starts WHERE node_id = $1 AND activity_id = $2 FOR SHARE",
+            ).bind(node_id).bind(activity_id).fetch_optional(&mut *transaction).await?;
+            let Some(start) = start else { return Ok(None) };
+            start
+        }
+    };
     let Some((principal_id, start)) = resolve_visible_start(
         &mut transaction,
         principal,
