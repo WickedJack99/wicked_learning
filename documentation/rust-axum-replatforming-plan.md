@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins, Companion context/recovery and ordinary output-portal travel integrated below | Anonymous and implicit entry, Recall reconciliation, nonordinary entry/continuation/restart, other completed-run refreshes, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
+| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins, Companion context/recovery, ordinary output-portal travel and completed ordinary refresh integrated below | Anonymous and implicit entry, Recall reconciliation, nonordinary entry/continuation/restart, completed nonordinary and finished-portal refreshes, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -2057,6 +2057,67 @@ byte-identical. Evidence reports are ignored under
 `frontend/playwright-report/player-auto-portal-final/` and
 `frontend/playwright-report/player-auto-portal-contract-final/`.
 
+
+### Verified current completed ordinary-run refresh
+
+Source evidence: pinned `LearningWorldController::play`,
+`LearningPlayRunService::{currentRunId,canUseRunForUser}` and
+`LearnerRouteProgressService::progressForNodeRun` accept the principal's current
+run without excluding its completed status. Whole copied
+`pages/learning/node-play.tsx` and `OpenPracticeActivity` in
+`features/world/standard-activities.tsx` reload the actual terminal activity;
+Continue requests its completion receipt before opening the optional check-in.
+The new desktop whole-page regression reproduces unavailable playback after
+refreshing the completed second activity.
+
+| Contract | Existing Rust evidence and missing behavior | Required verification |
+| --- | --- | --- |
+| Read the current completed ordinary run | `learner_playback.rs` previously filtered ordinary reads and private question/obstacle/dialogue readers to in-progress; current completed non-portal reads now reuse those same authorized projections | Allow current completed non-portal ordinary runs under existing publication, ownership, evaluated availability, graph and bounded configuration gates. Never resurrect a superseded run UUID. |
+| Continue from a refreshed terminal activity | Existing `/complete` retains active writers and now shares `completed_route_receipt` with reached | Return the actual already-completed receipt idempotently, without re-running completion writers, adding evidence, resetting progress or incrementing completion count. Wrong owner/activity, revoked access and CSRF remain rejected. |
+| Copied page/bootstrap and check-in | Existing page projection, Companion completed-run context and owned check-in writer | Refresh → same terminal activity/run → Continue → check-in → World at both viewports, with source screenshots and unchanged route progress. |
+| Reached → translated copy after refresh | `learner_playback_reach.rs` and `learner_activity_translation.rs`; source `node-play.tsx` fetches translation only after reached succeeds | Return existing completed state without entry/progress/topic writes, then allow the current owned non-portal translation read. Verify actual stored translated title after refresh; success with only the default language is insufficient. |
+| Other run kinds and portal travel | Separate accepted Recall/revisit/replay/arrival contracts | Do not broaden their mutation permissions or turn an output portal into ordinary completion. Their remaining refresh/continuation gaps stay explicit. |
+
+Implementation reuses the current ordinary route row and private presentation
+readers for thirteen non-portal activity types; the message topic binding
+remains required. `completed_route_receipt` locks and reauthorizes that current
+completed route, requires its actual completed activity fact, validates bounded
+configuration, and returns the existing receipt. Completion and reached share
+this no-write path. The translation reader keeps the same current-activity,
+publication, principal and evaluated node-availability gates.
+
+The original whole-page refresh regression failed on unavailable playback.
+After the first reader/receipt implementation, all 44 existing/extended checks
+passed, but source inspection identified the reached → translation dependency
+that default-language screenshots did not prove. A new stored-translation
+whole-page regression then failed at the untranslated title after refresh.
+That dependency is included in the verified slice. The final fourteen native
+activity-reference checks cover all thirteen completed non-portal readers,
+stored completion/reached receipts, translation availability, locked-node and
+owner rejection, CSRF, superseded runs, and unchanged ordinary route rows.
+Stored terminal reader fixtures are distinguished from the whole-page cases,
+which use actual completion commands before refresh and check-in. The four
+whole-page cases pass at both viewports, including a real saved translated
+title after refresh and unchanged completion count/timestamps after Continue.
+The six native run-kind contract cases also pass, retaining other run kinds'
+closed completed reads and the separate portal rules.
+
+Final verification: 18 affected browser/native checks passed (1.5 minutes),
+then six run-kind contract checks passed (16.6 seconds); the broader 44-check
+set had passed before the reached/translation refinement. Canonical identity,
+production frontend type/build, OpenAPI/client drift, Rust workspace check/fmt,
+26 persistence playback tests and 183 API tests (two ignored) passed after
+that refinement. The local combined completed read/receipt measurements were
+15–37 ms across the thirteen types; these are fixture observations, not an SLA.
+Both new completed-refresh screenshot pairs are byte-identical and were
+visually inspected. Of sixteen total whole-page pairs, fourteen are identical;
+the other two narrow check-in pairs differ in three icon pixels at the same
+small bounds, without a layout difference. The inherited mobile toolbar still
+obscures Continue and remains an open source usability limitation; keyboard
+coverage is not pointer acceptance. Reports are ignored under
+`frontend/playwright-report/player-completed-translation/` and
+`frontend/playwright-report/player-completed-translation-contract/`.
+Production NodePlay remains unavailable; no canonical source file changed.
 
 ### Copied player page-prop adapter
 

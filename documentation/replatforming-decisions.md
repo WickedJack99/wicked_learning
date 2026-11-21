@@ -523,7 +523,17 @@ progress, publication and access checks.
 authenticated principal's active, in-progress run. It returns the current
 supported activity's type, authored configuration and its one `completed`
 transition label/target. It never accepts an activity slug from the browser.
-Unknown, completed, inaccessible and unsupported runs are all not-found.
+Unknown, inaccessible and unsupported runs are not-found. The initial reader
+also rejected completed runs. Canonical source reconciliation refines this:
+the current ordinary non-portal run stays readable after completion under the
+same access and presentation gates. Its repeated completion returns stored
+facts without repeating writes. Superseded run UUIDs remain invalid. This
+preserves `LearningPlayRunService::currentRunId` and the copied page's refresh
+and optional check-in behavior. Reached returns the stored completed state
+without changing entry time or progress, allowing the source's chained
+translation read to retain the current authored translated copy; it does not reopen other run kinds or broaden
+any activity-specific mutation command. Output portals retain ADR-053's
+separate pending-arrival exception.
 The first reader and route-start policy support only `open_practice`; adding a
 different activity type requires its own server validation, OpenAPI contract,
 writer and lifted original React component.

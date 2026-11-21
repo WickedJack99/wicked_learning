@@ -268,7 +268,11 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 expect(await completed.json()).toMatchObject({ play_run_id: runId, status: 'completed' });
                 expect((await completed.json()).activity_state).toMatchObject({ activity_id: destinationId, progress: { activity_id: destinationId, status: 'completed', completed_at: expect.any(String) } });
                 expect((await completed.json()).next_activity_id).toBeNull();
-                expect((await owner.request.post(terminalPath, { headers: ownerHeaders, data: {} })).status()).toBe(404);
+                const retriedTerminal = await owner.request.post(terminalPath, { headers: ownerHeaders, data: {} });
+                expect(retriedTerminal.status()).toBe(200);
+                await expect(retriedTerminal.json()).resolves.toEqual(await completed.json());
+                const completedRead = await owner.request.get(path); expect(completedRead.status()).toBe(200);
+                expect((await completedRead.json()).activity.id).toBe(destinationId);
                 expect(progress()).toEqual({ route_id: originalRouteId, current_activity_id: destinationId, status: 'completed', completion_count: 1 });
                 expect((await peer.request.post(checkInPath, { headers: { Origin: new URL(baseURL!).origin, 'X-CSRF-Token': peerCsrf.token }, data: observation })).status()).toBe(404);
                 expect((await owner.request.post(checkInPath, { data: observation })).status()).toBe(403);

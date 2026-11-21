@@ -55,6 +55,11 @@ async fn reach(
     run: Uuid,
     reference: &str,
 ) -> Result<Option<LearnerPlaybackActivityState>, sqlx::Error> {
+    if let Some(completed) =
+        crate::learner_playback::completed_route_receipt(pool, principal, run, reference).await?
+    {
+        return Ok(Some(completed.activity_state));
+    }
     let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
         return Ok(None);
     };

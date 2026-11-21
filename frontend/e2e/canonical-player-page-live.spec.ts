@@ -138,9 +138,24 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                 expect(documents).toEqual([]); expect(new URL(page.url()).searchParams.get('activity_id')).toBe(second);
             }
             await compare(pages, 'next-activity', info);
-            for (const page of pages) {
+            for (const [index, page] of pages.entries()) {
                 await activate(page, 'Continue', viewport, info);
                 await expect(page.getByRole('heading', { name: 'A small pause after Second activity', exact: true })).toBeVisible();
+                if (!failure) {
+                    // Laravel accepts the current completed run; refresh must
+                    // preserve its real terminal activity, not start a new run.
+                    const run = new URL(page.url()).searchParams.get('run');
+                    const before = sql(`SELECT row_to_json(p)::text FROM learner_route_progress p WHERE current_play_run_id='${uuid(run!)}'`).trim();
+                    sql(`INSERT INTO learning_activity_translations(learning_activity_id,locale,content) SELECT '${second}',code,'{"title":"Second activity translation"}'::jsonb FROM application_locales WHERE is_enabled ON CONFLICT(learning_activity_id,locale) DO NOTHING`);
+                    await page.reload();
+                    await expect(page.getByText('Second source step', { exact: true })).toBeVisible();
+                    await expect(page.getByRole('heading', { name: 'Second activity translation', exact: true })).toBeVisible();
+                    expect(new URL(page.url()).searchParams.get('run')).toBe(run);
+                    await info.attach(`completed-refresh-${index ? 'main' : 'canonical'}`, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' });
+                    await activate(page, 'Continue', viewport, info);
+                    await expect(page.getByRole('heading', { name: 'A small pause after Second activity translation', exact: true })).toBeVisible();
+                    expect(sql(`SELECT row_to_json(p)::text FROM learner_route_progress p WHERE current_play_run_id='${run}'`).trim()).toBe(before);
+                }
                 await page.getByRole('button', { name: 'Continue without answering', exact: true }).click();
                 await expect(page).toHaveURL(/\/world\?map=[^&]+&focused=/);
             }

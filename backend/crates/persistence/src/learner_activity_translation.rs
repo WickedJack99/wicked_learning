@@ -66,7 +66,7 @@ async fn load_active_translation(
          LEFT JOIN learner_language_preferences AS preferences ON preferences.principal_id = principals.id \
          LEFT JOIN application_locales AS locales ON locales.code = COALESCE(preferences.locale, 'en') AND locales.is_enabled = TRUE \
          LEFT JOIN learning_activity_translations AS translations ON translations.learning_activity_id = activities.id AND translations.locale = locales.code \
-         WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' \
+         WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND (progress.status = 'in_progress' OR (progress.status = 'completed' AND activities.activity_type <> 'portal')) \
          AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND nodes.map_asset_id = assets.id \
          AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL \
          AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL \

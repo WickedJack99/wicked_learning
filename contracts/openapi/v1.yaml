@@ -6986,8 +6986,8 @@ paths:
   /learner/play-runs/{play_run_id}:
     get:
       operationId: getLearnerPlayback
-      summary: Read the current activity in an authorized active play run.
-      description: A completed ordinary output-portal departure also remains readable while its caller-owned arrival run is in progress, so a source-page refresh can recover that same arrival through idempotent travel. Source publication, role scope and playability still apply. Other completed ordinary runs and completed arrival runs are unavailable.
+      summary: Read the current activity in an authorized play run.
+      description: The principal's current ordinary non-portal run remains readable after completion, preserving refresh and the optional source check-in without starting another run. Superseded run UUIDs remain unavailable. A completed output-portal departure remains readable only while its caller-owned arrival is in progress. Source publication, role scope, evaluated playability and bounded activity configuration still apply. Completed arrival, replay, revisit and Recall reads remain unavailable.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
       responses:
@@ -7025,7 +7025,7 @@ paths:
     get:
       operationId: getLearnerActiveActivityTranslation
       summary: Read translated learner copy for the current authorized route activity.
-      description: Returns translated learner-facing copy only when the requested activity is the caller's current step in an active, visible route run. English or an untranslated enabled locale returns a null translation; the endpoint never exposes arbitrary activity translations or behavior-bearing activity data.
+      description: Returns translated learner-facing copy only when the requested activity is the caller's current step in an active, visible route run. English or an untranslated enabled locale returns a null translation; the endpoint never exposes arbitrary activity translations or behavior-bearing activity data. The current completed ordinary non-portal activity remains eligible for this read under the same ownership, publication and evaluated availability checks; superseded runs remain unavailable.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7043,7 +7043,7 @@ paths:
     post:
       operationId: reachLearnerCurrentActivity
       summary: Record entry into the authorized current activity without completing or advancing it.
-      description: Locks the active owner/run and verifies publication, map access and node availability. Inserts reached progress only when absent and preserves any existing completed status and timestamp. Reuses source topic-visit recording and refreshes an ordinary run's entry time without advancing it. Recall verifies the active question but never writes ordinary progress or topic visits. Accepts no status or destination. Returns persisted activity state from the same transaction.
+      description: Locks the active owner/run and verifies publication, map access and node availability. Inserts reached progress only when absent and preserves any existing completed status and timestamp. Reuses source topic-visit recording and refreshes an ordinary run's entry time without advancing it. Recall verifies the active question but never writes ordinary progress or topic visits. Accepts no status or destination. Returns persisted activity state from the same transaction. For a current completed ordinary non-portal run, returns its already-completed activity state without changing progress, entry time or topic visits, allowing the copied page to fetch its translation after refresh.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7062,7 +7062,7 @@ paths:
     post:
       operationId: completeLearnerCurrentActivity
       summary: Complete the current authorized simple activity in a play run.
-      description: Advances the server-selected transition within the current node's MapAsset, including another published route grouping. A non-null destination that is unpublished, outside that MapAsset, or unsupported is unavailable and must not be treated as an authored terminal. The original activity-start and play-run identities are retained. Message prompts, including private support, and message walls may complete without contributing. Their current node must still be playable; completion never fabricates a message or bypasses publication, map access or authored destination checks. NPC completion rechecks current node access and resolves its authored end or null exit before cursor persistence, prioritizing a dialogue-end connector over the first completed-trigger fallback. Unanswered questions require an already-owned configured tool to skip; terminal reflections require saved evidence for that exact node and run. Markdown completion rechecks evaluated node availability, ordinary start-node identity and the intact bounded Markdown configuration before any progress or evidence write. Portal arrival completion rechecks current evaluated destination availability, ownership, map roles and all publication boundaries. A retry for an already completed arrival returns its existing completed activity receipt without rewriting progress or timestamps; it never advances an authored route.
+      description: Advances the server-selected transition within the current node's MapAsset, including another published route grouping. A non-null destination that is unpublished, outside that MapAsset, or unsupported is unavailable and must not be treated as an authored terminal. The original activity-start and play-run identities are retained. Message prompts, including private support, and message walls may complete without contributing. Their current node must still be playable; completion never fabricates a message or bypasses publication, map access or authored destination checks. NPC completion rechecks current node access and resolves its authored end or null exit before cursor persistence, prioritizing a dialogue-end connector over the first completed-trigger fallback. Unanswered questions require an already-owned configured tool to skip; terminal reflections require saved evidence for that exact node and run. Markdown completion rechecks evaluated node availability, ordinary start-node identity and the intact bounded Markdown configuration before any progress or evidence write. A repeated completion for the current completed ordinary non-portal run returns the actual stored terminal receipt after current ownership, publication, role and playability checks, without repeating activity writers or incrementing completion counts. Portal arrival completion rechecks current evaluated destination availability, ownership, map roles and all publication boundaries. A retry for an already completed arrival returns its existing completed activity receipt without rewriting progress or timestamps; it never advances an authored route.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'

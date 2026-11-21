@@ -92,6 +92,7 @@ for (const type of types) {
             const playbackResponse = await owner.request.get(`/api/v1/learner/play-runs/${run}`);
             expect(playbackResponse.status()).toBe(200);
             const playback = await playbackResponse.json();
+            if (type !== 'portal') await verifyCompletedOrdinaryRead(owner, peer, headers, run, activity, principal, node.node_id, info);
             await verifyPlaybackReach(owner, peer, run, activity, principal, node.node_id, false, info);
             const sourceProps = verifyPlaybackProjection(playback);
             expect(sourceProps.progress).toEqual({ activities: {}, answers: {}, recallQuestionIds: [] });
@@ -274,7 +275,7 @@ for (const type of types) {
                 expect(receipt).toMatchObject({ next_activity_id: null, activity_state: { activity_id: activity, progress: { activity_id: activity, status: 'completed', completed_at: expect.any(String) } } });
                 expect(receipt.activity_state.item_obstacle).toEqual(beforeCompletion.private_state.item_obstacles.find((entry) => entry.activity_id === activity)?.state ?? null);
                 expect(receipt.activity_state.obstacle_resolved_at).toBe(beforeCompletion.private_state.obstacle_resolutions.find((entry) => entry.activity_id === activity)?.resolved_at ?? null);
-                expect((await owner.request.get(`/api/v1/learner/play-runs/${run}`)).status()).toBe(404);
+                expect((await owner.request.get(`/api/v1/learner/play-runs/${run}`)).status()).toBe(200);
                 const observation = await owner.request.post(`${base}/${ref}/check-ins`, { headers, data: { note: 'The completed obstacle state stays intact.' } });
                 expect(observation.status()).toBe(200);
                 expect((await observation.json()).activity_state).toEqual(receipt.activity_state);
@@ -312,6 +313,46 @@ for (const type of types) {
 }
 function uuid(value: string) { expect(value).toMatch(/^[a-f0-9-]{36}$/); return value; }
 function sql(input: string) { return execFileSync('docker', ['exec', '-i', 'wicked_learning-application-db-1', 'psql', '-tA', '-v', 'ON_ERROR_STOP=1', '-U', 'wicked_application', '-d', 'wicked_application'], { input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }); }
+
+// Arrange a stored terminal state for every ordinary activity reader. Whole-page
+// tests separately prove the actual completion → refresh → continuation writers.
+async function verifyCompletedOrdinaryRead(owner: BrowserContext, peer: BrowserContext, headers: Record<string, string>, run: string, activity: string, principal: string, node: string, info: import('@playwright/test').TestInfo) {
+    const path = `/api/v1/learner/play-runs/${run}`;
+    const completion = `${path}/activities/id:${activity}/complete`;
+    const route = () => sql(`SELECT row_to_json(p)::text FROM learner_route_progress p WHERE principal_id='${principal}' AND current_play_run_id='${run}'`).trim();
+    const before = route();
+    expect(JSON.parse(before)).toMatchObject({ status: 'in_progress', completion_count: 0, last_completed_at: null });
+    expect(sql(`SELECT count(*) FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${activity}'`).trim()).toBe('0');
+    sql(`UPDATE learner_route_progress SET status='completed',completion_count=1,last_completed_at=NOW() WHERE principal_id='${principal}' AND current_play_run_id='${run}'; INSERT INTO learner_activity_progress(principal_id,activity_id,status,completed_at) VALUES ('${principal}','${activity}','completed',NOW())`);
+    try {
+        const saved = route();
+        const started = performance.now();
+        const response = await owner.request.get(path); expect(response.status()).toBe(200);
+        const document = await response.json(); verifyPlaybackProjection(document);
+        expect(document).toMatchObject({ play_run_id: run, run_kind: 'route', activity: { id: activity } });
+        expect(document.private_state.activities).toContainEqual({ activity_id: activity, status: 'completed', completed_at: expect.any(String) });
+        const receipt = await owner.request.post(completion, { headers, data: {} }); expect(receipt.status()).toBe(200);
+        expect(await receipt.json()).toMatchObject({ play_run_id: run, status: 'completed', next_activity_id: null, activity_state: { activity_id: activity, progress: document.private_state.activities.find((entry: { activity_id: string }) => entry.activity_id === activity) } });
+        info.annotations.push({ type: 'completed-read-and-receipt', description: `${document.activity.activity_type}: ${Math.round(performance.now() - started)} ms` });
+        const reached = await owner.request.post(`${path}/activities/id:${activity}/reach`, { headers, data: {} });
+        expect(reached.status()).toBe(200);
+        expect(await reached.json()).toEqual((await receipt.json()).activity_state);
+        expect((await owner.request.get(`${path}/activities/id:${activity}/translation`)).status()).toBe(200);
+        expect((await peer.request.get(path)).status()).toBe(404);
+        expect((await owner.request.post(completion, { data: {} })).status()).toBe(403);
+        sql(`UPDATE learning_nodes SET state='locked' WHERE id='${node}'`);
+        expect((await owner.request.get(path)).status()).toBe(404);
+        expect((await owner.request.post(completion, { headers, data: {} })).status()).toBe(404);
+        sql(`UPDATE learning_nodes SET state='available' WHERE id='${node}'`);
+        expect(route()).toBe(saved);
+        sql(`UPDATE learner_route_progress SET current_play_run_id='${randomUUID()}' WHERE principal_id='${principal}' AND current_play_run_id='${run}'`);
+        expect((await owner.request.get(path)).status()).toBe(404);
+        expect((await owner.request.post(completion, { headers, data: {} })).status()).toBe(404);
+    } finally {
+        sql(`UPDATE learning_nodes SET state='available' WHERE id='${node}'; UPDATE learner_route_progress SET current_play_run_id='${run}',status='in_progress',completion_count=0,last_completed_at=NULL WHERE principal_id='${principal}' AND node_id='${node}'; DELETE FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${activity}'`);
+    }
+    expect(route()).toBe(before);
+}
 
 // Saved facts are intentionally different from the authored presentation and
 // from another principal or run. Remove only these fixture facts before the
