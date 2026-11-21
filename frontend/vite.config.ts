@@ -1,3 +1,4 @@
+import { transformNpcSource } from './src/platform/npc-source-transform.ts';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -11,6 +12,13 @@ const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts'
 
 export default defineConfig({
     plugins: [
+        {
+            name: 'canonical-player-npc-seams',
+            enforce: 'pre',
+            transform(code, id) {
+                if (id.split('?')[0] === resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/npc-dialogue-player.tsx')) return transformNpcSource(code);
+            },
+        },
         {
             name: 'canonical-player-message-seams',
             enforce: 'pre',

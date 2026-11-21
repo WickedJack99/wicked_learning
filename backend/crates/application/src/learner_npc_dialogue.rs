@@ -45,6 +45,7 @@ pub trait LearnerNpcDialogueRepository {
         play_run_id: Uuid,
         activity_slug: &str,
         answer_node_id: Uuid,
+        expected_node_id: Option<Uuid>,
     ) -> impl Future<
         Output = Result<Option<LearnerNpcDialogueAnswerResult>, LearnerNpcDialogueError>,
     > + Send;
@@ -62,6 +63,7 @@ pub trait LearnerNpcDialogueRepository {
         play_run_id: Uuid,
         activity_slug: &str,
         reflection: &str,
+        expected_node_id: Option<Uuid>,
     ) -> impl Future<Output = Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError>> + Send;
 }
 
@@ -125,9 +127,16 @@ where
         play_run_id: Uuid,
         activity_slug: &str,
         answer_node_id: Uuid,
+        expected_node_id: Option<Uuid>,
     ) -> Result<Option<LearnerNpcDialogueAnswerResult>, LearnerNpcDialogueError> {
         self.repository
-            .answer_current_dialogue(principal, play_run_id, activity_slug, answer_node_id)
+            .answer_current_dialogue(
+                principal,
+                play_run_id,
+                activity_slug,
+                answer_node_id,
+                expected_node_id,
+            )
             .await
     }
 
@@ -148,9 +157,16 @@ where
         play_run_id: Uuid,
         activity_slug: &str,
         reflection: &str,
+        expected_node_id: Option<Uuid>,
     ) -> Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError> {
         self.repository
-            .save_current_dialogue_reflection(principal, play_run_id, activity_slug, reflection)
+            .save_current_dialogue_reflection(
+                principal,
+                play_run_id,
+                activity_slug,
+                reflection,
+                expected_node_id,
+            )
             .await
     }
 }

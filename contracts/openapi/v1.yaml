@@ -7435,6 +7435,7 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The answer is not an available authored edge for this learner's active dialogue. }
+        '422': { description: The JSON request contains an invalid expected node UUID or has an invalid shape; no dialogue writes occur. }
         '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/back:
     post:
@@ -7478,6 +7479,7 @@ paths:
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The active dialogue node is not a writable reflection owned by this learner. Rejected requests leave the dialogue cursor, journal and reflection records unchanged. }
+        '422': { description: The JSON request contains an invalid expected node UUID or has an invalid shape; no dialogue writes occur. }
         '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-items:
     post:
@@ -11689,12 +11691,20 @@ components:
       additionalProperties: false
       required: [answer_node_id]
       properties:
+        expected_node_id:
+          type: string
+          format: uuid
+          description: Optional authored node identity from the source URL; when supplied it must equal the locked current cursor. A stale caller cannot answer or reflect at another node.
         answer_node_id: { type: string, format: uuid }
     LearnerNpcDialogueReflectionRequest:
       type: object
       additionalProperties: false
       required: [reflection]
       properties:
+        expected_node_id:
+          type: string
+          format: uuid
+          description: Optional authored node identity from the source URL; when supplied it must equal the locked current cursor. A stale caller cannot answer or reflect at another node.
         reflection: { type: string, minLength: 1, maxLength: 20000 }
     LearnerPlaybackReviewContext:
       type: object

@@ -1,3 +1,4 @@
+import { transformNpcSource } from '../src/platform/npc-source-transform.ts';
 import { defineConfig, mergeConfig } from 'vite';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -22,6 +23,9 @@ export default mergeConfig(base, defineConfig({ cacheDir: 'node_modules/.vite-le
     },
     transform(code, id) {
         if (!id.split('?')[0].startsWith(`${sourceRoot}/`)) return;
+        if (id.split('?')[0] === `${sourceRoot}/features/world/npc-dialogue-player.tsx`) {
+            code = transformNpcSource(code).replace("from './api'", "from '/src/platform/world-api.ts'");
+        }
         if (id.split('?')[0] === `${sourceRoot}/features/world/message-activities.tsx`) {
             code = transformMessageSource(code).replace("from './api'", "from '/src/platform/world-api.ts'");
         }

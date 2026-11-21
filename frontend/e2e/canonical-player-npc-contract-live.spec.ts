@@ -45,7 +45,7 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
             const history = action === 'back' ? [first] : [];
             sql(`INSERT INTO learner_npc_dialogue_states (principal_id,activity_id,play_run_id,current_node_id,history) VALUES ('${principal}','${activity}','${run}','${current}','${JSON.stringify(history)}')`);
             const path = `/api/v1/learner/play-runs/${run}/activities/id:${activity}/npc-dialogue/${action === 'grant-tool' ? `nodes/${question}/grant-tool` : action}`;
-            const data = action === 'cursor' ? { current_node_id: question, history: [first] } : action === 'answer' ? { answer_node_id: answer } : action === 'reflection' ? { reflection: 'I noticed two different clues.' } : {};
+            const data = action === 'cursor' ? { current_node_id: question, history: [first] } : action === 'answer' ? { answer_node_id: answer, expected_node_id: current } : action === 'reflection' ? { reflection: 'I noticed two different clues.', expected_node_id: current } : {};
             const write = () => owner.request.post(path, { headers, data });
             if (action === 'cursor') expect((await owner.request.post(path, { headers, data: { current_node_id: first, history: [] } })).status()).toBe(200);
             if (action === 'answer') answerEvidence = await prepareNpcAnswerEvidence({ admin, owner, peer, adminHeaders, headers, map, activity, run, principal, question, answer, sql, info });
@@ -85,6 +85,12 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
             expect((await owner.request.post(path.replace(run, randomUUID()), { headers, data })).status()).toBe(404);
             expect((await owner.request.post(path, { headers: { Origin: new URL(baseURL!).origin }, data })).status()).toBe(403);
             expect(facts()).toBe(before);
+            if (action === 'answer' || action === 'reflection') {
+                expect((await owner.request.post(path, { headers, data: { ...data, expected_node_id: first } })).status()).toBe(404);
+                expect(facts()).toBe(before);
+                expect((await owner.request.post(path, { headers, data: { ...data, expected_node_id: 'invalid-node' } })).status()).toBe(422);
+                expect(facts()).toBe(before);
+            }
             sql(`UPDATE learning_nodes SET state='locked' WHERE id='${node.node_id}'; UPDATE learner_node_manual_unlocks SET revoked_at=NULL WHERE principal_id='${principal}' AND node_id='${node.node_id}'`);
             if (action === 'reflection') {
                 for (const body of [' ', 'x'.repeat(2001)]) {

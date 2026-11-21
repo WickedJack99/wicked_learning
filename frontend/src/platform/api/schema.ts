@@ -8802,10 +8802,20 @@ export interface components {
             history: string[];
         };
         LearnerNpcDialogueAnswerRequest: {
+            /**
+             * Format: uuid
+             * @description Optional authored node identity from the source URL; when supplied it must equal the locked current cursor. A stale caller cannot answer or reflect at another node.
+             */
+            expected_node_id?: string;
             /** Format: uuid */
             answer_node_id: string;
         };
         LearnerNpcDialogueReflectionRequest: {
+            /**
+             * Format: uuid
+             * @description Optional authored node identity from the source URL; when supplied it must equal the locked current cursor. A stale caller cannot answer or reflect at another node.
+             */
+            expected_node_id?: string;
             reflection: string;
         };
         LearnerPlaybackReviewContext: {
@@ -34243,6 +34253,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description The JSON request contains an invalid expected node UUID or has an invalid shape; no dialogue writes occur. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description The application database is unavailable. */
             503: {
                 headers: {
@@ -34352,6 +34369,13 @@ export interface operations {
             };
             /** @description The active dialogue node is not a writable reflection owned by this learner. Rejected requests leave the dialogue cursor */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The JSON request contains an invalid expected node UUID or has an invalid shape; no dialogue writes occur. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

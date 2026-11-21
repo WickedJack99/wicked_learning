@@ -143,6 +143,7 @@ impl LearnerNpcDialogueRepositoryPort for PostgresLearnerNpcDialogueRepository<'
         play_run_id: Uuid,
         activity_slug: &str,
         answer_node_id: Uuid,
+        expected_node_id: Option<Uuid>,
     ) -> impl std::future::Future<
         Output = Result<Option<LearnerNpcDialogueAnswerResult>, LearnerNpcDialogueError>,
     > + Send {
@@ -153,6 +154,7 @@ impl LearnerNpcDialogueRepositoryPort for PostgresLearnerNpcDialogueRepository<'
                 play_run_id,
                 activity_slug,
                 answer_node_id,
+                expected_node_id,
             )
             .await
             .map_err(|error| {
@@ -186,6 +188,7 @@ impl LearnerNpcDialogueRepositoryPort for PostgresLearnerNpcDialogueRepository<'
         play_run_id: Uuid,
         activity_slug: &str,
         reflection: &str,
+        expected_node_id: Option<Uuid>,
     ) -> impl std::future::Future<
         Output = Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError>,
     > + Send {
@@ -196,6 +199,7 @@ impl LearnerNpcDialogueRepositoryPort for PostgresLearnerNpcDialogueRepository<'
                 play_run_id,
                 activity_slug,
                 reflection,
+                expected_node_id,
             )
             .await
             .map_err(|error| {
@@ -427,6 +431,7 @@ async fn answer_current_dialogue(
     play_run_id: Uuid,
     activity_slug: &str,
     answer_node_id: Uuid,
+    expected_node_id: Option<Uuid>,
 ) -> Result<Option<LearnerNpcDialogueAnswerResult>, sqlx::Error> {
     let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
         return Ok(None);
@@ -449,6 +454,11 @@ async fn answer_current_dialogue(
         transaction.rollback().await?;
         return Ok(None);
     };
+    if expected_node_id.is_some_and(|id| id != state.current_node_id) {
+        transaction.rollback().await?;
+        return Ok(None);
+    }
+
     if node_type(&mut transaction, current.activity_id, state.current_node_id)
         .await?
         .as_deref()
@@ -559,6 +569,7 @@ async fn save_current_dialogue_reflection(
     play_run_id: Uuid,
     activity_slug: &str,
     reflection: &str,
+    expected_node_id: Option<Uuid>,
 ) -> Result<Option<LearnerNpcDialogueState>, sqlx::Error> {
     let reflection = reflection.trim();
     if reflection.is_empty() || reflection.chars().count() > 20_000 {
@@ -585,6 +596,11 @@ async fn save_current_dialogue_reflection(
         transaction.rollback().await?;
         return Ok(None);
     };
+    if expected_node_id.is_some_and(|id| id != state.current_node_id) {
+        transaction.rollback().await?;
+        return Ok(None);
+    }
+
     let Some(node) =
         dialogue_node(&mut transaction, current.activity_id, state.current_node_id).await?
     else {

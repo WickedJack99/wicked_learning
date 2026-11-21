@@ -2829,6 +2829,78 @@ ordering from local React state. Source catches/discards some persistence and
 grant errors; record observed failure behavior in the both-viewport evidence
 without manufacturing receipts or claiming successful persistence.
 
+### Whole copied NPC control transport and browser acceptance
+
+Source owners at the pin: complete `features/world/npc-dialogue-player.tsx`,
+`features/sounds/dialogue-typing-sound-player.ts`, `features/tools/tool-selection.ts`,
+`components/ui/button.tsx`, `hooks/{use-appearance.tsx,use-platform-translation.ts}`,
+`lib/utils.ts`, `types/index.ts` and canonical CSS. The complete module retains
+its scene, character/asset layers, typing effect, keyboard handling, answer and
+reflection controls, local history and inventory effects. Exact guarded build
+substitutions adapt only four URL/run seams and four identifier coercions.
+
+| Source request/prop | Typed Rust binding |
+| --- | --- |
+| Current node/history, configured tool and typing-sound-set IDs | Preserve actual string identities; numeric dimensions, speed, opacity and positioning keep source numeric helpers. Initial state uses the real saved dialogue projection. |
+| `/learning/activities/{id}/npc-dialogue-state` | Bound `updateLearnerNpcDialogueCursor`; send actual proposed node/history and verify response membership. |
+| `/learning/npc-dialogue-nodes/{id}/grant-tool` | Bound `grantLearnerNpcDialogueTool`; map actual returned catalog tool into the copied inventory event mechanism. |
+| Node answer and reflection URLs | Existing commands with optional `expected_node_id`, supplied by the copied URL adapter and checked under the current cursor lock. Never apply stale-screen text or an answer to another node. |
+| Parent completion callback | Existing Rust completion, queued after prior node writes; compare the real receipt with the source-selected exit. |
+| Ordering/failures | One queue per activity/document binding. A failed optimistic cursor write prevents subsequent queued success claims until reload; rejected grants/answers/reflections preserve source retry/back behavior under the native guards. Source error handling stays intact; no synthetic completion or generic transport emulation. |
+| Read/media/inventory dependencies | Real playback, shell, translations and sound-preference endpoints; existing managed/static media delivery and whole copied typing/tool helpers. |
+
+Test-only `canonical-player-npc.{html,tsx}` mounts the complete copied or pinned
+main control with real Rust props and observes its parent callbacks. It does
+not implement the owning NodePlay/check-in/navigation lifecycle or activate
+that route. The normal resolver remains unavailable pending whole-route gates.
+
+**Verified NPC control evidence:** `canonical-player-npc-live.spec.ts` passed
+18 real Rust/PostgreSQL cases (nine scenarios at each required viewport):
+forward/back and resumed history, authored question to private reflection and
+terminal completion, initial tool grant, owned-tool skip, ordered rapid cursor
+writes, completion waiting for pending writes, rejected cursor/grant/stale
+reflection, and unavailable projection. Actual SVG loading, typing sound bytes
+and playback volume, inventory updates, bounded visible controls, URL/run/node
+guards and absence of Laravel requests are asserted. The evidence host uses
+two isolated learner/map fixtures and the complete pinned main module for its
+comparison; it is component-level evidence, not full NodePlay route acceptance.
+The ignored `frontend/playwright-report/player-npc-ui-final/` contains 42
+source/canonical screenshot pairs: 41 pixel-identical; the sole difference is
+at most 1/255 in a 6×3-pixel text-antialiasing area. Desktop scene/question and
+narrow question/reflection screenshots were visually inspected.
+
+The native stale-node regression first returned 200 instead of 404 for both
+answer and reflection. The locked expected-node check now rejects a stale
+source URL before answer, cursor, journal or reflection writes; native callers
+omitting the optional field retain their established behavior. The focused
+native guard suite also checks malformed expected UUIDs return 422 with no
+writes, ordinary/replay ownership, availability, publication, roles and CSRF.
+
+**Open inherited source defects:** failed cursor persistence leaves optimistic
+local navigation without an inline error; a failed grant removes its notice
+without error/retry UI; reflection submission retains its draft but rejects
+without a catch/inline error. The adapter emits operation-unavailable events
+and blocks later cursor-dependent success claims after a failed cursor. These
+source defects are recorded, not waived or redesigned; whole-route error and
+recovery acceptance remains open. The parent lifecycle must still reconcile
+actual next-activity receipts, replay exits and refreshed documents.
+
+Verification also passed canonical identity (299 JS/TS files plus CSS), production
+frontend type/build, generated OpenAPI client drift, Rust workspace fmt/check
+and 127 persistence tests (six opt-in database tests ignored; real database
+behavior is covered by the live suites). The 60 shared player browser checks
+passed in separate batches: 14 obstacles, 12 responses/Shared Task, and 34
+grants/messages; the updated 12 NPC native guard cases passed alongside the
+response batch. The preceding combined shared run was terminated by SIGTERM
+without an assertion failure; its exact disposable map/catalog fixture was
+cleaned and these completed batches supersede that interrupted result.
+Rerun from `frontend/` with the local Rust stack on 8081 and the existing
+`e2e/learner-layout-vite.config.ts` evidence server on 8084: run
+`canonical-player-npc-live.spec.ts` and `canonical-player-npc-contract-live.spec.ts`,
+then the five `canonical-player-{grant,obstacle,response,shared,message}-live.spec.ts`
+files serially. Reports are retained under ignored
+`frontend/playwright-report/player-npc-{ui-final,shared-obstacle,shared-response,shared-grant-message}/`.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

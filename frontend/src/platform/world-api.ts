@@ -1,3 +1,4 @@
+import { isPlaybackNpcPost, playbackNpcPost } from './playback-npc-api';
 import { apiClient, getCsrfToken } from './api/client';
 import { toSourceGroup, toSourceGroupPage } from './world-groups';
 import { searchUnavailableMessage, toSourceSearchResponse } from './world-search-projection';
@@ -89,6 +90,7 @@ export async function postJson<T>(
     url: string,
     payload: Record<string, unknown>,
 ): Promise<T> {
+    if (isPlaybackNpcPost(url)) return await playbackNpcPost(url, payload) as T;
     if (isJournalWrite('POST', url)) return await journalWrite('POST', url, payload) as T;
     if (isSharedTaskWrite(url)) return await sharedTaskWrite('POST', url, payload) as T;
     if (isPlaybackResponsePost(url)) return await playbackResponsePost(url, payload) as T;

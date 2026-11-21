@@ -20,11 +20,13 @@ use crate::{
 #[derive(Deserialize)]
 pub struct AnswerNpcDialogueRequest {
     answer_node_id: String,
+    expected_node_id: Option<Uuid>,
 }
 
 #[derive(Deserialize)]
 pub struct SaveNpcDialogueReflectionRequest {
     reflection: String,
+    expected_node_id: Option<Uuid>,
 }
 
 #[derive(Deserialize)]
@@ -125,7 +127,13 @@ pub async fn answer(
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let repository = PostgresLearnerNpcDialogueRepository::new(&state.application_database);
     LearnerNpcDialogueCommand::new(&repository)
-        .answer(&principal, play_run_id, &activity_slug, answer_node_id)
+        .answer(
+            &principal,
+            play_run_id,
+            &activity_slug,
+            answer_node_id,
+            request.expected_node_id,
+        )
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)
@@ -164,7 +172,13 @@ pub async fn save_reflection(
     csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
     let repository = PostgresLearnerNpcDialogueRepository::new(&state.application_database);
     LearnerNpcDialogueCommand::new(&repository)
-        .save_reflection(&principal, play_run_id, &activity_slug, &request.reflection)
+        .save_reflection(
+            &principal,
+            play_run_id,
+            &activity_slug,
+            &request.reflection,
+            request.expected_node_id,
+        )
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)
