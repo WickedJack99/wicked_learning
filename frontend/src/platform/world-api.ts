@@ -6,6 +6,7 @@ import { JsonRequestError } from './json-request-error';
 import { journalRead, journalWrite, isJournalWrite } from './journal-api';
 import { isSharedTaskWrite, sharedTaskWrite } from './playback-shared-task-api';
 import { isPlaybackResponsePost, playbackResponsePost } from './playback-response-api';
+import { isPlaybackGrantPost, playbackGrantPost } from './playback-grant-api';
 export { JsonRequestError } from './json-request-error';
 
 const unavailableMessage =
@@ -88,6 +89,7 @@ export async function postJson<T>(
     if (isJournalWrite('POST', url)) return await journalWrite('POST', url, payload) as T;
     if (isSharedTaskWrite(url)) return await sharedTaskWrite('POST', url, payload) as T;
     if (isPlaybackResponsePost(url)) return await playbackResponsePost(url, payload) as T;
+    if (isPlaybackGrantPost(url)) return await playbackGrantPost(url, payload) as T;
     const groupAction = /^\/learning\/groups\/([a-f0-9-]+)\/(messages|admin-chat-vote|messages\/([a-f0-9-]+)\/resolve)$/.exec(url);
     if (groupAction) {
         const [, groupId, action, messageId] = groupAction;

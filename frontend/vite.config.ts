@@ -2,12 +2,22 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { dirname, resolve } from 'node:path';
+import { transformGrantSource } from './src/platform/grant-source-transform.ts';
 
 const canonicalWorldApi = resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/api');
 const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts');
 
 export default defineConfig({
     plugins: [
+        {
+            name: 'canonical-player-grant-seams',
+            enforce: 'pre',
+            transform(code, id) {
+                const path = id.split('?')[0];
+                if (path === resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/item-grant-activity.tsx')) return transformGrantSource(code, 'items');
+                if (path === resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/tool-grant-activity.tsx')) return transformGrantSource(code, 'tool');
+            },
+        },
         {
             name: 'canonical-player-recall-transport',
             enforce: 'pre',

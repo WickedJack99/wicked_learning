@@ -2,6 +2,7 @@ import { defineConfig, mergeConfig } from 'vite';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import base from './journal-vite.config.ts';
+import { transformGrantSource } from '../src/platform/grant-source-transform.ts';
 
 const sourceRoot = resolve(import.meta.dirname, '../../resources/js');
 export default mergeConfig(base, defineConfig({ cacheDir: 'node_modules/.vite-learner-layout-source', plugins: [{
@@ -9,6 +10,14 @@ export default mergeConfig(base, defineConfig({ cacheDir: 'node_modules/.vite-le
     enforce: 'pre',
     transform(code, id) {
         if (!id.split('?')[0].startsWith(`${sourceRoot}/`)) return;
+        for (const [file, kind] of [['item-grant-activity.tsx', 'items'], ['tool-grant-activity.tsx', 'tool']] as const) {
+            if (id.split('?')[0] === `${sourceRoot}/features/world/${file}`) {
+                // Whole-main reference uses the same documented UUID/transport
+                // boundary with real Rust data, not fabricated numeric identities
+                // or a second emulated Laravel backend. JSX/CSS stay untouched.
+                code = transformGrantSource(code, kind).replace("from './api'", "from '/src/platform/world-api.ts'");
+            }
+        }
         if (id.split('?')[0] === `${sourceRoot}/pages/world.tsx`) {
             // Evidence-only Inertia partial reload: original UI and command
             // requests stay intact; the harness updates only its World prop.

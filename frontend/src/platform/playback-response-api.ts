@@ -2,7 +2,8 @@ import { apiClient, getCsrfToken } from './api/client';
 import type { components } from './api/schema';
 import { JsonRequestError } from './json-request-error';
 import { playbackContext } from './playback-context';
-import { toSourceActivityReceipt, toSourceQuestionAnswer } from './playback-projection';
+import { toSourceQuestionAnswer } from './playback-projection';
+import { completePlaybackActivity } from './playback-completion';
 
 const answerPath = /^\/learning\/questions\/([a-f0-9-]+)\/answer$/;
 const reflectionPath = /^\/learning\/activities\/([a-f0-9-]+)\/reflection$/;
@@ -89,12 +90,7 @@ export async function completeResponseActivity(activityId: unknown, run: unknown
     }
     // Answer outcome/attempt/calibration and saved reflection cues belong to
     // Rust's evaluated attempt; never forward source browser-derived evidence.
-    const data = successful(await apiClient.POST('/learner/play-runs/{play_run_id}/activities/{activity_slug}/complete', {
-        params: await parameters(context.run, context.id), body,
-    }));
-    if (data.play_run_id !== context.run || data.activity_state.activity_id !== context.id) return unavailable(503);
-    destination(context.document, data.next_activity_id);
-    return { receipt: data, progress: toSourceActivityReceipt(data.activity_state, context.activity) };
+    return completePlaybackActivity(context, body);
 }
 
 async function parameters(run: string, id: string) {

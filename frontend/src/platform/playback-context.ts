@@ -15,16 +15,21 @@ export function bindPlaybackDocument(document: Playback) {
 }
 
 export function playbackIdentity(value: unknown): string {
-    if (typeof value !== 'string' || !uuid.test(value)) throw new JsonRequestError('The player identity is invalid.', 400);
+    if (!isPlaybackIdentity(value)) throw new JsonRequestError('The player identity is invalid.', 400);
     return value;
+}
+
+export function isPlaybackIdentity(value: unknown): value is string {
+    return typeof value === 'string' && uuid.test(value);
 }
 
 export function playbackContext(runValue: unknown, activityValue: unknown, types: string[]) {
     const run = playbackIdentity(runValue); const id = playbackIdentity(activityValue);
-    const document = documents.get(run)?.document;
+    const binding = documents.get(run);
+    const document = binding?.document;
     const activity = document?.graph.activities.find((entry) => entry.id === id && types.includes(entry.activity_type));
-    if (!document || !activity) throw new JsonRequestError('The player context is unavailable.', 409);
+    if (!binding || !document || !activity) throw new JsonRequestError('The player context is unavailable.', 409);
     // Graph membership permits the copied player to move locally. The Rust
     // command still authorizes its own current activity and run on every write.
-    return { document, activity, run, id };
+    return { binding, document, activity, run, id };
 }

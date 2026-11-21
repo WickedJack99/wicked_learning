@@ -2044,9 +2044,9 @@ ignored tests), workspace fmt/check, canonical source identity, frontend
 production type/build and generated-client consistency passed. No migrations or
 UI files changed. Reports are ignored
 `frontend/playwright-report/player-grant-{native,reference}/`; rerun those two
-specs with the local stack and existing disposable sessions. The copied grant
-controls and complete NodePlay route remain unavailable until the remaining
-contract/transport and browser acceptance work above is complete.
+specs with the local stack and existing disposable sessions. Copied grant
+component integration is verified below; the complete NodePlay route remains
+unavailable until its remaining contracts and owning-page acceptance are complete.
 
 **Verified source item-roll progress:** the follow-up audit of
 `LearningItemGrantService::rollAndGrant` found that source rolls stamp ordinary
@@ -2066,9 +2066,85 @@ existing completion command. All 18 native grant/reference tests, 65 focused
 Rust persistence tests (six existing ignored tests), workspace fmt/check,
 canonical identity, frontend production type/build and client consistency
 passed. Report: ignored `frontend/playwright-report/player-grant-progress/`.
-The deterministic item fixtures exercise guaranteed-success rolls; copied
-loading/error and unsuccessful-roll auto-continuation coverage remains part of
-the upcoming whole-component grant adapter work.
+The deterministic native item fixtures exercise guaranteed-success rolls.
+
+**Copied grant control integration:** the whole pinned `ItemGrantActivity` and
+`ToolGrantActivity`, including their original stores, visuals and shared controls,
+now use `frontend/src/platform/playback-grant-api.ts` through the exact
+`world-api.ts` transport resolver. Item grants read the actual complete
+`GET /learner/shell` inventory after the native command; a failed read propagates
+the source error even when the roll has already persisted. Refresh retries the
+same stored roll without increasing holdings again. Tool grants forward the
+real bound run and map the actual catalog tool into the copied tool store.
+
+`grant-source-transform.ts` is a guarded build-time compatibility seam applied
+only to the two exact component paths by Vite. It replaces item numeric-ID
+coercion/testing and the tool positive-numeric-ID test with opaque UUID checks,
+and adds `props.playRunId` to the source tool request. Quantity parsing, JSX,
+CSS, presentation, controls and all canonical files stay unchanged. The source
+tool speed range is 1–250 (`AdminActivityRules.php`); an initial fixture using
+zero correctly produced unavailable playback and was corrected.
+
+`playback-completion.ts` validates actual completion receipts and shares one
+promise/result for an activity/request inside its document binding. Source tool
+grant callbacks and the newly-owned effect therefore cannot advance twice.
+Failed requests are evicted and retryable; replacement bindings cannot reuse an
+old receipt. Question/reflection completion reuses the receipt validation but
+does not opt into grant-specific completion caching. The
+future owning page must release/replace its binding with a fresh authoritative
+document when moving or restarting, including graph cycles; this component
+integration does not implement that lifecycle or authorize stale-receipt reuse
+across navigation. Recall completion still keeps its actual nullable progress.
+
+`frontend/e2e/canonical-player-grant-live.spec.ts` mounts whole copied and pinned
+main controls through the test-only `canonical-player-grant.{html,tsx}` host,
+using separate actual principals and runs against Rust/PostgreSQL. Both source
+trees share the documented UUID/transport seam; these are component comparisons,
+not independent Laravel backend or complete NodePlay parity evidence. The host
+observes completion/movement and unmounts the control, without fabricating the
+next page, check-in, Companion or media behavior.
+
+The ten cases cover 1440×900 and 390×844: successful item rolls with complete
+inventory replacement and refresh idempotence; an actual stored failed roll
+with automatic completion and unchanged holdings; inventory exceeding the real
+100-item shell bound, source error and recovery; tool take, actual stale-run
+error and retry; and already-owned continuation without a grant request. Failed
+roll fixtures represent persisted failed outcomes, not a claim that a new
+random draw was forced. Loading barriers delay requests and then continue to
+the actual Rust server; no grant or completion response is mocked. They also
+verify UUID/unbound/type/origin guards, failed completion retry, shared requests,
+binding replacement, actual next-activity receipts and persistence, copied tool
+selection, bounded controls and absence of Laravel requests/browser errors.
+
+All eighteen paired loading/success/error/owned screenshots in the final
+passing run were byte-identical; desktop item and narrow tool captures were
+visually inspected. This is light-appearance fallback-visual evidence, not media
+delivery acceptance. Source item Continue and already-owned tool completion
+callbacks lack an inline failure handler; preserving those source callbacks
+does not waive the owning player's error/recovery acceptance requirement.
+
+**Remaining grant read gap, next before full-player acceptance:** source
+`ToolGrantActivityConfiguration.php` and `AdminActivityRules.php` allow a null
+tool selection, and `tool-grant-activity.tsx` then shows its missing-configuration
+state with Take tool disabled. Rust `learner_playback.rs::tool_grant_safe_config`
+currently requires `configured_tool_slug`, so that source-valid configuration
+is unavailable instead of reaching the copied control. Add a nullable
+configuration projection (without allowing malformed catalog references or a
+grant/completion), Rust regression and both-viewport source comparison. The
+configured-tool evidence above does not close this gap.
+
+Validation for the configured grant integration: 22 copied grant/response/shared
+browser cases and 18 native grant/reference cases passed in separate completed
+runs; 65 focused Rust persistence tests passed (six existing ignored tests),
+workspace fmt/check, canonical identity, frontend production type/build and
+generated-client consistency passed. The working main React/CSS tree also
+matches the pin. Reports: ignored
+`frontend/playwright-report/player-grant-{final,native-final}/`.
+An earlier combined process ended with SIGTERM; it is not counted as a passed
+run, and its identified disposable fixture was removed before rerunning.
+Rerun from `frontend/` against the local Rust stack and the 8084 evidence server:
+`PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-grant-live.spec.ts e2e/canonical-player-response-live.spec.ts e2e/canonical-player-shared-live.spec.ts --reporter=line,html`,
+then `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-grant-contract-live.spec.ts e2e/canonical-playback-reference-live.spec.ts --reporter=line,html`.
 
 ## Status and purpose
 
