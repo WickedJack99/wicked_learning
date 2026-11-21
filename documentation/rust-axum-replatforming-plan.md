@@ -2699,6 +2699,47 @@ ignored `frontend/playwright-report/player-npc-cursor/`. This is API integration
 evidence, not whole-player browser acceptance; the copied player remains
 unavailable pending its remaining contracts and both-viewport UI evidence.
 
+### NPC initial/current-node tool grant
+
+Pinned-source dependencies: whole `features/world/npc-dialogue-player.tsx`,
+`LearningWorldController::grantNpcDialogueTool`, `LearningToolGrantService::
+grantFromNpcDialogueNode` and shared tool inventory/media projection. The copied
+player requests the configured tool on first display, including the initial
+node; it consumes the returned `tool` to update the shared inventory and grant
+notice. A tool already owned causes a source-authored skip instead.
+
+| Required source behavior | Existing Rust evidence | Required adapter/contract |
+| --- | --- | --- |
+| Grant configured tool on initial/current monologue or question | `grant_configured_tool_for_node` in persistence `learner_npc_dialogue.rs` already resolves published tools and maps media, but only runs on native advancement | Add a run/activity/node-bound command that reuses this helper and requires the requested node to be the actual current cursor. No browser-supplied tool identity. |
+| Returned tool and inventory update | Existing `LearnerTool`, shared tool mapper and copied inventory event mechanism | Return actual `granted_tool` in `LearnerNpcDialogueState`, preserving current cursor/history; map to source `{tool}` during whole-player activation. |
+| Idempotence and access failure | Existing current-dialogue ownership/publication/role/availability and CSRF guards | Reuse all guards, initialize authored start transactionally, roll back invalid node/config/publication without provisional state or inventory writes; no answer/reflection/progress writes. |
+| Media | Existing `learner_media::learner_tool` | Reuse managed media URLs; never copy raw storage paths into source props. |
+
+The whole source catches grant failures and clears its notice without surfacing
+an error or retry. This is an open source behavior for browser acceptance, not
+permission to fabricate a successful grant or mark the complete player ready.
+
+**Verified:** `POST /learner/play-runs/{run}/activities/{activity}/npc-dialogue/
+nodes/{node}/grant-tool` implements this contract via existing Rust grant logic;
+OpenAPI `grantLearnerNpcDialogueTool` and the generated client describe it.
+The two baseline grant tests failed against the absent route; all 13 native NPC
+integration/reference cases passed after implementation. The added ordinary/
+replay cases verify initial and existing cursors, both grant-capable node types,
+current-node identity, missing/malformed/unpublished configuration, all shared
+access guards, concurrent idempotent retries preserving acquisition time,
+unchanged cursor and rollback of invalid initialization. They also prove that
+answer/reflection/end nodes cannot grant, even with configured tool data.
+Canonical identity, frontend type/build, generated API drift, Rust workspace
+fmt/check and 126 persistence tests passed (6 ignored). Local report:
+`frontend/playwright-report/player-npc-grant/` (ignored).
+
+Remaining source contracts include first-node fallback when no explicit entry
+edge exists, end/null exit completion and dialogue-specific activity exit
+selection. The current native completion requires a stored end cursor although
+the copied player invokes completion before persisting that cursor. The native
+completion also selects only the ordinary completed connector. These are real
+activation gaps to resolve, not reasons to alter the copied navigation.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

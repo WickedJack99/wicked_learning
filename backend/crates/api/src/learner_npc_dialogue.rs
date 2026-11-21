@@ -34,6 +34,26 @@ pub struct SaveNpcDialogueCursorRequest {
     history: Vec<String>,
 }
 
+pub async fn grant_current_tool(
+    State(state): State<AppState>,
+    Path((play_run_id, activity_slug, dialogue_node_id)): Path<(String, String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<LearnerNpcDialogueState>, ApiError> {
+    let play_run_id = Uuid::parse_str(&play_run_id).map_err(|_| ApiError::not_found())?;
+    let dialogue_node_id = Uuid::parse_str(&dialogue_node_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresLearnerNpcDialogueRepository::new(&state.application_database);
+    LearnerNpcDialogueCommand::new(&repository)
+        .grant_current_tool(&principal, play_run_id, &activity_slug, dialogue_node_id)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
+}
+
 pub async fn save_cursor(
     State(state): State<AppState>,
     Path((play_run_id, activity_slug)): Path<(String, String)>,

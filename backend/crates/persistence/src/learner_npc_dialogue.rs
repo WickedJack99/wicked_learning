@@ -67,6 +67,31 @@ struct JournalPageRow {
 }
 
 impl LearnerNpcDialogueRepositoryPort for PostgresLearnerNpcDialogueRepository<'_> {
+    fn grant_current_tool(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        dialogue_node_id: Uuid,
+    ) -> impl std::future::Future<
+        Output = Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError>,
+    > + Send {
+        async move {
+            grant_current_tool(
+                self.pool,
+                principal,
+                play_run_id,
+                activity_slug,
+                dialogue_node_id,
+            )
+            .await
+            .map_err(|error| {
+                tracing::error!(%error, "could not grant current NPC dialogue tool");
+                LearnerNpcDialogueError
+            })
+        }
+    }
+
     fn save_cursor(
         &self,
         principal: &AuthorizedPrincipal,
@@ -179,6 +204,58 @@ impl LearnerNpcDialogueRepositoryPort for PostgresLearnerNpcDialogueRepository<'
             })
         }
     }
+}
+
+async fn grant_current_tool(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    play_run_id: Uuid,
+    activity_slug: &str,
+    dialogue_node_id: Uuid,
+) -> Result<Option<LearnerNpcDialogueState>, sqlx::Error> {
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
+    let mut transaction = pool.begin().await?;
+    let Some(current) = load_current_dialogue_for_update(
+        &mut transaction,
+        principal,
+        play_run_id,
+        activity_slug,
+        &availability,
+    )
+    .await?
+    else {
+        transaction.rollback().await?;
+        return Ok(None);
+    };
+    let Some(state) = ensure_state_for_update(&mut transaction, &current, play_run_id).await?
+    else {
+        transaction.rollback().await?;
+        return Ok(None);
+    };
+    if state.current_node_id != dialogue_node_id {
+        transaction.rollback().await?;
+        return Ok(None);
+    }
+    let Some(tool) = grant_configured_tool_for_node(
+        &mut transaction,
+        current.principal_id,
+        current.activity_id,
+        dialogue_node_id,
+    )
+    .await?
+    else {
+        transaction.rollback().await?;
+        return Ok(None);
+    };
+    let history = parse_history(&state.history);
+    transaction.commit().await?;
+    Ok(Some(LearnerNpcDialogueState {
+        granted_tool: Some(tool),
+        current_node_id: dialogue_node_id.to_string(),
+        history: history.into_iter().map(|id| id.to_string()).collect(),
+    }))
 }
 
 async fn save_cursor(

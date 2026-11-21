@@ -15,6 +15,14 @@ pub struct LearnerNpcDialogueError;
 /// against the current authored edge or stored history; neither an arbitrary
 /// next node nor a tool is browser authority.
 pub trait LearnerNpcDialogueRepository {
+    fn grant_current_tool(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        dialogue_node_id: Uuid,
+    ) -> impl Future<Output = Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError>> + Send;
+
     fn save_cursor(
         &self,
         principal: &AuthorizedPrincipal,
@@ -67,6 +75,18 @@ where
 {
     pub fn new(repository: &'repository Repository) -> Self {
         Self { repository }
+    }
+
+    pub async fn grant_current_tool(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        dialogue_node_id: Uuid,
+    ) -> Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError> {
+        self.repository
+            .grant_current_tool(principal, play_run_id, activity_slug, dialogue_node_id)
+            .await
     }
 
     pub async fn save_cursor(

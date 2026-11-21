@@ -7344,6 +7344,29 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The active shared task is unavailable or not owned by this learner. }
         '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/nodes/{dialogue_node_id}/grant-tool:
+    post:
+      operationId: grantLearnerNpcDialogueTool
+      summary: Grant the published configured tool at the current authored NPC node.
+      description: Requires the authenticated learner's active route or replay, current node access and the actual current monologue/question cursor. Initializes the authored initial cursor if absent. Tool identity comes exclusively from the authored configuration. Repeated grants preserve the first acquisition time. Rejected requests roll back provisional state. Does not advance the cursor or write completion, answers or reflections.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+        - name: dialogue_node_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The unchanged cursor/history and non-null granted_tool with managed media URLs.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerNpcDialogueState' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active dialogue, current grant node or published configured tool is unavailable. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/cursor:
     post:
       operationId: updateLearnerNpcDialogueCursor

@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
-for (const kind of ['route', 'replay'] as const) for (const action of ['continue', 'answer', 'back', 'reflection', 'cursor'] as const) {
+for (const kind of ['route', 'replay'] as const) for (const action of ['continue', 'answer', 'back', 'reflection', 'cursor', 'grant-tool'] as const) {
     test(`native NPC ${kind} ${action} rechecks source node access`, async ({ browser, baseURL }, info) => {
         expect(new URL(baseURL!).hostname).toMatch(/^(localhost|127\.0\.0\.1)$/);
         for (const path of ['app/Http/Controllers/LearningWorldController.php', 'app/Learning/Services/LearnerActivityAccessService.php', 'app/Learning/Services/LearningNodeStateResolver.php', 'app/Http/Controllers/LearnerJournalController.php', 'app/Learning/Services/NpcDialogueAnswerService.php', 'app/Learning/Services/LearnerNodeAnswerEventService.php', 'app/Learning/Services/LearnerActivityPlayStateService.php', 'app/Learning/Services/LearningToolGrantService.php']) {
@@ -44,7 +44,7 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
             const current = action === 'continue' || action === 'cursor' ? first : action === 'reflection' ? reflection : question;
             const history = action === 'back' ? [first] : [];
             sql(`INSERT INTO learner_npc_dialogue_states (principal_id,activity_id,play_run_id,current_node_id,history) VALUES ('${principal}','${activity}','${run}','${current}','${JSON.stringify(history)}')`);
-            const path = `/api/v1/learner/play-runs/${run}/activities/id:${activity}/npc-dialogue/${action}`;
+            const path = `/api/v1/learner/play-runs/${run}/activities/id:${activity}/npc-dialogue/${action === 'grant-tool' ? `nodes/${question}/grant-tool` : action}`;
             const data = action === 'cursor' ? { current_node_id: question, history: [first] } : action === 'answer' ? { answer_node_id: answer } : action === 'reflection' ? { reflection: 'I noticed two different clues.' } : {};
             const write = () => owner.request.post(path, { headers, data });
             if (action === 'cursor') expect((await owner.request.post(path, { headers, data: { current_node_id: first, history: [] } })).status()).toBe(200);
@@ -102,10 +102,10 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
             await answerEvidence?.rejectInvalidConfiguration();
             const accepted = await write(); expect(accepted.status()).toBe(200);
             if (action === 'answer') expect(await accepted.json()).toMatchObject({ answer: { answer_key: answer, answer_node_id: answer, is_correct: true, feedback: null } });
-            const target = action === 'continue' || action === 'cursor' ? question : action === 'answer' ? answer : action === 'back' ? first : end;
+            const target = action === 'continue' || action === 'cursor' ? question : action === 'answer' ? answer : action === 'back' ? first : action === 'grant-tool' ? question : end;
             expect(await accepted.json()).toMatchObject({ current_node_id: target, history: action === 'continue' || action === 'cursor' ? [first] : action === 'reflection' ? [reflection] : [] });
             expect(facts()).not.toBe(before);
-            expect(sql(`SELECT COUNT(*) FROM learner_tools WHERE principal_id='${principal}' AND tool_id='${tool}'`).trim()).toBe(action === 'continue' ? '1' : '0');
+            expect(sql(`SELECT COUNT(*) FROM learner_tools WHERE principal_id='${principal}' AND tool_id='${tool}'`).trim()).toBe(action === 'continue' || action === 'grant-tool' ? '1' : '0');
             expect(sql(`SELECT COUNT(*) FROM learner_reflections WHERE principal_id='${principal}' AND activity_id='${activity}'`).trim()).toBe(action === 'reflection' ? '1' : '0');
             if (action === 'reflection' && kind === 'replay') expect(sql(`SELECT markdown FROM learner_journal_pages WHERE principal_id='${principal}' AND topic='${topic}'`)).toContain('Keep my earlier note.');
             if (action === 'cursor') {
@@ -139,6 +139,41 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
                 expect((await cursor(randomUUID(), [])).status()).toBe(404);
                 expect(sql(`SELECT COUNT(*) FROM learner_npc_dialogue_states WHERE principal_id='${principal}' AND activity_id='${activity}' AND play_run_id='${run}'`).trim()).toBe('0');
                 expect((await cursor(first, [])).status()).toBe(200);
+            }
+            if (action === 'grant-tool') {
+                expect(await accepted.json()).toMatchObject({ granted_tool: { id: tool, slug: tool, title: 'NPC test tool' }, current_node_id: question, history: [] });
+                const granted = facts();
+                expect((await write()).status()).toBe(200); expect(facts()).toBe(granted);
+                for (const id of [first, answer, randomUUID()]) {
+                    expect((await owner.request.post(path.replace(question, id), { headers, data: {} })).status()).toBe(404);
+                    expect(facts()).toBe(granted);
+                }
+                sql(`DELETE FROM learner_tools WHERE principal_id='${principal}' AND tool_id='${tool}'; DELETE FROM learner_npc_dialogue_states WHERE principal_id='${principal}' AND activity_id='${activity}' AND play_run_id='${run}'`);
+                const absent = facts();
+                // A non-current request must not initialize the cursor or grant the requested node's tool.
+                expect((await write()).status()).toBe(404); expect(facts()).toBe(absent);
+                const initialPath = path.replace(question, first);
+                expect((await owner.request.post(initialPath, { headers, data: {} })).status()).toBe(404); expect(facts()).toBe(absent);
+                for (const configuration of [{ toolId: randomUUID() }, { toolId: 123 }, { toolId: '' }]) {
+                    sql(`UPDATE learning_npc_dialogue_nodes SET node_config='${JSON.stringify(configuration)}' WHERE id='${first}'`);
+                    expect((await owner.request.post(initialPath, { headers, data: {} })).status()).toBe(404); expect(facts()).toBe(absent);
+                }
+                sql(`UPDATE learning_npc_dialogue_nodes SET node_config='{"toolId":"${tool}"}' WHERE id='${first}'; UPDATE learning_tools SET published_at=NULL WHERE id='${tool}'`);
+                expect((await owner.request.post(initialPath, { headers, data: {} })).status()).toBe(404); expect(facts()).toBe(absent);
+                sql(`UPDATE learning_tools SET published_at=NOW() WHERE id='${tool}'`);
+                const initialGrant = await owner.request.post(initialPath, { headers, data: {} }); expect(initialGrant.status()).toBe(200);
+                expect(await initialGrant.json()).toMatchObject({ granted_tool: { id: tool }, current_node_id: first, history: [] });
+                const initialFacts = facts();
+                const retries = await Promise.all([owner.request.post(initialPath, { headers, data: {} }), owner.request.post(initialPath, { headers, data: {} })]);
+                expect(retries.map(response => response.status())).toEqual([200, 200]); expect(facts()).toBe(initialFacts);
+                expect(sql(`SELECT COUNT(*) FROM learner_tools WHERE principal_id='${principal}' AND tool_id='${tool}'`).trim()).toBe('1');
+                for (const type of ['answer', 'reflection', 'end']) {
+                    sql(`UPDATE learning_npc_dialogue_nodes SET node_type='${type}' WHERE id='${first}'`);
+                    expect((await owner.request.post(initialPath, { headers, data: {} })).status()).toBe(404); expect(facts()).toBe(initialFacts);
+                }
+                sql(`UPDATE learning_npc_dialogue_nodes SET node_type='npc_monologue' WHERE id='${first}'`);
+                const advanced = await owner.request.post(path.replace(`nodes/${question}/grant-tool`, 'cursor'), { headers, data: { current_node_id: question, history: [first] } }); expect(advanced.status()).toBe(200);
+                const afterAdvance = facts(); expect((await owner.request.post(initialPath, { headers, data: {} })).status()).toBe(404); expect(facts()).toBe(afterAdvance);
             }
             await answerEvidence?.verify();
         } finally {
