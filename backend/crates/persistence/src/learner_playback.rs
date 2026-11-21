@@ -825,8 +825,11 @@ fn item_grant_safe_config(config: serde_json::Value) -> Option<serde_json::Value
 }
 
 fn tool_grant_safe_config(config: serde_json::Value) -> Option<serde_json::Value> {
-    let tool_id = configured_tool_slug(&config)?.to_owned();
     let object = config.as_object()?;
+    let tool_id = match object.get("toolId") {
+        None | Some(serde_json::Value::Null) => None,
+        Some(_) => Some(configured_tool_slug(&config)?.to_owned()),
+    };
     let text = optional_bounded_config_text(object, "text", 2_000)?.unwrap_or_default();
     let slide_direction = object
         .get("slideDirection")
@@ -2744,9 +2747,32 @@ mod tests {
 
     use super::{
         check_in_context, is_review_activity, item_obstacle_safe_config, markdown_safe_config,
-        message_wall_safe_config, reflection_safe_config, valid_review_outcome,
-        with_safe_ambient_sound,
+        message_wall_safe_config, reflection_safe_config, tool_grant_safe_config,
+        valid_review_outcome, with_safe_ambient_sound,
     };
+
+    #[test]
+    fn tool_grant_projection_preserves_an_unconfigured_source_control() {
+        for config in [json!({}), json!({ "toolId": null })] {
+            let projected =
+                tool_grant_safe_config(config).expect("source permits no selected tool");
+            assert!(projected["toolId"].is_null());
+            assert_eq!(projected["typingSpeed"], 24.0);
+        }
+        assert_eq!(
+            tool_grant_safe_config(json!({ "toolId": "magnifier" })).unwrap()["toolId"],
+            "magnifier"
+        );
+        for invalid in [
+            json!(12),
+            json!(""),
+            json!("Not a slug"),
+            json!([]),
+            json!({}),
+        ] {
+            assert!(tool_grant_safe_config(json!({ "toolId": invalid })).is_none());
+        }
+    }
 
     #[test]
     fn check_in_context_exposes_only_bounded_source_presentation_fields() {

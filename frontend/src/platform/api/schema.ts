@@ -8350,6 +8350,7 @@ export interface components {
             completion_choice_prompt: string | null;
             /** @description Actual referenced catalog items. Quantity is zero as in the source catalog serializer; owned quantities remain in the private inventory projection. */
             configured_items: components["schemas"]["LearnerItem"][];
+            /** @description The configured catalog tool, or null when no tool is selected. An unconfigured Tool Grant remains readable with its source control disabled; grant commands still require a configured catalog tool, and completion requires ownership of that tool. */
             configured_tool: components["schemas"]["LearnerTool"] | null;
             configured_sounds: components["schemas"]["LearnerPlaybackConfiguredSound"][];
             dialogue_typing_sound_sets: components["schemas"]["LearnerNpcDialogueTypingSoundSet"][];

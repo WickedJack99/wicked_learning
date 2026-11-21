@@ -2123,15 +2123,33 @@ delivery acceptance. Source item Continue and already-owned tool completion
 callbacks lack an inline failure handler; preserving those source callbacks
 does not waive the owning player's error/recovery acceptance requirement.
 
-**Remaining grant read gap, next before full-player acceptance:** source
+**Verified nullable-tool read repair:** source
 `ToolGrantActivityConfiguration.php` and `AdminActivityRules.php` allow a null
 tool selection, and `tool-grant-activity.tsx` then shows its missing-configuration
-state with Take tool disabled. Rust `learner_playback.rs::tool_grant_safe_config`
-currently requires `configured_tool_slug`, so that source-valid configuration
-is unavailable instead of reaching the copied control. Add a nullable
-configuration projection (without allowing malformed catalog references or a
-grant/completion), Rust regression and both-viewport source comparison. The
-configured-tool evidence above does not close this gap.
+state with Take tool disabled. Both files were checked against the pinned main
+SHA. A Rust regression and both browser viewports reproduced rejection of that
+source-valid configuration: each real playback request returned 503 before the
+repair. `learner_playback.rs::tool_grant_safe_config` now preserves an absent or
+null selection as null, while still rejecting numeric, empty, malformed and
+non-scalar catalog references. `LearnerPlaybackPresentation.configured_tool`
+was already nullable; OpenAPI and generated-client documentation now explicitly
+describe its disabled-control meaning. No UI or schema migration is needed.
+
+The two additional browser cases mount the whole source control at 1440×900
+and 390×844, compare its fallback visual and disabled bounded Take tool control,
+and verify no automatic grant/completion. Direct native attempts through the
+typed adapters still return 404, with no tool ownership, completed activity or
+run advancement. All twelve grant browser cases pass on the rebuilt healthy
+local stack. All twenty source/copied screenshot pairs are byte-identical;
+both unconfigured-tool viewports were also visually inspected. The new Rust
+regression covers absent/null versus malformed references; 66 focused
+persistence tests pass (six existing ignored tests). The eighteen native
+grant/reference regressions, workspace fmt/check, canonical identity and
+production frontend type/build also pass. Reports: ignored
+`frontend/playwright-report/player-grant-nullable/` and
+`frontend/playwright-report/player-grant-nullable-native/`; rerun the grant UI
+spec and the two native specs with the same commands below. These checks close
+the nullable-tool read gap, not complete NodePlay acceptance.
 
 Validation for the configured grant integration: 22 copied grant/response/shared
 browser cases and 18 native grant/reference cases passed in separate completed

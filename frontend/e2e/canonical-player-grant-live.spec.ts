@@ -5,7 +5,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
 const pin = '32c3113a5bc688c9944c20942cdf40a6a5d57d7f';
-const scenarios = ['items', 'failed-roll', 'inventory-unavailable', 'tool', 'owned-tool'] as const;
+const scenarios = ['items', 'failed-roll', 'inventory-unavailable', 'tool', 'owned-tool', 'unconfigured-tool'] as const;
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
     for (const scenario of scenarios) {
         test(`whole copied ${scenario} grant uses Rust at ${viewport.width}`, async ({ browser, baseURL }, info) => {
@@ -25,14 +25,14 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
             }
             const activity = randomUUID(); const next = randomUUID(); const start = randomUUID(); const catalog = randomUUID();
             const runs = [randomUUID(), randomUUID()]; const extras: string[] = [];
-            const tool = scenario === 'tool' || scenario === 'owned-tool'; const type = tool ? 'tool_grant' : 'item_grant';
+            const tool = scenario === 'tool' || scenario === 'owned-tool' || scenario === 'unconfigured-tool'; const type = tool ? 'tool_grant' : 'item_grant';
             let map: string | undefined;
             try {
                 const created = await admin.request.post('/api/v1/admin/world-builder/maps', { headers: adminHeaders, data: { title: `Grant browser ${randomUUID()}`, description: null, slug: null } });
                 expect(created.status()).toBe(201); map = uuid((await created.json()).map_id);
                 const createdNode = await admin.request.post(`/api/v1/admin/world-builder/maps/${map}/nodes`, { headers: adminHeaders, data: { title: 'Grant browser place', description: null, position_q: 0, position_r: 0, state: 'available', visual_config: {} } });
                 expect(createdNode.status()).toBe(201); const node = await createdNode.json(); uuid(node.node_id); uuid(node.asset_id);
-                const config = tool ? { toolId: `grant-${catalog}`, text: 'Keep this tool for later.', typingSpeed: 1 } : { items: [{ itemId: `grant-${catalog}`, quantity: 2 }], probabilityPercent: scenario === 'failed-roll' ? 0.01 : 100 };
+                const config = tool ? { toolId: scenario === 'unconfigured-tool' ? null : `grant-${catalog}`, text: 'Keep this tool for later.', typingSpeed: 1 } : { items: [{ itemId: `grant-${catalog}`, quantity: 2 }], probabilityPercent: scenario === 'failed-roll' ? 0.01 : 100 };
                 sql(`UPDATE learning_maps SET published_at=NOW(),access_roles='["public"]' WHERE id='${map}';
                     UPDATE learning_nodes SET published_at=NOW() WHERE id='${node.node_id}'; UPDATE learning_map_assets SET published_at=NOW() WHERE id='${node.asset_id}';
                     UPDATE learning_routes SET published_at=NOW() WHERE map_asset_id='${node.asset_id}';
@@ -78,6 +78,27 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                     await compare(pages, 'initial-tool', info);
                 }
                 barriers.forEach((release) => release());
+                if (scenario === 'unconfigured-tool') {
+                    for (const [i, page] of pages.entries()) {
+                        await expect(page.getByText('Configured tool', { exact: true })).toBeVisible();
+                        const control = page.getByRole('button', { name: 'Take tool', exact: true });
+                        await bounded(page, control, viewport); await expect(control).toBeDisabled();
+                        expect(grants[i]).toBe(0); expect(completions[i]).toBe(0);
+                        expect(await page.evaluate(async ({ run, activity }) => {
+                            const api = await import('/src/platform/playback-grant-api.ts');
+                            const status = async (callback: () => Promise<unknown>) => {
+                                try { await callback(); return 200; } catch (error) { return (error as any).status; }
+                            };
+                            return [await status(() => api.playbackGrantPost(`/learning/activities/${activity}/grant-tool`, { play_run_id: run })),
+                                await status(() => api.completeGrantActivity(activity, run))];
+                        }, { run: runs[i], activity })).toEqual([404, 404]);
+                        expect(sql(`SELECT current_activity_id FROM learner_route_progress WHERE current_play_run_id='${runs[i]}'`).trim()).toBe(activity);
+                    }
+                    expect(sql(`SELECT COUNT(*) FROM learner_tools WHERE tool_id='${catalog}'`).trim()).toBe('0');
+                    expect(sql(`SELECT COUNT(*) FROM learner_activity_progress WHERE activity_id='${activity}' AND status='completed'`).trim()).toBe('0');
+                    expect(errors).toEqual([]); expect(legacy).toEqual([]);
+                    return;
+                }
                 if (scenario === 'inventory-unavailable') {
                     for (const page of pages) await expect(page.getByText('The item grant could not be resolved right now.', { exact: true })).toBeVisible();
                     await compare(pages, 'inventory-error', info);
