@@ -73,7 +73,7 @@ for (const type of types) {
                 const first = randomUUID(); const end = randomUUID();
                 sql(`INSERT INTO learning_dialogue_typing_sound_sets (id,slug,name) VALUES ('${soundSet}','${soundSet}','Configured typing set'); INSERT INTO learning_dialogue_typing_sounds (sound_set_id,letter,url,volume) VALUES ('${soundSet}','a','/sounds/soft-chime.wav',42);`);
                 sql(`INSERT INTO learning_npc_dialogue_nodes (id,activity_id,node_type,title,body,sort_order) VALUES ('${first}','${activity}','npc_monologue','Notice','Look around.',0),('${end}','${activity}','end','Finish','Done.',1); INSERT INTO learning_npc_dialogue_transitions (activity_id,from_node_id,to_node_id,from_connector) VALUES ('${activity}',NULL,'${first}','out'),('${activity}','${first}','${end}','out');`);
-                sql(`UPDATE learning_npc_dialogue_nodes SET node_config = '{"typingSoundEnabled":true,"typingSoundSetId":"${soundSet}"}' WHERE id = '${first}'`);
+                sql(`UPDATE learning_npc_dialogue_nodes SET node_config = '{"toolId":"${toolSlug}","typingSpeed":28,"typingSoundEnabled":true,"typingSoundSetId":"${soundSet}"}' WHERE id = '${first}'`);
             }
             if (type === 'portal') {
                 const destination = await admin.request.post(`/api/v1/admin/world-builder/maps/${map}/nodes`, { headers: adminHeaders, data: { title: 'Portal destination', description: null, position_q: 1, position_r: 0, state: 'available', visual_config: {} } });
@@ -124,6 +124,21 @@ for (const type of types) {
             }
             if (type === 'npc_dialogue') {
                 expect(presentation.npc_dialogue_nodes).toHaveLength(2);
+                expect(presentation.npc_dialogue_nodes.find((node: any) => node.node_type === 'npc_monologue').config).toMatchObject({ toolId: tool, typingSpeed: 28, typingSoundSetId: soundSet });
+                expect(playback.activity.npc_dialogue.nodes.find((node: any) => node.node_type === 'npc_monologue').config).toMatchObject({ toolId: tool, typingSpeed: 28 });
+                expect(sql(`SELECT node_config->>'toolId' FROM learning_npc_dialogue_nodes WHERE activity_id='${activity}' AND node_type='npc_monologue'`).trim()).toBe(toolSlug);
+                const missingTool = `missing-${randomUUID()}`;
+                sql(`UPDATE learning_npc_dialogue_nodes SET node_config=jsonb_set(node_config,'{toolId}','"${missingTool}"') WHERE activity_id='${activity}' AND node_type='npc_monologue'`);
+                const missingRead = await owner.request.get(`/api/v1/learner/play-runs/${run}`); expect(missingRead.status()).toBe(200);
+                const missingDocument = await missingRead.json();
+                expect(missingDocument.graph.activities.find((entry: any) => entry.id === activity).presentation.npc_dialogue_nodes.find((node: any) => node.node_type === 'npc_monologue').config.toolId).toBe(missingTool);
+                expect(missingDocument.activity.npc_dialogue.nodes.find((node: any) => node.node_type === 'npc_monologue').config.toolId).toBe(missingTool);
+                const grantNode = uuid(missingDocument.activity.npc_dialogue.current_node_id);
+                expect((await owner.request.post(`/api/v1/learner/play-runs/${run}/activities/id:${activity}/npc-dialogue/nodes/${grantNode}/grant-tool`, { headers, data: {} })).status()).toBe(404);
+                expect(sql(`SELECT count(*) FROM learner_npc_dialogue_states WHERE principal_id='${principal}' AND play_run_id='${run}'`).trim()).toBe('0');
+                sql(`UPDATE learning_npc_dialogue_nodes SET node_config=jsonb_set(node_config,'{toolId}','"${toolSlug}"') WHERE activity_id='${activity}' AND node_type='npc_monologue'`);
+
+
                 expect(presentation.npc_dialogue_transitions).toHaveLength(2);
                 expect(presentation.npc_dialogue_transitions).toEqual(expect.arrayContaining([expect.objectContaining({ from_node_id: null, from_connector: 'out', to_connector: 'in' })]));
                 expect(presentation.dialogue_typing_sound_sets).toEqual([expect.objectContaining({ id: soundSet, is_default: false, sounds: { a: expect.objectContaining({ letter: 'a', volume: 42, url: '/sounds/soft-chime.wav' }) } })]);

@@ -2786,15 +2786,48 @@ These are native integration checks;
 whole-source UI at both viewports is still required.
 
 **Next copied-player binding requirements:** `learner_playback_presentation.rs`
-currently retains node `config.toolId` as the authored public tool slug, while
-source `NpcDialogueActivity` compares catalog IDs. Resolve that reference to its
-actual UUID in a typed projection/adapter; do not rely on test UUID-shaped slugs.
+previously retained node `config.toolId` as the authored public tool slug, while
+source `NpcDialogueActivity` compares catalog IDs. The projection repair below
+resolves actual catalog UUIDs; do not rely on test UUID-shaped slugs.
 Keep numeric presentation values numeric while adapting only current/history,
 tool and typing-sound-set identities. Preserve the whole source module and
 serialize its cursor/grant/answer/reflection/completion requests per bound run
 so optimistic local moves cannot reorder persisted state. Initial grants,
 answer receipts, terminal exits and failure behavior must then be exercised by
 the actual copied control before whole NodePlay activation.
+
+### NPC configured-tool identity projection
+
+Source `NpcDialogueActivity` compares `config.toolId` with `auth.tools[].id`;
+Rust authoring stores tool slugs. Both native current-dialogue and graph-node
+reads must resolve existing references to the actual catalog UUID, without
+changing stored authoring data or numeric scene/typing configuration. Resolve
+this in the existing bounded node query with a tool join, not per-node queries
+or a browser-generated numeric-ID table. Retain unresolved authored references
+so actual node-bound grants can fail normally; never fabricate a catalog entry.
+Shared managed-media rewriting remains applied to the resulting configuration.
+The regression uses a human-readable tool slug distinct from its UUID in a real
+Rust-backed document and checks both projections plus unchanged storage.
+
+**Verified:** the baseline failed with a slug where the copied control requires
+the tool UUID. After the bounded join/shared projection repair, all five focused
+NPC reference/grant/completion integration cases passed. An unresolved slug
+remains unchanged in both reads, its real grant request returns 404, and no
+provisional cursor remains. A focused Rust test covers numeric scene values,
+managed-media rewriting and missing references. All 127 persistence tests
+passed (6 ignored), with workspace fmt/check, canonical identity, frontend
+production type/build and generated API drift checks passing. Reports are
+ignored `frontend/playwright-report/player-npc-tool-reference{,-baseline}/`.
+No migration, canonical file or player activation changed in this projection
+slice.
+
+The remaining whole-control adapter must bind each source URL to its actual
+run/activity/node, preserve opaque IDs and serialize cursor, grant, answer,
+reflection and completion operations within that document binding. Exercise
+rapid navigation, reload and stale-node failures rather than assuming request
+ordering from local React state. Source catches/discards some persistence and
+grant errors; record observed failure behavior in the both-viewport evidence
+without manufacturing receipts or claiming successful persistence.
 
 ## Status and purpose
 

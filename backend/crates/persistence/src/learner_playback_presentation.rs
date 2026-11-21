@@ -193,6 +193,7 @@ struct SoundRow {
 }
 #[derive(FromRow)]
 struct NpcNodeRow {
+    tool_id: Option<Uuid>,
     activity_id: Uuid,
     id: Uuid,
     node_type: String,
@@ -310,7 +311,7 @@ pub(super) async fn enrich(
     let nodes = if npc_ids.is_empty() {
         Vec::new()
     } else {
-        sqlx::query_as::<_,NpcNodeRow>("SELECT activity_id,id,node_type,title,body,node_config AS config FROM learning_npc_dialogue_nodes WHERE activity_id = ANY($1) ORDER BY activity_id,sort_order,id LIMIT $2")
+        sqlx::query_as::<_,NpcNodeRow>("SELECT nodes.activity_id,nodes.id,nodes.node_type,nodes.title,nodes.body,nodes.node_config AS config,tools.id AS tool_id FROM learning_npc_dialogue_nodes nodes LEFT JOIN learning_tools tools ON tools.slug=nodes.node_config->>'toolId' WHERE nodes.activity_id = ANY($1) ORDER BY nodes.activity_id,nodes.sort_order,nodes.id LIMIT $2")
             .bind(&npc_ids).bind((MAX_RESOURCES+1) as i64).fetch_all(&mut **transaction).await?
     };
     let edges = if npc_ids.is_empty() {
@@ -485,7 +486,7 @@ pub(super) async fn enrich(
                 node_type: n.node_type.clone(),
                 title: n.title.clone(),
                 body: n.body.clone(),
-                config: learner_media_config(n.config.clone()),
+                config: npc_node_config(n.config.clone(), n.tool_id),
             })
             .collect();
         presentation.npc_dialogue_transitions = edges_by_activity
@@ -504,11 +505,40 @@ pub(super) async fn enrich(
     Ok(())
 }
 
+/// Stored authoring references remain slugs; the copied player compares actual
+/// catalog IDs. Unresolved references retain their authored value so the grant
+/// command can reject them instead of fabricating an existing catalog entry.
+pub(super) fn npc_node_config(mut config: Value, tool_id: Option<Uuid>) -> Value {
+    if let (Some(object), Some(id)) = (config.as_object_mut(), tool_id) {
+        object.insert("toolId".into(), Value::String(id.to_string()));
+    }
+    learner_media_config(config)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::metadata;
+    use super::{metadata, npc_node_config};
     use serde_json::json;
     use uuid::Uuid;
+
+    #[test]
+    fn npc_tool_identity_projection_preserves_scene_values_and_missing_references() {
+        let tool = Uuid::new_v4();
+        let media = Uuid::new_v4();
+        let config = json!({"toolId":"authored-tool", "typingSpeed":28, "npcWidth":60,
+            "typingSoundEnabled":true, "image":format!("/api/v1/admin/media-assets/{media}/content")});
+        let projected = npc_node_config(config.clone(), Some(tool));
+        assert_eq!(projected["toolId"], tool.to_string());
+        assert_eq!(projected["typingSpeed"], 28);
+        assert_eq!(projected["npcWidth"], 60);
+        assert_eq!(projected["typingSoundEnabled"], true);
+        assert_eq!(
+            projected["image"],
+            format!("/api/v1/learner/media-assets/{media}/content")
+        );
+        assert_eq!(npc_node_config(config, None)["toolId"], "authored-tool");
+        assert_eq!(npc_node_config(json!({}), None), json!({}));
+    }
 
     #[test]
     fn source_metadata_normalizes_optional_fields_without_exposing_unknown_configuration() {

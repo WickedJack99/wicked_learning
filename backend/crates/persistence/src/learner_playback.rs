@@ -155,6 +155,7 @@ struct ItemObstaclePlaybackRow {
 
 #[derive(FromRow)]
 struct NpcDialogueNodeRow {
+    tool_id: Option<Uuid>,
     body: Option<String>,
     config: serde_json::Value,
     id: Uuid,
@@ -1217,7 +1218,7 @@ async fn load_npc_dialogue(
         return Ok(None);
     };
     let nodes = sqlx::query_as::<_, NpcDialogueNodeRow>(
-        "SELECT id, node_type, title, body, node_config AS config FROM learning_npc_dialogue_nodes WHERE activity_id = $1 ORDER BY sort_order ASC, id ASC",
+        "SELECT nodes.id, nodes.node_type, nodes.title, nodes.body, nodes.node_config AS config, tools.id AS tool_id FROM learning_npc_dialogue_nodes nodes LEFT JOIN learning_tools tools ON tools.slug=nodes.node_config->>'toolId' WHERE nodes.activity_id = $1 ORDER BY nodes.sort_order ASC, nodes.id ASC",
     )
     .bind(activity_id)
     .fetch_all(&mut **transaction)
@@ -1296,7 +1297,10 @@ async fn load_npc_dialogue(
                 node_type: node.node_type,
                 title: node.title,
                 body: node.body,
-                config: node.config,
+                config: crate::learner_playback_presentation::npc_node_config(
+                    node.config,
+                    node.tool_id,
+                ),
             })
             .collect(),
         typing_sound_sets,

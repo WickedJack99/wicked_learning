@@ -8763,6 +8763,7 @@ export interface components {
             node_type: "npc_monologue" | "npc_question" | "answer" | "reflection" | "end";
             title: string;
             body: string | null;
+            /** @description Authored scene values with existing toolId slug references resolved to actual catalog UUIDs for source identity comparisons, and managed media URLs rewritten for learner delivery. Unresolved tool references retain their authored value; the grant command remains authoritative. Stored authoring configuration is unchanged. */
             config: {
                 [key: string]: unknown;
             };
