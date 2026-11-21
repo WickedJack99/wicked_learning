@@ -2018,7 +2018,7 @@ files match pinned `main` `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
 | Item roll and complete inventory | `LearnerItemGrantResult`; `GET /learner/shell` bounded, non-truncating inventory | Map the actual roll and then actual inventory; a failed inventory read must not render fabricated success or substitute only the newly granted items. Retrying the same run must reuse its stored roll. |
 | Tool grant and existing ownership | `LearnerToolGrantResult`, `LearnerShell.tools`, playback `presentation.configured_tool` | Inject the actual run into the source's empty grant payload; map the real returned tool and preserve the copied shared tool store and already-owned continuation. |
 | Catalog IDs and quantities | Native UUIDs in playback/catalog/ownership; existing `playback-projection.ts` mappings | Replace only the source numeric identity checks in item configuration parsing and tool ownership testing. Keep numeric quantities, source presentation and UUID identity intact. |
-| Completion and duplicate callbacks | Native completion receipts; source Tool Grant may call completion from both the grant callback and the newly-owned effect | Bind/deduplicate actual completion promises without manufacturing progress or navigation. Audit source item-roll progress stamping against Rust's separate completion before whole-player acceptance. |
+| Completion and duplicate callbacks | Native completion receipts; source Tool Grant may call completion from both the grant callback and the newly-owned effect | Bind/deduplicate actual completion promises without manufacturing progress or navigation. Item-roll progress stamping is aligned below; route continuation remains separate. |
 
 **Verified native prerequisite:** all four ordinary/replay × item/tool grant
 regressions first reproduced HTTP 200 from a locked node whose playback read
@@ -2047,6 +2047,28 @@ UI files changed. Reports are ignored
 specs with the local stack and existing disposable sessions. The copied grant
 controls and complete NodePlay route remain unavailable until the remaining
 contract/transport and browser acceptance work above is complete.
+
+**Verified source item-roll progress:** the follow-up audit of
+`LearningItemGrantService::rollAndGrant` found that source rolls stamp ordinary
+activity progress completed immediately, without advancing the play run. The
+ordinary/replay item tests first reproduced missing completed progress in Rust.
+`learner_item_grant.rs` now reuses the existing `mark_activity_completed` helper
+inside the roll/holding transaction. It runs for either newly recorded outcome;
+stored-roll retries return without rewriting the progress timestamp. ADR-034
+and the generated OpenAPI contract describe this distinction from route
+completion. No schema migration is needed.
+
+The native grant tests now verify completed progress in the active playback
+document before Continue, no premature run advancement, preservation of the
+first timestamp after explicit completion, and a new run granting again without
+changing that first timestamp. Tool grants still leave completion to their
+existing completion command. All 18 native grant/reference tests, 65 focused
+Rust persistence tests (six existing ignored tests), workspace fmt/check,
+canonical identity, frontend production type/build and client consistency
+passed. Report: ignored `frontend/playwright-report/player-grant-progress/`.
+The deterministic item fixtures exercise guaranteed-success rolls; copied
+loading/error and unsuccessful-roll auto-continuation coverage remains part of
+the upcoming whole-component grant adapter work.
 
 ## Status and purpose
 

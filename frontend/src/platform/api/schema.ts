@@ -6045,7 +6045,7 @@ export interface paths {
         put?: never;
         /**
          * Roll and apply the configured items for the current authorized item-grant activity.
-         * @description The server resolves the active run, activity, chance and configured public item references. It does not accept a browser-selected item or quantity; repeats return the one persisted roll for this run.
+         * @description The server resolves the active run, activity, chance and configured public item references. It does not accept a browser-selected item or quantity; repeats return the one persisted roll for this run. Recording a new roll also stamps ordinary activity progress completed, preserving its first completion time, as in the source. The run remains active; route advancement and completion evidence still require the separate completion command.
          */
         post: operations["grantLearnerItems"];
         delete?: never;

@@ -2706,7 +2706,7 @@ async fn learner_has_item_grant_for_run(
     .await
 }
 
-async fn mark_activity_completed(
+pub(crate) async fn mark_activity_completed(
     transaction: &mut Transaction<'_, Postgres>,
     principal_id: Uuid,
     activity_id: Uuid,

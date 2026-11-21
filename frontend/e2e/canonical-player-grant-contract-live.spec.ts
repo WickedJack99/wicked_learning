@@ -75,6 +75,10 @@ for (const kind of ['route', 'replay'] as const) {
                 expect((await owner.request.get(`/api/v1/learner/play-runs/${run}`)).status()).toBe(200);
                 const started = Date.now(); const result = await grant(); const elapsed = Date.now() - started;
                 expect(result.status()).toBe(200); const first = await result.json();
+                const completedAt = () => sql(`SELECT completed_at::text FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${activity}'`).trim();
+                const stamp = completedAt();
+                expect(sql(`SELECT COUNT(*) FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${activity}' AND status='completed'`).trim()).toBe(type === 'item_grant' ? '1' : '0');
+                if (type === 'item_grant') expect(stamp).not.toBe('');
                 const after = facts();
                 sql(`UPDATE learner_node_manual_unlocks SET revoked_at=NOW() WHERE principal_id='${principal}' AND node_id='${node.node_id}'`);
                 expect((await owner.request.get(`/api/v1/learner/play-runs/${run}`)).status()).toBe(404);
@@ -105,8 +109,24 @@ for (const kind of ['route', 'replay'] as const) {
                 const inventory = await shell.json();
                 if (type === 'item_grant') expect(inventory.items).toContainEqual(expect.objectContaining({ id: catalog, quantity: 7 }));
                 else expect(inventory.tools).toContainEqual(expect.objectContaining({ id: catalog }));
-                expect((await owner.request.get(`/api/v1/learner/play-runs/${run}`)).status()).toBe(200);
-                expect(sql(`SELECT COUNT(*) FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${activity}' AND status='completed'`).trim()).toBe('0');
+                const playback = await owner.request.get(`/api/v1/learner/play-runs/${run}`);
+                expect(playback.status()).toBe(200); const active = await playback.json();
+                expect(active.activity.id).toBe(activity);
+                if (type === 'item_grant') expect(active.private_state.activities).toContainEqual(expect.objectContaining({ activity_id: activity, status: 'completed' }));
+                const complete = await owner.request.post(`/api/v1/learner/play-runs/${run}/activities/${encodeURIComponent(`id:${activity}`)}/complete`, { headers, data: {} });
+                expect(complete.status()).toBe(200);
+                expect(await complete.json()).toMatchObject({ status: 'completed', activity_state: { activity_id: activity, progress: { status: 'completed' } } });
+                if (type === 'item_grant') {
+                    expect(completedAt()).toBe(stamp);
+                    const freshRun = randomUUID();
+                    if (kind === 'route') sql(`UPDATE learner_route_progress SET current_play_run_id='${freshRun}',current_activity_id='${activity}',status='in_progress' WHERE principal_id='${principal}' AND current_play_run_id='${run}'`);
+                    else sql(`INSERT INTO learner_activity_replay_runs (id,principal_id,activity_id) VALUES ('${freshRun}','${principal}','${activity}')`);
+                    expect((await owner.request.post(path.replace(run, freshRun), { headers })).status()).toBe(200);
+                    expect(sql(`SELECT quantity FROM learner_item_holdings WHERE principal_id='${principal}' AND item_id='${catalog}'`).trim()).toBe('9');
+                    expect(sql(`SELECT COUNT(*) FROM learner_item_grants WHERE activity_id='${activity}'`).trim()).toBe('2');
+                    expect(completedAt()).toBe(stamp);
+                    expect((await owner.request.get(`/api/v1/learner/play-runs/${freshRun}`)).status()).toBe(200);
+                }
                 info.annotations.push({ type: 'native-grant-duration', description: `${kind}/${type}: ${elapsed} ms` });
             } finally {
                 if (map) expect((await admin.request.delete(`/api/v1/admin/world-builder/maps/${map}`, { headers: adminHeaders })).status()).toBe(204);

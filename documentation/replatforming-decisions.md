@@ -1249,6 +1249,16 @@ grant and the source's unsuccessful-roll auto-continue path remain valid, but
 a browser cannot skip the roll. A new route run uses a new key and therefore
 can roll and grant again as in Laravel.
 
+Canonical activation audit clarification: the original
+`LearningItemGrantService::rollAndGrant` stamps ordinary activity progress as
+completed when recording either roll outcome. Rust must do the same in the
+roll/holding transaction, preserving the first completion timestamp. This does
+not advance or finish the opaque run or produce completion evidence; those
+still belong to the separate completion command. The copied player presents
+its optional check-in after the source continuation callback. The shared
+progress writer is reused by both operations. Stored-roll retries neither add
+inventory nor rewrite progress timestamps.
+
 The existing `learning_items` and `learner_item_holdings` tables remain the
 content and inventory owners. `items[].itemId` is a public item slug in this
 greenfield contract, mirroring the established tool-reference choice without

@@ -137,6 +137,15 @@ async fn roll_current_items(
     .bind(serialized_items)
     .execute(&mut *transaction)
     .await?;
+    // The source stamps ordinary activity progress when the roll is recorded,
+    // including an unsuccessful roll. Route advancement and completion evidence
+    // belong to the separate completion command and must not happen here.
+    crate::learner_playback::mark_activity_completed(
+        &mut transaction,
+        current.principal_id,
+        current.activity_id,
+    )
+    .await?;
     transaction.commit().await?;
 
     Ok(Some(LearnerItemGrantResult { items, success }))
