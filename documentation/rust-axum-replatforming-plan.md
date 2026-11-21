@@ -1912,6 +1912,47 @@ source toolbar obstruction remains open. Reports are in ignored
 `frontend/playwright-report/player-companion-recovery-{verified,final}/`;
 rerun the named browser files with the existing 8084 learner evidence host.
 
+### Output portal departure contract audit
+
+Pinned owners: `resources/js/pages/learning/node-play.tsx` (`markCompleted`,
+`travel`, `continueAfterCheckIn`), whole `features/world/standard-activities.tsx`
+(`PortalActivity`), `app/Http/Controllers/LearningWorldController.php`
+(`markActivity`) and `app/Learning/Services/LearnerActivityAccessService.php`.
+Laravel owner files match the pinned SHA; the canonical identity gate covers
+the copied React files. ADR-053 retains atomic departure plus an independent
+arrival run, without starting or resetting an authored target route.
+
+| Source requirement | Existing Rust evidence / necessary adapter | Audit finding |
+| --- | --- | --- |
+| `onComplete(activity)` resolves before `onTravel(link)`; the parent consumes actual completed progress and opens the optional departure check-in | `POST /learner/play-runs/{run}/activities/{activity}/portal/travel`; `persistence/src/learner_portal.rs`; shared `learner_playback_activity_state::load` | Existing command commits departure and arrival together but returns no departure receipt. Extend this command's response with its actual transaction-owned activity state; never synthesize a completed timestamp or send ordinary `/complete` first. |
+| Current departure must remain playable | Source `assertCanPlay`, `PostgresLearnerNodeAvailability` | Initial native travel checked destination availability only; the idempotent arrival branch also omitted departure publication/role checks. Revalidate both source and destination on every command/retry before returning success. |
+| Source optional check-in before navigation | Existing run-scoped check-in writer and completed departure progress | Reuse the owned source run; a failed check-in must retain its draft and pending destination. No check-in write when skipped. |
+| Source target node/activity URL | Native travel's opaque arrival ID plus existing `GET /learner/play-runs/{run}` with exact node/activity identities | A narrow page navigation adapter must resolve the validated arrival document, compare it with the source link and build its source URL. Never start a target authored route or accept a browser-selected destination. Not yet integrated. |
+| Unavailable destination, failed travel, duplicate click/retry | Existing 401/403/404/503 native boundaries; source `isTravelling` lifecycle | Failed writes cannot open a check-in or navigate. The source portal lacks its own rejected-promise error display; use a documented framework transport boundary without changing source JSX. Whole-page failure/retry evidence is still required. |
+
+**Verified native prerequisites:** the locked-departure regression first
+returned 200 instead of 404. Initial travel now evaluates departure state, and
+the idempotent branch rechecks departure node/MapAsset/route/activity
+publication, role access and current playability. That branch locks the owned
+arrival and completed activity progress in the read transaction. Both success
+paths reuse `learner_playback_activity_state::load` for the new typed
+`departure_state` receipt; an unexpected route-update failure rolls back
+instead of committing a partial completion. No schema migration is needed.
+
+The real Rust/PostgreSQL portal case in
+`canonical-playback-reference-live.spec.ts` now proves locked/hidden departure
+rejection leaves route state unchanged and creates no arrival; successful
+travel returns actual completed progress; retries return the same receipt and
+arrival; revoked source node, activity, asset or route publication rejects
+retry; restored access retains exactly one arrival and one route completion.
+The existing peer/wrong-activity/CSRF checks still pass. A private departure
+check-in persists against the original run and preserves its completion time.
+The focused native test passed against the rebuilt local image. Rust workspace
+check/fmt, 183 API tests (two ignored), one portal application test, 26 playback
+persistence tests, canonical identity, frontend production type/build and
+generated OpenAPI/client drift all passed. This is a native contract repair;
+the whole copied output-portal navigation/error integration is still pending.
+
 ### Copied player page-prop adapter
 
 Source owners checked against pinned `main`: `resources/js/pages/learning/node-play.tsx`,

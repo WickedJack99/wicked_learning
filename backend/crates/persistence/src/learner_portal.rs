@@ -30,6 +30,9 @@ struct PortalTravelSourceRow {
     activity_config: serde_json::Value,
     activity_id: Uuid,
     principal_id: Uuid,
+    source_node_id: Uuid,
+    source_node_state: String,
+    source_node_visual_config: serde_json::Value,
     target_activity_id: Uuid,
     target_node_id: Uuid,
     target_node_slug: String,
@@ -40,6 +43,11 @@ struct PortalTravelSourceRow {
 #[derive(FromRow)]
 struct ExistingPortalArrivalRow {
     arrival_id: Uuid,
+    activity_id: Uuid,
+    principal_id: Uuid,
+    source_node_id: Uuid,
+    source_node_state: String,
+    source_node_visual_config: serde_json::Value,
     target_node_id: Uuid,
     target_node_slug: String,
     target_node_state: String,
@@ -73,24 +81,39 @@ async fn travel(
     activity_slug: &str,
 ) -> Result<Option<LearnerPortalTravelResult>, sqlx::Error> {
     // This is deliberately loaded before the write transaction. The source UI
-    // also determines whether an already-rendered destination is playable
-    // before it completes the departure portal. The command repeats that
-    // policy on the server rather than trusting the rendered state.
+    // also checks the departure and already-rendered destination. Repeat both
+    // checks on commands and idempotent retries, never trust rendered state.
     let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
         return Ok(None);
     };
+    let mut transaction = pool.begin().await?;
     if let Some(arrival) =
-        load_existing_arrival(pool, principal, play_run_id, activity_slug).await?
+        load_existing_arrival(&mut transaction, principal, play_run_id, activity_slug).await?
     {
         if availability
             .state_for_node(
-                arrival.target_node_id,
-                &arrival.target_node_state,
-                &arrival.target_node_visual_config,
+                arrival.source_node_id,
+                &arrival.source_node_state,
+                &arrival.source_node_visual_config,
             )
             .can_play()
+            && availability
+                .state_for_node(
+                    arrival.target_node_id,
+                    &arrival.target_node_state,
+                    &arrival.target_node_visual_config,
+                )
+                .can_play()
         {
+            let departure_state = crate::learner_playback_activity_state::load(
+                &mut transaction,
+                arrival.principal_id,
+                arrival.activity_id,
+            )
+            .await?;
+            transaction.commit().await?;
             return Ok(Some(LearnerPortalTravelResult {
+                departure_state,
                 node_slug: arrival.target_node_slug,
                 play_run_id: arrival.arrival_id.to_string(),
             }));
@@ -98,9 +121,8 @@ async fn travel(
 
         return Ok(None);
     }
-    let mut transaction = pool.begin().await?;
     let source = sqlx::query_as::<_, PortalTravelSourceRow>(
-        "SELECT activities.activity_config, activities.id AS activity_id, progress.principal_id, links.target_activity_id, target_nodes.id AS target_node_id, target_nodes.slug AS target_node_slug, target_nodes.state AS target_node_state, target_nodes.visual_config AS target_node_visual_config \
+        "SELECT source_nodes.id AS source_node_id, source_nodes.state AS source_node_state, source_nodes.visual_config AS source_node_visual_config, activities.activity_config, activities.id AS activity_id, progress.principal_id, links.target_activity_id, target_nodes.id AS target_node_id, target_nodes.slug AS target_node_slug, target_nodes.state AS target_node_state, target_nodes.visual_config AS target_node_visual_config \
          FROM learner_route_progress AS progress \
          INNER JOIN application_principals AS principals ON principals.id = progress.principal_id \
          INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id \
@@ -141,6 +163,13 @@ async fn travel(
         return Ok(None);
     };
     if source.principal_id != availability.principal_id()
+        || !availability
+            .state_for_node(
+                source.source_node_id,
+                &source.source_node_state,
+                &source.source_node_visual_config,
+            )
+            .can_play()
         || !availability
             .state_for_node(
                 source.target_node_id,
@@ -200,7 +229,7 @@ async fn travel(
     .await?
     .rows_affected();
     if completed != 1 {
-        transaction.commit().await?;
+        transaction.rollback().await?;
         return Ok(None);
     }
 
@@ -230,25 +259,37 @@ async fn travel(
         }
     };
 
+    let departure_state = crate::learner_playback_activity_state::load(
+        &mut transaction,
+        source.principal_id,
+        source.activity_id,
+    )
+    .await?;
     transaction.commit().await?;
     Ok(Some(LearnerPortalTravelResult {
+        departure_state,
         node_slug: source.target_node_slug,
         play_run_id: arrival_id.to_string(),
     }))
 }
 
 async fn load_existing_arrival(
-    pool: &PgPool,
+    transaction: &mut Transaction<'_, Postgres>,
     principal: &AuthorizedPrincipal,
     source_play_run_id: Uuid,
     source_activity_slug: &str,
 ) -> Result<Option<ExistingPortalArrivalRow>, sqlx::Error> {
     sqlx::query_as::<_, ExistingPortalArrivalRow>(
-        "SELECT arrivals.id AS arrival_id, target_nodes.id AS target_node_id, target_nodes.slug AS target_node_slug, target_nodes.state AS target_node_state, target_nodes.visual_config AS target_node_visual_config \
+        "SELECT arrivals.id AS arrival_id, arrivals.principal_id, source_activities.id AS activity_id, source_nodes.id AS source_node_id, source_nodes.state AS source_node_state, source_nodes.visual_config AS source_node_visual_config, target_nodes.id AS target_node_id, target_nodes.slug AS target_node_slug, target_nodes.state AS target_node_state, target_nodes.visual_config AS target_node_visual_config \
          FROM learner_portal_arrival_runs AS arrivals \
          INNER JOIN application_principals AS principals ON principals.id = arrivals.principal_id \
          INNER JOIN learning_activities AS source_activities ON source_activities.id = arrivals.source_activity_id \
          INNER JOIN learning_portal_links AS links ON links.source_activity_id = source_activities.id AND links.target_activity_id = arrivals.target_activity_id \
+         INNER JOIN learning_routes AS source_routes ON source_routes.id = source_activities.route_id \
+         INNER JOIN learning_map_assets AS source_assets ON source_assets.id = source_routes.map_asset_id \
+         INNER JOIN learning_nodes AS source_nodes ON source_nodes.id = links.source_node_id AND source_nodes.map_asset_id = source_assets.id \
+         INNER JOIN learning_maps AS source_maps ON source_maps.id = source_nodes.map_id \
+         INNER JOIN learner_activity_progress AS progress ON progress.principal_id = arrivals.principal_id AND progress.activity_id = source_activities.id AND progress.status = 'completed' \
          INNER JOIN learning_activities AS target_activities ON target_activities.id = arrivals.target_activity_id \
          INNER JOIN learning_routes AS target_routes ON target_routes.id = target_activities.route_id \
          INNER JOIN learning_map_assets AS target_assets ON target_assets.id = target_routes.map_asset_id \
@@ -256,16 +297,20 @@ async fn load_existing_arrival(
          INNER JOIN learning_maps AS target_maps ON target_maps.id = target_nodes.map_id \
          WHERE principals.identity_subject_id = $1 AND arrivals.source_play_run_id = $2 AND ($3 = 'id:' || source_activities.id::text OR (left($3, 3) <> 'id:' AND source_activities.slug = $3)) \
            AND arrivals.status = 'in_progress' AND target_activities.activity_type = 'portal' \
+           AND source_activities.activity_type = 'portal' AND COALESCE(source_activities.activity_config ->> 'portalMode', 'output') = 'output' \
+           AND source_maps.published_at IS NOT NULL AND source_nodes.published_at IS NOT NULL \
+           AND source_assets.published_at IS NOT NULL AND source_routes.published_at IS NOT NULL AND source_activities.published_at IS NOT NULL \
+           AND (source_maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(source_maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) \
            AND COALESCE(target_activities.activity_config ->> 'portalMode', 'output') = 'input' \
            AND target_maps.published_at IS NOT NULL AND target_nodes.published_at IS NOT NULL \
            AND target_assets.published_at IS NOT NULL AND target_routes.published_at IS NOT NULL AND target_activities.published_at IS NOT NULL \
-           AND (target_maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(target_maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4)))",
+           AND (target_maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(target_maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF arrivals, progress",
     )
     .bind(principal.subject_id)
     .bind(source_play_run_id)
     .bind(source_activity_slug)
     .bind(&principal.roles)
-    .fetch_optional(pool)
+    .fetch_optional(&mut **transaction)
     .await
 }
 

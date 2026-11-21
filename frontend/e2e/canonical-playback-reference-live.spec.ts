@@ -197,11 +197,23 @@ for (const type of types) {
                 sql(`UPDATE learning_activities SET slug = 'same-activity' WHERE id = '${activity}'`);
             }
             const started = performance.now();
+            if (type === 'portal') {
+                const before = sql(`SELECT row_to_json(p)::text FROM learner_route_progress p WHERE principal_id='${principal}' AND current_play_run_id='${run}'`).trim();
+                for (const state of ['locked', 'hidden']) {
+                    sql(`UPDATE learning_nodes SET state='${state}' WHERE id='${node.node_id}'`);
+                    expect((await send(ref)).status(), 'A portal departure must still be playable when traversal is submitted.').toBe(404);
+                    expect(sql(`SELECT row_to_json(p)::text FROM learner_route_progress p WHERE principal_id='${principal}' AND current_play_run_id='${run}'`).trim()).toBe(before);
+                    expect(sql(`SELECT count(*) FROM learner_portal_arrival_runs WHERE source_play_run_id='${run}'`).trim()).toBe('0');
+                }
+                sql(`UPDATE learning_nodes SET state='available' WHERE id='${node.node_id}'`);
+            }
             const result = await send(ref);
             expect(result.status()).toBe(200);
             info.annotations.push({ type: 'native-activity-reference-command', description: `${type}: ${Math.round(performance.now() - started)} ms` });
             const resultBody = await result.json();
             if (type === 'portal') {
+                expect(resultBody.departure_state).toMatchObject({ activity_id: activity, progress: { activity_id: activity, status: 'completed', completed_at: expect.any(String) } });
+                expect(toSourceActivityReceipt(resultBody.departure_state, playback.activity)?.status).toBe('completed');
                 const retry = await send(ref);
                 expect(retry.status()).toBe(200);
                 expect(await retry.json()).toEqual(resultBody);
@@ -210,6 +222,27 @@ for (const type of types) {
                 const arrived = await arrival.json();
                 expect(arrived.activity.id).toBe(portalTargetId);
                 expect(arrived.node.outgoing_portal_links).toEqual([]);
+                for (const state of ['locked', 'hidden']) {
+                    sql(`UPDATE learning_nodes SET state='${state}' WHERE id='${node.node_id}'`);
+                    expect((await send(ref)).status(), 'An idempotent travel retry must recheck departure access.').toBe(404);
+                }
+                sql(`UPDATE learning_nodes SET state='available',published_at=NULL WHERE id='${node.node_id}'`);
+                expect((await send(ref)).status()).toBe(404);
+                sql(`UPDATE learning_nodes SET published_at=NOW() WHERE id='${node.node_id}'; UPDATE learning_activities SET published_at=NULL WHERE id='${activity}'`);
+                expect((await send(ref)).status()).toBe(404);
+                sql(`UPDATE learning_activities SET published_at=NOW() WHERE id='${activity}'`);
+                sql(`UPDATE learning_map_assets SET published_at=NULL WHERE id='${node.asset_id}'`);
+                expect((await send(ref)).status()).toBe(404);
+                sql(`UPDATE learning_map_assets SET published_at=NOW() WHERE id='${node.asset_id}'; UPDATE learning_routes SET published_at=NULL WHERE id=(SELECT route_id FROM learning_activities WHERE id='${activity}')`);
+                expect((await send(ref)).status()).toBe(404);
+                sql(`UPDATE learning_routes SET published_at=NOW() WHERE id=(SELECT route_id FROM learning_activities WHERE id='${activity}')`);
+                expect(await (await send(ref)).json()).toEqual(resultBody);
+                const checkIn = await owner.request.post(`${base}/${ref}/check-ins`, { headers, data: { feeling: 'forming', note: 'A private departure observation.', next_direction: null } });
+                expect(checkIn.status()).toBe(200);
+                expect((await checkIn.json()).activity_state.progress.completed_at).toBe(resultBody.departure_state.progress.completed_at);
+                expect(sql(`SELECT note FROM learner_activity_check_ins WHERE principal_id='${principal}' AND activity_id='${activity}' AND play_run_id='${run}'`).trim()).toBe('A private departure observation.');
+                expect(sql(`SELECT count(*) FROM learner_portal_arrival_runs WHERE source_play_run_id='${run}'`).trim()).toBe('1');
+                expect(sql(`SELECT completion_count FROM learner_route_progress WHERE principal_id='${principal}' AND current_play_run_id='${run}'`).trim()).toBe('1');
             }
             if (type === 'question' || type === 'reflection' || type === 'review') expect((await result.json()).activity_slug).toBe('same-activity');
             if (type === 'question') expect((await owner.request.post(`${base}/${ref}/recall`, { headers })).status()).toBe(200);

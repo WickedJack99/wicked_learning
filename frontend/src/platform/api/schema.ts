@@ -5759,7 +5759,7 @@ export interface paths {
         put?: never;
         /**
          * Traverse the current authored output portal.
-         * @description The server resolves the source portal link, completes the departure route, rechecks destination access, and creates an opaque arrival run. The browser never submits a target map, node, activity, or route start.
+         * @description The server resolves the source portal link, rechecks source and destination publication, role access and playability, completes the departure route, and creates an opaque arrival run. The response includes the actual departure activity state from the same transaction for the source optional check-in. An idempotent retry rechecks both places and returns the same active arrival and stored departure progress. The browser never submits a target map, node, activity, or route start.
          */
         post: operations["travelLearnerPortal"];
         delete?: never;
@@ -8654,6 +8654,7 @@ export interface components {
             node_title: string;
         };
         LearnerPortalTravelResult: {
+            departure_state: components["schemas"]["LearnerPlaybackActivityState"];
             node_slug: string;
             /** Format: uuid */
             play_run_id: string;

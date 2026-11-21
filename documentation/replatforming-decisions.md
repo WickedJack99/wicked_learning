@@ -2253,6 +2253,14 @@ departure check-in while keeping graph authority, availability and all progress
 state on the server. It also avoids treating a visual portal as a generic
 browser navigation link.
 
+**Canonical player contract refinement:** The travel response also includes
+the caller's actual departure activity state, read inside the same transaction.
+The copied parent needs that receipt before displaying its optional check-in;
+it cannot fabricate completion time or make a separate ordinary completion
+write. Both initial travel and idempotent retry revalidate departure playability
+as well as destination playability and source/target publication and role
+scope. This does not change the separate arrival-run or target-route boundary.
+
 **Alternatives:** Posting a target activity or node from the browser would
 trust client graph selection. Starting the target route would incorrectly
 couple travel to route-progress reset/resume semantics. Both are rejected.

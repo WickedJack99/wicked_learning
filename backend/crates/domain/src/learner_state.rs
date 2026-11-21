@@ -1164,6 +1164,7 @@ pub struct LearnerPortalDestination {
 /// only after the source portal and destination visibility were validated.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerPortalTravelResult {
+    pub departure_state: LearnerPlaybackActivityState,
     pub node_slug: String,
     pub play_run_id: String,
 }
