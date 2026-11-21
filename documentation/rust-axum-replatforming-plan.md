@@ -2563,11 +2563,11 @@ dialogue cursor before rejecting a wrong initial node could leave state behind.
 
 The same ordinary/replay integration fixtures reproduced journal/reflection
 changes after a rejected missing-edge command in both run kinds. The repository
-now validates the question and authored next edge before any journal/reflection
-write and rolls back every rejected reflection transaction, including provisional
-cursor initialization. Successful reflection, journal append and cursor advance
-still commit together. This changes neither source UI nor the native decision
-that an invalid reflection/edge is unavailable.
+was repaired to validate the question and authored next edge before writes and
+roll back every rejected transaction, including provisional cursor initialization.
+The source completion contract below now supersedes rejection of a missing edge:
+a terminal reflection saves successfully and keeps its current cursor. Invalid
+questions and unauthorized requests still roll back atomically.
 
 The focused regression extension checks missing next edges, blank/oversized
 authored questions and wrong initial node without any pre-existing dialogue
@@ -2733,12 +2733,68 @@ Canonical identity, frontend type/build, generated API drift, Rust workspace
 fmt/check and 126 persistence tests passed (6 ignored). Local report:
 `frontend/playwright-report/player-npc-grant/` (ignored).
 
-Remaining source contracts include first-node fallback when no explicit entry
-edge exists, end/null exit completion and dialogue-specific activity exit
-selection. The current native completion requires a stored end cursor although
-the copied player invokes completion before persisting that cursor. The native
-completion also selects only the ordinary completed connector. These are real
-activation gaps to resolve, not reasons to alter the copied navigation.
+The next audited gaps were first-node fallback without an explicit entry,
+end/null completion before cursor persistence, and dialogue-specific activity
+exit selection. The following contract repair resolves those native gaps;
+whole copied-player transport and browser acceptance remain separate.
+
+### NPC source completion and fallback entry contract
+
+The pinned whole NPC player's `firstNpcDialogueNodeId`, `moveToNode` and
+`npcExitTransition` own this behavior. Source `LearnerJournalController`
+saves the reflection separately before the player invokes completion. Rust
+already has owner-scoped completion/evidence/route advancement; reuse it.
+
+| Source requirement | Rust gap and bounded implementation |
+| --- | --- |
+| Start at explicit entry or first authored non-answer/non-end node | Share the same ordered fallback between native reads and state initialization; no synthetic node/edge. |
+| Complete before persisting an end cursor, or when there is no next node | Resolve the actual current authored node and its `out` edge under the owned run lock. Allow only terminal monologue/answer, already-owned configured-tool question skip, saved terminal reflection, or stored end. Reject nonterminal or unanswered/unreflected nodes. Recheck current node access. |
+| Specific `dialogue-end-{id}` exit, then first completed-trigger fallback | Select from stored activity transitions in source order; validate the actual next activity before progress/evidence writes. Replay remains terminal under its existing isolated contract. |
+| Reflection with no outgoing edge still saves before completion | Record its actual authored node identity on the private reflection, retain its cursor, and require that persisted per-run evidence to finish. A reflection at another node/run is insufficient. Preserve atomic rollback on invalid reflection data. |
+| Failure or retry | No provisional state, progress or evidence on rejection; a completed/stale run cannot write another receipt. Missing contracts keep whole NodePlay unavailable. |
+
+These native contracts precede the ordered copied-player adapter and whole-source
+browser evidence. No JSX, styles or source-local interactions are being edited.
+
+**Verified native implementation:** `learner_npc_dialogue::{initial_node_id,
+completion_exit}` shares source entry ordering with the playback read and state
+initializer. `learner_playback::complete_current_activity` uses the resolved
+exit with its existing progress/evidence and destination-validation transaction.
+Migration `0112_npc_reflection_node.sql` adds nullable, indexed authored-node
+provenance to private reflections; existing records stay unchanged, and authored
+node deletion preserves their text by nulling provenance. Terminal reflection
+save retains the current cursor and completion checks the exact node/run.
+
+The two source-completion baseline cases returned 404 for legitimate end exits.
+After repair all 28 NPC and shared native playback integration/reference cases
+passed against the rebuilt local service. The completion fixtures exercise
+ordinary/replay end and null exits, specific-over-fallback routing, explicit
+terminal exits, stored end cursors, first-node fallback read/initialization,
+owned-tool question skips, reflection evidence and stale retries. They reject
+locked/hidden/scheduled/unpublished/role-denied access, a nonterminal cursor,
+an unanswered question, an unsaved or differently scoped reflection, a foreign
+owner, missing CSRF and an unpublished destination without changing progress.
+
+Canonical identity, frontend type/build, generated OpenAPI/client drift,
+Rust workspace fmt/check, 126 persistence tests (6 ignored) and the embedded
+migration-version check passed. Migration 112 and its index were verified in
+the local database. Both completion cases also passed a focused retention rerun:
+deleting the authored reflection node nulls provenance while preserving the
+saved question and reflection text. Reports are ignored
+`frontend/playwright-report/player-npc-completion{,-baseline,-retention}/`.
+These are native integration checks;
+whole-source UI at both viewports is still required.
+
+**Next copied-player binding requirements:** `learner_playback_presentation.rs`
+currently retains node `config.toolId` as the authored public tool slug, while
+source `NpcDialogueActivity` compares catalog IDs. Resolve that reference to its
+actual UUID in a typed projection/adapter; do not rely on test UUID-shaped slugs.
+Keep numeric presentation values numeric while adapting only current/history,
+tool and typing-sound-set identities. Preserve the whole source module and
+serialize its cursor/grant/answer/reflection/completion requests per bound run
+so optimistic local moves cannot reorder persisted state. Initial grants,
+answer receipts, terminal exits and failure behavior must then be exercised by
+the actual copied control before whole NodePlay activation.
 
 ## Status and purpose
 

@@ -1240,12 +1240,8 @@ async fn load_npc_dialogue(
     .bind(activity_id)
     .fetch_all(&mut **transaction)
     .await?;
-    let initial_node_id = sqlx::query_scalar::<_, Uuid>(
-        "SELECT to_node_id FROM learning_npc_dialogue_transitions WHERE activity_id = $1 AND from_node_id IS NULL AND from_connector = 'out'",
-    )
-    .bind(activity_id)
-    .fetch_optional(&mut **transaction)
-    .await?;
+    let initial_node_id =
+        crate::learner_npc_dialogue::initial_node_id(transaction, activity_id).await?;
     let Some(initial_node_id) = initial_node_id else {
         return Ok(None);
     };
@@ -1987,18 +1983,28 @@ async fn complete_current_activity(
         return Ok(None);
     }
 
-    if current.activity_type == "npc_dialogue"
-        && !npc_dialogue_reached_end(
+    let npc_exit = if current.activity_type == "npc_dialogue" {
+        let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await?
+        else {
+            transaction.rollback().await?;
+            return Ok(None);
+        };
+        let Some(exit) = crate::learner_npc_dialogue::completion_exit(
             &mut transaction,
-            current.principal_id,
+            principal,
             play_run_id,
-            current.activity_id,
+            activity_slug,
+            &availability,
         )
         .await?
-    {
-        transaction.commit().await?;
-        return Ok(None);
-    }
+        else {
+            transaction.rollback().await?;
+            return Ok(None);
+        };
+        Some(exit)
+    } else {
+        None
+    };
 
     let question_attempt = if current.activity_type == "question" {
         let Some(attempt) = latest_answer_for_completion(
@@ -2205,6 +2211,8 @@ async fn complete_current_activity(
 
     let next_activity_id = if let Some(attempt) = &question_attempt {
         attempt.next_activity_id
+    } else if let Some(exit) = npc_exit {
+        exit.next_activity_id
     } else {
         sqlx::query_as::<_, CompletionTransitionRow>(
             "SELECT to_activity_id FROM learning_activity_transitions WHERE from_activity_id = $1 AND from_connector = 'completed' AND trigger = 'completed' ORDER BY created_at ASC, id ASC LIMIT 1",
@@ -2366,22 +2374,6 @@ async fn load_next_playable_activity(
     .bind(next_activity_id)
     .bind(current_route_id)
     .fetch_optional(&mut **transaction)
-    .await
-}
-
-async fn npc_dialogue_reached_end(
-    transaction: &mut Transaction<'_, Postgres>,
-    principal_id: Uuid,
-    play_run_id: Uuid,
-    activity_id: Uuid,
-) -> Result<bool, sqlx::Error> {
-    sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS (SELECT 1 FROM learner_npc_dialogue_states AS states INNER JOIN learning_npc_dialogue_nodes AS nodes ON nodes.id = states.current_node_id AND nodes.activity_id = states.activity_id WHERE states.principal_id = $1 AND states.play_run_id = $2 AND states.activity_id = $3 AND nodes.node_type = 'end')",
-    )
-    .bind(principal_id)
-    .bind(play_run_id)
-    .bind(activity_id)
-    .fetch_one(&mut **transaction)
     .await
 }
 

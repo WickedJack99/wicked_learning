@@ -600,17 +600,13 @@ async fn save_current_dialogue_reflection(
         transaction.rollback().await?;
         return Ok(None);
     }
-    let Some(next_node_id) = next_node_id(
+    let next_node_id = next_node_id(
         &mut transaction,
         current.activity_id,
         state.current_node_id,
         "out",
     )
-    .await?
-    else {
-        transaction.rollback().await?;
-        return Ok(None);
-    };
+    .await?;
     let topic = node
         .config
         .get("journalTopic")
@@ -635,7 +631,7 @@ async fn save_current_dialogue_reflection(
     .await?;
     let reflection_title = format!("{} - {}", current.node_title, node.title);
     sqlx::query(
-        "INSERT INTO learner_reflections (principal_id, learner_journal_page_id, activity_id, activity_start_id, play_run_id, title, question, reflection, response_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'reflection')",
+        "INSERT INTO learner_reflections (principal_id, learner_journal_page_id, activity_id, activity_start_id, play_run_id, title, question, reflection, response_type, npc_dialogue_node_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'reflection', $9)",
     )
     .bind(current.principal_id)
     .bind(page_id)
@@ -645,6 +641,7 @@ async fn save_current_dialogue_reflection(
     .bind(&reflection_title)
     .bind(question)
     .bind(reflection)
+    .bind(state.current_node_id)
     .execute(&mut *transaction)
     .await?;
     let entry = format!(
@@ -660,15 +657,26 @@ async fn save_current_dialogue_reflection(
         .bind(markdown)
         .execute(&mut *transaction)
         .await?;
-    let next = advance_state(
-        &mut transaction,
-        &current,
-        play_run_id,
-        state,
-        next_node_id,
-        true,
-    )
-    .await?;
+    let next = if let Some(next_node_id) = next_node_id {
+        advance_state(
+            &mut transaction,
+            &current,
+            play_run_id,
+            state,
+            next_node_id,
+            true,
+        )
+        .await?
+    } else {
+        LearnerNpcDialogueState {
+            granted_tool: None,
+            current_node_id: state.current_node_id.to_string(),
+            history: parse_history(&state.history)
+                .into_iter()
+                .map(|id| id.to_string())
+                .collect(),
+        }
+    };
     transaction.commit().await?;
     Ok(Some(next))
 }
@@ -714,20 +722,97 @@ async fn load_current_dialogue_for_update(
     Ok(replay.filter(playable))
 }
 
+/// Match the whole source's first explicit entry, then ordered non-answer/end fallback.
+pub(crate) async fn initial_node_id(
+    transaction: &mut Transaction<'_, Postgres>,
+    activity_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar::<_, Option<Uuid>>("SELECT COALESCE((SELECT to_node_id FROM learning_npc_dialogue_transitions WHERE activity_id=$1 AND from_node_id IS NULL ORDER BY created_at,id LIMIT 1),(SELECT id FROM learning_npc_dialogue_nodes WHERE activity_id=$1 AND node_type NOT IN ('answer','end') ORDER BY sort_order,id LIMIT 1))")
+        .bind(activity_id).fetch_one(&mut **transaction).await
+}
+
+pub(crate) struct NpcCompletionExit {
+    pub next_activity_id: Option<Uuid>,
+}
+
+/// Resolve the authored exit without manufacturing a cursor movement. The
+/// copied player completes before persisting end/null destinations.
+pub(crate) async fn completion_exit(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal: &AuthorizedPrincipal,
+    play_run_id: Uuid,
+    activity_slug: &str,
+    availability: &PostgresLearnerNodeAvailability,
+) -> Result<Option<NpcCompletionExit>, sqlx::Error> {
+    let Some(current) = load_current_dialogue_for_update(
+        transaction,
+        principal,
+        play_run_id,
+        activity_slug,
+        availability,
+    )
+    .await?
+    else {
+        return Ok(None);
+    };
+    let saved = sqlx::query_scalar::<_, Uuid>("SELECT current_node_id FROM learner_npc_dialogue_states WHERE principal_id=$1 AND play_run_id=$2 AND activity_id=$3 FOR UPDATE")
+        .bind(current.principal_id).bind(play_run_id).bind(current.activity_id).fetch_optional(&mut **transaction).await?;
+    let current_node_id = match saved {
+        Some(id) => Some(id),
+        None => initial_node_id(transaction, current.activity_id).await?,
+    };
+    let Some(current_node_id) = current_node_id else {
+        return Ok(None);
+    };
+    let Some(node) = dialogue_node(transaction, current.activity_id, current_node_id).await? else {
+        return Ok(None);
+    };
+    let end_node_id = if node.node_type == "end" {
+        Some(current_node_id)
+    } else {
+        let allowed = match node.node_type.as_str() {
+            "npc_monologue" | "answer" => true,
+            "npc_question" => {
+                if let Some(slug) = node.config.get("toolId").and_then(Value::as_str) {
+                    sqlx::query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM learner_tools owned JOIN learning_tools tools ON tools.id=owned.tool_id WHERE owned.principal_id=$1 AND tools.slug=$2 AND tools.published_at IS NOT NULL)")
+                        .bind(current.principal_id).bind(slug).fetch_one(&mut **transaction).await?
+                } else { false }
+            }
+            "reflection" => sqlx::query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM learner_reflections WHERE principal_id=$1 AND play_run_id=$2 AND activity_id=$3 AND npc_dialogue_node_id=$4)")
+                .bind(current.principal_id).bind(play_run_id).bind(current.activity_id).bind(current_node_id).fetch_one(&mut **transaction).await?,
+            _ => false,
+        };
+        if !allowed {
+            return Ok(None);
+        }
+        let next = next_node_id(transaction, current.activity_id, current_node_id, "out").await?;
+        if let Some(id) = next {
+            if node_type(transaction, current.activity_id, id)
+                .await?
+                .as_deref()
+                != Some("end")
+            {
+                return Ok(None);
+            }
+        }
+        next
+    };
+    let connector = end_node_id.map(|id| format!("dialogue-end-{id}"));
+    let next_activity_id = sqlx::query_scalar::<_, Option<Uuid>>("SELECT to_activity_id FROM learning_activity_transitions WHERE from_activity_id=$1 AND (($2::text IS NOT NULL AND from_connector=$2) OR trigger='completed') ORDER BY CASE WHEN from_connector=$2 THEN 0 ELSE 1 END,created_at,id LIMIT 1")
+        .bind(current.activity_id).bind(connector).fetch_optional(&mut **transaction).await?.flatten();
+    Ok(Some(NpcCompletionExit { next_activity_id }))
+}
+
 async fn ensure_state_for_update(
     transaction: &mut Transaction<'_, Postgres>,
     current: &CurrentDialogueRow,
     play_run_id: Uuid,
 ) -> Result<Option<DialogueStateRow>, sqlx::Error> {
-    let inserted = sqlx::query(
-        "INSERT INTO learner_npc_dialogue_states (principal_id, play_run_id, activity_id, current_node_id) SELECT $1, $2, $3, transitions.to_node_id FROM learning_npc_dialogue_transitions AS transitions WHERE transitions.activity_id = $3 AND transitions.from_node_id IS NULL AND transitions.from_connector = 'out' ON CONFLICT (principal_id, play_run_id, activity_id) DO NOTHING",
-    )
-    .bind(current.principal_id)
-    .bind(play_run_id)
-    .bind(current.activity_id)
-    .execute(&mut **transaction)
-    .await?;
-    let _ = inserted;
+    if let Some(initial) = initial_node_id(transaction, current.activity_id).await? {
+        sqlx::query("INSERT INTO learner_npc_dialogue_states (principal_id, play_run_id, activity_id, current_node_id) VALUES ($1,$2,$3,$4) ON CONFLICT (principal_id, play_run_id, activity_id) DO NOTHING")
+            .bind(current.principal_id).bind(play_run_id).bind(current.activity_id).bind(initial)
+            .execute(&mut **transaction).await?;
+    }
     sqlx::query_as::<_, DialogueStateRow>(
         "SELECT current_node_id, history FROM learner_npc_dialogue_states WHERE principal_id = $1 AND play_run_id = $2 AND activity_id = $3 FOR UPDATE",
     )

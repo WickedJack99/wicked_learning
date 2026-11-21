@@ -87,9 +87,6 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
             expect(facts()).toBe(before);
             sql(`UPDATE learning_nodes SET state='locked' WHERE id='${node.node_id}'; UPDATE learner_node_manual_unlocks SET revoked_at=NULL WHERE principal_id='${principal}' AND node_id='${node.node_id}'`);
             if (action === 'reflection') {
-                sql(`DELETE FROM learning_npc_dialogue_transitions WHERE activity_id='${activity}' AND from_node_id='${reflection}'`);
-                await denied();
-                sql(`INSERT INTO learning_npc_dialogue_transitions (activity_id,from_node_id,to_node_id,from_connector) VALUES ('${activity}','${reflection}','${end}','out')`);
                 for (const body of [' ', 'x'.repeat(2001)]) {
                     sql(`UPDATE learning_npc_dialogue_nodes SET body='${body}' WHERE id='${reflection}'`); await denied();
                 }

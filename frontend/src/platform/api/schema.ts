@@ -5719,7 +5719,7 @@ export interface paths {
         put?: never;
         /**
          * Complete the current authorized simple activity in a play run.
-         * @description Advances the server-selected transition within the current node's MapAsset, including another published route grouping. A non-null destination that is unpublished, outside that MapAsset, or unsupported is unavailable and must not be treated as an authored terminal. The original activity-start and play-run identities are retained. Message prompts, including private support, and message walls may complete without contributing. Their current node must still be playable; completion never fabricates a message or bypasses publication, map access or authored destination checks.
+         * @description Advances the server-selected transition within the current node's MapAsset, including another published route grouping. A non-null destination that is unpublished, outside that MapAsset, or unsupported is unavailable and must not be treated as an authored terminal. The original activity-start and play-run identities are retained. Message prompts, including private support, and message walls may complete without contributing. Their current node must still be playable; completion never fabricates a message or bypasses publication, map access or authored destination checks. NPC completion rechecks current node access and resolves its authored end or null exit before cursor persistence, prioritizing a dialogue-end connector over the first completed-trigger fallback. Unanswered questions require an already-owned configured tool to skip; terminal reflections require saved evidence for that exact node and run.
          */
         post: operations["completeLearnerCurrentActivity"];
         delete?: never;
@@ -6089,7 +6089,7 @@ export interface paths {
         put?: never;
         /**
          * Save a private reflection from the active NPC dialogue node.
-         * @description The server requires the current authored node to be a reflection node, writes the learner-owned journal entry, and resolves the authored next edge atomically. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
+         * @description The server requires the current authored node to be a reflection node, writes the learner-owned journal entry with its authored node identity, and resolves the authored next edge atomically. With no outgoing edge it retains the current cursor; separate completion requires that saved node/run evidence. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
          */
         post: operations["saveLearnerNpcDialogueReflection"];
         delete?: never;
