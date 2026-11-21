@@ -67,6 +67,33 @@ struct JournalPageRow {
 }
 
 impl LearnerNpcDialogueRepositoryPort for PostgresLearnerNpcDialogueRepository<'_> {
+    fn save_cursor(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        current_node_id: Uuid,
+        history: &[Uuid],
+    ) -> impl std::future::Future<
+        Output = Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError>,
+    > + Send {
+        async move {
+            save_cursor(
+                self.pool,
+                principal,
+                play_run_id,
+                activity_slug,
+                current_node_id,
+                history,
+            )
+            .await
+            .map_err(|error| {
+                tracing::error!(%error, "could not save NPC dialogue cursor");
+                LearnerNpcDialogueError
+            })
+        }
+    }
+
     fn continue_current_dialogue(
         &self,
         principal: &AuthorizedPrincipal,
@@ -152,6 +179,113 @@ impl LearnerNpcDialogueRepositoryPort for PostgresLearnerNpcDialogueRepository<'
             })
         }
     }
+}
+
+async fn save_cursor(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    play_run_id: Uuid,
+    activity_slug: &str,
+    current_node_id: Uuid,
+    history: &[Uuid],
+) -> Result<Option<LearnerNpcDialogueState>, sqlx::Error> {
+    if history.len() > 40 {
+        return Ok(None);
+    }
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
+    let mut transaction = pool.begin().await?;
+    let Some(current) = load_current_dialogue_for_update(
+        &mut transaction,
+        principal,
+        play_run_id,
+        activity_slug,
+        &availability,
+    )
+    .await?
+    else {
+        transaction.rollback().await?;
+        return Ok(None);
+    };
+    let Some(state) = ensure_state_for_update(&mut transaction, &current, play_run_id).await?
+    else {
+        transaction.rollback().await?;
+        return Ok(None);
+    };
+    let Ok(previous_history) = serde_json::from_value::<Vec<Uuid>>(state.history) else {
+        transaction.rollback().await?;
+        return Ok(None);
+    };
+    if previous_history.len() > 40 {
+        transaction.rollback().await?;
+        return Ok(None);
+    }
+    let mut node_ids = previous_history.clone();
+    node_ids.extend_from_slice(history);
+    node_ids.extend([state.current_node_id, current_node_id]);
+    node_ids.sort_unstable();
+    node_ids.dedup();
+    let found: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM learning_npc_dialogue_nodes WHERE activity_id=$1 AND id=ANY($2)",
+    )
+    .bind(current.activity_id)
+    .bind(&node_ids)
+    .fetch_one(&mut *transaction)
+    .await?;
+    if found != node_ids.len() as i64 {
+        transaction.rollback().await?;
+        return Ok(None);
+    }
+    let unchanged = current_node_id == state.current_node_id && history == previous_history;
+    let backward = previous_history
+        .split_last()
+        .is_some_and(|(previous, rest)| *previous == current_node_id && rest == history);
+    let mut allowed = unchanged || backward;
+    if !allowed
+        && next_node_id(
+            &mut transaction,
+            current.activity_id,
+            state.current_node_id,
+            "out",
+        )
+        .await?
+            == Some(current_node_id)
+    {
+        if let Some(node) =
+            dialogue_node(&mut transaction, current.activity_id, state.current_node_id).await?
+        {
+            let mut pushed = previous_history.clone();
+            pushed.push(state.current_node_id);
+            allowed =
+                matches!(node.node_type.as_str(), "npc_monologue" | "answer") && history == pushed;
+            allowed |= node.node_type == "answer" && history == previous_history;
+            if !allowed
+                && matches!(node.node_type.as_str(), "npc_monologue" | "npc_question")
+                && history == previous_history
+            {
+                if let Some(tool_slug) = node.config.get("toolId").and_then(Value::as_str) {
+                    allowed = sqlx::query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM learner_tools AS owned INNER JOIN learning_tools AS tools ON tools.id=owned.tool_id WHERE owned.principal_id=$1 AND tools.slug=$2 AND tools.published_at IS NOT NULL)")
+                        .bind(current.principal_id).bind(tool_slug).fetch_one(&mut *transaction).await?;
+                }
+            }
+        }
+    }
+    if !allowed {
+        transaction.rollback().await?;
+        return Ok(None);
+    }
+    if !unchanged {
+        sqlx::query("UPDATE learner_npc_dialogue_states SET current_node_id=$1,history=$2,updated_at=NOW() WHERE principal_id=$3 AND play_run_id=$4 AND activity_id=$5")
+            .bind(current_node_id).bind(json!(history)).bind(current.principal_id).bind(play_run_id).bind(current.activity_id)
+            .execute(&mut *transaction).await?;
+    }
+    transaction.commit().await?;
+    Ok(Some(LearnerNpcDialogueState {
+        granted_tool: None,
+        current_node_id: current_node_id.to_string(),
+        history: history.iter().map(ToString::to_string).collect(),
+    }))
 }
 
 async fn continue_current_dialogue(

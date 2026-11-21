@@ -5,10 +5,10 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
-for (const kind of ['route', 'replay'] as const) for (const action of ['continue', 'answer', 'back', 'reflection'] as const) {
+for (const kind of ['route', 'replay'] as const) for (const action of ['continue', 'answer', 'back', 'reflection', 'cursor'] as const) {
     test(`native NPC ${kind} ${action} rechecks source node access`, async ({ browser, baseURL }, info) => {
         expect(new URL(baseURL!).hostname).toMatch(/^(localhost|127\.0\.0\.1)$/);
-        for (const path of ['app/Http/Controllers/LearningWorldController.php', 'app/Learning/Services/LearnerActivityAccessService.php', 'app/Learning/Services/LearningNodeStateResolver.php', 'app/Http/Controllers/LearnerJournalController.php', 'app/Learning/Services/NpcDialogueAnswerService.php', 'app/Learning/Services/LearnerNodeAnswerEventService.php']) {
+        for (const path of ['app/Http/Controllers/LearningWorldController.php', 'app/Learning/Services/LearnerActivityAccessService.php', 'app/Learning/Services/LearningNodeStateResolver.php', 'app/Http/Controllers/LearnerJournalController.php', 'app/Learning/Services/NpcDialogueAnswerService.php', 'app/Learning/Services/LearnerNodeAnswerEventService.php', 'app/Learning/Services/LearnerActivityPlayStateService.php', 'app/Learning/Services/LearningToolGrantService.php']) {
             expect(readFileSync(`../${path}`)).toEqual(execFileSync('git', ['show', `32c3113a5bc688c9944c20942cdf40a6a5d57d7f:${path}`]));
         }
         const admin = await browser.newContext({ baseURL, storageState: administratorStorageStatePath });
@@ -41,12 +41,13 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
                 ('${activity}',NULL,'${first}','out'),('${activity}','${first}','${question}','out'),('${activity}','${question}','${answer}','answer-0'),('${activity}','${answer}','${reflection}','out'),('${activity}','${reflection}','${end}','out');`);
             if (kind === 'route') sql(`INSERT INTO learner_route_progress (principal_id,node_id,route_id,current_activity_id,status,activity_start_id,current_play_run_id) SELECT '${principal}','${node.node_id}',route_id,id,'in_progress','${start}','${run}' FROM learning_activities WHERE id='${activity}'`);
             else sql(`INSERT INTO learner_activity_replay_runs (id,principal_id,activity_id) VALUES ('${run}','${principal}','${activity}')`);
-            const current = action === 'continue' ? first : action === 'reflection' ? reflection : question;
+            const current = action === 'continue' || action === 'cursor' ? first : action === 'reflection' ? reflection : question;
             const history = action === 'back' ? [first] : [];
             sql(`INSERT INTO learner_npc_dialogue_states (principal_id,activity_id,play_run_id,current_node_id,history) VALUES ('${principal}','${activity}','${run}','${current}','${JSON.stringify(history)}')`);
             const path = `/api/v1/learner/play-runs/${run}/activities/id:${activity}/npc-dialogue/${action}`;
-            const data = action === 'answer' ? { answer_node_id: answer } : action === 'reflection' ? { reflection: 'I noticed two different clues.' } : {};
+            const data = action === 'cursor' ? { current_node_id: question, history: [first] } : action === 'answer' ? { answer_node_id: answer } : action === 'reflection' ? { reflection: 'I noticed two different clues.' } : {};
             const write = () => owner.request.post(path, { headers, data });
+            if (action === 'cursor') expect((await owner.request.post(path, { headers, data: { current_node_id: first, history: [] } })).status()).toBe(200);
             if (action === 'answer') answerEvidence = await prepareNpcAnswerEvidence({ admin, owner, peer, adminHeaders, headers, map, activity, run, principal, question, answer, sql, info });
             const facts = () => sql(`SELECT jsonb_build_object(
                 'answers',(SELECT jsonb_agg(to_jsonb(a)) FROM learner_npc_dialogue_answers a WHERE principal_id='${principal}' AND activity_id='${activity}'),
@@ -101,12 +102,44 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
             await answerEvidence?.rejectInvalidConfiguration();
             const accepted = await write(); expect(accepted.status()).toBe(200);
             if (action === 'answer') expect(await accepted.json()).toMatchObject({ answer: { answer_key: answer, answer_node_id: answer, is_correct: true, feedback: null } });
-            const target = action === 'continue' ? question : action === 'answer' ? answer : action === 'back' ? first : end;
-            expect(await accepted.json()).toMatchObject({ current_node_id: target, history: action === 'continue' ? [first] : action === 'reflection' ? [reflection] : [] });
+            const target = action === 'continue' || action === 'cursor' ? question : action === 'answer' ? answer : action === 'back' ? first : end;
+            expect(await accepted.json()).toMatchObject({ current_node_id: target, history: action === 'continue' || action === 'cursor' ? [first] : action === 'reflection' ? [reflection] : [] });
             expect(facts()).not.toBe(before);
             expect(sql(`SELECT COUNT(*) FROM learner_tools WHERE principal_id='${principal}' AND tool_id='${tool}'`).trim()).toBe(action === 'continue' ? '1' : '0');
             expect(sql(`SELECT COUNT(*) FROM learner_reflections WHERE principal_id='${principal}' AND activity_id='${activity}'`).trim()).toBe(action === 'reflection' ? '1' : '0');
             if (action === 'reflection' && kind === 'replay') expect(sql(`SELECT markdown FROM learner_journal_pages WHERE principal_id='${principal}' AND topic='${topic}'`)).toContain('Keep my earlier note.');
+            if (action === 'cursor') {
+                const cursor = (id: string, history: string[]) => owner.request.post(path, { headers, data: { current_node_id: id, history } });
+                const stored = () => sql(`SELECT current_node_id::text || history::text FROM learner_npc_dialogue_states WHERE principal_id='${principal}' AND activity_id='${activity}' AND play_run_id='${run}'`);
+                const onQuestion = stored();
+                for (const [id, history, status] of [[answer, [], 404], [reflection, [], 404], [first, [randomUUID()], 404], [randomUUID(), [], 404], [question, Array(41).fill(first), 400]] as const) {
+                    expect((await cursor(id, [...history])).status()).toBe(status); expect(stored()).toBe(onQuestion);
+                }
+                expect((await cursor(question, [first])).status()).toBe(200);
+                expect((await cursor(first, [])).status()).toBe(200);
+                expect((await cursor(question, [first])).status()).toBe(200);
+                expect((await cursor('invalid', [])).status()).toBe(400);
+                expect((await cursor(question, ['invalid'])).status()).toBe(400);
+                sql(`UPDATE learning_npc_dialogue_nodes SET node_config='{"toolId":"${tool}"}' WHERE id='${first}'; UPDATE learner_npc_dialogue_states SET current_node_id='${first}',history='[]' WHERE principal_id='${principal}' AND activity_id='${activity}' AND play_run_id='${run}'`);
+                expect((await cursor(question, [])).status()).toBe(404);
+                sql(`INSERT INTO learner_tools (principal_id,tool_id) VALUES ('${principal}','${tool}')`);
+                expect(await (await cursor(question, [])).json()).toMatchObject({ current_node_id: question, history: [], granted_tool: null });
+                sql(`DELETE FROM learner_tools WHERE principal_id='${principal}' AND tool_id='${tool}'`);
+                const answered = await owner.request.post(path.replace('/cursor', '/answer'), { headers, data: { answer_node_id: answer } }); expect(answered.status()).toBe(200);
+                expect((await cursor(reflection, [])).status()).toBe(200);
+                const onReflection = stored(); expect((await cursor(end, [reflection])).status()).toBe(404); expect(stored()).toBe(onReflection);
+                const reflected = await owner.request.post(path.replace('/cursor', '/reflection'), { headers, data: { reflection: 'A source cursor reflection.' } }); expect(reflected.status()).toBe(200);
+                expect((await cursor(end, [reflection])).status()).toBe(200);
+                expect(sql(`SELECT COUNT(*) FROM learner_tools WHERE principal_id='${principal}' AND tool_id='${tool}'`).trim()).toBe('0');
+                sql(`UPDATE learning_npc_dialogue_transitions SET to_node_id='${first}' WHERE activity_id='${activity}' AND from_node_id='${first}'; UPDATE learner_npc_dialogue_states SET current_node_id='${first}',history='${JSON.stringify(Array(39).fill(first))}' WHERE principal_id='${principal}' AND activity_id='${activity}' AND play_run_id='${run}'`);
+                expect((await cursor(first, Array(40).fill(first))).status()).toBe(200);
+                const atLimit = stored(); expect((await cursor(first, Array(41).fill(first))).status()).toBe(400); expect(stored()).toBe(atLimit);
+                expect((await cursor(first, Array(39).fill(first))).status()).toBe(200);
+                sql(`DELETE FROM learner_npc_dialogue_states WHERE principal_id='${principal}' AND activity_id='${activity}' AND play_run_id='${run}'`);
+                expect((await cursor(randomUUID(), [])).status()).toBe(404);
+                expect(sql(`SELECT COUNT(*) FROM learner_npc_dialogue_states WHERE principal_id='${principal}' AND activity_id='${activity}' AND play_run_id='${run}'`).trim()).toBe('0');
+                expect((await cursor(first, [])).status()).toBe(200);
+            }
             await answerEvidence?.verify();
         } finally {
             await answerEvidence?.dispose();

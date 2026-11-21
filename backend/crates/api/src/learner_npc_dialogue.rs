@@ -27,6 +27,50 @@ pub struct SaveNpcDialogueReflectionRequest {
     reflection: String,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SaveNpcDialogueCursorRequest {
+    current_node_id: String,
+    history: Vec<String>,
+}
+
+pub async fn save_cursor(
+    State(state): State<AppState>,
+    Path((play_run_id, activity_slug)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<SaveNpcDialogueCursorRequest>,
+) -> Result<Json<LearnerNpcDialogueState>, ApiError> {
+    let play_run_id = Uuid::parse_str(&play_run_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    if request.history.len() > 40 {
+        return Err(ApiError::invalid_request());
+    }
+    let current_node_id =
+        Uuid::parse_str(&request.current_node_id).map_err(|_| ApiError::invalid_request())?;
+    let history = request
+        .history
+        .iter()
+        .map(|id| Uuid::parse_str(id))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| ApiError::invalid_request())?;
+    let repository = PostgresLearnerNpcDialogueRepository::new(&state.application_database);
+    LearnerNpcDialogueCommand::new(&repository)
+        .save_cursor(
+            &principal,
+            play_run_id,
+            &activity_slug,
+            current_node_id,
+            &history,
+        )
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
+}
+
 pub async fn continue_dialogue(
     State(state): State<AppState>,
     Path((play_run_id, activity_slug)): Path<(String, String)>,

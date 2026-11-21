@@ -7344,6 +7344,32 @@ paths:
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The active shared task is unavailable or not owned by this learner. }
         '503': { description: The application database is unavailable. }
+  /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/cursor:
+    post:
+      operationId: updateLearnerNpcDialogueCursor
+      summary: Persist a source NPC cursor and bounded history proposal.
+      description: Rechecks ownership, publication, map roles and evaluated node availability. Accepts exact retries, a stored history pop, an authored monologue or answer out edge with corresponding history, or an already-owned configured-tool skip. Questions cannot be answered and reflections cannot be saved by cursor proposals. No tool, progress or evidence is granted. Invalid proposals roll back provisional cursor initialization.
+      parameters:
+        - $ref: '#/components/parameters/PlayRunId'
+        - $ref: '#/components/parameters/ActivitySlug'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LearnerNpcDialogueCursorRequest' }
+      responses:
+        '200':
+          description: The validated durable cursor and history; granted_tool is null.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerNpcDialogueState' }
+        '400': { description: A cursor/history UUID is invalid or history exceeds 40 entries. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request is required. }
+        '404': { description: The active dialogue is unavailable or the proposal is not an authorized graph/history move. }
+        '422': { description: The JSON request does not match the required typed shape. }
+        '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue:
     post:
       operationId: continueLearnerNpcDialogue
@@ -11622,6 +11648,16 @@ components:
           maxItems: 40
           items: { type: string, format: uuid }
         answer: { $ref: '#/components/schemas/LearnerNpcDialogueAnswerProgress' }
+    LearnerNpcDialogueCursorRequest:
+      type: object
+      additionalProperties: false
+      required: [current_node_id, history]
+      properties:
+        current_node_id: { type: string, format: uuid }
+        history:
+          type: array
+          maxItems: 40
+          items: { type: string, format: uuid }
     LearnerNpcDialogueAnswerRequest:
       type: object
       additionalProperties: false

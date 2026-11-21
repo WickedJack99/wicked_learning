@@ -1552,6 +1552,10 @@ fn router(state: AppState) -> Router {
             post(learner_tool_grant::grant_current_tool),
         )
         .route(
+            "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/cursor",
+            post(learner_npc_dialogue::save_cursor),
+        )
+        .route(
             "/api/v1/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue",
             post(learner_npc_dialogue::continue_dialogue),
         )

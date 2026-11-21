@@ -11,9 +11,19 @@ pub struct LearnerNpcDialogueError;
 
 /// All dialogue navigation is scoped to an active server-owned route or
 /// historical-replay run. The sole input accepted for a question is the
-/// public ID of an authored outgoing answer; neither a next node nor a tool
-/// is browser authority.
+/// public ID of an authored outgoing answer. Cursor proposals are checked
+/// against the current authored edge or stored history; neither an arbitrary
+/// next node nor a tool is browser authority.
 pub trait LearnerNpcDialogueRepository {
+    fn save_cursor(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        current_node_id: Uuid,
+        history: &[Uuid],
+    ) -> impl Future<Output = Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError>> + Send;
+
     fn continue_current_dialogue(
         &self,
         principal: &AuthorizedPrincipal,
@@ -57,6 +67,25 @@ where
 {
     pub fn new(repository: &'repository Repository) -> Self {
         Self { repository }
+    }
+
+    pub async fn save_cursor(
+        &self,
+        principal: &AuthorizedPrincipal,
+        play_run_id: Uuid,
+        activity_slug: &str,
+        current_node_id: Uuid,
+        history: &[Uuid],
+    ) -> Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError> {
+        self.repository
+            .save_cursor(
+                principal,
+                play_run_id,
+                activity_slug,
+                current_node_id,
+                history,
+            )
+            .await
     }
 
     pub async fn continue_dialogue(

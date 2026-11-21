@@ -5978,6 +5978,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/cursor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Persist a source NPC cursor and bounded history proposal.
+         * @description Rechecks ownership, publication, map roles and evaluated node availability. Accepts exact retries, a stored history pop, an authored monologue or answer out edge with corresponding history, or an already-owned configured-tool skip. Questions cannot be answered and reflections cannot be saved by cursor proposals. No tool, progress or evidence is granted. Invalid proposals roll back provisional cursor initialization.
+         */
+        post: operations["updateLearnerNpcDialogueCursor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/play-runs/{play_run_id}/activities/{activity_slug}/npc-dialogue/continue": {
         parameters: {
             query?: never;
@@ -8754,6 +8774,11 @@ export interface components {
             current_node_id: string;
             history: string[];
             answer: components["schemas"]["LearnerNpcDialogueAnswerProgress"];
+        };
+        LearnerNpcDialogueCursorRequest: {
+            /** Format: uuid */
+            current_node_id: string;
+            history: string[];
         };
         LearnerNpcDialogueAnswerRequest: {
             /** Format: uuid */
@@ -33949,6 +33974,79 @@ export interface operations {
             };
             /** @description The active shared task is unavailable or not owned by this learner. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateLearnerNpcDialogueCursor: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                play_run_id: components["parameters"]["PlayRunId"];
+                /** @description Use id:<lowercase activity UUID> for canonical player commands and reads. This exact reference never falls back to a slug and remains bound to the authorized run/activity. Legacy slugs remain supported for existing clients but cannot distinguish equal slugs across route groups. */
+                activity_slug: components["parameters"]["ActivitySlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerNpcDialogueCursorRequest"];
+            };
+        };
+        responses: {
+            /** @description The validated durable cursor and history; granted_tool is null. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerNpcDialogueState"];
+                };
+            };
+            /** @description A cursor/history UUID is invalid or history exceeds 40 entries. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The active dialogue is unavailable or the proposal is not an authorized graph/history move. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The JSON request does not match the required typed shape. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

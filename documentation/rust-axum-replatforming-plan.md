@@ -2655,6 +2655,50 @@ outlier. These are local observations, not an SLA. The active World/Paths
 availability notes and ADR-028 now reference the implemented native facts
 without claiming whole route-family acceptance.
 
+### NPC cursor/history transport contract
+
+The whole pinned player persists forward/back navigation through
+`LearningWorldController::updateNpcDialogueState` and
+`LearnerActivityPlayStateService::updateNpcDialogueState`. Its actual UI requests
+carry a non-null authored node ID; the source controller accepts at most 40
+history entries. Reaching an end/null destination instead invokes completion. Its source helper accepts null
+for normalization, but the copied navigation controls do not persist a null
+cursor. Preserve those controls and their local history; do not translate them
+into an unrelated native Next/Back UI.
+
+A narrow `POST /learner/play-runs/{run}/activities/{activity}/npc-dialogue/cursor`
+now validates the actual proposed cursor/history against the authorized native
+state. Allowed requests are exact retries, a recorded history pop, an authored
+monologue/answer `out` edge with the corresponding history, and the source's
+already-owned configured-tool skip without a history push. A question cannot be
+answered through a cursor write, and a reflection must be saved through its
+existing command. The answer-to-next handoff may preserve the cleared history;
+reflection-to-next is an exact retry of the reflection command's stored result.
+
+This endpoint must not grant tools, mark progress or record answers/reflections.
+It reuses publication, ownership, node availability and CSRF guards, rejects
+unknown/foreign nodes and malformed/oversized history, and rolls back provisional
+state on rejection. The whole source's asynchronous persistence calls will need
+a binding-scoped ordered transport adapter; silently dropping or reordering
+writes is not acceptable. Initial/current-node grants and end/exit completion
+remain separate contracts before full control activation. The source local
+history can exceed its controller limit; this remains an open source acceptance
+limitation, not an authorized silent truncation.
+
+**Verified native contract:** `learner_npc_dialogue.rs` in API/application/
+persistence and OpenAPI `updateLearnerNpcDialogueCursor` implement these checks.
+`canonical-player-npc-contract-live.spec.ts` covers ordinary and replay runs,
+publication/role/availability/ownership/CSRF guards, exact retry and back,
+question/reflection bypass rejection, owned-tool skipping, answer/reflection
+handoffs, 40/41-entry bounds, and rollback of rejected initialization. The two
+baseline cursor cases failed with the missing endpoint; all 11 native NPC
+contract/reference cases then passed against the rebuilt local Rust service.
+Canonical identity, frontend production type/build, generated client drift,
+Rust workspace fmt/check and 126 persistence tests passed (6 ignored). Evidence:
+ignored `frontend/playwright-report/player-npc-cursor/`. This is API integration
+evidence, not whole-player browser acceptance; the copied player remains
+unavailable pending its remaining contracts and both-viewport UI evidence.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the
