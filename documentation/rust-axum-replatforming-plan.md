@@ -2000,6 +2000,54 @@ process was observed serving the old Recall call sites until restarted. Initial
 test-fixture/locator errors were corrected; interrupted disposable maps were
 removed. No production or unrelated worktree artifacts were changed.
 
+### Item/tool grant activation prerequisites
+
+Pinned source checked before connecting the next copied controls:
+`resources/js/features/world/{item-grant-activity,tool-grant-activity,activity-utils}.tsx`,
+`features/world/api.ts`, `features/items/item-inventory.ts`,
+`features/tools/{tool-selection,tool-visuals}.ts` and `lib/media-url.ts` under
+`resources/js/`. Server owners are
+`app/Http/Controllers/{LearningItemActivityController,LearningWorldController}.php`,
+`app/Learning/Services/{LearnerActivityAccessService,LearningItemGrantService,LearningToolGrantService}.php`;
+source tests include `tests/Feature/LearningWorldItemsTest.php`. These fourteen
+files match pinned `main` `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+
+| Copied dependency | Existing Rust evidence | Required activation work |
+| --- | --- | --- |
+| Source `assertCanPlay` before either grant | `backend/crates/persistence/src/{learner_item_grant,learner_tool_grant}.rs`; `/learner/play-runs/{run}/activities/{reference}/grant-items` and `/grant-tool` | Verified repair below: both writers reuse `PostgresLearnerNodeAvailability` before any grant or stored receipt is returned. |
+| Item roll and complete inventory | `LearnerItemGrantResult`; `GET /learner/shell` bounded, non-truncating inventory | Map the actual roll and then actual inventory; a failed inventory read must not render fabricated success or substitute only the newly granted items. Retrying the same run must reuse its stored roll. |
+| Tool grant and existing ownership | `LearnerToolGrantResult`, `LearnerShell.tools`, playback `presentation.configured_tool` | Inject the actual run into the source's empty grant payload; map the real returned tool and preserve the copied shared tool store and already-owned continuation. |
+| Catalog IDs and quantities | Native UUIDs in playback/catalog/ownership; existing `playback-projection.ts` mappings | Replace only the source numeric identity checks in item configuration parsing and tool ownership testing. Keep numeric quantities, source presentation and UUID identity intact. |
+| Completion and duplicate callbacks | Native completion receipts; source Tool Grant may call completion from both the grant callback and the newly-owned effect | Bind/deduplicate actual completion promises without manufacturing progress or navigation. Audit source item-roll progress stamping against Rust's separate completion before whole-player acceptance. |
+
+**Verified native prerequisite:** all four ordinary/replay × item/tool grant
+regressions first reproduced HTTP 200 from a locked node whose playback read
+returned 404. Both repositories now load the existing learner-availability facts
+and evaluate the selected node's state/config before granting or returning a
+stored roll/already-owned tool. Existing run locks, catalog selection, CSRF,
+publication/map access and receipt idempotence remain in place. OpenAPI and its
+generated client explicitly describe unavailable-node 404 responses.
+
+`frontend/e2e/canonical-player-grant-contract-live.spec.ts` passes against the
+rebuilt local Rust/PostgreSQL stack for all four combinations. It verifies locked
+and hidden nodes, all five publication layers, map access, owner/outsider/anonymous
+requests, CSRF, unknown and stale runs, an authorized manual unlock followed by
+revocation, and rejection after an item roll or tool ownership already exists.
+Denied requests preserve fixture inventory, rolls and progress. Successful
+requests remain idempotent, the complete shell inventory reflects the real
+quantities, and the run is not advanced by claiming. Local successful grant
+requests took 6–9 ms; this is fixture timing, not a production load benchmark.
+
+Validation: four new native grant tests, fourteen existing native player
+reference/projection regressions, 65 focused Rust persistence tests (six existing
+ignored tests), workspace fmt/check, canonical source identity, frontend
+production type/build and generated-client consistency passed. No migrations or
+UI files changed. Reports are ignored
+`frontend/playwright-report/player-grant-{native,reference}/`; rerun those two
+specs with the local stack and existing disposable sessions. The copied grant
+controls and complete NodePlay route remain unavailable until the remaining
+contract/transport and browser acceptance work above is complete.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

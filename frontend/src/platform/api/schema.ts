@@ -33110,7 +33110,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The active tool-grant activity or configured tool is unavailable or not owned by this learner's current run. */
+            /** @description The active tool-grant activity or configured tool is unavailable, its node is not currently playable under learner-specific availability rules, or the run is not owned by this learner. This also applies when the tool is already owned. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -34190,7 +34190,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The active item-grant activity is unavailable or not owned by this learner's current run. */
+            /** @description The active item-grant activity is unavailable, its node is not currently playable under learner-specific availability rules, or the run is not owned by this learner. A stored roll does not bypass these checks. */
             404: {
                 headers: {
                     [name: string]: unknown;

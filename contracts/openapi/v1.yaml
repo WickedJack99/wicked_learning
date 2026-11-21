@@ -7109,7 +7109,7 @@ paths:
                 $ref: '#/components/schemas/LearnerToolGrantResult'
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '404': { description: The active tool-grant activity or configured tool is unavailable or not owned by this learner's current run. }
+        '404': { description: 'The active tool-grant activity or configured tool is unavailable, its node is not currently playable under learner-specific availability rules, or the run is not owned by this learner. This also applies when the tool is already owned.' }
         '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/support-request:
     get:
@@ -7440,7 +7440,7 @@ paths:
                 $ref: '#/components/schemas/LearnerItemGrantResult'
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '404': { description: The active item-grant activity is unavailable or not owned by this learner's current run. }
+        '404': { description: 'The active item-grant activity is unavailable, its node is not currently playable under learner-specific availability rules, or the run is not owned by this learner. A stored roll does not bypass these checks.' }
         '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/item-obstacle-slots/{slot_index}:
     post:
