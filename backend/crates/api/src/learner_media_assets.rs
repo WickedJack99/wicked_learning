@@ -1,7 +1,7 @@
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{HeaderValue, header},
+    http::{HeaderMap, HeaderValue, header},
     response::Response,
 };
 use axum_login::AuthSession;
@@ -26,6 +26,7 @@ pub async fn content(
     State(state): State<AppState>,
     auth_session: AuthSession<IdentityBackend>,
     Path(asset_id): Path<Uuid>,
+    headers: HeaderMap,
 ) -> Result<Response, ApiError> {
     let subject_id = auth_session
         .user
@@ -56,6 +57,15 @@ pub async fn content(
     .await
     .map_err(|_| ApiError::service_unavailable())?
     .ok_or_else(ApiError::not_found)?;
+    if stored.content_type.starts_with("video/") {
+        return crate::video_media::response(
+            &state,
+            &stored.object_key,
+            &stored.content_type,
+            &headers,
+        )
+        .await;
+    }
     stored_response(&state, &stored.object_key, &stored.content_type).await
 }
 

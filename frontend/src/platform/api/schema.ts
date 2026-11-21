@@ -1877,8 +1877,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Upload one source Map Configuration visual for a scoped World Builder map.
-         * @description Requires the source world-node and world-map update permissions, a same-origin CSRF token, and the map-specific all, own, assigned or direct-editor scope. This is distinct from generic reusable asset-library upload authority.
+         * Upload one source map visual or Markdown video for a scoped World Builder map.
+         * @description Requires the source world-node and world-map update permissions, a same-origin CSRF token, and the map-specific all, own, assigned or direct-editor scope. This is distinct from generic reusable asset-library upload authority. Accepts detected images, MP4/M4V, QuickTime, WebM and Theora Ogg video up to 50 MiB; records the originating map and uploader atomically. Generic asset-library endpoints remain image-only.
          */
         post: operations["uploadAdminWorldBuilderMapVisual"];
         delete?: never;
@@ -1896,12 +1896,32 @@ export interface paths {
         };
         /**
          * Read one unsaved map-visual upload through its scoped editor preview route.
-         * @description Requires the same map-editor scope as upload and the original uploader. It is a transient author-preview seam; saved Map Configuration values are normalized to the established learner-safe reusable-media path.
+         * @description Requires the same map-editor scope as upload and the original uploader. New uploads must also match their recorded originating map. Video supports one byte range. It is a transient author-preview seam; saved Map Configuration values are normalized to the established learner-safe reusable-media path.
          */
         get: operations["getAdminWorldBuilderMapVisualPreview"];
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/world-builder/maps/{map_id}/visual-media/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove one unreferenced upload created by this scoped map editor.
+         * @description Requires upload permissions, same-origin CSRF, original uploader and recorded map. Saved references prevent deletion; removing content references does not grant another user's cleanup authority.
+         */
+        delete: operations["deleteAdminWorldBuilderMapVisualUpload"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3173,8 +3193,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Serve a referenced visual through visible published content, authenticated Journal presentation or the current learner's owned inventory.
-         * @description Inventory access requires an active learning_item or learning_tool media reference and this principal's positive item quantity or tool holding. Knowing a catalog or media UUID grants no access.
+         * Serve referenced image/video media through visible published content, authenticated Journal presentation or the current learner's owned inventory.
+         * @description Inventory access requires an active learning_item or learning_tool media reference and this principal's positive item quantity or tool holding. Knowing a catalog or media UUID grants no access. Video ranges use the same reference/publication/role check before any bytes or length are returned.
          */
         get: operations["getLearnerMediaAssetContent"];
         put?: never;
@@ -8409,6 +8429,8 @@ export interface components {
         };
         /** @description Published authored presentation, not private progress or interactive player state. Missing authored catalog references retain source null/empty semantics. Collection overflow makes the read unavailable. */
         LearnerPlaybackPresentation: {
+            /** @description Actual image/video MIME types from saved references on authorized Markdown activities, loaded in one bounded graph query. No browser MIME inference or per-element metadata request. */
+            markdown_media: components["schemas"]["LearnerPlaybackMarkdownMedia"][];
             sources: components["schemas"]["LearnerPlaybackSourceReference"][];
             feedback_guidance: components["schemas"]["LearnerPlaybackFeedbackGuidance"] | null;
             completion_choice_prompt: string | null;
@@ -8421,6 +8443,12 @@ export interface components {
             npc_dialogue_nodes: components["schemas"]["LearnerNpcDialogueNode"][];
             npc_dialogue_transitions: components["schemas"]["LearnerPlaybackNpcTransition"][];
             question: components["schemas"]["LearnerPlaybackQuestion"] | null;
+        };
+        LearnerPlaybackMarkdownMedia: {
+            /** Format: uuid */
+            id: string;
+            url: string;
+            content_type: string;
         };
         LearnerPlaybackSourceReference: {
             title: string;
@@ -18655,13 +18683,6 @@ export interface operations {
                     "application/json": components["schemas"]["UploadAdminWorldBuilderMapVisualResponse"];
                 };
             };
-            /** @description The upload is not a supported image or exceeds the source 50 MiB limit. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
             /** @description Authentication is required. */
             401: {
                 headers: {
@@ -18683,6 +18704,20 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description The complete request exceeds the 50 MiB plus 16 KiB multipart transport ceiling. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The upload is not a supported image/video or exceeds the source 50 MiB file limit. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description The media store or application database is unavailable. */
             503: {
                 headers: {
@@ -18697,7 +18732,10 @@ export interface operations {
             query?: {
                 download?: boolean;
             };
-            header?: never;
+            header?: {
+                /** @description Optional single video byte range. */
+                Range?: string;
+            };
             path: {
                 map_id: string;
                 asset_id: string;
@@ -18706,8 +18744,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The requested image bytes. */
+            /** @description The requested image/video bytes. */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An authorized video byte range with Content-Range and Accept-Ranges headers. */
+            206: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -18727,7 +18772,66 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description An invalid video byte range; includes Content-Range with the total size. */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description The media store or application database is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAdminWorldBuilderMapVisualUpload: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                map_id: string;
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The unused upload registry entry and stored object were removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid CSRF or Origin. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Wrong map/editor/uploader */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Persistence is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -23374,7 +23478,10 @@ export interface operations {
     getLearnerMediaAssetContent: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional single video byte range. */
+                Range?: string;
+            };
             path: {
                 asset_id: string;
             };
@@ -23382,8 +23489,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The image bytes with restrictive content and short private cache headers. */
+            /** @description Image/video bytes with restrictive content and short private cache headers. */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authorized video bytes with Content-Range and Accept-Ranges headers. */
+            206: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -23398,6 +23512,13 @@ export interface operations {
             };
             /** @description The asset has no currently authorized content, Journal or owned-inventory reference. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid video range with total size in Content-Range. */
+            416: {
                 headers: {
                     [name: string]: unknown;
                 };

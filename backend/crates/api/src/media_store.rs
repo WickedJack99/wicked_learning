@@ -50,6 +50,31 @@ impl MediaStore {
             .map_err(MediaStoreError::ObjectStore)
     }
 
+    pub async fn size(&self, key: &MediaObjectKey) -> Result<u64, MediaStoreError> {
+        self.object_store
+            .head(key.path())
+            .await
+            .map(|meta| meta.size)
+            .map_err(MediaStoreError::ObjectStore)
+    }
+
+    pub async fn get_range(
+        &self,
+        key: &MediaObjectKey,
+        range: std::ops::Range<u64>,
+    ) -> Result<GetResult, MediaStoreError> {
+        self.object_store
+            .get_opts(
+                key.path(),
+                object_store::GetOptions {
+                    range: Some(object_store::GetRange::Bounded(range)),
+                    ..Default::default()
+                },
+            )
+            .await
+            .map_err(MediaStoreError::ObjectStore)
+    }
+
     pub async fn delete(&self, key: &MediaObjectKey) -> Result<(), MediaStoreError> {
         self.object_store
             .delete(key.path())

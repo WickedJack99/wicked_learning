@@ -161,12 +161,14 @@ mod public_source_links;
 mod public_welcome;
 mod public_world;
 mod registration_tokens;
+mod request_body_limit;
 mod security_access_audit;
 mod session_commands;
 mod session_status;
 mod settings_bootstrap;
 mod temporary_access_login;
 mod totp_crypto;
+mod video_media;
 mod world_transfer_package;
 
 use std::{process::ExitCode, time::Duration};
@@ -185,7 +187,6 @@ use sqlx::{PgPool, postgres::PgPoolOptions};
 use tower::ServiceBuilder;
 use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
 use tower_http::{
-    limit::RequestBodyLimitLayer,
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
     timeout::TimeoutLayer,
     trace::TraceLayer,
@@ -927,6 +928,10 @@ fn router(state: AppState) -> Router {
                 .layer(DefaultBodyLimit::max(50 * 1024 * 1024 + 16 * 1024)),
         )
         .route(
+            "/api/v1/admin/world-builder/maps/{map_id}/visual-media/{asset_id}",
+            delete(admin_world_map_visual_media::delete),
+        )
+        .route(
             "/api/v1/admin/world-builder/maps/{map_id}/visual-media/{asset_id}/content",
             get(admin_world_map_visual_media::preview),
         )
@@ -1645,7 +1650,7 @@ fn router(state: AppState) -> Router {
                 .layer(TraceLayer::new_for_http())
                 .layer(PropagateRequestIdLayer::new(REQUEST_ID_HEADER))
                 .layer(middleware::from_fn(observability::record_http_metrics))
-                .layer(RequestBodyLimitLayer::new(account_profile_image::MAX_PROFILE_IMAGE_BYTES + 16 * 1024))
+                .layer(middleware::from_fn(request_body_limit::enforce))
                 .layer(TimeoutLayer::with_status_code(
                     axum::http::StatusCode::REQUEST_TIMEOUT,
                     Duration::from_secs(10),

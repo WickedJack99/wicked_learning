@@ -20,10 +20,9 @@ use crate::{
 };
 
 /// Source Map Configuration accepts up to 50 MiB at its scoped
-/// `/settings/worlds/node-images` endpoint. The lifted control only accepts
-/// image formats, so this Rust transport seam retains that source upper bound
-/// while keeping binary-type detection server-side.
-const MAX_MAP_VISUAL_BYTES: usize = 50 * 1024 * 1024;
+/// `/settings/worlds/node-images` endpoint, including Markdown video. Keep
+/// binary-type detection server-side and generic image-library writes separate.
+pub const MAX_MAP_VISUAL_BYTES: usize = 50 * 1024 * 1024;
 
 #[derive(Serialize)]
 pub struct UploadMapVisualResponse {
@@ -71,7 +70,9 @@ pub async fn upload(
     }
 
     let bytes = single_named_image_upload(&mut multipart, "file", MAX_MAP_VISUAL_BYTES).await?;
-    let content_type = image_content_type(&bytes).ok_or_else(ApiError::profile_image_rejected)?;
+    let content_type = image_content_type(&bytes)
+        .or_else(|| crate::video_media::content_type(&bytes))
+        .ok_or_else(ApiError::profile_image_rejected)?;
     let byte_size = i32::try_from(bytes.len()).map_err(|_| ApiError::profile_image_rejected())?;
     let object_key = state
         .media_store
@@ -80,13 +81,14 @@ pub async fn upload(
         .map_err(|_| ApiError::service_unavailable())?;
     let asset_id = Uuid::new_v4();
     let created = sqlx::query_as::<_, CreatedAsset>(
-        "INSERT INTO reusable_media_assets (id, created_by_principal_id, object_key, content_type, byte_size, display_name) SELECT $1, id, $3, $4, $5, 'Uploaded map visual' FROM application_principals WHERE identity_subject_id = $2 RETURNING id",
+        "WITH inserted AS (INSERT INTO reusable_media_assets (id, created_by_principal_id, object_key, content_type, byte_size, display_name) SELECT $1, id, $3, $4, $5, 'Uploaded map visual' FROM application_principals WHERE identity_subject_id = $2 RETURNING id) INSERT INTO map_media_uploads(asset_id,map_id) SELECT id,$6 FROM inserted RETURNING asset_id AS id",
     )
     .bind(asset_id)
     .bind(principal.subject_id)
     .bind(object_key.stored_value())
     .bind(content_type)
     .bind(byte_size)
+    .bind(map_id)
     .fetch_optional(&state.application_database)
     .await;
 
@@ -113,6 +115,7 @@ pub async fn preview(
     State(state): State<AppState>,
     Path((map_id, asset_id)): Path<(String, String)>,
     Query(query): Query<DownloadQuery>,
+    headers: HeaderMap,
     auth_session: AuthSession<IdentityBackend>,
 ) -> Result<Response, ApiError> {
     let map_id = Uuid::parse_str(&map_id).map_err(|_| ApiError::not_found())?;
@@ -126,14 +129,31 @@ pub async fn preview(
         return Err(ApiError::not_found());
     }
     let stored = sqlx::query_as::<_, StoredAsset>(
-        "SELECT media.object_key, media.content_type FROM reusable_media_assets AS media INNER JOIN application_principals AS principals ON principals.id = media.created_by_principal_id WHERE media.id = $1 AND principals.identity_subject_id = $2 AND media.content_type LIKE 'image/%'",
+        "SELECT media.object_key, media.content_type FROM reusable_media_assets AS media INNER JOIN application_principals AS principals ON principals.id = media.created_by_principal_id WHERE media.id = $1 AND principals.identity_subject_id = $2 AND (media.content_type LIKE 'image/%' OR media.content_type LIKE 'video/%') AND NOT EXISTS (SELECT 1 FROM map_media_uploads uploads WHERE uploads.asset_id=media.id AND uploads.map_id<>$3)",
     )
     .bind(asset_id)
     .bind(principal.subject_id)
+    .bind(map_id)
     .fetch_optional(&state.application_database)
     .await
     .map_err(|_| ApiError::service_unavailable())?
     .ok_or_else(ApiError::not_found)?;
+    if stored.content_type.starts_with("video/") {
+        let mut response = crate::video_media::response(
+            &state,
+            &stored.object_key,
+            &stored.content_type,
+            &headers,
+        )
+        .await?;
+        if query.download.unwrap_or(false) {
+            response.headers_mut().insert(
+                header::CONTENT_DISPOSITION,
+                HeaderValue::from_static("attachment"),
+            );
+        }
+        return Ok(response);
+    }
     let key = crate::media_store::MediaObjectKey::from_stored_value(&stored.object_key)
         .ok_or_else(ApiError::not_found)?;
     let bytes = state
@@ -172,6 +192,65 @@ pub async fn preview(
         );
     }
     Ok(response)
+}
+
+pub async fn delete(
+    State(state): State<AppState>,
+    Path((map_id, asset_id)): Path<(Uuid, Uuid)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    session: AuthSession<IdentityBackend>,
+) -> Result<StatusCode, ApiError> {
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let principal = authenticated_principal(&state, session).await?;
+    if !principal.has_permission("world_nodes", "ru")
+        || !can_edit_map_visuals(&state.application_database, &principal, map_id)
+            .await
+            .map_err(|_| ApiError::service_unavailable())?
+    {
+        return Err(ApiError::not_found());
+    }
+    // Retain the registry entry when storage fails so cleanup can be retried.
+    // Lock the asset while checking references and removing the object; foreign
+    // key checks on newly saved references must wait for this transaction.
+    let mut transaction = state
+        .application_database
+        .begin()
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    let key = sqlx::query_scalar::<_, String>("SELECT media.object_key FROM reusable_media_assets media JOIN map_media_uploads uploads ON uploads.asset_id=media.id JOIN application_principals principals ON principals.id=media.created_by_principal_id WHERE media.id=$1 AND uploads.map_id=$2 AND principals.identity_subject_id=$3 FOR UPDATE OF media")
+        .bind(asset_id).bind(map_id).bind(principal.subject_id).fetch_optional(&mut *transaction).await.map_err(|_| ApiError::service_unavailable())?.ok_or_else(ApiError::not_found)?;
+    // Use a fresh statement snapshot after acquiring the row lock, including
+    // any reference committed while the lock acquisition was waiting.
+    let referenced = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS (SELECT 1 FROM reusable_media_asset_references WHERE asset_id=$1)",
+    )
+    .bind(asset_id)
+    .fetch_one(&mut *transaction)
+    .await
+    .map_err(|_| ApiError::service_unavailable())?;
+    if referenced {
+        return Err(ApiError::not_found());
+    }
+    let key = crate::media_store::MediaObjectKey::from_stored_value(&key)
+        .ok_or_else(ApiError::internal_server_error)?;
+    match state.media_store.delete(&key).await {
+        Ok(())
+        | Err(crate::media_store::MediaStoreError::ObjectStore(object_store::Error::NotFound {
+            ..
+        })) => {}
+        Err(_) => return Err(ApiError::service_unavailable()),
+    }
+    sqlx::query("DELETE FROM reusable_media_assets WHERE id=$1")
+        .bind(asset_id)
+        .execute(&mut *transaction)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    transaction
+        .commit()
+        .await
+        .map_err(|_| ApiError::service_unavailable())?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 fn preview_url(map_id: Uuid, asset_id: Uuid) -> String {

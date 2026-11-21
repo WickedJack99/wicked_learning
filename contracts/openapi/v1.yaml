@@ -2322,8 +2322,8 @@ paths:
   /admin/world-builder/maps/{map_id}/visual-media:
     post:
       operationId: uploadAdminWorldBuilderMapVisual
-      summary: Upload one source Map Configuration visual for a scoped World Builder map.
-      description: Requires the source world-node and world-map update permissions, a same-origin CSRF token, and the map-specific all, own, assigned or direct-editor scope. This is distinct from generic reusable asset-library upload authority.
+      summary: Upload one source map visual or Markdown video for a scoped World Builder map.
+      description: Requires the source world-node and world-map update permissions, a same-origin CSRF token, and the map-specific all, own, assigned or direct-editor scope. This is distinct from generic reusable asset-library upload authority. Accepts detected images, MP4/M4V, QuickTime, WebM and Theora Ogg video up to 50 MiB; records the originating map and uploader atomically. Generic asset-library endpoints remain image-only.
       parameters:
         - name: map_id
           in: path
@@ -2347,7 +2347,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/UploadAdminWorldBuilderMapVisualResponse' }
-        '400': { description: The upload is not a supported image or exceeds the source 50 MiB limit. }
+        '422': { description: The upload is not a supported image/video or exceeds the source 50 MiB file limit. }
+        '413': { description: The complete request exceeds the 50 MiB plus 16 KiB multipart transport ceiling. }
         '401': { description: Authentication is required. }
         '403': { description: The CSRF or origin check failed. }
         '404': { description: The map is unknown or unavailable through the source editor scope. }
@@ -2356,7 +2357,7 @@ paths:
     get:
       operationId: getAdminWorldBuilderMapVisualPreview
       summary: Read one unsaved map-visual upload through its scoped editor preview route.
-      description: Requires the same map-editor scope as upload and the original uploader. It is a transient author-preview seam; saved Map Configuration values are normalized to the established learner-safe reusable-media path.
+      description: Requires the same map-editor scope as upload and the original uploader. New uploads must also match their recorded originating map. Video supports one byte range. It is a transient author-preview seam; saved Map Configuration values are normalized to the established learner-safe reusable-media path.
       parameters:
         - name: map_id
           in: path
@@ -2366,14 +2367,32 @@ paths:
           in: path
           required: true
           schema: { type: string, format: uuid }
+        - { name: Range, in: header, schema: { type: string }, description: Optional single video byte range. }
         - name: download
           in: query
           schema: { type: boolean }
       responses:
-        '200': { description: The requested image bytes. }
+        '200': { description: The requested image/video bytes. }
+        '206': { description: An authorized video byte range with Content-Range and Accept-Ranges headers. }
+        '416': { description: An invalid video byte range; includes Content-Range with the total size. }
         '401': { description: Authentication is required. }
         '404': { description: The map, upload or scoped editor grant is unavailable. }
         '503': { description: The media store or application database is unavailable. }
+  /admin/world-builder/maps/{map_id}/visual-media/{asset_id}:
+    delete:
+      operationId: deleteAdminWorldBuilderMapVisualUpload
+      summary: Remove one unreferenced upload created by this scoped map editor.
+      description: Requires upload permissions, same-origin CSRF, original uploader and recorded map. Saved references prevent deletion; removing content references does not grant another user's cleanup authority.
+      parameters:
+        - { name: map_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '204': { description: The unused upload registry entry and stored object were removed. }
+        '401': { description: Authentication is required. }
+        '403': { description: Invalid CSRF or Origin. }
+        '404': { description: Wrong map/editor/uploader, referenced asset, or missing upload. }
+        '503': { description: Persistence is unavailable. }
   /admin/world-builder/maps/{map_id}/layout-versions:
     get:
       operationId: listAdminWorldBuilderMapLayoutVersions
@@ -3954,12 +3973,15 @@ paths:
   /learner/media-assets/{asset_id}/content:
     get:
       operationId: getLearnerMediaAssetContent
-      summary: Serve a referenced visual through visible published content, authenticated Journal presentation or the current learner's owned inventory.
-      description: Inventory access requires an active learning_item or learning_tool media reference and this principal's positive item quantity or tool holding. Knowing a catalog or media UUID grants no access.
+      summary: Serve referenced image/video media through visible published content, authenticated Journal presentation or the current learner's owned inventory.
+      description: Inventory access requires an active learning_item or learning_tool media reference and this principal's positive item quantity or tool holding. Knowing a catalog or media UUID grants no access. Video ranges use the same reference/publication/role check before any bytes or length are returned.
       parameters:
         - { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: Range, in: header, schema: { type: string }, description: Optional single video byte range. }
       responses:
-        '200': { description: The image bytes with restrictive content and short private cache headers. }
+        '200': { description: Image/video bytes with restrictive content and short private cache headers. }
+        '206': { description: Authorized video bytes with Content-Range and Accept-Ranges headers. }
+        '416': { description: Invalid video range with total size in Content-Range. }
         '403': { description: A signed-in identity has no active application principal. }
         '404': { description: 'The asset has no currently authorized content, Journal or owned-inventory reference.' }
         '503': { description: The media store or application database is unavailable. }
@@ -11133,8 +11155,9 @@ components:
       type: object
       additionalProperties: false
       description: Published authored presentation, not private progress or interactive player state. Missing authored catalog references retain source null/empty semantics. Collection overflow makes the read unavailable.
-      required: [sources, feedback_guidance, completion_choice_prompt, configured_items, configured_tool, configured_sounds, dialogue_typing_sound_sets, npc_dialogue_nodes, npc_dialogue_transitions, question]
+      required: [markdown_media, sources, feedback_guidance, completion_choice_prompt, configured_items, configured_tool, configured_sounds, dialogue_typing_sound_sets, npc_dialogue_nodes, npc_dialogue_transitions, question]
       properties:
+        markdown_media: { type: array, maxItems: 4096, description: 'Actual image/video MIME types from saved references on authorized Markdown activities, loaded in one bounded graph query. No browser MIME inference or per-element metadata request.', items: { $ref: '#/components/schemas/LearnerPlaybackMarkdownMedia' } }
         sources: { type: array, maxItems: 5, items: { $ref: '#/components/schemas/LearnerPlaybackSourceReference' } }
         feedback_guidance: { anyOf: [{ $ref: '#/components/schemas/LearnerPlaybackFeedbackGuidance' }, { type: 'null' }] }
         completion_choice_prompt: { type: [string, 'null'] }
@@ -11149,6 +11172,14 @@ components:
         npc_dialogue_nodes: { type: array, maxItems: 4096, items: { $ref: '#/components/schemas/LearnerNpcDialogueNode' } }
         npc_dialogue_transitions: { type: array, maxItems: 8192, items: { $ref: '#/components/schemas/LearnerPlaybackNpcTransition' } }
         question: { anyOf: [{ $ref: '#/components/schemas/LearnerPlaybackQuestion' }, { type: 'null' }] }
+    LearnerPlaybackMarkdownMedia:
+      type: object
+      additionalProperties: false
+      required: [id, url, content_type]
+      properties:
+        id: { type: string, format: uuid }
+        url: { type: string }
+        content_type: { type: string, pattern: '^(image|video)/' }
     LearnerPlaybackSourceReference:
       type: object
       additionalProperties: false

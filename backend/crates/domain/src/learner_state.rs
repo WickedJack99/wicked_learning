@@ -842,6 +842,7 @@ pub struct LearnerPlaybackGraphActivity {
 /// progress, dialogue cursors and shared-task state remain separate contracts.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct LearnerPlaybackPresentation {
+    pub markdown_media: Vec<LearnerPlaybackMarkdownMedia>,
     pub sources: Vec<LearnerPlaybackSourceReference>,
     pub feedback_guidance: Option<LearnerPlaybackFeedbackGuidance>,
     pub completion_choice_prompt: Option<String>,
@@ -852,6 +853,13 @@ pub struct LearnerPlaybackPresentation {
     pub npc_dialogue_nodes: Vec<LearnerNpcDialogueNode>,
     pub npc_dialogue_transitions: Vec<LearnerPlaybackNpcTransition>,
     pub question: Option<LearnerPlaybackQuestion>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerPlaybackMarkdownMedia {
+    pub id: uuid::Uuid,
+    pub url: String,
+    pub content_type: String,
 }
 
 #[derive(Clone, Debug, Serialize)]

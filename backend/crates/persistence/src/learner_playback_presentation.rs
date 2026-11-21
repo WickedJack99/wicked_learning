@@ -12,9 +12,9 @@ use wicked_learning_application::{
 use wicked_learning_domain::learner_state::{
     LearnerItem, LearnerNpcDialogueNode, LearnerNpcDialogueTypingSound,
     LearnerNpcDialogueTypingSoundSet, LearnerPlaybackConfiguredSound,
-    LearnerPlaybackFeedbackGuidance, LearnerPlaybackGraph, LearnerPlaybackNpcTransition,
-    LearnerPlaybackPresentation, LearnerPlaybackQuestion, LearnerPlaybackQuestionOption,
-    LearnerPlaybackSourceReference, LearnerTool,
+    LearnerPlaybackFeedbackGuidance, LearnerPlaybackGraph, LearnerPlaybackMarkdownMedia,
+    LearnerPlaybackNpcTransition, LearnerPlaybackPresentation, LearnerPlaybackQuestion,
+    LearnerPlaybackQuestionOption, LearnerPlaybackSourceReference, LearnerTool,
 };
 
 use crate::learner_media::{learner_item, learner_media_config, learner_media_url, learner_tool};
@@ -257,6 +257,13 @@ fn checked_len(len: usize, maximum: usize) -> Result<(), sqlx::Error> {
     }
 }
 
+#[derive(FromRow)]
+struct MarkdownMediaRow {
+    activity_id: Uuid,
+    id: Uuid,
+    content_type: String,
+}
+
 /// Called only after the active run's published node graph was authorized.
 /// Catalogs and dialogue definitions are loaded once for the whole graph,
 /// never once per activity. Missing authored references retain source null/empty
@@ -266,6 +273,30 @@ pub(super) async fn enrich(
     graph: &mut LearnerPlaybackGraph,
     configs: &HashMap<Uuid, Value>,
 ) -> Result<(), sqlx::Error> {
+    let markdown_ids: Vec<_> = graph
+        .activities
+        .iter()
+        .filter(|activity| activity.activity_type == "markdown")
+        .map(|activity| activity.id)
+        .collect();
+    let media = if markdown_ids.is_empty() {
+        Vec::new()
+    } else {
+        sqlx::query_as::<_, MarkdownMediaRow>("SELECT DISTINCT refs.owner_id AS activity_id, media.id, media.content_type FROM reusable_media_asset_references refs JOIN reusable_media_assets media ON media.id=refs.asset_id WHERE refs.owner_kind='activity' AND refs.owner_id=ANY($1) AND (media.content_type LIKE 'image/%' OR media.content_type LIKE 'video/%') ORDER BY refs.owner_id,media.id LIMIT $2")
+            .bind(markdown_ids).bind((MAX_RESOURCES+1) as i64).fetch_all(&mut **transaction).await?
+    };
+    checked_len(media.len(), MAX_RESOURCES)?;
+    let mut markdown_media: HashMap<Uuid, Vec<LearnerPlaybackMarkdownMedia>> = HashMap::new();
+    for media in media {
+        markdown_media
+            .entry(media.activity_id)
+            .or_default()
+            .push(LearnerPlaybackMarkdownMedia {
+                id: media.id,
+                url: format!("/api/v1/learner/media-assets/{}/content", media.id),
+                content_type: media.content_type,
+            });
+    }
     let mut item_slugs = HashSet::new();
     let mut tool_slugs = HashSet::new();
     let mut sound_ids = HashSet::new();
@@ -446,6 +477,7 @@ pub(super) async fn enrich(
             .collect();
         let sound_refs = sound_references(config);
         let presentation = &mut activity.presentation;
+        presentation.markdown_media = markdown_media.remove(&activity.id).unwrap_or_default();
         presentation.configured_items = item_refs
             .into_iter()
             .filter_map(|reference| items.get(reference))

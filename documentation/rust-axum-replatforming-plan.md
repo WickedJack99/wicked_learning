@@ -2942,7 +2942,7 @@ its last page without manufacturing a receipt or navigation. That inherited
 source defect is not waived, and parent route/check-in/replay navigation and
 anonymous acceptance remain open.
 
-**Next prerequisite — complete map-scoped Markdown video media:** source
+**Map-scoped Markdown video prerequisite:** source
 `pages/settings/worlds/{edit-markdown-activity,markdown-activity-fields}.tsx`
 uses `use-node-image-upload.ts` → `/settings/worlds/node-images` →
 `AdminWorldController::uploadNodeImage`, `AdminWorldRules::uploadNodeImage`,
@@ -2957,20 +2957,69 @@ extensions, checks map edit scope on upload, and protects map-bound delivery
 through map view access. Its delivery URL retains the extension; the copied
 renderer uses that extension to select the whole video or image element.
 
-| Boundary | Reusable Rust evidence | Required next work |
+| Boundary | Rust evidence / adapter | Verification and remaining work |
 | --- | --- | --- |
-| Scoped upload and unsaved preview | `api/src/admin_world_map_visual_media.rs`, `/admin/world-builder/maps/{map_id}/visual-media` and its creator-scoped preview; existing 50 MiB/map-editor/CSRF checks | Reuse this scoped boundary where compatible. Its parser and preview predicate are currently image-only. Add source-supported video with real type validation, size limits and failed-storage cleanup. Generic image-library upload is not equivalent authorization. |
-| Saved references and lifecycle | `persistence/src/admin_world_markdown.rs::{media_references,synchronize_media_references}`, reusable-media reference table and native Markdown writer | Reuse actual activity references; prove replacement, removal/deletion and delivery revocation. Never synthesize video from an unreferenced UUID. |
-| Learner delivery | `api/src/learner_media_assets.rs` checks published activity references and map roles; `learner_media.rs` maps managed paths | Verify actual video bytes, MIME, playback and any needed range behavior, including publication/role/reference rejection. Current `/content` paths have no extension. |
-| Copied video classification | `MarkdownRenderer::mediaKind`, scoped `?learner-markdown` facade; `LearnerPlaybackPresentation` has no managed-media-kind collection | Project bounded authorized media kinds in the existing playback read and bind only classification to actual metadata, or provide verified source-compatible delivery URLs. Avoid per-element metadata requests; preserve authored text and all source video controls. |
-| Acceptance | Image/link evidence covers only those media | Actual Rust upload/save/read/play/replace/remove journey and source comparison at both viewports, including unauthorized and unavailable cases. Keep production player activation pending the whole-route gates. |
+| Scoped upload and unsaved preview | `api/src/admin_world_map_visual_media.rs`, `/admin/world-builder/maps/{map_id}/visual-media`; migration `0113_scoped_video_media.sql` records uploader/map binding atomically with each new upload | Existing 50 MiB/map-editor/CSRF checks retained; detected MP4/M4V, QuickTime, WebM and Theora Ogg added. Real format samples and wrong-map/uploader/CSRF/invalid-file rejection covered. Legacy images without an originating-map record retain their previous creator/scope preview behavior. Generic image-library upload remains image-only. |
+| Saved references and explicit cleanup | Existing `persistence/src/admin_world_markdown.rs::{media_references,synchronize_media_references}` and native Markdown create/update; new scoped `DELETE .../visual-media/{asset_id}` | Actual authored replacement/removal revokes learner delivery. Only the original uploader with matching map scope may delete an unused upload. Asset row locking and a fresh reference check prevent deletion of saved media; storage failure retains the registry entry for retry. Browser checks inspect the test-owned object before/after deletion. |
+| Learner delivery | `api/src/learner_media_assets.rs`, shared `api/src/video_media.rs`, `MediaStore::{size,get_range}` | Existing saved-reference/publication/role authorization runs before byte or length delivery. Valid single byte ranges return 206, invalid ranges 416; range reads use bounded object-store reads. Real WebM and MP4 browser decoding/playback and replacement are covered. |
+| Copied video classification | `LearnerPlaybackPresentation.markdown_media`, `learner_playback_presentation.rs::enrich`, `playback-context.ts`, `playback-markdown-api.ts`, `markdown-source-transform.ts` | One query for actual saved Markdown image/video references on the authorized graph, capped at 4096 entries with whole-read rejection on overflow. Active document binding validates exact managed URLs and supplies MIME classification at the original renderer's `mediaKind` seam. Reload/replacement releases obsolete classification. No fabricated extension, body rewrite or per-element metadata requests. |
+| Source comparison | `frontend/e2e/canonical-player-video-live.spec.ts`, existing whole Markdown evidence host and source identity checks | Copied and pinned-main trees render the same source video controls at 1440×900 and 390×844. Source JSX/CSS remain unchanged. This host does not activate or emulate the parent NodePlay lifecycle. |
 
-Static/external video URLs retain the original renderer path and require their
-own playback evidence. Rust's reusable image uploader is intentionally
-image-only, whereas the source Markdown uploader accepts videos. This is a
-missing scoped contract, not permission to infer MIME from UUIDs or broaden
-unrelated upload permissions. Parent NodePlay lifecycle and anonymous
-acceptance remain separate open dependencies.
+The oversized-file regression additionally exposed two earlier transport
+ceilings: Nginx's default and Rust's global 5 MiB limit prevented the scoped
+50 MiB parser from being reached. `frontend/nginx.conf` now permits 50 MiB plus
+16 KiB framing only on the scoped upload path. `api/src/request_body_limit.rs`
+uses Axum's matched route and POST method to grant that same ceiling; other
+Rust requests keep their prior global limit. Its regression verifies the
+matching POST, oversized request, wrong method and unrelated route. The real
+proxy test uses an 8,504,754-byte MP4 and a rejected 50 MiB + 1-byte file.
+
+The baseline rejected a genuine WebM upload with 422. After implementation,
+the real Rust journey covers upload, creator preview/download/ranges, native
+Markdown save/read, actual video decoding/playback, WebM-to-MP4 replacement,
+removal, referenced-delete rejection and explicit object cleanup. Wrong-map
+preview/deletion, other-user operations, missing CSRF, guest access on a
+learner-only map, unpublication and invalid ranges are rejected. MIME comes
+from detected bytes rather than a browser-declared filename/type. Detection is
+container recognition, not a promise that every codec inside those containers
+can play in every browser.
+
+Both initial video source/copy screenshot pairs are byte-identical and were
+visually reviewed: video/native controls and navigation stay bounded at both
+viewports. The 40-case real Rust/PostgreSQL batch includes 14 Markdown, 14
+reference, 10 response and two video checks. Its ignored evidence is
+`frontend/playwright-report/player-video-regression/`. The final scoped-delete
+transaction and extended proxy/video checks passed again in
+`frontend/playwright-report/player-video-verified/`; 18 NPC checks also passed
+with the extended shared document binding. Local video playback reads measured
+4,792 bytes and approximately 12–17 ms for these single-media fixtures; this is
+a local measurement, not a load-test claim. Canonical identity (299 JS/TS files
+plus CSS), production type/build, generated OpenAPI drift, Rust workspace
+fmt/check, 182 API tests and 129 persistence tests passed. Two API and six
+persistence database tests are opt-in/ignored; the browser suites provide the
+real PostgreSQL evidence. Migration 0113 is recorded successful in the local
+application database; both Compose images build and Nginx configuration and
+Rust readiness checks pass.
+
+Remaining media acceptance is explicit: static/external video delivery,
+anonymous/public journeys, copied authoring upload/preview integration, and
+map-deletion/abandoned-upload cleanup still need their owning route evidence.
+Cross-map saved references also need a separate source-policy audit: Rust delivery
+currently authorizes visible saved references, whereas the pinned protected
+media controller checks the originating map. Preview scope alone does not
+prove that copied cross-map references preserve source confidentiality.
+Deleting a map currently releases its upload-scope rows while retaining the
+reusable-media registry/objects; this slice does not claim a complete orphan
+cleanup policy. The existing Markdown writer silently limits references to 24;
+remove that truncation with bounded atomic reference synchronization before
+complete authoring/media acceptance. Its 30-page/60-edge form limits also
+remain source parity gaps. Storage and PostgreSQL are not one distributed
+transaction; a database failure after object removal leaves a registry entry
+that scoped cleanup can retry. Only a normal delete proves physical removal.
+Source completion error presentation, parent NodePlay lifecycle, replay
+binding and anonymous acceptance remain separate open dependencies. No route
+is marked complete by this prerequisite, and production NodePlay remains
+explicitly unavailable.
 
 **Verified read/control slice:** 14 Markdown browser cases passed across
 1440×900 and 390×844: source start-edge selection, keyboard/back/refresh,
