@@ -2357,7 +2357,7 @@ paths:
     get:
       operationId: getAdminWorldBuilderMapVisualPreview
       summary: Read one unsaved map-visual upload through its scoped editor preview route.
-      description: Requires the same map-editor scope as upload and the original uploader. New uploads must also match their recorded originating map. Video supports one byte range. It is a transient author-preview seam; saved Map Configuration values are normalized to the established learner-safe reusable-media path.
+      description: Requires the same map-editor scope as upload and the original uploader. New uploads must also match their recorded originating map; a deleted origin never grants preview through another map. Video supports one byte range. It is a transient author-preview seam; saved Map Configuration values are normalized to the established learner-safe reusable-media path.
       parameters:
         - name: map_id
           in: path
@@ -3974,7 +3974,7 @@ paths:
     get:
       operationId: getLearnerMediaAssetContent
       summary: Serve referenced image/video media through visible published content, authenticated Journal presentation or the current learner's owned inventory.
-      description: Inventory access requires an active learning_item or learning_tool media reference and this principal's positive item quantity or tool holding. Knowing a catalog or media UUID grants no access. Video ranges use the same reference/publication/role check before any bytes or length are returned.
+      description: Inventory access requires an active learning_item or learning_tool media reference and this principal's positive item quantity or tool holding. Knowing a catalog or media UUID grants no access. Scoped uploads additionally require the originating map to exist and allow the requester role; copying a reference into a public map does not publish private-origin bytes. Deleted origins remain explicit denial records. Video ranges use these same checks before any bytes or length are returned.
       parameters:
         - { name: asset_id, in: path, required: true, schema: { type: string, format: uuid } }
         - { name: Range, in: header, schema: { type: string }, description: Optional single video byte range. }

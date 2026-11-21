@@ -3004,13 +3004,11 @@ Rust readiness checks pass.
 Remaining media acceptance is explicit: static/external video delivery,
 anonymous/public journeys, copied authoring upload/preview integration, and
 map-deletion/abandoned-upload cleanup still need their owning route evidence.
-Cross-map saved references also need a separate source-policy audit: Rust delivery
-currently authorizes visible saved references, whereas the pinned protected
-media controller checks the originating map. Preview scope alone does not
-prove that copied cross-map references preserve source confidentiality.
-Deleting a map currently releases its upload-scope rows while retaining the
-reusable-media registry/objects; this slice does not claim a complete orphan
-cleanup policy. The existing Markdown writer silently limits references to 24;
+The originating-map policy repair below closes the reproduced cross-map
+privacy failure. Migration 0114 retains a nullable origin record when its map
+is deleted; those uploads are denied rather than treated as generic library
+media. Registry/objects remain until explicit cleanup, so this does not claim
+a complete orphan cleanup policy. The existing Markdown writer silently limits references to 24;
 remove that truncation with bounded atomic reference synchronization before
 complete authoring/media acceptance. Its 30-page/60-edge form limits also
 remain source parity gaps. Storage and PostgreSQL are not one distributed
@@ -3020,6 +3018,42 @@ Source completion error presentation, parent NodePlay lifecycle, replay
 binding and anonymous acceptance remain separate open dependencies. No route
 is marked complete by this prerequisite, and production NodePlay remains
 explicitly unavailable.
+
+**Originating-map privacy repair:** pinned
+`app/Http/Controllers/ProtectedMapMediaController.php` delegates to
+`app/Learning/Services/LearningMapAccessService.php::canViewMap`; both files
+match the recorded pin. Source media access uses its originating map's role
+visibility, even when the URL is pasted into another map. Rust's existing
+saved-reference policy alone did not preserve that constraint: the regression
+created a private-map WebM, saved its URL through the native Markdown writer on
+a public map, and an anonymous range request incorrectly returned 206.
+
+`learner_media_assets.rs` now requires both the existing visible saved reference
+and the recorded origin's role access for scoped uploads. The extra predicate
+uses the indexed upload/asset relation in the same read; no per-image policy
+request is added. Generic reusable-library assets without an upload-origin
+record keep their existing policy. `0114_preserve_scoped_media_origin.sql`
+changes map deletion to retain an explicit null origin; learner delivery and
+creator preview cannot reinterpret such an orphan as unscoped media. This
+preserves denial after deletion without deleting an object still referenced
+elsewhere. The source role service itself does not require the originating
+map to be published; the existing destination/reference publication guard
+remains in effect.
+
+`frontend/e2e/canonical-scoped-media-access-live.spec.ts` is the source-derived
+real API/PostgreSQL regression for private→public copying, authorized learner
+access, public-origin access, role revocation, administrator access, map
+deletion and absence of leaked range length. Its cleanup removes only its
+owned maps and orphan fixture; it does not pretend to implement a production
+orphan collector. All 17 real browser/API cases passed: this regression plus
+the 14 copied Markdown and two video lifecycle cases at both viewports. The
+report is `frontend/playwright-report/scoped-media-origin-verified/`. Migration
+0114 is recorded successful, readiness passes, and canonical identity,
+frontend type/build, generated OpenAPI drift, Rust workspace fmt/check, 182 API
+tests and 129 persistence tests pass (two API and six persistence opt-in tests
+remain ignored). The previously reproduced anonymous 206 now returns 404 with
+no Content-Range; allowed learner/public/admin reads still return the actual
+bytes. Cross-map references cannot bypass role revocation or deleted origins.
 
 **Verified read/control slice:** 14 Markdown browser cases passed across
 1440×900 and 390×844: source start-edge selection, keyboard/back/refresh,

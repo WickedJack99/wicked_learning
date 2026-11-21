@@ -129,7 +129,7 @@ pub async fn preview(
         return Err(ApiError::not_found());
     }
     let stored = sqlx::query_as::<_, StoredAsset>(
-        "SELECT media.object_key, media.content_type FROM reusable_media_assets AS media INNER JOIN application_principals AS principals ON principals.id = media.created_by_principal_id WHERE media.id = $1 AND principals.identity_subject_id = $2 AND (media.content_type LIKE 'image/%' OR media.content_type LIKE 'video/%') AND NOT EXISTS (SELECT 1 FROM map_media_uploads uploads WHERE uploads.asset_id=media.id AND uploads.map_id<>$3)",
+        "SELECT media.object_key, media.content_type FROM reusable_media_assets AS media INNER JOIN application_principals AS principals ON principals.id = media.created_by_principal_id WHERE media.id = $1 AND principals.identity_subject_id = $2 AND (media.content_type LIKE 'image/%' OR media.content_type LIKE 'video/%') AND NOT EXISTS (SELECT 1 FROM map_media_uploads uploads WHERE uploads.asset_id=media.id AND uploads.map_id IS DISTINCT FROM $3)",
     )
     .bind(asset_id)
     .bind(principal.subject_id)
