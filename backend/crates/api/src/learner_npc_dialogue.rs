@@ -7,7 +7,9 @@ use axum_login::AuthSession;
 use serde::Deserialize;
 use uuid::Uuid;
 use wicked_learning_application::learner_npc_dialogue::LearnerNpcDialogueCommand;
-use wicked_learning_domain::learner_state::LearnerNpcDialogueState;
+use wicked_learning_domain::learner_state::{
+    LearnerNpcDialogueAnswerResult, LearnerNpcDialogueState,
+};
 use wicked_learning_persistence::learner_npc_dialogue::PostgresLearnerNpcDialogueRepository;
 
 use crate::{
@@ -51,7 +53,7 @@ pub async fn answer(
     csrf_token: axum_csrf::CsrfToken,
     auth_session: AuthSession<IdentityBackend>,
     Json(request): Json<AnswerNpcDialogueRequest>,
-) -> Result<Json<LearnerNpcDialogueState>, ApiError> {
+) -> Result<Json<LearnerNpcDialogueAnswerResult>, ApiError> {
     let play_run_id = Uuid::parse_str(&play_run_id).map_err(|_| ApiError::not_found())?;
     let answer_node_id =
         Uuid::parse_str(&request.answer_node_id).map_err(|_| ApiError::not_found())?;

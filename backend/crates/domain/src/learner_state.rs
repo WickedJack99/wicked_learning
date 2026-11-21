@@ -1477,6 +1477,21 @@ pub struct LearnerNpcDialogueState {
 }
 
 #[derive(Clone, Debug, Serialize)]
+pub struct LearnerNpcDialogueAnswerProgress {
+    pub answer_key: String,
+    pub answer_node_id: String,
+    pub feedback: Option<String>,
+    pub is_correct: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerNpcDialogueAnswerResult {
+    #[serde(flatten)]
+    pub state: LearnerNpcDialogueState,
+    pub answer: LearnerNpcDialogueAnswerProgress,
+}
+
+#[derive(Clone, Debug, Serialize)]
 pub struct LearnerPlaybackCompletion {
     pub label: Option<String>,
     pub next_activity_slug: Option<String>,

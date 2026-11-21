@@ -7367,7 +7367,7 @@ paths:
     post:
       operationId: answerLearnerNpcDialogue
       summary: Select an authored answer from the active NPC dialogue question.
-      description: The submitted node must be an authored outgoing `answer-*` edge from the current server-owned question node. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
+      description: The submitted node must be an authored outgoing `answer-*` edge from the current server-owned question node. The transaction stores the authored answer snapshot, applies bounded private hide/unlock events and discovery, and advances the cursor together. Repeated effects preserve their first timestamp. Invalid configuration or an existing foreign-World target rejects without writes; deleted targets are ignored. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7382,7 +7382,7 @@ paths:
           description: The durable NPC dialogue cursor after the selected authored answer.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/LearnerNpcDialogueState' }
+              schema: { $ref: '#/components/schemas/LearnerNpcDialogueAnswerResult' }
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
         '404': { description: The answer is not an available authored edge for this learner's active dialogue. }
@@ -11598,6 +11598,30 @@ components:
           type: array
           maxItems: 40
           items: { type: string, format: uuid }
+    LearnerNpcDialogueAnswerProgress:
+      type: object
+      additionalProperties: false
+      required: [answer_key, answer_node_id, feedback, is_correct]
+      properties:
+        answer_key: { type: string, format: uuid }
+        answer_node_id: { type: string, format: uuid }
+        feedback: { type: [string, 'null'] }
+        is_correct: { type: boolean }
+    LearnerNpcDialogueAnswerResult:
+      type: object
+      additionalProperties: false
+      required: [granted_tool, current_node_id, history, answer]
+      properties:
+        granted_tool:
+          anyOf:
+            - $ref: '#/components/schemas/LearnerTool'
+            - type: 'null'
+        current_node_id: { type: string, format: uuid }
+        history:
+          type: array
+          maxItems: 40
+          items: { type: string, format: uuid }
+        answer: { $ref: '#/components/schemas/LearnerNpcDialogueAnswerProgress' }
     LearnerNpcDialogueAnswerRequest:
       type: object
       additionalProperties: false

@@ -844,10 +844,10 @@ document URL. Its broader
 reflection-history controls need their own contracts and browser evidence
 before they are restored.
 The management control is also absent because the administration route has no
-Rust contract. The shared Paths/World/start policy now covers roles, completed
-nodes and valid schedules, but discovery, answer-event, tool, item and manual
-opening parity remains a gate; rows needing those capabilities must not become
-visible merely because the represented subset is available.
+Rust contract. The shared Paths/World/start policy consumes roles, completed nodes, schedules,
+discovery, tool/item ownership, manual openings and the private NPC answer events
+recorded in the canonical migration register. Whole route-family parity remains
+a gate; a native writer alone does not establish copied-control acceptance.
 
 ## ADR-028: Paths reader preserves source filtering without publishing a partial page
 
@@ -880,9 +880,10 @@ The first availability increment supplies the policy with the authenticated
 principal's roles, completed nodes and current RFC 3339 schedule instants.
 Malformed availability configuration fails closed. The source tool-belt and
 its map-node reveal/unlock command now write only a verified owned tool's
-discovery or tool-use fact. Answer events, item grants and staff manual
-openings still have no Rust writer; absent facts remain unavailable instead of
-being treated as satisfied.
+discovery or tool-use fact. Native item grants, staff manual openings and NPC
+answer events now have scoped writers (`learner_item_grant`,
+`admin_world_node_manual_unlock`, `learner_npc_answer`). Their actual private
+facts feed the same evaluator; absent facts are never treated as satisfied.
 
 **Source-state compatibility:** Migration `0095` retains all seven node-state
 strings accepted by the source authoring form: `active`, `available`,
@@ -931,17 +932,19 @@ The first writer verifies map visibility, CSRF, learner ownership and the
 configured tool before it records a source-equivalent reveal or unlock attempt.
 Author-facing `toolId` and item-grant `items[].itemId` configuration now name
 unique public slugs—not an internal Rust UUID or a Laravel numeric key—because
-this is a greenfield platform. The source `tool_grant` activity is now the
-sole Rust tool-acquisition writer: it derives the current active activity and
+this is a greenfield platform. The source `tool_grant` activity is one native
+tool-acquisition writer: it derives the current active activity and
 configured public tool slug from the authorized play run, inserts one
 idempotent ownership record, and completion rechecks ownership before advancing
-the authored transition. Its React component is lifted from the original
-activity rather than being a new inventory workflow. The source `item_grant`
+the authored transition. Canonical copied grant-control verification is recorded
+in the active implementation register; reconstructed frontend history is not
+acceptance evidence. The source `item_grant`
 activity is its own item-acquisition writer; its roll and holding boundary is
-recorded in ADR-034. NPC dialogue grants, answer events and staff overrides
-remain absent and fail closed. This is the deliberate architecture boundary for
-the source tool/discovery slice, not permission to publish the standalone Paths
-screen.
+recorded in ADR-034. Existing NPC dialogue grant commands and staff manual
+openings have their own authorized writers. Migrations `0110`/`0111` add private
+NPC answer snapshots and indexed normalized hide/unlock events; the existing
+evaluator now consumes those facts with unchanged hidden/schedule precedence.
+This does not activate the copied NPC player or standalone Paths screen.
 
 **Why:** This retains server authority for availability and creates one bounded
 reader that both the future `/paths` page and topic Routes panel can consume.
@@ -955,9 +958,9 @@ Publishing a card-list `/paths` page now would be a substitute for the source
 Paths workflow. Both are rejected.
 
 **Limitations and trigger:** This is not yet full dynamic availability parity.
-Rows requiring answer events, item ownership or staff manual openings remain
-unavailable until their learner-state writers, authorization tests and source
-controls exist in Rust. Tool-dependent reveal and unlock are available only to
+Answer events, item ownership and staff manual openings have native persistence
+and authorization coverage; their whole copied controls and cross-route
+acceptance remain governed by the active migration register. Tool-dependent reveal and unlock are available only to
 the current learner who already owns the exact configured tool; source tool
 grant flows remain a separate slice. The standalone React
 `/paths` route remains absent until its complete source page and every source

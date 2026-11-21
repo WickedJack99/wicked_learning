@@ -13,11 +13,12 @@ use wicked_learning_domain::{
 };
 
 /// The source availability facts currently represented in the Rust schema.
-/// Discovery, tool/item and support-override records are read when present;
-/// answer-event facts remain false until their source-defined writer and data
-/// model are added. Callers must not treat this as full dynamic availability
-/// parity: absent facts fail closed.
+/// Discovery, tool/item, NPC answer and support-override records are read for
+/// the current principal. The domain evaluator owns their source precedence;
+/// the browser cannot supply availability facts.
 pub struct PostgresLearnerNodeAvailability {
+    answer_hidden_node_ids: HashSet<Uuid>,
+    answer_unlocked_node_ids: HashSet<Uuid>,
     completed_node_references: BTreeSet<String>,
     discovered_node_ids: HashSet<Uuid>,
     manually_unlocked_node_ids: HashSet<Uuid>,
@@ -77,7 +78,28 @@ impl PostgresLearnerNodeAvailability {
         .into_iter()
         .collect();
 
+        let answer_events = sqlx::query_as::<_, (Uuid, String)>(
+            "SELECT node_id, event_kind FROM learner_node_answer_events WHERE principal_id = $1",
+        )
+        .bind(principal_id)
+        .fetch_all(pool)
+        .await?;
+        let mut answer_hidden_node_ids = HashSet::new();
+        let mut answer_unlocked_node_ids = HashSet::new();
+        for (node_id, kind) in answer_events {
+            match kind.as_str() {
+                "hidden" => {
+                    answer_hidden_node_ids.insert(node_id);
+                }
+                "unlocked" => {
+                    answer_unlocked_node_ids.insert(node_id);
+                }
+                _ => {}
+            }
+        }
         Ok(Some(Self {
+            answer_hidden_node_ids,
+            answer_unlocked_node_ids,
             completed_node_references,
             discovered_node_ids,
             manually_unlocked_node_ids,
@@ -114,6 +136,8 @@ impl PostgresLearnerNodeAvailability {
         let mut facts = schedule_facts(visual_config, OffsetDateTime::now_utc());
         facts.completed_node_references = self.completed_node_references.clone();
         facts.has_discovery = self.discovered_node_ids.contains(&node_id);
+        facts.is_hidden_by_answer = self.answer_hidden_node_ids.contains(&node_id);
+        facts.has_answer_unlock = self.answer_unlocked_node_ids.contains(&node_id);
         facts.has_manual_unlock = self.manually_unlocked_node_ids.contains(&node_id);
         facts.has_tool_unlock = self.tool_unlocked_node_ids.contains(&node_id);
         facts.owned_item_references = self.owned_item_references.clone();

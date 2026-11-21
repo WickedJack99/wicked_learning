@@ -1,3 +1,4 @@
+import { prepareNpcAnswerEvidence } from './canonical-player-npc-answer-evidence';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
@@ -5,9 +6,9 @@ import { expect, test } from '@playwright/test';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
 for (const kind of ['route', 'replay'] as const) for (const action of ['continue', 'answer', 'back', 'reflection'] as const) {
-    test(`native NPC ${kind} ${action} rechecks source node access`, async ({ browser, baseURL }) => {
+    test(`native NPC ${kind} ${action} rechecks source node access`, async ({ browser, baseURL }, info) => {
         expect(new URL(baseURL!).hostname).toMatch(/^(localhost|127\.0\.0\.1)$/);
-        for (const path of ['app/Http/Controllers/LearningWorldController.php', 'app/Learning/Services/LearnerActivityAccessService.php', 'app/Learning/Services/LearningNodeStateResolver.php', 'app/Http/Controllers/LearnerJournalController.php']) {
+        for (const path of ['app/Http/Controllers/LearningWorldController.php', 'app/Learning/Services/LearnerActivityAccessService.php', 'app/Learning/Services/LearningNodeStateResolver.php', 'app/Http/Controllers/LearnerJournalController.php', 'app/Learning/Services/NpcDialogueAnswerService.php', 'app/Learning/Services/LearnerNodeAnswerEventService.php']) {
             expect(readFileSync(`../${path}`)).toEqual(execFileSync('git', ['show', `32c3113a5bc688c9944c20942cdf40a6a5d57d7f:${path}`]));
         }
         const admin = await browser.newContext({ baseURL, storageState: administratorStorageStatePath });
@@ -22,6 +23,7 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
         const activity = randomUUID(), run = randomUUID(), start = randomUUID(), tool = randomUUID();
         const first = randomUUID(), question = randomUUID(), answer = randomUUID(), reflection = randomUUID(), end = randomUUID();
         const topic = `NPC access ${activity}`;
+        let answerEvidence: Awaited<ReturnType<typeof prepareNpcAnswerEvidence>> | undefined;
         try {
             const result = await admin.request.post(`/api/v1/admin/world-builder/maps/${map}/nodes`, { headers: adminHeaders, data: { title: topic, description: null, position_q: 0, position_r: 0, state: 'available', visual_config: {} } });
             expect(result.status()).toBe(201); const node = await result.json(); uuid(node.node_id); uuid(node.asset_id);
@@ -45,7 +47,10 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
             const path = `/api/v1/learner/play-runs/${run}/activities/id:${activity}/npc-dialogue/${action}`;
             const data = action === 'answer' ? { answer_node_id: answer } : action === 'reflection' ? { reflection: 'I noticed two different clues.' } : {};
             const write = () => owner.request.post(path, { headers, data });
+            if (action === 'answer') answerEvidence = await prepareNpcAnswerEvidence({ admin, owner, peer, adminHeaders, headers, map, activity, run, principal, question, answer, sql, info });
             const facts = () => sql(`SELECT jsonb_build_object(
+                'answers',(SELECT jsonb_agg(to_jsonb(a)) FROM learner_npc_dialogue_answers a WHERE principal_id='${principal}' AND activity_id='${activity}'),
+                'events',(SELECT jsonb_agg(to_jsonb(e) ORDER BY node_id,event_kind) FROM learner_node_answer_events e WHERE principal_id='${principal}' AND source_activity_id='${activity}'),
                 'state',(SELECT to_jsonb(s) FROM learner_npc_dialogue_states s WHERE principal_id='${principal}' AND play_run_id='${run}' AND activity_id='${activity}'),
                 'tools',(SELECT jsonb_agg(to_jsonb(t)) FROM learner_tools t WHERE principal_id='${principal}' AND tool_id='${tool}'),
                 'reflections',(SELECT jsonb_agg(to_jsonb(r)) FROM learner_reflections r WHERE principal_id='${principal}' AND activity_id='${activity}'),
@@ -93,14 +98,18 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
                 expect((await write()).status()).toBe(404); expect(facts()).toBe(withoutState);
                 sql(`INSERT INTO learner_npc_dialogue_states (principal_id,activity_id,play_run_id,current_node_id,history) VALUES ('${principal}','${activity}','${run}','${reflection}','[]')`);
             }
+            await answerEvidence?.rejectInvalidConfiguration();
             const accepted = await write(); expect(accepted.status()).toBe(200);
+            if (action === 'answer') expect(await accepted.json()).toMatchObject({ answer: { answer_key: answer, answer_node_id: answer, is_correct: true, feedback: null } });
             const target = action === 'continue' ? question : action === 'answer' ? answer : action === 'back' ? first : end;
             expect(await accepted.json()).toMatchObject({ current_node_id: target, history: action === 'continue' ? [first] : action === 'reflection' ? [reflection] : [] });
             expect(facts()).not.toBe(before);
             expect(sql(`SELECT COUNT(*) FROM learner_tools WHERE principal_id='${principal}' AND tool_id='${tool}'`).trim()).toBe(action === 'continue' ? '1' : '0');
             expect(sql(`SELECT COUNT(*) FROM learner_reflections WHERE principal_id='${principal}' AND activity_id='${activity}'`).trim()).toBe(action === 'reflection' ? '1' : '0');
             if (action === 'reflection' && kind === 'replay') expect(sql(`SELECT markdown FROM learner_journal_pages WHERE principal_id='${principal}' AND topic='${topic}'`)).toContain('Keep my earlier note.');
+            await answerEvidence?.verify();
         } finally {
+            await answerEvidence?.dispose();
             sql(`DELETE FROM learner_journal_pages WHERE principal_id='${principal}' AND topic='${topic}'; DELETE FROM learning_tools WHERE id='${tool}'`);
             expect((await admin.request.delete(`/api/v1/admin/world-builder/maps/${map}`, { headers: adminHeaders })).status()).toBe(204);
             await Promise.all([admin.close(), owner.close(), peer.close()]);

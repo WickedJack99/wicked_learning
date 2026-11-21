@@ -827,8 +827,8 @@ at most three scoped catalog-label queries for the complete World. It preserves
 the source nested AND/OR requirement shape, node destinations, tool/item/role
 labels and schedule times, and keeps hidden activities absent. Projection
 before/after native discovery and unlock, isolation, nested requirements and
-copied rendering are verified below. Source answer-event availability remains a separately recorded Rust
-model gap. Tool command transport and source `router.reload({only:['world']})`
+copied rendering are verified below. Source answer-event availability is now
+backed by the NPC answer evidence/events contract recorded below. Tool command transport and source `router.reload({only:['world']})`
 activation follow this prerequisite; a full document reload is not equivalent
 because it discards source local interaction state.
 
@@ -858,7 +858,7 @@ records and restores the prior learner map preference.
 
 The tool-action adapter and partial World reload are verified in the next
 entry. Source informational visible-state preservation is repaired in the
-authored-state entry below. Answer-event availability remains open. World-family
+authored-state entry below. NPC answer-event availability is verified below. World-family
 acceptance remains **Incomplete**.
 
 Verification: 45 combined browser checks passed on the rebuilt native stack,
@@ -966,8 +966,9 @@ not synthesize activity progress or a learner completion badge.
 | Unknown state / API failure | Existing fail-closed authored-state mapping and World unavailable boundary | Do not treat arbitrary persisted strings as playable or fabricate a successful World response. |
 
 This is a read-projection repair using the existing endpoint, with no copied
-frontend changes or new backend contract. Answer-event availability remains
-unimplemented and is not made complete by preserving informational states.
+frontend changes or new backend contract. NPC answer-event availability is
+implemented separately below; this informational-state repair alone did not
+establish it.
 
 The isolated PostgreSQL regression and real Rust HTTP/browser fixture both
 reproduced `active` being returned as `available` before the correction. The
@@ -2514,7 +2515,7 @@ No NPC presentation is activated by this prerequisite.
 | --- | --- | --- |
 | Complete graph, private cursor/history and typing sound definitions | `learner_playback{,_presentation,_private_state}.rs`, existing `playback-projection.ts` | Preserve real node/tool/sound UUIDs through exact source numeric-identity seams; test typing/media behavior, history restore and local controls. |
 | Local forward/back stores current node and last 40 history entries | Source `updateNpcDialogueState`; native `/npc-dialogue/{continue,back}` own server navigation | These are not interchangeable requests. Define a bounded, authorized state mapping preserving source navigation and history, rather than silently dropping state writes or recreating navigation UI. |
-| Answer validates authored question/answer, stores answer and applies authored node events | Source `NpcDialogueAnswerService` and `LearnerNodeAnswerEventService`; native `/npc-dialogue/answer` currently validates an edge and advances a cursor only | Persist source answer evidence and hide/unlock effects, return real selected-answer facts, and reconcile source skipping the answer display node with native cursor movement. No fabricated successful answer projection. |
+| Answer validates authored question/answer, stores answer and applies authored node events | Source `NpcDialogueAnswerService` and `LearnerNodeAnswerEventService`; native `/npc-dialogue/answer` now stores evidence and applies events as verified below | The real selected-answer receipt is available. Still reconcile source skipping the answer display node with native cursor movement. No fabricated successful answer projection. |
 | Tool grant on the current source dialogue node, including initial node and already-owned skip | Source `grantNpcDialogueTool`; native grants a configured tool when advancing into a node | Complete initial/current-node grant semantics and inventory refresh before binding copied grant controls. Preserve actual configured identity and managed media. |
 | Private reflection and authored route exit | Existing `/npc-dialogue/reflection`, generic completion/receipts | Reconcile source reflection/exit behavior and labelled end transitions. Failed reflection atomicity is repaired below; invalid question/absent next edge must not create or change journal content. Whole callback failure coverage remains required. |
 | Current node access before every command | Existing `learner_npc_dialogue.rs` checked publication and map roles but omitted computed availability | Repair below reuses the shared evaluator for ordinary and existing replay command contexts before state/tool/reflection writes. Replay node identity among multiple nodes sharing an asset remains part of the broader unresolved run-binding audit. |
@@ -2586,8 +2587,73 @@ pass (six existing database tests ignored). The rebuilt local service is ready;
 no canonical presentation or database migration changed. Reports are ignored
 `frontend/playwright-report/player-npc-reflection{,-baseline}/`; the NPC rerun
 command above covers these cases. Next: complete the audited source cursor,
-answer/event, initial-node grant and reflection/exit contracts before adding
+cursor-to-answer handoff, initial-node grant and reflection/exit contracts before adding
 whole-control adapters; do not reinterpret these native repairs as UI completion.
+
+### NPC answer evidence and authored node events
+
+Pinned source owners are `app/Learning/Services/{NpcDialogueAnswerService,LearnerNodeAnswerEventService,LearningNodeStateResolver}.php`,
+`app/Models/NpcDialogueAnswer.php`,
+`database/migrations/2026_07_08_000002_create_npc_dialogue_answers_table.php`,
+`resources/js/features/world/npc-dialogue-player.tsx` and the controller/access
+owners above. The copied question posts the selected authored answer, consumes
+its real `answerNodeId`, clears local history and moves to that answer's outgoing
+node. The source service also stores answer evidence and applies configured
+`events.hideNodeIds` / `events.unlockNodeIds`; advancing only a Rust cursor does
+not fulfill that contract.
+
+| Required contract | Native evidence / implementation boundary |
+| --- | --- |
+| Stored selected answer, authored label and correctness, nullable feedback | Extend the existing authorized `/npc-dialogue/answer` transaction with a private answer snapshot. Keep existing top-level cursor fields and add a typed `answer` receipt sourced from the validated authored row. Source always records null feedback here. |
+| Authored hide/unlock effects, first event timestamp and discovery | Native authoring already validates UUID arrays of at most 100 targets per kind within the owning World. Use bounded batched target validation, normalized private event rows and existing discovery records; preserve first timestamps on repeated answers. Missing deleted targets are skipped as in source; malformed/out-of-World configuration rejects atomically. |
+| Current evaluated availability after answer | Reuse existing domain facts `is_hidden_by_answer` / `has_answer_unlock`, now backed by `learner_node_answer_events`. Load both event kinds in one principal-scoped query; do not duplicate state policy in the browser. Existing hidden/schedule precedence remains authoritative. |
+| Ownership and retention | Answer records cascade with their question/activity, as in source. Target-node events survive deletion of the source answer/activity, with nullable provenance references, and disappear with their target/principal. Preserve real target effects without fabricated deleted authoring records. |
+| Failure/transaction semantics | Authenticated current-run authority, publication, map roles, node availability, selected-edge validation and CSRF remain required. Reject invalid targets before any answer/event/cursor write. No new anonymous writer or frontend activation. |
+
+The initial ordinary/replay regression failed on the absent source answer
+receipt. The extended cases verify persisted snapshots, real World availability
+and peer isolation.
+Whole copied dialogue adaptation still requires the separate cursor, initial
+grant, reflection/exit and media contracts already listed above.
+
+**Verified native contract:** `learner_npc_answer.rs` records the actual authored
+answer and applies both effect kinds inside the already-authorized NPC command
+transaction. The response adds typed `answer` facts while preserving the existing
+cursor fields. Migrations `0110` and `0111` establish private evidence/events and
+owner/reference indexes. Target lookup is one bounded query for at most 200
+references, followed by batched event/discovery upserts per nonempty kind; there
+are no per-target SQL calls. Availability adds one indexed principal query for
+both kinds and reuses the existing domain precedence. Both forward migrations
+were applied to the local Rust application database and verified in
+`_sqlx_migrations`; no Laravel or production migration was run.
+
+`canonical-player-npc-answer-evidence.ts`, invoked by the existing ordinary/replay
+NPC contract cases, verifies actual answer snapshots and World reads. It covers
+unknown/disconnected answers, malformed/oversized event lists, existing
+foreign-World targets, deleted and duplicate targets, private hide/unlock effects,
+hide-over-unlock and schedule precedence, principal isolation, stale retries,
+second-answer history/provenance, first event/discovery timestamps, retention
+after selected-answer/activity deletion and cleanup with target deletion.
+The access/CSRF/publication/failure checks now also assert that no answer/event
+records change on rejection. Source file identity is checked against the pin.
+
+Validation passed: the two initial cases failed on missing answer receipts;
+all nine NPC native integration cases now pass, together with four existing
+World availability/identity browser cases at 1440×900 and 390×844. Both answer
+cases passed again after migration `0111`. Canonical identity (299 files plus
+CSS), frontend production type/build, OpenAPI client consistency, Rust workspace
+check/format, 126 persistence tests (six existing ignored), 13 availability-domain
+tests and the embedded-migration uniqueness test passed. Local readiness is
+healthy and test maps/evidence/events were cleaned up. There is no new visual
+parity claim for the still-unavailable NPC player.
+
+Reports: ignored `frontend/playwright-report/player-npc-answer{,-baseline,-index}/`
+and `player-npc-answer-world-regression/`. The NPC rerun command above covers the
+new assertions. The final eight measured World reads took 8–13 ms and returned
+40272–44638 bytes; the earlier run during a concurrent build included a 925 ms
+outlier. These are local observations, not an SLA. The active World/Paths
+availability notes and ADR-028 now reference the implemented native facts
+without claiming whole route-family acceptance.
 
 ## Status and purpose
 

@@ -2,7 +2,8 @@ use std::future::Future;
 
 use uuid::Uuid;
 use wicked_learning_domain::{
-    identity_access::AuthorizedPrincipal, learner_state::LearnerNpcDialogueState,
+    identity_access::AuthorizedPrincipal,
+    learner_state::{LearnerNpcDialogueAnswerResult, LearnerNpcDialogueState},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -26,7 +27,9 @@ pub trait LearnerNpcDialogueRepository {
         play_run_id: Uuid,
         activity_slug: &str,
         answer_node_id: Uuid,
-    ) -> impl Future<Output = Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError>> + Send;
+    ) -> impl Future<
+        Output = Result<Option<LearnerNpcDialogueAnswerResult>, LearnerNpcDialogueError>,
+    > + Send;
 
     fn go_back_in_current_dialogue(
         &self,
@@ -73,7 +76,7 @@ where
         play_run_id: Uuid,
         activity_slug: &str,
         answer_node_id: Uuid,
-    ) -> Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError> {
+    ) -> Result<Option<LearnerNpcDialogueAnswerResult>, LearnerNpcDialogueError> {
         self.repository
             .answer_current_dialogue(principal, play_run_id, activity_slug, answer_node_id)
             .await

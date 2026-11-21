@@ -6009,7 +6009,7 @@ export interface paths {
         put?: never;
         /**
          * Select an authored answer from the active NPC dialogue question.
-         * @description The submitted node must be an authored outgoing `answer-*` edge from the current server-owned question node. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
+         * @description The submitted node must be an authored outgoing `answer-*` edge from the current server-owned question node. The transaction stores the authored answer snapshot, applies bounded private hide/unlock events and discovery, and advances the cursor together. Repeated effects preserve their first timestamp. Invalid configuration or an existing foreign-World target rejects without writes; deleted targets are ignored. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
          */
         post: operations["answerLearnerNpcDialogue"];
         delete?: never;
@@ -8739,6 +8739,21 @@ export interface components {
             /** Format: uuid */
             current_node_id: string;
             history: string[];
+        };
+        LearnerNpcDialogueAnswerProgress: {
+            /** Format: uuid */
+            answer_key: string;
+            /** Format: uuid */
+            answer_node_id: string;
+            feedback: string | null;
+            is_correct: boolean;
+        };
+        LearnerNpcDialogueAnswerResult: {
+            granted_tool: components["schemas"]["LearnerTool"] | null;
+            /** Format: uuid */
+            current_node_id: string;
+            history: string[];
+            answer: components["schemas"]["LearnerNpcDialogueAnswerProgress"];
         };
         LearnerNpcDialogueAnswerRequest: {
             /** Format: uuid */
@@ -34029,7 +34044,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LearnerNpcDialogueState"];
+                    "application/json": components["schemas"]["LearnerNpcDialogueAnswerResult"];
                 };
             };
             /** @description Authentication is required. */

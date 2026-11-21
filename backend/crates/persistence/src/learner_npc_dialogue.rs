@@ -6,7 +6,7 @@ use wicked_learning_application::learner_npc_dialogue::{
 };
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
-    learner_state::{LearnerNpcDialogueState, LearnerTool},
+    learner_state::{LearnerNpcDialogueAnswerResult, LearnerNpcDialogueState, LearnerTool},
 };
 
 use crate::learner_node_availability::PostgresLearnerNodeAvailability;
@@ -29,6 +29,7 @@ struct CurrentDialogueRow {
     node_title: String,
     principal_id: Uuid,
     node_id: Uuid,
+    world_id: Uuid,
     node_state: String,
     node_visual_config: Value,
 }
@@ -91,7 +92,7 @@ impl LearnerNpcDialogueRepositoryPort for PostgresLearnerNpcDialogueRepository<'
         activity_slug: &str,
         answer_node_id: Uuid,
     ) -> impl std::future::Future<
-        Output = Result<Option<LearnerNpcDialogueState>, LearnerNpcDialogueError>,
+        Output = Result<Option<LearnerNpcDialogueAnswerResult>, LearnerNpcDialogueError>,
     > + Send {
         async move {
             answer_current_dialogue(
@@ -215,7 +216,7 @@ async fn answer_current_dialogue(
     play_run_id: Uuid,
     activity_slug: &str,
     answer_node_id: Uuid,
-) -> Result<Option<LearnerNpcDialogueState>, sqlx::Error> {
+) -> Result<Option<LearnerNpcDialogueAnswerResult>, sqlx::Error> {
     let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
         return Ok(None);
     };
@@ -229,12 +230,12 @@ async fn answer_current_dialogue(
     )
     .await?
     else {
-        transaction.commit().await?;
+        transaction.rollback().await?;
         return Ok(None);
     };
     let Some(state) = ensure_state_for_update(&mut transaction, &current, play_run_id).await?
     else {
-        transaction.commit().await?;
+        transaction.rollback().await?;
         return Ok(None);
     };
     if node_type(&mut transaction, current.activity_id, state.current_node_id)
@@ -242,7 +243,7 @@ async fn answer_current_dialogue(
         .as_deref()
         != Some("npc_question")
     {
-        transaction.commit().await?;
+        transaction.rollback().await?;
         return Ok(None);
     }
     let is_authored_answer = sqlx::query_scalar::<_, bool>(
@@ -254,9 +255,25 @@ async fn answer_current_dialogue(
     .fetch_one(&mut *transaction)
     .await?;
     if !is_authored_answer {
-        transaction.commit().await?;
+        transaction.rollback().await?;
         return Ok(None);
     }
+    let Some(answer) = crate::learner_npc_answer::record_answer(
+        &mut transaction,
+        crate::learner_npc_answer::AnswerContext {
+            principal_id: current.principal_id,
+            play_run_id,
+            activity_id: current.activity_id,
+            question_node_id: state.current_node_id,
+            answer_node_id,
+            world_id: current.world_id,
+        },
+    )
+    .await?
+    else {
+        transaction.rollback().await?;
+        return Ok(None);
+    };
     // The source player resets its back stack after choosing an answer so a
     // learner cannot reopen a resolved question through browser-local state.
     let next = advance_state(
@@ -269,7 +286,10 @@ async fn answer_current_dialogue(
     )
     .await?;
     transaction.commit().await?;
-    Ok(Some(next))
+    Ok(Some(LearnerNpcDialogueAnswerResult {
+        state: next,
+        answer,
+    }))
 }
 
 async fn go_back_in_current_dialogue(
@@ -450,7 +470,7 @@ async fn load_current_dialogue_for_update(
     availability: &PostgresLearnerNodeAvailability,
 ) -> Result<Option<CurrentDialogueRow>, sqlx::Error> {
     let route_run = sqlx::query_as::<_, CurrentDialogueRow>(
-        "SELECT activities.id AS activity_id, progress.activity_start_id, activities.title AS activity_title, nodes.title AS node_title, progress.principal_id, nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'npc_dialogue' AND nodes.id = progress.node_id AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+        "SELECT activities.id AS activity_id, progress.activity_start_id, activities.title AS activity_title, nodes.title AS node_title, progress.principal_id, nodes.id AS node_id, maps.world_id AS world_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'npc_dialogue' AND nodes.id = progress.node_id AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
@@ -472,7 +492,7 @@ async fn load_current_dialogue_for_update(
     }
 
     let replay = sqlx::query_as::<_, CurrentDialogueRow>(
-        "SELECT activities.id AS activity_id, NULL::uuid AS activity_start_id, activities.title AS activity_title, nodes.title AS node_title, runs.principal_id, nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'npc_dialogue' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
+        "SELECT activities.id AS activity_id, NULL::uuid AS activity_start_id, activities.title AS activity_title, nodes.title AS node_title, runs.principal_id, nodes.id AS node_id, maps.world_id AS world_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'npc_dialogue' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
