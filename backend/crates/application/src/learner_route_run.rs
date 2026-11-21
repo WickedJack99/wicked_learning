@@ -17,12 +17,14 @@ pub trait LearnerRouteRunRepository {
         &self,
         principal: &AuthorizedPrincipal,
         start_id: Uuid,
+        expected_node_id: Option<Uuid>,
     ) -> impl Future<Output = Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError>> + Send;
 
     fn reset(
         &self,
         principal: &AuthorizedPrincipal,
         start_id: Uuid,
+        expected_node_id: Option<Uuid>,
     ) -> impl Future<Output = Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError>> + Send;
 }
 
@@ -42,16 +44,22 @@ where
         &self,
         principal: &AuthorizedPrincipal,
         start_id: Uuid,
+        expected_node_id: Option<Uuid>,
     ) -> Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError> {
-        self.repository.start_or_resume(principal, start_id).await
+        self.repository
+            .start_or_resume(principal, start_id, expected_node_id)
+            .await
     }
 
     pub async fn reset(
         &self,
         principal: &AuthorizedPrincipal,
         start_id: Uuid,
+        expected_node_id: Option<Uuid>,
     ) -> Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError> {
-        self.repository.reset(principal, start_id).await
+        self.repository
+            .reset(principal, start_id, expected_node_id)
+            .await
     }
 }
 
@@ -73,6 +81,7 @@ mod tests {
             &self,
             _principal: &AuthorizedPrincipal,
             _start_id: Uuid,
+            _expected_node_id: Option<Uuid>,
         ) -> impl Future<Output = Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError>> + Send
         {
             async { Ok(None) }
@@ -82,6 +91,7 @@ mod tests {
             &self,
             _principal: &AuthorizedPrincipal,
             _start_id: Uuid,
+            _expected_node_id: Option<Uuid>,
         ) -> impl Future<Output = Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError>> + Send
         {
             async { Ok(None) }
@@ -97,7 +107,7 @@ mod tests {
         };
 
         let result = LearnerRouteRunCommand::new(&AbsentRepository)
-            .start_or_resume(&principal, Uuid::new_v4())
+            .start_or_resume(&principal, Uuid::new_v4(), None)
             .await;
 
         assert!(matches!(result, Ok(None)));

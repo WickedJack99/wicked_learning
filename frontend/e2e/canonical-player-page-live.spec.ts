@@ -39,7 +39,23 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                 INSERT INTO learning_activity_transitions(from_activity_id,to_activity_id,trigger,from_connector) SELECT id,NULL,'completed','completed' FROM learning_activities WHERE id='${second}'`);
             const pages: Page[] = [];
             for (const [index, owner] of owners.entries()) {
+                if (!failure) {
+                    const invalidEntry = await owner.request.post(`/api/v1/learner/activity-starts/${start}/start?node_id=${randomUUID()}`, { headers: await headersFor(owner) });
+                    expect(invalidEntry.status()).toBe(404);
+                    expect(sql(`SELECT count(*) FROM learner_route_progress WHERE principal_id='${principals[index]}' AND activity_start_id='${start}'`).trim()).toBe('0');
+                }
                 const opened = await owner.request.post(`/api/v1/learner/activity-starts/${start}/start`, { headers: await headersFor(owner) }); expect(opened.status()).toBe(200); runs.push(uuid((await opened.json()).play_run_id));
+                if (!failure) {
+                    const progress = () => sql(`SELECT row_to_json(progress)::text FROM learner_route_progress AS progress WHERE principal_id='${principals[index]}' AND activity_start_id='${start}'`).trim();
+                    const before = progress();
+                    for (const command of ['start', 'reset']) {
+                        for (const [query, status] of [[`node_id=${randomUUID()}`, 404], ['node_id=invalid', 400], [`node_id=${node.node_id}&node_id=${node.node_id}`, 400], [`node_id=${node.node_id}&principal_id=${principals[index]}`, 400]] as const) {
+                            expect((await owner.request.post(`/api/v1/learner/activity-starts/${start}/${command}?${query}`, { headers: await headersFor(owner) })).status()).toBe(status);
+                        }
+                        expect((await owner.request.post(`/api/v1/learner/activity-starts/${start}/${command}?node_id=${node.node_id}`)).status()).toBe(403);
+                    }
+                    expect(progress()).toBe(before);
+                }
                 const page = await owner.newPage(); pages.push(page);
                 await page.addInitScript((original) => { window.name = original ? 'pinned-main' : 'canonical'; }, Boolean(index));
                 page.on('pageerror', (error) => errors.push(error.message));
@@ -59,16 +75,32 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                     }
                     expect(mutations).toEqual([]);
                     page.off('request', recordMutation);
+                    await page.goto(`http://localhost:8084/learning/nodes/${randomUUID()}/play?route=${start}`);
+                    await expect(page.getByText('The player entry is currently unavailable.', { exact: true })).toBeVisible();
+                    expect(sql(`SELECT current_play_run_id FROM learner_route_progress WHERE principal_id='${principals[index]}' AND activity_start_id='${start}'`).trim()).toBe(runs[index]);
                 }
-                await page.goto(`http://localhost:8084/learning/nodes/${node.node_id}/play?route=${start}&run=${runs[index]}`);
+                await page.goto(`http://localhost:8084/learning/nodes/${node.node_id}/play?route=${start}${failure ? `&run=${runs[index]}` : ''}`);
                 await expect(page.getByText('First source step', { exact: true })).toBeVisible();
+                expect(new URL(page.url()).searchParams.get('run')).toBe(runs[index]);
                 await expect.poll(() => sql(`SELECT status FROM learner_activity_progress WHERE principal_id='${principals[index]}' AND activity_id='${first}'`).trim()).toBe('reached');
                 await page.getByRole('button', { name: 'Bookmark this place', exact: true }).click();
                 await expect(page.getByRole('button', { name: 'Remove place bookmark', exact: true })).toHaveAttribute('aria-pressed', 'true');
                 await page.reload(); await expect(page.getByRole('button', { name: 'Remove place bookmark', exact: true })).toBeVisible();
                 await page.getByText('Other routes', { exact: true }).click();
-                await expect(page.getByRole('link').filter({ hasText: 'Alternative route' })).toHaveAttribute('href', `/learning/nodes/${node.node_id}/play?route=${alternative}`);
+                const alternativeLink = page.getByRole('link').filter({ hasText: 'Alternative route' });
+                await expect(alternativeLink).toHaveAttribute('href', `/learning/nodes/${node.node_id}/play?route=${alternative}`);
+                await alternativeLink.click();
+                await expect(page.getByText('Second source step', { exact: true })).toBeVisible();
+                const alternativeRun = uuid(new URL(page.url()).searchParams.get('run')!);
+                expect(alternativeRun).not.toBe(runs[index]);
+                expect(new URL(page.url()).searchParams.get('route')).toBe(alternative);
+                expect(sql(`SELECT current_play_run_id FROM learner_route_progress WHERE principal_id='${principals[index]}' AND activity_start_id='${alternative}'`).trim()).toBe(alternativeRun);
+                await page.reload(); await expect(page.getByText('Second source step', { exact: true })).toBeVisible();
+                expect(new URL(page.url()).searchParams.get('run')).toBe(alternativeRun);
                 await page.getByText('Other routes', { exact: true }).click();
+                await page.getByRole('link').filter({ hasText: 'Primary route' }).click();
+                await expect(page.getByText('First source step', { exact: true })).toBeVisible();
+                expect(new URL(page.url()).searchParams.get('run')).toBe(runs[index]);
                 await bounded(page.getByRole('button', { name: 'Move to second', exact: true }), viewport);
                 await page.getByRole('button', { name: 'From beginning', exact: true }).click();
                 await expect.poll(() => new URL(page.url()).searchParams.get('run')).not.toBe(runs[index]);

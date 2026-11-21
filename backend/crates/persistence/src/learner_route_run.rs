@@ -45,11 +45,12 @@ impl LearnerRouteRunRepositoryPort for PostgresLearnerRouteRunRepository<'_> {
         &self,
         principal: &AuthorizedPrincipal,
         start_id: Uuid,
+        expected_node_id: Option<Uuid>,
     ) -> impl std::future::Future<
         Output = Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError>,
     > + Send {
         async move {
-            start_or_resume(self.pool, principal, start_id)
+            start_or_resume(self.pool, principal, start_id, expected_node_id)
                 .await
                 .map_err(|error| {
                     tracing::error!(%error, "could not start or resume learner route run");
@@ -62,11 +63,12 @@ impl LearnerRouteRunRepositoryPort for PostgresLearnerRouteRunRepository<'_> {
         &self,
         principal: &AuthorizedPrincipal,
         start_id: Uuid,
+        expected_node_id: Option<Uuid>,
     ) -> impl std::future::Future<
         Output = Result<Option<LearnerRouteRun>, LearnerRouteRunCommandError>,
     > + Send {
         async move {
-            reset(self.pool, principal, start_id)
+            reset(self.pool, principal, start_id, expected_node_id)
                 .await
                 .map_err(|error| {
                     tracing::error!(%error, "could not reset learner route run");
@@ -101,13 +103,20 @@ async fn start_or_resume(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
     start_id: Uuid,
+    expected_node_id: Option<Uuid>,
 ) -> Result<Option<LearnerRouteRun>, sqlx::Error> {
     let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
         return Ok(None);
     };
     let mut transaction = pool.begin().await?;
-    let Some((principal_id, start)) =
-        resolve_visible_start(&mut transaction, principal, &availability, start_id).await?
+    let Some((principal_id, start)) = resolve_visible_start(
+        &mut transaction,
+        principal,
+        &availability,
+        start_id,
+        expected_node_id,
+    )
+    .await?
     else {
         transaction.commit().await?;
         return Ok(None);
@@ -185,13 +194,20 @@ async fn reset(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
     start_id: Uuid,
+    expected_node_id: Option<Uuid>,
 ) -> Result<Option<LearnerRouteRun>, sqlx::Error> {
     let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
         return Ok(None);
     };
     let mut transaction = pool.begin().await?;
-    let Some((principal_id, start)) =
-        resolve_visible_start(&mut transaction, principal, &availability, start_id).await?
+    let Some((principal_id, start)) = resolve_visible_start(
+        &mut transaction,
+        principal,
+        &availability,
+        start_id,
+        expected_node_id,
+    )
+    .await?
     else {
         transaction.commit().await?;
         return Ok(None);
@@ -246,6 +262,7 @@ async fn resolve_visible_start(
     principal: &AuthorizedPrincipal,
     availability: &PostgresLearnerNodeAvailability,
     start_id: Uuid,
+    expected_node_id: Option<Uuid>,
 ) -> Result<Option<(Uuid, StartRow)>, sqlx::Error> {
     let principal_id = sqlx::query_scalar::<_, Uuid>(
         "SELECT id FROM application_principals WHERE identity_subject_id = $1",
@@ -257,11 +274,12 @@ async fn resolve_visible_start(
         return Ok(None);
     };
     let start = sqlx::query_as::<_, StartRow>(
-        "SELECT activities.id AS activity_id, activities.slug AS activity_slug, nodes.id AS node_id, nodes.slug AS node_slug, nodes.state AS node_state, nodes.visual_config AS node_visual_config, routes.id AS route_id, routes.slug AS route_slug, starts.id AS start_id FROM learning_activity_starts AS starts INNER JOIN learning_activities AS activities ON activities.id = starts.activity_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE starts.id = $1 AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = ANY($2) AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
+        "SELECT activities.id AS activity_id, activities.slug AS activity_slug, nodes.id AS node_id, nodes.slug AS node_slug, nodes.state AS node_state, nodes.visual_config AS node_visual_config, routes.id AS route_id, routes.slug AS route_slug, starts.id AS start_id FROM learning_activity_starts AS starts INNER JOIN learning_activities AS activities ON activities.id = starts.activity_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE starts.id = $1 AND ($4::uuid IS NULL OR nodes.id = $4) AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND activities.activity_type = ANY($2) AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($3)))",
     )
     .bind(start_id)
     .bind(ROUTE_START_ACTIVITY_TYPES)
     .bind(&principal.roles)
+    .bind(expected_node_id)
     .fetch_optional(&mut **transaction)
     .await?;
 

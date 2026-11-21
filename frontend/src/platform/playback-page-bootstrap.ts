@@ -16,9 +16,9 @@ type Props = ReturnType<typeof toPlaybackPageProps> & ReturnType<typeof toLearne
 };
 type State = { kind: 'loading' } | { kind: 'unavailable'; message: string } | { kind: 'ready'; props: Props };
 
-/** A real run bootstrap for the whole copied page. Entry without a run, public
- * playback and the production resolver remain closed until their own gates. */
-export function usePlaybackPageDocument(run: string, node: string, start: string | null) {
+/** A real run bootstrap for the whole copied page. An explicit source route
+ * can start/resume only inside its URL node; no default route is fabricated. */
+export function usePlaybackPageDocument(run: string | null, node: string, start: string | null) {
     const [state, setState] = useState<State>({ kind: 'loading' });
     useEffect(() => {
         let alive = true; let release: (() => void) | undefined;
@@ -26,11 +26,23 @@ export function usePlaybackPageDocument(run: string, node: string, start: string
         let companionController: AbortController | undefined;
         setState({ kind: 'loading' });
         void (async () => {
-            playbackIdentity(run);
             playbackIdentity(node);
             if (start !== null) playbackIdentity(start);
+            let activeRun = run;
+            if (activeRun === null) {
+                if (start === null) throw new JsonRequestError('The player entry is currently unavailable.', 501);
+                const entered = await apiClient.POST('/learner/activity-starts/{start_id}/start', {
+                    signal,
+                    params: { path: { start_id: start }, query: { node_id: node }, header: { 'X-CSRF-Token': await getCsrfToken() } },
+                });
+                if (!entered.response.ok || !entered.data || entered.data.start_id !== start) {
+                    throw new JsonRequestError('The player entry is currently unavailable.', entered.response.status);
+                }
+                activeRun = entered.data.play_run_id;
+            }
+            playbackIdentity(activeRun);
             const [playback, currentUser, shell, translations, sound] = await Promise.all([
-                apiClient.GET('/learner/play-runs/{play_run_id}', { signal, params: { path: { play_run_id: run } } }),
+                apiClient.GET('/learner/play-runs/{play_run_id}', { signal, params: { path: { play_run_id: activeRun } } }),
                 apiClient.GET('/me', { signal }), apiClient.GET('/learner/shell', { signal }),
                 apiClient.GET('/learner/platform-translations', { signal }), apiClient.GET('/learner/sound-preferences', { signal }),
             ]);
@@ -40,13 +52,13 @@ export function usePlaybackPageDocument(run: string, node: string, start: string
                 throw new JsonRequestError('The player is currently unavailable.', 503);
             }
             const document = playback.data;
-            if (document.play_run_id !== run || document.node.id !== node || (start !== null && document.start_id !== start)) {
+            if (document.play_run_id !== activeRun || document.node.id !== node || (start !== null && document.start_id !== start)) {
                 throw new JsonRequestError('The player context is unavailable.', 503);
             }
             const page = toPlaybackPageProps(document);
             const companionFor = async (activity: string, signal: AbortSignal) => {
                 const companion = await loadCompanion({ surface: 'activity', activity_id: activity }, signal);
-                if (companion && (companion.context.activity?.id !== activity || companion.context.playRunId !== run)) {
+                if (companion && (companion.context.activity?.id !== activity || companion.context.playRunId !== activeRun)) {
                     throw new JsonRequestError('The Companion does not match this player.', 503);
                 }
                 return companion;

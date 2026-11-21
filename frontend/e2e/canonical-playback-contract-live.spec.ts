@@ -290,6 +290,9 @@ for (const kind of ['route', 'message', 'portal', 'revisit', 'recall', 'replay']
                 const persistedProgress = JSON.parse(localSql(`SELECT COALESCE(json_agg(p)->0,'null'::json) FROM (SELECT activity_id,status,to_char(completed_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS completed_at FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${activityId}') p`).trim());
                 expect(receipt.activity_state.progress).toEqual(persistedProgress);
                 if (kind === 'recall') expect(receipt.activity_state.progress).toBeNull();
+                if (kind === 'portal') {
+                    expect(localSql(`SELECT count(*) FROM learner_portal_arrival_runs WHERE id='${runId}' AND principal_id='${principal}' AND target_activity_id='${activityId}' AND status='completed' AND completed_at IS NOT NULL`).trim()).toBe('1');
+                }
                 expect((await owner.request.post(`${activityPath}/complete`, { headers: ownerHeaders, data: {} })).status()).toBe(404);
             }
             expect((await owner.request.get(path)).status()).toBe(404);

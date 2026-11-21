@@ -1658,7 +1658,7 @@ children and transport adapters; do not build another player presentation.
 
 | Source boundary | Existing Rust mapping | Required integration / incomplete rule |
 | --- | --- | --- |
-| Initial page and private state | `GET /learner/play-runs/{run}`, existing `toPlaybackPageProps`, current user, shell, platform translations, sound preferences and Companion | Bind the actual document for the whole copied page and layout. Initial missing/dead run is unavailable; do not fabricate initial activity, shell or progress. Entry without a run and anonymous read remain separate required entry contracts. |
+| Initial page and private state | `GET /learner/play-runs/{run}`, existing `toPlaybackPageProps`, current user, shell, platform translations, sound preferences and Companion | Bind the actual document for the whole copied page and layout. Initial missing/dead run is unavailable; do not fabricate initial activity, shell or progress. Explicit route entry is covered below; entry without both run and route, and anonymous read, remain required contracts. |
 | Active activity reached, then translation | `POST .../activities/{id:UUID}/reach`, `GET .../translation` | Source `status: reached` selects only this typed entry command. Source translation handling retains original copy on unavailable/stale reads. |
 | Completion and local continuation | Existing typed `/complete`, actual activity-state/next-target receipt and child-specific completion adapters | Parent must reuse real completion receipts, including completed terminal runs; browser outcome/attempt/calibration cannot overwrite evaluated Rust facts. Output-portal travel is an atomic native command, not ordinary completion. |
 | Optional check-in | `POST .../check-ins`, existing state receipt | Bind the run from the exact active page because the source request has no run field. Preserve skip/hide/draft/error behavior. Current native writer only resolves ordinary runs; replay/revisit/arrival require a source-derived contract repair before acceptance. |
@@ -1690,9 +1690,9 @@ Rust/PostgreSQL journey covers reached state, bookmark and refresh, restart,
 completion, hide/show check-in, retained private notes after an actual 404,
 retry, local next-activity movement without document reload, skipped check-in
 and terminal World navigation. Missing runs and mismatched URL node/start
-identities render unavailable without issuing writes. The alternative-route
-link's UUID and source URL are checked, but clicking/entry without a run is
-still incomplete and is not claimed by this test.
+identities render unavailable without issuing writes. The subsequent scoped
+entry integration below extends this test to click alternative routes and
+start/resume them from the exact source URL without a run parameter.
 
 **Open source usability defect:** at 390×844, the pinned full-page `Player
 actions` floating toolbar covers the center of both the transition and terminal
@@ -1705,8 +1705,8 @@ the same toolbar also obscures part of the inline error. Bounded geometry
 therefore does not establish unobstructed visibility. The
 canonical source is unchanged. Production player activation remains closed.
 
-Remaining whole-page gates include scoped entry/start/resume without a run,
-alternative-route navigation, anonymous playback, nonordinary check-ins,
+Remaining whole-page gates include entry without both run and route,
+anonymous playback, nonordinary check-ins,
 atomic output-portal travel, Recall's accepted-contract conflict, and explicit
 Companion reload failure/recovery without losing local draft state. The
 evidence host is not a production resolver or a claim that the route family
@@ -1720,6 +1720,62 @@ The 42 existing response, NPC and Markdown browser checks also passed
 types/build and generated OpenAPI drift passed; 182 API tests passed (two
 opt-in tests ignored), alongside 26 persistence playback and three application
 playback tests. This slice changes no Rust contract or production routing.
+
+### Scoped copied player route entry
+
+Pinned `LearningWorldController::{play,routeFromRequest}` resolves an explicit
+route under the URL node before starting/resuming it, then redirects using the
+actual run. Copied `node-play.tsx` alternative links omit `run`. Existing native
+`POST /learner/activity-starts/{start_id}/{start,reset}` authorizes the start but
+has no node-context predicate. Do not fetch the entire World just to validate
+one link, or start a different node's route before detecting the mismatch.
+Extend those existing commands with an optional typed `node_id` query guard,
+checked inside the write transaction before any progress change. Old callers
+remain compatible; copied page entry/reset always supplies its actual node.
+After start/resume, read the authorized run and construct the same source URL
+from its real node/start/activity IDs. Explicit run reads still validate the
+URL context. Entry without either a run or an explicit route, anonymous entry,
+and other run kinds remain open acceptance work.
+
+**Implemented:** the optional UUID guard is part of both existing OpenAPI
+commands and is enforced in the indexed start-resolution query inside the
+transaction. It adds no query, World snapshot read, table or fabricated node
+projection. Unknown, duplicate or malformed query fields return 400; a
+different node returns 404 before creating, resuming or resetting progress.
+Omitting the guard preserves existing native callers. The copied page loader
+now starts/resumes an explicit route with its URL node, reads the actual run,
+and lets the source replace its own URL. Reset sends the same node guard.
+The evidence router remounts only for an actual route navigation; local
+activity history replacement still retains check-in state.
+
+The native regression first reproduced an incorrect 200 for a mismatched
+node. The extended whole-page test then verified real alternative-link clicks,
+a new alternative run, refresh, return to the unchanged original run, and
+restart at both viewports in both source trees. It also checks malformed and
+duplicated query fields, unknown principal fields, missing CSRF, and unchanged
+stored progress after rejected start/resume/reset requests. A failed page
+entry is explicitly unavailable and cannot change the existing run.
+
+The broad native regression also exposed a pre-existing portal-arrival 503:
+its SQL still decoded the shared `CurrentActivityRow` after Markdown work had
+added required node-availability fields to that row. Portal completion uses
+only activity/principal IDs. A dedicated `PortalArrivalCompletionRow` now
+matches that query and preserves its existing authorization and transaction.
+The live contract check additionally asserts the completed arrival record,
+timestamp and owner alongside the persisted progress receipt. This repairs
+native arrival completion; output-portal travel and whole-page portal
+integration remain separate gates.
+
+**Verified:** four extended whole-page source/copy journeys passed at both
+viewports (44.9 seconds; ignored `frontend/playwright-report/player-entry-verified/`).
+All 20 native playback/reference regressions passed after the portal repair
+(42.0 seconds; `player-entry-contracts-final/`). Canonical identity, frontend
+production types/build, generated-client drift and Rust workspace check/format
+passed. Rust verification passed 183 API tests (two opt-in ignored), 129
+persistence tests (six opt-in ignored), the route-command application test,
+and 26 focused playback persistence tests after the portal repair. Local
+Compose was rebuilt and readiness returned 200. There is no migration or
+production route activation in this slice.
 
 ### Copied player page-prop adapter
 

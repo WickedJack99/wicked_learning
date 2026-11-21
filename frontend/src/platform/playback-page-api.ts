@@ -102,7 +102,7 @@ export async function playbackPageWrite(method: 'POST' | 'DELETE', url: string, 
         const start = playbackIdentity(restart[1]);
         const page = uniquePage((document) => document.start_id === start);
         const result = successful(await apiClient.POST('/learner/activity-starts/{start_id}/reset', {
-            params: { path: { start_id: start }, header: { 'X-CSRF-Token': await getCsrfToken() } },
+            params: { path: { start_id: start }, query: { node_id: page.document.node.id }, header: { 'X-CSRF-Token': await getCsrfToken() } },
         }));
         const next = successful(await apiClient.GET('/learner/play-runs/{play_run_id}', { params: { path: { play_run_id: result.play_run_id } } }));
         if (next.node.id !== page.document.node.id || next.start_id !== start || next.play_run_id !== result.play_run_id) return unavailable(503);

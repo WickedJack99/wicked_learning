@@ -1,9 +1,10 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::HeaderMap,
 };
 use axum_login::AuthSession;
+use serde::Deserialize;
 use uuid::Uuid;
 use wicked_learning_application::{
     current_user::CurrentUserQuery, learner_route_run::LearnerRouteRunCommand,
@@ -16,9 +17,16 @@ use wicked_learning_persistence::{
 
 use crate::{AppState, csrf, error::ApiError, identity::IdentityBackend};
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RouteNodeContext {
+    node_id: Option<Uuid>,
+}
+
 pub async fn start_or_resume(
     State(state): State<AppState>,
     Path(start_id): Path<String>,
+    Query(context): Query<RouteNodeContext>,
     headers: HeaderMap,
     csrf_token: axum_csrf::CsrfToken,
     auth_session: AuthSession<IdentityBackend>,
@@ -29,7 +37,7 @@ pub async fn start_or_resume(
     let repository = PostgresLearnerRouteRunRepository::new(&state.application_database);
 
     LearnerRouteRunCommand::new(&repository)
-        .start_or_resume(&principal, start_id)
+        .start_or_resume(&principal, start_id, context.node_id)
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)
@@ -39,6 +47,7 @@ pub async fn start_or_resume(
 pub async fn reset(
     State(state): State<AppState>,
     Path(start_id): Path<String>,
+    Query(context): Query<RouteNodeContext>,
     headers: HeaderMap,
     csrf_token: axum_csrf::CsrfToken,
     auth_session: AuthSession<IdentityBackend>,
@@ -49,7 +58,7 @@ pub async fn reset(
     let repository = PostgresLearnerRouteRunRepository::new(&state.application_database);
 
     LearnerRouteRunCommand::new(&repository)
-        .reset(&principal, start_id)
+        .reset(&principal, start_id, context.node_id)
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)
@@ -71,4 +80,37 @@ pub(crate) async fn authenticated_principal(
         .map_err(|_| ApiError::service_unavailable())?
         .map(|current_user| current_user.principal)
         .ok_or_else(ApiError::forbidden)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RouteNodeContext;
+    use axum::{extract::Query, http::Uri};
+    use uuid::Uuid;
+
+    #[test]
+    fn route_node_context_is_optional_but_rejects_ambiguous_or_malformed_queries() {
+        let node = Uuid::new_v4();
+        for (query, expected) in [
+            (String::new(), None),
+            (format!("?node_id={node}"), Some(node)),
+        ] {
+            let uri: Uri = format!("/start{query}").parse().unwrap();
+            assert_eq!(
+                Query::<RouteNodeContext>::try_from_uri(&uri)
+                    .unwrap()
+                    .node_id,
+                expected
+            );
+        }
+        for query in [
+            "?node_id=not-a-uuid".to_owned(),
+            "?node_id=".to_owned(),
+            format!("?node_id={node}&node_id={node}"),
+            format!("?node_id={node}&principal_id={node}"),
+        ] {
+            let uri: Uri = format!("/start{query}").parse().unwrap();
+            assert!(Query::<RouteNodeContext>::try_from_uri(&uri).is_err());
+        }
+    }
 }

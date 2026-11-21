@@ -7746,8 +7746,10 @@ paths:
       summary: Start a new server-owned play run or resume the active run for an authorized activity start.
       parameters:
         - $ref: '#/components/parameters/ActivityStartId'
+        - $ref: '#/components/parameters/LearnerRouteNodeContext'
         - $ref: '#/components/parameters/CsrfTokenHeader'
       responses:
+        '400': { description: The node context is malformed, duplicated, or an unknown query parameter was supplied. }
         '200':
           description: The server-authorized run to use for playback.
           content:
@@ -7767,7 +7769,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '404':
-          description: The start is unpublished, not visible to this learner, or does not exist.
+          description: The start is unpublished, not visible to this learner, does not exist, or belongs to a different node than the supplied context. No route progress is changed.
           content:
             application/json:
               schema:
@@ -7784,8 +7786,10 @@ paths:
       summary: Discard the active in-progress state and create a new server-owned play run for an authorized activity start.
       parameters:
         - $ref: '#/components/parameters/ActivityStartId'
+        - $ref: '#/components/parameters/LearnerRouteNodeContext'
         - $ref: '#/components/parameters/CsrfTokenHeader'
       responses:
+        '400': { description: The node context is malformed, duplicated, or an unknown query parameter was supplied. }
         '200':
           description: The replacement server-authorized run to use for playback.
           content:
@@ -7805,7 +7809,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '404':
-          description: The start is unpublished, not visible to this learner, or does not exist.
+          description: The start is unpublished, not visible to this learner, does not exist, or belongs to a different node than the supplied context. No route progress is changed.
           content:
             application/json:
               schema:
@@ -8139,6 +8143,12 @@ components:
       schema:
         type: string
         format: uuid
+    LearnerRouteNodeContext:
+      name: node_id
+      in: query
+      required: false
+      description: If supplied, the start must belong to this source URL node. Checked before any route start, resume or reset write.
+      schema: { type: string, format: uuid }
     LearnerJournalPageId:
       name: page_id
       in: path

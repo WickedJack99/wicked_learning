@@ -12617,6 +12617,8 @@ export interface components {
         /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
         CsrfTokenHeader: string;
         ActivityStartId: string;
+        /** @description If supplied, the start must belong to this source URL node. Checked before any route start, resume or reset write. */
+        LearnerRouteNodeContext: string;
         LearnerJournalPageId: string;
         LearnerGroupId: string;
         OrganizationSlug: string;
@@ -35110,7 +35112,10 @@ export interface operations {
     };
     startLearnerRoute: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description If supplied, the start must belong to this source URL node. Checked before any route start, resume or reset write. */
+                node_id?: components["parameters"]["LearnerRouteNodeContext"];
+            };
             header: {
                 /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
                 "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
@@ -35131,6 +35136,13 @@ export interface operations {
                     "application/json": components["schemas"]["LearnerRouteRun"];
                 };
             };
+            /** @description The node context is malformed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description The browser has no authenticated session. */
             401: {
                 headers: {
@@ -35149,7 +35161,7 @@ export interface operations {
                     "application/json": components["schemas"]["Problem"];
                 };
             };
-            /** @description The start is unpublished, not visible to this learner, or does not exist. */
+            /** @description The start is unpublished, not visible to this learner, does not exist, or belongs to a different node than the supplied context. No route progress is changed. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -35171,7 +35183,10 @@ export interface operations {
     };
     resetLearnerRoute: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description If supplied, the start must belong to this source URL node. Checked before any route start, resume or reset write. */
+                node_id?: components["parameters"]["LearnerRouteNodeContext"];
+            };
             header: {
                 /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
                 "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
@@ -35192,6 +35207,13 @@ export interface operations {
                     "application/json": components["schemas"]["LearnerRouteRun"];
                 };
             };
+            /** @description The node context is malformed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description The browser has no authenticated session. */
             401: {
                 headers: {
@@ -35210,7 +35232,7 @@ export interface operations {
                     "application/json": components["schemas"]["Problem"];
                 };
             };
-            /** @description The start is unpublished, not visible to this learner, or does not exist. */
+            /** @description The start is unpublished, not visible to this learner, does not exist, or belongs to a different node than the supplied context. No route progress is changed. */
             404: {
                 headers: {
                     [name: string]: unknown;

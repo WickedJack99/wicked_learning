@@ -2518,6 +2518,12 @@ async fn complete_current_message_activity(
 
 /// An arrival scene mirrors Laravel's direct target-portal view: it records
 /// the target activity but cannot advance, reset, or join an authored route.
+#[derive(FromRow)]
+struct PortalArrivalCompletionRow {
+    activity_id: Uuid,
+    principal_id: Uuid,
+}
+
 async fn complete_portal_arrival(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
@@ -2525,8 +2531,8 @@ async fn complete_portal_arrival(
     activity_slug: &str,
 ) -> Result<Option<LearnerPlaybackCompletionResult>, sqlx::Error> {
     let mut transaction = pool.begin().await?;
-    let current = sqlx::query_as::<_, CurrentActivityRow>(
-        "SELECT activities.activity_config, activities.id AS activity_id, activities.activity_type, FALSE AS is_recall, FALSE AS is_replay, FALSE AS is_revisit, runs.principal_id, routes.id AS route_id \
+    let current = sqlx::query_as::<_, PortalArrivalCompletionRow>(
+        "SELECT activities.id AS activity_id, runs.principal_id \
          FROM learner_portal_arrival_runs AS runs \
          INNER JOIN application_principals AS principals ON principals.id = runs.principal_id \
          INNER JOIN learning_activities AS activities ON activities.id = runs.target_activity_id \

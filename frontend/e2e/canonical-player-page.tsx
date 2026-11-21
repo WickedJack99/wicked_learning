@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router';
+import { BrowserRouter, useLocation } from 'react-router';
 import { useState } from 'react';
 import CopiedPage from '../canonical-source/resources/js/pages/learning/node-play';
 import MainPage from '../../resources/js/pages/learning/node-play';
@@ -16,7 +16,7 @@ import '../canonical-source/resources/css/app.css';
 const original = window.name === 'pinned-main';
 function Evidence() {
     const [entry] = useState(() => new URL(location.href));
-    const state = usePlaybackPageDocument(entry.searchParams.get('run')!, entry.pathname.split('/')[3], entry.searchParams.get('route'));
+    const state = usePlaybackPageDocument(entry.searchParams.get('run'), entry.pathname.split('/')[3], entry.searchParams.get('route'));
     if (state.kind === 'loading') return <Spinner />;
     if (state.kind === 'unavailable') return <AlertError errors={[state.message]} />;
     const Page = original ? MainPage : CopiedPage;
@@ -25,4 +25,10 @@ function Evidence() {
         <Layout><Page {...state.props as any} /></Layout>
     </SourcePageProjectionProvider>;
 }
-createRoot(document.getElementById('root')!).render(<BrowserRouter><Evidence /></BrowserRouter>);
+function RouteEvidence() {
+    // Real source links change the route; local activity history replacement
+    // must not remount the player and discard its check-in draft.
+    const location = useLocation();
+    return <Evidence key={location.key} />;
+}
+createRoot(document.getElementById('root')!).render(<BrowserRouter><RouteEvidence /></BrowserRouter>);
