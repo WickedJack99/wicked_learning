@@ -2183,9 +2183,9 @@ identity verification covers the copied frontend tree.
 | `assertCanPlay` before place, continue and tool use, including existing slots/clears | `learner_item_obstacle.rs`, `learner_obstacle_tool.rs`, existing `PostgresLearnerNodeAvailability` | Repaired: ordinary and replay writers evaluate the selected node before returning or changing private state. |
 | Whole inventory after an item drop | `/learner/play-runs/{run}/activities/{reference}/item-obstacle-slots/{index}` and `LearnerItemObstacleResult.inventory` | Repaired: sentinel read of 101 entries rejects an oversized inventory with 503 and rolls back the command, rather than silently returning only 100. |
 | Reached progress for item placement/unmet continuation and persistent useful tool clears; completed progress for met item continuation | Shared `mark_activity_reached`/`mark_activity_completed` in `learner_playback.rs`; private playback activity/state projection | Repaired in the same transaction, preserving first completion and preventing a reached event from downgrading earlier completion. Explicit completion still owns run advancement. |
-| Source item UUID drag/drop and configured slot identity | Existing actual catalog IDs in `playback-projection.ts`; command takes a verified catalog slug and slot index | Pending: narrowly replace numeric identity coercion, bind the actual run to the two source item commands, and map actual inventory/state through existing helpers. No generated numeric aliases. |
-| Source tool selection/use and retained clear | Actual shell tools, `use-obstacle-tool`, `LearnerObstacleToolResult`; copied tool store | Pending: map the selected owned UUID to its real catalog slug in the bound context, inject run identity, retain source animation, useful/unhelpful behavior and real completion receipt. |
-| Initial item/clear state, sound and media | `private_state.activities/item_obstacles/obstacle_resolutions`, configured catalog/sound projections, existing sound preferences and media contracts | Pending copied-control tests: refresh, lock/reset/persistent/non-persistent behavior, sounds and actual authorized bytes. The source does not consume `filledAt`; its omission from the native slot projection must not be replaced by an invented timestamp. |
+| Source item UUID drag/drop and configured slot identity | Existing actual catalog IDs in `playback-projection.ts`; command takes a verified catalog slug and slot index | Verified at the whole-control boundary below: guarded UUID identity/run seams and typed command responses reuse the existing inventory/state mappers. No generated numeric aliases. |
+| Source tool selection/use and retained clear | Actual shell tools, `use-obstacle-tool`, `LearnerObstacleToolResult`; copied tool store | Verified at the whole-control boundary below: resolve the selected owned UUID from the actual shell, bind the run, and retain useful/unhelpful behavior and actual completion receipts. |
+| Initial item/clear state, sound and media | `private_state.activities/item_obstacles/obstacle_resolutions`, configured catalog/sound projections, existing sound preferences and media contracts | Copied-control tests below cover refresh, lock/reset/persistent/non-persistent behavior, actual sound playback and static public asset bytes. Managed/protected media acceptance remains open. The source does not consume `filledAt`; its omission from the native slot projection must not be replaced by an invented timestamp. |
 
 **Verified native regressions:**
 `frontend/e2e/canonical-player-obstacle-contract-live.spec.ts` first reproduced
@@ -2219,6 +2219,72 @@ sample. A focused repeat passed at 8 ms (ignored report
 fixture timings are not a production performance claim.
 Rerun from `frontend/`: `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-obstacle-contract-live.spec.ts --reporter=line,html`,
 then `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-grant-contract-live.spec.ts e2e/canonical-playback-reference-live.spec.ts --reporter=line,html`.
+
+
+### Whole copied obstacle controls and source action bar
+
+`frontend/src/platform/playback-obstacle-api.ts` connects only the three exact
+same-origin source obstacle commands to the existing typed Rust client.
+`obstacle-source-transform.ts`, applied to the two exact canonical component
+paths by `frontend/vite.config.ts`, retains their whole JSX/styles and replaces
+only numeric catalog/sound identity coercion and missing play-run payloads.
+The copied tree remains byte-identical to the pin. Unknown URLs, malformed IDs,
+unbound runs, wrong activity types and unresolved catalog references fail;
+the adapter does not synthesize slots, holdings, useful-tool results or receipts.
+
+| Source operation | Rust mapping | Verification / remaining boundary |
+| --- | --- | --- |
+| Item drag from whole `AppSideActionBar` to configured obstacle slot | Actual source `DataTransfer` UUID → configured item slug; typed `POST /learner/play-runs/{run}/activities/id:{activity}/item-obstacle-slots/{index}` | Source item store receives the actual complete inventory and slot state; rejected/stale commands preserve quantities, retries and refresh consume only once. |
+| Item Continue | Typed `POST .../item-obstacle/continue`, then existing uncached `completePlaybackActivity` | Preserve native met/lock/reset state and actual completion/next-activity receipt. No guessed next activity or completion timestamp. |
+| Select/use an equipped tool | Actual shell-owned UUID → its slug; typed `POST .../use-obstacle-tool` | Native ownership/playability checks remain authoritative; whole source control retains unhelpful/useful feedback and persistent versus transient behavior. |
+| Existing persistent clear | Private native obstacle resolution → source `progress.obstacleCleared` | Source Continue emits movement without a completion callback. The test records this; owning-page reach/navigation integration remains required before full player acceptance. |
+| Source sounds and item images | Actual configured sound UUID, sound preferences and unchanged `sound-player.ts`; root public assets | Browser audio `play()` genuinely resolves, volume/loop match the configured effect, images decode, and delivered static bytes match public files. This does not prove protected/managed media authorization. |
+
+`frontend/e2e/canonical-player-obstacle-live.spec.ts` mounts whole pinned-main
+and canonical controls plus their whole `AppSideActionBar` on separate actual
+Rust learner/run fixtures. The reference tree shares only the documented typed
+transport/identity boundary; it is not an independent Laravel-server test.
+The evidence-only `/learning/obstacle-evidence` URL preserves the source action
+bar's actual path visibility check and refresh. The host observes component
+callbacks; it does not replace or claim the full NodePlay, check-in or Companion
+lifecycle. Fourteen cases cover ordinary items, reset-on-entry items, a locked
+item obstacle, persistent/transient tools, retained-clear revisit and stale-run
+tool failure/retry, each at 1440×900 and 390×844. Controls are checked for visible
+viewport bounds. Drag/drop uses the source inventory's real drag-start payload;
+physical touch dragging remains unverified.
+
+Forty-six source/canonical screenshot pairs are retained in ignored
+`frontend/playwright-report/player-obstacle-ui/`. Thirty-one pairs are
+pixel-identical; fifteen differ only along action-bar edges (at most 52 pixels,
+maximum RGB-channel difference 1/255). Main content text and bounds match;
+representative desktop and narrow renders were visually inspected. No source
+styles or focus behavior were changed to eliminate raster differences.
+
+**Open source defect:** `ObstacleActivity` uses `try/finally` without an error
+catch. A failed tool request releases pending state and allows retry but leaves
+an unhandled rejection and no inline error. Both whole source and copied control
+show this behavior. It is recorded, not waived; it cannot be counted as complete
+error acceptance. The full production NodePlay route remains explicitly
+unavailable while the remaining whole-page contracts/lifecycle are unfinished.
+
+The shared grant regression now introduces inventory overflow after mounting
+the real playback document: the repaired common inventory reader correctly
+returns 503 for an oversized initial document. The test separately verifies that
+read rejection and a later grant/inventory failure, then recovery from the
+persisted grant without duplicate holdings. A read-time rejection is not a
+successful partial player document.
+
+Verification: fourteen obstacle browser cases and fourteen existing grant/
+Shared Task cases pass, alongside canonical identity (299 files plus CSS),
+production frontend type/build, generated OpenAPI client consistency, Rust
+workspace fmt/check and 66 focused persistence tests (six existing ignored).
+The shared report is ignored `frontend/playwright-report/player-obstacle-shared-regression/`.
+The expired-session run failed with 401 before fixtures; local disposable
+sessions were renewed using the documented bootstrap before the passing rerun.
+
+Rerun from `frontend/` against local Rust and the 8084 learner-layout evidence
+server: `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-obstacle-live.spec.ts --reporter=line,html`,
+then `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-grant-live.spec.ts e2e/canonical-player-shared-live.spec.ts --reporter=line,html`.
 
 ## Status and purpose
 

@@ -48,10 +48,6 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                     if (scenario === 'failed-roll') sql(`INSERT INTO learner_item_grants (principal_id,activity_id,play_run_id,roll,chance_basis_points,success,granted_items) VALUES ('${principal}','${activity}','${runs[i]}',10000,1,false,'[]');
                         INSERT INTO learner_activity_progress (principal_id,activity_id,status,completed_at) VALUES ('${principal}','${activity}','completed',NOW())`);
                 }
-                if (scenario === 'inventory-unavailable') {
-                    for (let i = 0; i < 100; i++) extras.push(randomUUID());
-                    sql(extras.map((id) => `INSERT INTO learning_items (id,slug,title,config) VALUES ('${id}','extra-${id}','Inventory bound ${id}','{}'); ${principals.map((principal) => `INSERT INTO learner_item_holdings (principal_id,item_id,quantity) VALUES ('${principal}','${id}',1);`).join('')}`).join('\n'));
-                }
                 const pages = await Promise.all(contexts.map((context) => context.newPage()));
                 const errors: string[] = []; const legacy: string[] = []; const completions = [0, 0]; const grants = [0, 0];
                 for (const [i, page] of pages.entries()) {
@@ -76,6 +72,14 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
                 } else {
                     for (const page of pages) await expect(page.getByText('Keep this tool for later.', { exact: true })).toBeVisible();
                     await compare(pages, 'initial-tool', info);
+                }
+                // Overflow after the real document mounts: the shared native
+                // inventory reader now rejects oversized playback projections.
+                // Keep exercising a write-time inventory failure independently.
+                if (scenario === 'inventory-unavailable') {
+                    for (let i = 0; i < 100; i++) extras.push(randomUUID());
+                    sql(extras.map((id) => `INSERT INTO learning_items (id,slug,title,config) VALUES ('${id}','extra-${id}','Inventory bound ${id}','{}'); ${principals.map((principal) => `INSERT INTO learner_item_holdings (principal_id,item_id,quantity) VALUES ('${principal}','${id}',1);`).join('')}`).join('\n'));
+                    for (const [i, context] of contexts.entries()) expect((await context.request.get(`/api/v1/learner/play-runs/${runs[i]}`)).status()).toBe(503);
                 }
                 barriers.forEach((release) => release());
                 if (scenario === 'unconfigured-tool') {

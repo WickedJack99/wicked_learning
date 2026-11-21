@@ -3,13 +3,29 @@ import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import base from './journal-vite.config.ts';
 import { transformGrantSource } from '../src/platform/grant-source-transform.ts';
+import { transformObstacleSource } from '../src/platform/obstacle-source-transform.ts';
 
 const sourceRoot = resolve(import.meta.dirname, '../../resources/js');
 export default mergeConfig(base, defineConfig({ cacheDir: 'node_modules/.vite-learner-layout-source', plugins: [{
     name: 'whole-original-learner-layout-evidence',
     enforce: 'pre',
+    configureServer(server) {
+        server.middlewares.use((request, _response, next) => {
+            // Exact evidence-only URL lets the whole source action bar use its
+            // normal /learning/ visibility rule, including after refresh.
+            if (request.url?.split('?')[0] === '/learning/obstacle-evidence') {
+                request.url = request.url.replace('/learning/obstacle-evidence', '/e2e/canonical-player-obstacle.html');
+            }
+            next();
+        });
+    },
     transform(code, id) {
         if (!id.split('?')[0].startsWith(`${sourceRoot}/`)) return;
+        for (const [file, kind] of [['item-obstacle-activity.tsx', 'items'], ['obstacle-activity.tsx', 'tool']] as const) {
+            if (id.split('?')[0] === `${sourceRoot}/features/world/${file}`) {
+                code = transformObstacleSource(code, kind).replace("from './api'", "from '/src/platform/world-api.ts'");
+            }
+        }
         for (const [file, kind] of [['item-grant-activity.tsx', 'items'], ['tool-grant-activity.tsx', 'tool']] as const) {
             if (id.split('?')[0] === `${sourceRoot}/features/world/${file}`) {
                 // Whole-main reference uses the same documented UUID/transport

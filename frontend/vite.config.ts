@@ -3,12 +3,22 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { dirname, resolve } from 'node:path';
 import { transformGrantSource } from './src/platform/grant-source-transform.ts';
+import { transformObstacleSource } from './src/platform/obstacle-source-transform.ts';
 
 const canonicalWorldApi = resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/api');
 const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts');
 
 export default defineConfig({
     plugins: [
+        {
+            name: 'canonical-player-obstacle-seams',
+            enforce: 'pre',
+            transform(code, id) {
+                const path = id.split('?')[0];
+                if (path === resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/item-obstacle-activity.tsx')) return transformObstacleSource(code, 'items');
+                if (path === resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/obstacle-activity.tsx')) return transformObstacleSource(code, 'tool');
+            },
+        },
         {
             name: 'canonical-player-grant-seams',
             enforce: 'pre',
