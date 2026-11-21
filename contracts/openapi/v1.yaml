@@ -7115,6 +7115,7 @@ paths:
     get:
       operationId: getLearnerCurrentSupportRequest
       summary: Read the current learner's private support request and visible staff replies.
+      description: The active owned run must still reference published content on an authorized map and a currently playable node under learner-specific availability rules. Existing contributions and helpful markers do not bypass this check.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7131,6 +7132,7 @@ paths:
     post:
       operationId: submitLearnerCurrentSupportRequest
       summary: Submit the current learner's one private support request.
+      description: The active owned run must still reference published content on an authorized map and a currently playable node under learner-specific availability rules. Existing contributions and helpful markers do not bypass this check.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7155,6 +7157,7 @@ paths:
     get:
       operationId: getLearnerPeerMessagePrompt
       summary: Read the current learner's peer message-prompt state.
+      description: The active owned run must still reference published content on an authorized map and a currently playable node under learner-specific availability rules. Existing contributions and helpful markers do not bypass this check.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7166,6 +7169,7 @@ paths:
     post:
       operationId: submitLearnerPeerMessage
       summary: Submit the current learner's one peer contribution for this topic.
+      description: The active owned run must still reference published content on an authorized map and a currently playable node under learner-specific availability rules. Existing contributions and helpful markers do not bypass this check.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7182,7 +7186,7 @@ paths:
     get:
       operationId: getLearnerPeerWall
       summary: Read the current learner's authorized peer message wall.
-      description: Messages are selected newest-first for the requested page and shuffled within it. An out-of-range page is empty rather than clamped to the last page. When responses are enabled, each message includes the latest three visible responses plus an older helpful response, in oldest-first order. The private has_responded flag includes earlier or hidden own responses without exposing their writing. Disabled responses are omitted.
+      description: The active owned run must still reference published content on an authorized map and a currently playable node. Messages are selected newest-first for the requested page and shuffled within it. An out-of-range page is empty rather than clamped to the last page. When responses are enabled, each message includes the latest three visible responses plus an older helpful response, in oldest-first order. The private has_responded flag includes earlier or hidden own responses without exposing their writing. Disabled responses are omitted.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7201,7 +7205,7 @@ paths:
     post:
       operationId: respondLearnerPeerMessage
       summary: Submit the current learner's one response to a visible peer message.
-      description: Responses must be enabled. Unknown, hidden, own, support-audience and other-topic targets are rejected; an existing own response is idempotent and retains its original body and type.
+      description: The active owned run must still reference published content on an authorized map and a currently playable node. Responses must be enabled. Unknown, hidden, own, support-audience and other-topic targets are rejected; an existing own response is idempotent and retains its original body and type.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7219,6 +7223,7 @@ paths:
     patch:
       operationId: updateLearnerPeerResponseHelpfulness
       summary: Set or clear the message author's helpful marker on one visible response.
+      description: The active owned run must still reference published content on an authorized map and a currently playable node under learner-specific availability rules. Existing contributions and helpful markers do not bypass this check.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'

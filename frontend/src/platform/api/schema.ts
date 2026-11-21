@@ -5775,10 +5775,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read the current learner's private support request and visible staff replies. */
+        /**
+         * Read the current learner's private support request and visible staff replies.
+         * @description The active owned run must still reference published content on an authorized map and a currently playable node under learner-specific availability rules. Existing contributions and helpful markers do not bypass this check.
+         */
         get: operations["getLearnerCurrentSupportRequest"];
         put?: never;
-        /** Submit the current learner's one private support request. */
+        /**
+         * Submit the current learner's one private support request.
+         * @description The active owned run must still reference published content on an authorized map and a currently playable node under learner-specific availability rules. Existing contributions and helpful markers do not bypass this check.
+         */
         post: operations["submitLearnerCurrentSupportRequest"];
         delete?: never;
         options?: never;
@@ -5793,10 +5799,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read the current learner's peer message-prompt state. */
+        /**
+         * Read the current learner's peer message-prompt state.
+         * @description The active owned run must still reference published content on an authorized map and a currently playable node under learner-specific availability rules. Existing contributions and helpful markers do not bypass this check.
+         */
         get: operations["getLearnerPeerMessagePrompt"];
         put?: never;
-        /** Submit the current learner's one peer contribution for this topic. */
+        /**
+         * Submit the current learner's one peer contribution for this topic.
+         * @description The active owned run must still reference published content on an authorized map and a currently playable node under learner-specific availability rules. Existing contributions and helpful markers do not bypass this check.
+         */
         post: operations["submitLearnerPeerMessage"];
         delete?: never;
         options?: never;
@@ -5813,7 +5825,7 @@ export interface paths {
         };
         /**
          * Read the current learner's authorized peer message wall.
-         * @description Messages are selected newest-first for the requested page and shuffled within it. An out-of-range page is empty rather than clamped to the last page. When responses are enabled, each message includes the latest three visible responses plus an older helpful response, in oldest-first order. The private has_responded flag includes earlier or hidden own responses without exposing their writing. Disabled responses are omitted.
+         * @description The active owned run must still reference published content on an authorized map and a currently playable node. Messages are selected newest-first for the requested page and shuffled within it. An out-of-range page is empty rather than clamped to the last page. When responses are enabled, each message includes the latest three visible responses plus an older helpful response, in oldest-first order. The private has_responded flag includes earlier or hidden own responses without exposing their writing. Disabled responses are omitted.
          */
         get: operations["getLearnerPeerWall"];
         put?: never;
@@ -5835,7 +5847,7 @@ export interface paths {
         put?: never;
         /**
          * Submit the current learner's one response to a visible peer message.
-         * @description Responses must be enabled. Unknown, hidden, own, support-audience and other-topic targets are rejected; an existing own response is idempotent and retains its original body and type.
+         * @description The active owned run must still reference published content on an authorized map and a currently playable node. Responses must be enabled. Unknown, hidden, own, support-audience and other-topic targets are rejected; an existing own response is idempotent and retains its original body and type.
          */
         post: operations["respondLearnerPeerMessage"];
         delete?: never;
@@ -5857,7 +5869,10 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Set or clear the message author's helpful marker on one visible response. */
+        /**
+         * Set or clear the message author's helpful marker on one visible response.
+         * @description The active owned run must still reference published content on an authorized map and a currently playable node under learner-specific availability rules. Existing contributions and helpful markers do not bypass this check.
+         */
         patch: operations["updateLearnerPeerResponseHelpfulness"];
         trace?: never;
     };

@@ -1,3 +1,4 @@
+use serde_json::Value;
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 use wicked_learning_application::learner_peer_message::{
@@ -10,6 +11,8 @@ use wicked_learning_domain::{
         LearnerPeerMessageWall, LearningSupportPagination,
     },
 };
+
+use crate::learner_node_availability::PostgresLearnerNodeAvailability;
 
 pub struct PostgresLearnerPeerMessageRepository<'pool> {
     pool: &'pool PgPool,
@@ -27,6 +30,9 @@ struct Context {
     topic_id: Uuid,
     topic_title: String,
     allow_responses: bool,
+    node_id: Uuid,
+    node_state: String,
+    node_visual_config: Value,
 }
 #[derive(FromRow)]
 struct Message {
@@ -257,7 +263,28 @@ async fn context(
     slug: &str,
     activity_type: &str,
 ) -> Result<Option<Context>, sqlx::Error> {
-    sqlx::query_as::<_, Context>("SELECT progress.principal_id, topics.id AS topic_id, topics.title AS topic_title, COALESCE((activities.activity_config ->> 'messageAllowResponses')::boolean, false) AS allow_responses FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_message_topics AS topics ON topics.id::text = activities.activity_config ->> 'messageTopicId' AND topics.map_asset_id = assets.id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = $4 AND activities.activity_config ->> 'messageAudience' = 'peers'").bind(principal.subject_id).bind(run).bind(slug).bind(activity_type).fetch_optional(pool).await
+    let context = sqlx::query_as::<_, Context>("SELECT progress.principal_id, topics.id AS topic_id, topics.title AS topic_title, COALESCE((activities.activity_config ->> 'messageAllowResponses')::boolean, false) AS allow_responses, nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id AND nodes.id = progress.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id AND assets.id = nodes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id INNER JOIN learning_message_topics AS topics ON topics.id::text = activities.activity_config ->> 'messageTopicId' AND topics.map_asset_id = assets.id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = $4 AND activities.activity_config ->> 'messageAudience' = 'peers' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($5)))")
+        .bind(principal.subject_id)
+        .bind(run)
+        .bind(slug)
+        .bind(activity_type)
+        .bind(&principal.roles)
+        .fetch_optional(pool)
+        .await?;
+    let Some(context) = context else {
+        return Ok(None);
+    };
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
+    Ok(availability
+        .state_for_node(
+            context.node_id,
+            &context.node_state,
+            &context.node_visual_config,
+        )
+        .can_play()
+        .then_some(context))
 }
 
 async fn prompt(

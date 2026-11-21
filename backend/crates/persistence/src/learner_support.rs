@@ -1,8 +1,11 @@
+use serde_json::Value;
 use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::learner_support::{
     LearnerSupportError, LearnerSupportRepository as LearnerSupportRepositoryPort,
 };
+
+use crate::learner_node_availability::PostgresLearnerNodeAvailability;
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
     learner_state::{
@@ -26,6 +29,9 @@ struct SupportContextRow {
     principal_id: Uuid,
     topic_id: Uuid,
     topic_title: String,
+    node_id: Uuid,
+    node_state: String,
+    node_visual_config: Value,
 }
 
 #[derive(FromRow)]
@@ -118,6 +124,19 @@ async fn load_current_request(
     let Some(context) = context else {
         return Ok(None);
     };
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
+    if !availability
+        .state_for_node(
+            context.node_id,
+            &context.node_state,
+            &context.node_visual_config,
+        )
+        .can_play()
+    {
+        return Ok(None);
+    }
 
     request_state(pool, context).await
 }
@@ -129,6 +148,9 @@ async fn submit_current_request(
     activity_slug: &str,
     body: &str,
 ) -> Result<Option<LearnerSupportRequestState>, sqlx::Error> {
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
     let mut transaction = pool.begin().await?;
     let context =
         load_support_context_for_update(&mut transaction, principal, play_run_id, activity_slug)
@@ -137,6 +159,17 @@ async fn submit_current_request(
         transaction.commit().await?;
         return Ok(None);
     };
+    if !availability
+        .state_for_node(
+            context.node_id,
+            &context.node_state,
+            &context.node_visual_config,
+        )
+        .can_play()
+    {
+        transaction.commit().await?;
+        return Ok(None);
+    }
 
     sqlx::query(
         "INSERT INTO learner_messages (topic_id, principal_id, audience, body) \
@@ -309,14 +342,14 @@ where
 {
     let lock_clause = if lock { " FOR UPDATE OF progress" } else { "" };
     let statement = format!(
-        "SELECT progress.principal_id, topics.id AS topic_id, topics.title AS topic_title \
+        "SELECT progress.principal_id, topics.id AS topic_id, topics.title AS topic_title, nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config \
          FROM learner_route_progress AS progress \
          INNER JOIN application_principals AS principals ON principals.id = progress.principal_id \
          INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id \
-         INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id \
+         INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id AND nodes.id = progress.node_id \
          INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id \
          INNER JOIN learning_routes AS routes ON routes.id = activities.route_id \
-         INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id \
+         INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id AND assets.id = nodes.map_asset_id \
          INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id \
          INNER JOIN learning_message_topics AS topics ON topics.id::text = activities.activity_config ->> 'messageTopicId' AND topics.map_asset_id = assets.id \
          WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' \
@@ -347,7 +380,7 @@ where
 {
     let lock_clause = if lock { " FOR UPDATE OF runs" } else { "" };
     let statement = format!(
-        "SELECT runs.principal_id, topics.id AS topic_id, topics.title AS topic_title \
+        "SELECT runs.principal_id, topics.id AS topic_id, topics.title AS topic_title, nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config \
          FROM learner_activity_replay_runs AS runs \
          INNER JOIN application_principals AS principals ON principals.id = runs.principal_id \
          INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id \

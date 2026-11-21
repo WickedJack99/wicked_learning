@@ -4,10 +4,10 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
-for (const scenario of ['reply-order', 'responded-hidden', 'disabled', 'invalid-target', 'helpful-serial', 'pagination'] as const) {
+for (const scenario of ['reply-order', 'responded-hidden', 'disabled', 'invalid-target', 'helpful-serial', 'pagination', 'access-wall', 'access-prompt', 'access-support', 'access-support-replay'] as const) {
     test(`native message wall preserves source ${scenario}`, async ({ browser, baseURL }) => {
         expect(new URL(baseURL!).hostname).toMatch(/^(localhost|127\.0\.0\.1)$/);
-        for (const path of ['app/Http/Controllers/LearnerMessageController.php', 'app/Learning/Queries/LoadLearnerMessages.php', 'app/Learning/Actions/CreateLearnerMessageResponse.php', 'app/Learning/Actions/MarkLearnerMessageResponseHelpful.php']) {
+        for (const path of ['app/Http/Controllers/LearnerMessageController.php', 'app/Learning/Queries/LoadLearnerMessages.php', 'app/Learning/Actions/CreateLearnerMessageResponse.php', 'app/Learning/Actions/MarkLearnerMessageResponseHelpful.php', 'app/Learning/Services/LearnerActivityAccessService.php', 'app/Learning/Services/LearningNodeStateResolver.php']) {
             expect(readFileSync(`../${path}`)).toEqual(execFileSync('git', ['show', `32c3113a5bc688c9944c20942cdf40a6a5d57d7f:${path}`]));
         }
         const admin = await browser.newContext({ baseURL, storageState: administratorStorageStatePath });
@@ -23,7 +23,9 @@ for (const scenario of ['reply-order', 'responded-hidden', 'disabled', 'invalid-
         const activity = randomUUID(); const start = randomUUID(); const run = randomUUID(); const topic = randomUUID();
         const message = randomUUID(); const ownMessage = randomUUID(); const responses = Array.from({ length: 5 }, () => randomUUID());
         const extraPrincipals = Array.from({ length: 12 }, () => randomUUID()); let map: string | undefined;
-        const path = `/api/v1/learner/play-runs/${run}/activities/id:${activity}/peer-wall`;
+        const support = scenario.includes('support');
+        const prompt = support || scenario === 'access-prompt';
+        const path = `/api/v1/learner/play-runs/${run}/activities/id:${activity}/${support ? 'support-request' : prompt ? 'peer-message' : 'peer-wall'}`;
         const wall = async (query = '') => { const response = await owner.request.get(path + query); expect(response.status()).toBe(200); return response.json(); };
         const respond = (id: string, body = 'A response to the question') => owner.request.post(`${path}/messages/${id}/responses`, { headers, data: { body, response_type: 'example' } });
         const helpful = (id: string, value = true) => owner.request.patch(`${path}/messages/${ownMessage}/responses/${id}/helpfulness`, { headers, data: { helpful: value } });
@@ -37,14 +39,53 @@ for (const scenario of ['reply-order', 'responded-hidden', 'disabled', 'invalid-
                 UPDATE learning_routes SET published_at=NOW() WHERE map_asset_id='${node.asset_id}';
                 INSERT INTO learning_message_topics (id,map_asset_id,slug,title) VALUES ('${topic}','${node.asset_id}','message-contract','Source message topic');
                 INSERT INTO learning_activities (id,route_id,slug,title,description,position,published_at,activity_type,activity_config)
-                    SELECT '${activity}',id,'wall','Message wall','',0,NOW(),'message_wall','{"messageTopicId":"${topic}","messageAudience":"peers","messageAllowResponses":true}' FROM learning_routes WHERE map_asset_id='${node.asset_id}';
+                    SELECT '${activity}',id,'wall','Message wall','',0,NOW(),'${prompt ? 'message_prompt' : 'message_wall'}','{"messageTopicId":"${topic}","messageAudience":"${support ? 'support' : 'peers'}","messageAllowResponses":true}' FROM learning_routes WHERE map_asset_id='${node.asset_id}';
                 INSERT INTO learning_activity_starts (id,node_id,activity_id) VALUES ('${start}','${node.node_id}','${activity}');
                 INSERT INTO learner_route_progress (principal_id,node_id,route_id,current_activity_id,status,activity_start_id,current_play_run_id)
                     SELECT '${principal}','${node.node_id}',route_id,id,'in_progress','${start}','${run}' FROM learning_activities WHERE id='${activity}';
                 INSERT INTO learner_messages (id,topic_id,principal_id,audience,body) VALUES ('${message}','${topic}','${other}','peers','Peer question'), ('${ownMessage}','${topic}','${principal}','peers','Own question');
                 ${extraPrincipals.map((id) => `INSERT INTO application_principals (id,identity_subject_id) VALUES ('${id}','${randomUUID()}');`).join('\n')}
                 ${responses.map((id, i) => `INSERT INTO learner_message_responses (id,message_id,responder_principal_id,body,response_type,created_at,helpful_at) VALUES ('${id}','${ownMessage}','${extraPrincipals[i]}','Reply ${i}','example','2024-01-0${i + 1}T12:00:00Z',${i === 0 ? 'NOW()' : 'NULL'});`).join('\n')}`);
-            if (scenario === 'reply-order') {
+            if (scenario.startsWith('access-')) {
+                if (support) sql(`UPDATE learner_messages SET audience='support' WHERE id='${ownMessage}'`);
+                if (scenario === 'access-support-replay') sql(`DELETE FROM learner_route_progress WHERE current_play_run_id='${run}'; INSERT INTO learner_activity_replay_runs (id,principal_id,activity_id) VALUES ('${run}','${principal}','${activity}')`);
+                const facts = () => sql(`SELECT jsonb_build_object('messages',(SELECT jsonb_agg(to_jsonb(m) ORDER BY m.id) FROM learner_messages m WHERE topic_id='${topic}'),'responses',(SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM learner_message_responses r WHERE message_id IN ('${message}','${ownMessage}')))`);
+                const before = facts();
+                const write = () => prompt ? owner.request.post(path, { headers, data: { body: 'Keep the original message' } }) : respond(message);
+                const denied = async () => {
+                    expect((await owner.request.get(path)).status()).toBe(404);
+                    expect((await write()).status()).toBe(404);
+                    if (!prompt) expect((await helpful(responses[4])).status()).toBe(404);
+                    expect(facts()).toBe(before);
+                };
+                expect((await owner.request.get(path)).status()).toBe(200);
+                for (const state of ['locked', 'hidden']) {
+                    sql(`UPDATE learning_nodes SET state='${state}' WHERE id='${node.node_id}'`);
+                    try { await denied(); } finally { sql(`UPDATE learning_nodes SET state='available' WHERE id='${node.node_id}'`); }
+                }
+                sql(`UPDATE learning_nodes SET visual_config='{"schedule":{"lockAt":"2020-01-01T00:00:00Z"}}' WHERE id='${node.node_id}'`);
+                try { await denied(); } finally { sql(`UPDATE learning_nodes SET visual_config='{}' WHERE id='${node.node_id}'`); }
+                for (const [table, predicate] of [['learning_maps', `id='${map}'`], ['learning_nodes', `id='${node.node_id}'`], ['learning_map_assets', `id='${node.asset_id}'`], ['learning_routes', `map_asset_id='${node.asset_id}'`], ['learning_activities', `id='${activity}'`]]) {
+                    sql(`UPDATE ${table} SET published_at=NULL WHERE ${predicate}`);
+                    try { await denied(); } finally { sql(`UPDATE ${table} SET published_at=NOW() WHERE ${predicate}`); }
+                }
+                sql(`UPDATE learning_maps SET access_roles='[]' WHERE id='${map}'`);
+                try { await denied(); } finally { sql(`UPDATE learning_maps SET access_roles='["public"]' WHERE id='${map}'`); }
+                sql(`UPDATE learning_nodes SET state='locked' WHERE id='${node.node_id}'; INSERT INTO learner_node_manual_unlocks (principal_id,node_id) VALUES ('${principal}','${node.node_id}')`);
+                expect((await owner.request.get(path)).status()).toBe(200);
+                sql(`UPDATE learner_node_manual_unlocks SET revoked_at=NOW() WHERE principal_id='${principal}' AND node_id='${node.node_id}'`);
+                await denied();
+                sql(`UPDATE learning_nodes SET state='available' WHERE id='${node.node_id}'`);
+                if (scenario === 'access-support-replay') sql(`UPDATE learner_activity_replay_runs SET status='completed',completed_at=NOW() WHERE id='${run}'`);
+                else sql(`UPDATE learner_route_progress SET status='completed' WHERE current_play_run_id='${run}'`);
+                await denied();
+                if (scenario === 'access-support-replay') sql(`UPDATE learner_activity_replay_runs SET status='in_progress',completed_at=NULL WHERE id='${run}'`);
+                else sql(`UPDATE learner_route_progress SET status='in_progress' WHERE current_play_run_id='${run}'`);
+                expect((await peer.request.get(path)).status()).toBe(404);
+                expect((await owner.request.get(path.replace(run, randomUUID()))).status()).toBe(404);
+                expect((await write()).status()).toBe(200);
+                expect((await owner.request.get(path)).status()).toBe(200);
+            } else if (scenario === 'reply-order') {
                 const document = await wall();
                 expect(document.messages.find((entry: any) => entry.id === ownMessage).responses.map((reply: any) => reply.id)).toEqual([responses[0], responses[2], responses[3], responses[4]]);
                 for (const id of [principal, other, ...extraPrincipals]) expect(JSON.stringify(document)).not.toContain(id);

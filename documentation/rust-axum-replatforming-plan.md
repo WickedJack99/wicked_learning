@@ -2305,7 +2305,7 @@ No message UI is activated by this audit or the prerequisite repair.
 | Responses disabled | Source omits responses and rejects both response/helpfulness writes | Repaired: omit response writing and reject both command types when responses are disabled. |
 | Reply target validation and idempotence | Native `respond` insert/select then wall read | Repaired: lock/validate the target before insertion; reject unknown, hidden, own, support or other-topic targets with 404; preserve existing response body/type on retry. |
 | One helpful response per message | Source locks message then response | Repaired: native writer locks parent before response; concurrent choices serialize and false/unmark remains valid. |
-| Access and lifecycle | Source `assertCanPlay`; ordinary native message contexts | Still audit current node/publication/role policy, replay/recall/revisit support and source auto-completion before binding any UI. |
+| Access and lifecycle | Source `assertCanPlay`; native peer route contexts and support route/replay contexts | Access repair below covers these existing contexts. Peer replay, other eligible run kinds and source optional completion still require verification before binding UI. |
 | Source requests omit run identity | Existing scoped playback binding | Add only exact message read/write routes with the actual bound run and typed mappings; unknown/stale operations stay unavailable. |
 | Failures and whole-page ownership | Source inline prompt/reply/helpfulness errors; wall close completion callback | Test preserved drafts, pagination/refetch, actual completion and failure at both viewports; full NodePlay lifecycle remains separate acceptance work. |
 
@@ -2332,6 +2332,50 @@ Reports: ignored `frontend/playwright-report/player-message-contract{,-baseline}
 Rerun from `frontend/`: `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-message-contract-live.spec.ts e2e/canonical-playback-reference-live.spec.ts --grep 'native message|native message_' --reporter=line,html`.
 This establishes the named backend contracts only; message UI, remaining access
 policy/run kinds and whole NodePlay acceptance remain incomplete.
+
+### Message read/write access prerequisites
+
+The next source comparison is the controller's `assertCanPlay` call through
+`LearnerActivityAccessService` and `LearningNodeStateResolver`. The peer context
+previously joined the current activity/topic without publication, map-role or
+node policy checks. The support route/replay queries checked publication and
+roles but omitted evaluated node availability. Existing cached contributions
+must not bypass source access checks.
+
+`learner_peer_message.rs` now resolves the start/progress node and its exact
+MapAsset, checks publication at map/node/asset/route/activity levels and current
+map roles, then reuses `PostgresLearnerNodeAvailability` before every peer
+read, contribution, reply or helpfulness operation. `learner_support.rs` now
+projects the node identity/state/configuration in both existing route and replay
+contexts and applies the same evaluator before reading private content or
+returning/creating a request. The route query also verifies the start/progress
+node and asset relationship. No new policy language, permission bypass or
+frontend-calculated access was introduced.
+
+Four native regressions cover peer prompt, peer wall, private support prompt
+and existing support replay. Before repair each returned 200 from a locked
+node. They require rejection of locked/hidden and scheduled-locked nodes, every
+unpublished content layer, removed map access and completed runs, with message
+and response rows unchanged. Manual unlock permits a read; revocation denies it
+again. Wrong-owner/unknown runs remain unavailable and an accessible retry
+succeeds without replacing the original contribution.
+
+Verification: the four access regressions first failed with 200 instead of
+404. All ten message-contract cases and two existing message reference cases
+now pass against the rebuilt healthy Rust stack (12 tests). Canonical identity,
+frontend production type/build, generated-client consistency, Rust workspace
+check/format and 66 focused persistence tests pass (six existing ignored).
+The replay-completion fixture was corrected to satisfy the existing
+status/completed-at database invariant before the final passing run. Reports
+are ignored `frontend/playwright-report/player-message-access{,-baseline}/`;
+the message-contract rerun command above covers this extension too.
+
+This is not peer-replay or full-player acceptance. The peer repository still
+has only an ordinary run context. The source support prompt also offers “Not
+now,” while `complete_current_message_activity` still requires a support
+contribution; that completion mismatch remains explicit next work. Replay
+selection among multiple nodes sharing an asset requires the broader recorded
+run/node-identity audit. No missing context is replaced with fabricated data.
 
 ## Status and purpose
 
