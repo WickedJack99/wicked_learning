@@ -12,7 +12,11 @@ use wicked_learning_domain::{
     },
 };
 
-use crate::learner_item_grant::valid_public_slug;
+use crate::{
+    learner_item_grant::valid_public_slug,
+    learner_node_availability::PostgresLearnerNodeAvailability,
+    learner_playback::{mark_activity_completed, mark_activity_reached},
+};
 
 pub struct PostgresLearnerItemObstacleRepository<'pool> {
     pool: &'pool PgPool,
@@ -29,6 +33,9 @@ struct CurrentObstacleRow {
     activity_config: Value,
     activity_id: Uuid,
     principal_id: Uuid,
+    node_id: Uuid,
+    node_state: String,
+    node_visual_config: Value,
 }
 
 #[derive(FromRow)]
@@ -122,6 +129,9 @@ async fn place_current_item(
     if !valid_public_slug(item_slug) || !(0..=9).contains(&slot_index) {
         return Ok(None);
     }
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
     let mut transaction = pool.begin().await?;
     let Some(current) =
         load_current_obstacle_for_update(&mut transaction, principal, play_run_id, activity_slug)
@@ -130,6 +140,17 @@ async fn place_current_item(
         transaction.commit().await?;
         return Ok(None);
     };
+    if !availability
+        .state_for_node(
+            current.node_id,
+            &current.node_state,
+            &current.node_visual_config,
+        )
+        .can_play()
+    {
+        transaction.commit().await?;
+        return Ok(None);
+    }
     let slots = configured_slots(&current.activity_config);
     let Some(expected) = slots.iter().find(|slot| slot.slot_index == slot_index) else {
         transaction.commit().await?;
@@ -192,6 +213,7 @@ async fn place_current_item(
         .execute(&mut *transaction)
         .await?;
     }
+    mark_activity_reached(&mut transaction, current.principal_id, current.activity_id).await?;
     let result = result_for_state(
         &mut transaction,
         current.principal_id,
@@ -210,6 +232,9 @@ async fn continue_current_obstacle(
     play_run_id: Uuid,
     activity_slug: &str,
 ) -> Result<Option<LearnerItemObstacleResult>, sqlx::Error> {
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
     let mut transaction = pool.begin().await?;
     let Some(current) =
         load_current_obstacle_for_update(&mut transaction, principal, play_run_id, activity_slug)
@@ -218,6 +243,17 @@ async fn continue_current_obstacle(
         transaction.commit().await?;
         return Ok(None);
     };
+    if !availability
+        .state_for_node(
+            current.node_id,
+            &current.node_state,
+            &current.node_visual_config,
+        )
+        .can_play()
+    {
+        transaction.commit().await?;
+        return Ok(None);
+    }
     let slots = configured_slots(&current.activity_config);
     let state =
         ensure_state_for_update(&mut transaction, current.principal_id, current.activity_id)
@@ -230,6 +266,8 @@ async fn continue_current_obstacle(
         load_filled_slots(&mut transaction, current.principal_id, current.activity_id).await?;
     let met = conditions_met(&slots, &filled_slots);
     if met {
+        mark_activity_completed(&mut transaction, current.principal_id, current.activity_id)
+            .await?;
         sqlx::query(
             "UPDATE learner_item_obstacle_states SET passed_play_run_id = $3, updated_at = NOW() WHERE principal_id = $1 AND activity_id = $2",
         )
@@ -268,6 +306,7 @@ async fn continue_current_obstacle(
     .bind(lock_minutes)
     .execute(&mut *transaction)
     .await?;
+    mark_activity_reached(&mut transaction, current.principal_id, current.activity_id).await?;
     let result = result_for_state(
         &mut transaction,
         current.principal_id,
@@ -287,7 +326,7 @@ async fn load_current_obstacle_for_update(
     activity_slug: &str,
 ) -> Result<Option<CurrentObstacleRow>, sqlx::Error> {
     let route = sqlx::query_as::<_, CurrentObstacleRow>(
-        "SELECT activities.activity_config, activities.id AS activity_id, progress.principal_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'item_obstacle' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+        "SELECT activities.activity_config, activities.id AS activity_id, progress.principal_id, nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'item_obstacle' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
@@ -300,7 +339,7 @@ async fn load_current_obstacle_for_update(
     }
 
     sqlx::query_as::<_, CurrentObstacleRow>(
-        "SELECT activities.activity_config, activities.id AS activity_id, runs.principal_id FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'item_obstacle' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
+        "SELECT activities.activity_config, activities.id AS activity_id, runs.principal_id, nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'item_obstacle' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
@@ -376,26 +415,32 @@ pub(crate) async fn load_inventory(
     transaction: &mut Transaction<'_, Postgres>,
     principal_id: Uuid,
 ) -> Result<Vec<LearnerItem>, sqlx::Error> {
-    sqlx::query_as::<_, InventoryRow>(
-        "SELECT items.id, items.config, items.description, items.image_dark, items.image_light, holdings.quantity, items.slug, items.title FROM learner_item_holdings AS holdings INNER JOIN learning_items AS items ON items.id = holdings.item_id WHERE holdings.principal_id = $1 AND holdings.quantity > 0 ORDER BY holdings.acquired_at ASC NULLS LAST, items.slug ASC LIMIT 100",
+    let items = sqlx::query_as::<_, InventoryRow>(
+        "SELECT items.id, items.config, items.description, items.image_dark, items.image_light, holdings.quantity, items.slug, items.title FROM learner_item_holdings AS holdings INNER JOIN learning_items AS items ON items.id = holdings.item_id WHERE holdings.principal_id = $1 AND holdings.quantity > 0 ORDER BY holdings.acquired_at ASC NULLS LAST, items.slug ASC LIMIT 101",
     )
     .bind(principal_id)
     .fetch_all(&mut **transaction)
-    .await
-    .map(|items| {
-        items
-            .into_iter()
-            .map(|item| crate::learner_media::learner_item(LearnerItem {
-                id: item.id,                config: item.config,
+    .await?;
+    if items.len() > 100 {
+        return Err(sqlx::Error::Protocol(
+            "learner obstacle inventory exceeds its projection bound".into(),
+        ));
+    }
+    Ok(items
+        .into_iter()
+        .map(|item| {
+            crate::learner_media::learner_item(LearnerItem {
+                id: item.id,
+                config: item.config,
                 description: item.description,
                 image_dark: item.image_dark,
                 image_light: item.image_light,
                 quantity: item.quantity,
                 slug: item.slug,
                 title: item.title,
-            }))
-            .collect()
-    })
+            })
+        })
+        .collect())
 }
 
 /// Reads the durable source obstacle state without creating it. Playback GET

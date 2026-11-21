@@ -7446,7 +7446,7 @@ paths:
     post:
       operationId: placeLearnerItemObstacleItem
       summary: Place one owned item into the configured slot of the current authorized item obstacle.
-      description: The server resolves the current run, obstacle, expected public item reference, lock state and owned quantity. It never accepts a browser-selected database identifier or quantity.
+      description: The server rechecks current node playability, the owned run, configured slot, obstacle lock and owned quantity. A placement records reached progress without downgrading prior completion and returns the complete bounded inventory. It never accepts a browser-selected database identifier or quantity.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7470,13 +7470,13 @@ paths:
                 $ref: '#/components/schemas/LearnerItemObstacleResult'
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '404': { description: The run, obstacle, configured slot, item, ownership, or lock is unavailable. }
-        '503': { description: The application database is unavailable. }
+        '404': { description: The run, node playability, obstacle, configured slot, item, ownership, or lock is unavailable, including for an already-filled slot. }
+        '503': { description: The database is unavailable or the complete inventory exceeds 100 entries. The command transaction is rolled back rather than returning a partial inventory. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/item-obstacle/continue:
     post:
       operationId: continueLearnerItemObstacle
       summary: Evaluate the current authorized item obstacle and continue only when its source-defined slots are met.
-      description: An unmet obstacle records the source-defined failed attempt and optional lock. A met obstacle is bound to this play run before ordinary completion can advance it.
+      description: The server rechecks current node playability. An unmet obstacle records reached progress, the source-defined failed attempt and optional lock. A met obstacle stamps completed activity progress, preserving its first completion time, and binds the pass to this run. It does not advance the run; the explicit completion command still owns advancement.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7490,13 +7490,13 @@ paths:
                 $ref: '#/components/schemas/LearnerItemObstacleResult'
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '404': { description: The active item obstacle is unavailable, not owned by this learner's current run, or locked. }
-        '503': { description: The application database is unavailable. }
+        '404': { description: The node is not currently playable, or the active item obstacle is unavailable, not owned by this learner's current run, or locked. }
+        '503': { description: The database is unavailable or the complete inventory exceeds 100 entries. The command transaction is rolled back rather than returning a partial inventory. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/use-obstacle-tool:
     post:
       operationId: useLearnerObstacleTool
       summary: Apply one owned tool to the current authorized source obstacle.
-      description: The server resolves the current run, learner-owned public tool reference, authored allowed-tool list, and whether the source clear persists. It never accepts a tool database identifier.
+      description: The server rechecks current node playability, the owned run, learner-owned public tool reference, authored allowed-tool list, and whether the source clear persists. A persistent useful clear records reached progress without downgrading prior completion. The command does not complete or advance the run and never accepts a tool database identifier.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7516,7 +7516,7 @@ paths:
                 $ref: '#/components/schemas/LearnerObstacleToolResult'
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '404': { description: The run, obstacle, selected public tool, or ownership is unavailable. }
+        '404': { description: The run, node playability, obstacle, selected public tool, or ownership is unavailable, including after a previous clear. }
         '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/check-ins:
     post:

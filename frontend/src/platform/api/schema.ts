@@ -6065,7 +6065,7 @@ export interface paths {
         put?: never;
         /**
          * Place one owned item into the configured slot of the current authorized item obstacle.
-         * @description The server resolves the current run, obstacle, expected public item reference, lock state and owned quantity. It never accepts a browser-selected database identifier or quantity.
+         * @description The server rechecks current node playability, the owned run, configured slot, obstacle lock and owned quantity. A placement records reached progress without downgrading prior completion and returns the complete bounded inventory. It never accepts a browser-selected database identifier or quantity.
          */
         post: operations["placeLearnerItemObstacleItem"];
         delete?: never;
@@ -6085,7 +6085,7 @@ export interface paths {
         put?: never;
         /**
          * Evaluate the current authorized item obstacle and continue only when its source-defined slots are met.
-         * @description An unmet obstacle records the source-defined failed attempt and optional lock. A met obstacle is bound to this play run before ordinary completion can advance it.
+         * @description The server rechecks current node playability. An unmet obstacle records reached progress, the source-defined failed attempt and optional lock. A met obstacle stamps completed activity progress, preserving its first completion time, and binds the pass to this run. It does not advance the run; the explicit completion command still owns advancement.
          */
         post: operations["continueLearnerItemObstacle"];
         delete?: never;
@@ -6105,7 +6105,7 @@ export interface paths {
         put?: never;
         /**
          * Apply one owned tool to the current authorized source obstacle.
-         * @description The server resolves the current run, learner-owned public tool reference, authored allowed-tool list, and whether the source clear persists. It never accepts a tool database identifier.
+         * @description The server rechecks current node playability, the owned run, learner-owned public tool reference, authored allowed-tool list, and whether the source clear persists. A persistent useful clear records reached progress without downgrading prior completion. The command does not complete or advance the run and never accepts a tool database identifier.
          */
         post: operations["useLearnerObstacleTool"];
         delete?: never;
@@ -34258,7 +34258,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The application database is unavailable. */
+            /** @description The database is unavailable or the complete inventory exceeds 100 entries. The command transaction is rolled back rather than returning a partial inventory. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -34306,14 +34306,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The active item obstacle is unavailable */
+            /** @description The node is not currently playable */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description The application database is unavailable. */
+            /** @description The database is unavailable or the complete inventory exceeds 100 entries. The command transaction is rolled back rather than returning a partial inventory. */
             503: {
                 headers: {
                     [name: string]: unknown;

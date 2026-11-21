@@ -2725,7 +2725,7 @@ pub(crate) async fn mark_activity_completed(
     Ok(())
 }
 
-async fn mark_activity_reached(
+pub(crate) async fn mark_activity_reached(
     transaction: &mut Transaction<'_, Postgres>,
     principal_id: Uuid,
     activity_id: Uuid,

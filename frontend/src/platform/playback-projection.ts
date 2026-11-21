@@ -256,7 +256,7 @@ export function toSourceItemObstacleState(state: Schema['LearnerItemObstacleStat
     return {
         conditionsMet: state.conditions_met, lockedUntil: state.locked_until,
         ...(state.can_continue !== null ? { canContinue: state.can_continue } : {}),
-        // Source only consumes itemId. Native storage has no filledAt; do not
+        // Source only consumes itemId. The native projection omits filledAt; do not
         // invent a timestamp to satisfy an unused legacy type declaration.
         filledSlots: Object.fromEntries(state.filled_slots.map((slot) => [
             String(slot.slot_index), { itemId: required(bySlug.get(slot.item_slug)) },

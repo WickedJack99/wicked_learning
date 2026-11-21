@@ -8,7 +8,11 @@ use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal, learner_state::LearnerObstacleToolResult,
 };
 
-use crate::learner_item_grant::valid_public_slug;
+use crate::{
+    learner_item_grant::valid_public_slug,
+    learner_node_availability::PostgresLearnerNodeAvailability,
+    learner_playback::mark_activity_reached,
+};
 
 pub struct PostgresLearnerObstacleToolRepository<'pool> {
     pool: &'pool PgPool,
@@ -25,6 +29,9 @@ struct CurrentObstacleRow {
     activity_config: Value,
     activity_id: Uuid,
     principal_id: Uuid,
+    node_id: Uuid,
+    node_state: String,
+    node_visual_config: Value,
 }
 
 #[derive(FromRow)]
@@ -64,6 +71,9 @@ async fn use_current_tool(
         return Ok(None);
     }
 
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
     let mut transaction = pool.begin().await?;
     let Some(current) =
         load_current_obstacle_for_update(&mut transaction, principal, play_run_id, activity_slug)
@@ -72,6 +82,17 @@ async fn use_current_tool(
         transaction.commit().await?;
         return Ok(None);
     };
+    if !availability
+        .state_for_node(
+            current.node_id,
+            &current.node_state,
+            &current.node_visual_config,
+        )
+        .can_play()
+    {
+        transaction.commit().await?;
+        return Ok(None);
+    }
     let Some(tool) =
         owned_tool_for_update(&mut transaction, current.principal_id, tool_slug).await?
     else {
@@ -102,6 +123,7 @@ async fn use_current_tool(
 
     let persists_after_solved = persists_after_solved(&current.activity_config);
     if persists_after_solved {
+        mark_activity_reached(&mut transaction, current.principal_id, current.activity_id).await?;
         sqlx::query(
             "INSERT INTO learner_obstacle_resolutions (principal_id, activity_id) VALUES ($1, $2) ON CONFLICT (principal_id, activity_id) DO NOTHING",
         )
@@ -125,7 +147,7 @@ async fn load_current_obstacle_for_update(
     activity_slug: &str,
 ) -> Result<Option<CurrentObstacleRow>, sqlx::Error> {
     let route = sqlx::query_as::<_, CurrentObstacleRow>(
-        "SELECT activities.activity_config, activities.id AS activity_id, progress.principal_id FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'obstacle' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
+        "SELECT activities.activity_config, activities.id AS activity_id, progress.principal_id, nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config FROM learner_route_progress AS progress INNER JOIN application_principals AS principals ON principals.id = progress.principal_id INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'obstacle' AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF progress",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)
@@ -138,7 +160,7 @@ async fn load_current_obstacle_for_update(
     }
 
     sqlx::query_as::<_, CurrentObstacleRow>(
-        "SELECT activities.activity_config, activities.id AS activity_id, runs.principal_id FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'obstacle' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
+        "SELECT activities.activity_config, activities.id AS activity_id, runs.principal_id, nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config FROM learner_activity_replay_runs AS runs INNER JOIN application_principals AS principals ON principals.id = runs.principal_id INNER JOIN learning_activities AS activities ON activities.id = runs.activity_id INNER JOIN learning_routes AS routes ON routes.id = activities.route_id INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id INNER JOIN learning_nodes AS nodes ON nodes.map_asset_id = assets.id INNER JOIN learning_maps AS maps ON maps.id = nodes.map_id WHERE principals.identity_subject_id = $1 AND runs.id = $2 AND runs.status = 'in_progress' AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) AND activities.activity_type = 'obstacle' AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) FOR UPDATE OF runs",
     )
     .bind(principal.subject_id)
     .bind(play_run_id)

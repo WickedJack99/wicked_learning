@@ -211,7 +211,7 @@ copied modules. Source shared props come from
 | Required source behavior | Existing Rust evidence | Concrete remaining contract / adapter |
 | --- | --- | --- |
 | Account name/avatar, media permission, appearance and logout | `/me`, `/session/logout`, `frontend/src/platform/{welcome-inertia,welcome-routes}` and existing Settings account mapping | Connected by `learner-shell-projection.ts` and the existing typed logout. Failed logout retains the session/page with an explicit error; successful logout reloads Welcome, clearing private JavaScript state. |
-| `auth.items` and `auth.tools`, grant deduplication, tool selection | `/learner/world` inventory; domain `LearnerItem`/`LearnerTool`; source `Learning{Item,Tool}Serializer.php` | Real UUIDs now travel in World/shell holdings and existing tool-grant/playback/obstacle responses. Owned-item/tool media delivery and URL projection are implemented below; the complete source controls now mount through the shared-layout adapter. The item-grant display result still needs the source inventory refresh contract. |
+| `auth.items` and `auth.tools`, grant deduplication, tool selection | `/learner/world` inventory; domain `LearnerItem`/`LearnerTool`; source `Learning{Item,Tool}Serializer.php` | Real UUIDs now travel in World/shell holdings and existing tool-grant/playback/obstacle responses. Owned-item/tool media delivery and URL projection are implemented below; the complete source controls now mount through the shared-layout adapter. The copied item-grant transport now refreshes the real complete shell inventory; verified grant integration is recorded below. |
 | `name`, learner palette, branding and cursors | `PublicPresentation`, `persistence/src/public_presentation.rs`; source `theme/presentation.ts` | Branding/cursors reused. `/learner/shell` now supplies deployment `APPLICATION_NAME` and typed learner palette with pinned-source defaults. `toSourceLearnerPresentation` maps every learner palette field into the copied layout. |
 | `menuTheme` remembers the learner's preferred visible map | Source `app/Learning/Queries/LoadCurrentMenuMapTheme.php`, `Services/LearnerMapLocationService.php`; Rust visible World maps | Private preferred-map persistence and visibility revalidation now exist in `/learner/map-location` and `/learner/shell`. Managed menu-background URLs now use the existing learner media route. World bootstrap now mirrors source preferred-map redirect and explicit-map persistence before claiming feedback. |
 | Journal initial theme without loading private notes | `persistence/src/learner_journal.rs`, table `application_journal_feedback_policy`, domain default theme | The shell now reuses the existing theme/policy read without loading journal content. The source page-prop adapter now supplies that real theme. |
@@ -2162,6 +2162,62 @@ An earlier combined process ended with SIGTERM; it is not counted as a passed
 run, and its identified disposable fixture was removed before rerunning.
 Rerun from `frontend/` against the local Rust stack and the 8084 evidence server:
 `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-grant-live.spec.ts e2e/canonical-player-response-live.spec.ts e2e/canonical-player-shared-live.spec.ts --reporter=line,html`,
+then `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-grant-contract-live.spec.ts e2e/canonical-playback-reference-live.spec.ts --reporter=line,html`.
+
+### Obstacle control contract prerequisites
+
+Source checked against pinned `main` before activating the next copied controls:
+`resources/js/features/world/{item-obstacle-activity,obstacle-activity,activity-utils}.tsx`,
+`features/world/api.ts`, `features/items/item-inventory.ts`,
+`features/tools/{tool-selection,tool-visuals}.ts`,
+`features/sounds/sound-player.ts`, `components/app-side-action-bar.tsx`,
+`components/ui/button.tsx`, `hooks/{use-appearance.tsx,use-platform-translation.ts}`,
+`lib/{media-url,utils}.ts` and the existing shared-layout dependency tree.
+The Laravel owners are `app/Http/Controllers/{LearningItemActivityController,LearningWorldController}.php`
+and `app/Learning/Services/{LearnerActivityAccessService,ItemObstacleService,ObstacleToolService,LearnerProgressService}.php`.
+The native regression verifies those six server files against the pin; canonical
+identity verification covers the copied frontend tree.
+
+| Source requirement | Rust evidence / adapter work | Acceptance status |
+| --- | --- | --- |
+| `assertCanPlay` before place, continue and tool use, including existing slots/clears | `learner_item_obstacle.rs`, `learner_obstacle_tool.rs`, existing `PostgresLearnerNodeAvailability` | Repaired: ordinary and replay writers evaluate the selected node before returning or changing private state. |
+| Whole inventory after an item drop | `/learner/play-runs/{run}/activities/{reference}/item-obstacle-slots/{index}` and `LearnerItemObstacleResult.inventory` | Repaired: sentinel read of 101 entries rejects an oversized inventory with 503 and rolls back the command, rather than silently returning only 100. |
+| Reached progress for item placement/unmet continuation and persistent useful tool clears; completed progress for met item continuation | Shared `mark_activity_reached`/`mark_activity_completed` in `learner_playback.rs`; private playback activity/state projection | Repaired in the same transaction, preserving first completion and preventing a reached event from downgrading earlier completion. Explicit completion still owns run advancement. |
+| Source item UUID drag/drop and configured slot identity | Existing actual catalog IDs in `playback-projection.ts`; command takes a verified catalog slug and slot index | Pending: narrowly replace numeric identity coercion, bind the actual run to the two source item commands, and map actual inventory/state through existing helpers. No generated numeric aliases. |
+| Source tool selection/use and retained clear | Actual shell tools, `use-obstacle-tool`, `LearnerObstacleToolResult`; copied tool store | Pending: map the selected owned UUID to its real catalog slug in the bound context, inject run identity, retain source animation, useful/unhelpful behavior and real completion receipt. |
+| Initial item/clear state, sound and media | `private_state.activities/item_obstacles/obstacle_resolutions`, configured catalog/sound projections, existing sound preferences and media contracts | Pending copied-control tests: refresh, lock/reset/persistent/non-persistent behavior, sounds and actual authorized bytes. The source does not consume `filledAt`; its omission from the native slot projection must not be replaced by an invented timestamp. |
+
+**Verified native regressions:**
+`frontend/e2e/canonical-player-obstacle-contract-live.spec.ts` first reproduced
+all ten access/inventory failures: an unavailable node still accepted a command,
+and an oversized inventory still returned HTTP 200 with a truncated list. Six
+additional source-progress cases reproduced absent progress rows after successful
+commands. The implementation now checks the existing learner-specific policy,
+rejects an oversized complete-inventory response inside the transaction, and
+retains the ordinary progress that the source writes. No new tables, migrations,
+client-selected quantities or source UI changes were introduced.
+
+All sixteen native cases now pass for ordinary and replay runs. They cover
+locked/hidden nodes, all five publication layers, map access, owner/outsider/
+anonymous requests, CSRF, unknown/stale runs, authorized manual unlock followed
+by revocation, repeated filled slots and existing clears. Oversized responses
+preserve prior holdings, slots, pass, progress and timestamps; recovery consumes
+exactly once. Progress checks cover unmet continuation, persistent versus
+non-persistent tool use, preservation of previous completion, resumed private
+playback state, and explicit item completion preserving the original stamp.
+These are native prerequisites, not obstacle UI or full NodePlay acceptance.
+
+Verification: sixteen new native obstacle cases, eighteen existing native
+grant/reference cases, 66 focused Rust persistence tests (six existing ignored
+tests), workspace fmt/check, canonical source identity and frontend production
+type/build pass. OpenAPI documents the availability, progress and atomic
+inventory-bound behavior; the generated client is kept consistent. Reports are
+ignored `frontend/playwright-report/player-obstacle-{native,reference}/`.
+Successful command samples were 6–8 ms except one 763 ms ordinary tool-use
+sample. A focused repeat passed at 8 ms (ignored report
+`player-obstacle-timing/`); the outlier's cause was not established, so these
+fixture timings are not a production performance claim.
+Rerun from `frontend/`: `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-obstacle-contract-live.spec.ts --reporter=line,html`,
 then `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-grant-contract-live.spec.ts e2e/canonical-playback-reference-live.spec.ts --reporter=line,html`.
 
 ## Status and purpose

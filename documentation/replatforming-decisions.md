@@ -1317,6 +1317,16 @@ item obstacle unless that value matches the active run. When source
 filled slots after recording that run-specific pass, so the next entry again
 requires items without allowing the current run to skip completion.
 
+**Canonical-player contract clarification:** place and continue recheck the
+learner-specific node playability before returning or mutating obstacle state,
+including already-filled slots. Successful placement and unmet continuation
+retain ordinary reached progress; met continuation stamps completed activity
+progress while preserving its first completion time, as `ItemObstacleService`
+does. Neither command advances the opaque run. The shared progress writers
+preserve an earlier completed state. Item commands return the complete bounded
+inventory; an inventory above 100 entries aborts the transaction instead of
+committing consumption or a pass with a truncated inventory response.
+
 The read document includes the bounded held-item inventory, a safe projection
 of configured obstacle item presentation, and the current persisted state.
 The React activity is lifted from the original scene and uses its inventory
@@ -1370,6 +1380,13 @@ owned-tool projection and safe authored visual state, never UUIDs or internal
 ownership facts. React lifts the original scene, tool belt selection, target
 click, tool animation and cleared/revisit presentation; it replaces only the
 Laravel command with the typed Rust contract.
+
+**Canonical-player contract clarification:** useful persistent clears also
+retain the source's reached progress so the private playback projection can
+associate the durable clear with that activity. They do not downgrade earlier
+completion. Non-persistent useful actions still record only the current-run
+pass, not a durable clear or reached event. Every use rechecks current
+learner-specific node playability, including after a previous clear.
 
 **Why:** Separate normalized facts make the source persistence rule explicit,
 auditable and race-safe. They also keep public tool references and authoring
