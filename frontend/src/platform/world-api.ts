@@ -8,6 +8,7 @@ import { isSharedTaskWrite, sharedTaskWrite } from './playback-shared-task-api';
 import { isPlaybackResponsePost, playbackResponsePost } from './playback-response-api';
 import { isPlaybackGrantPost, playbackGrantPost } from './playback-grant-api';
 import { isPlaybackObstaclePost, playbackObstaclePost } from './playback-obstacle-api';
+import { isPlaybackMessageUrl, playbackMessageRead, playbackMessageWrite } from './playback-message-api';
 export { JsonRequestError } from './json-request-error';
 
 const unavailableMessage =
@@ -29,6 +30,7 @@ function unavailableOperation(): never {
  * through to Laravel-shaped requests.
  */
 export async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
+    if (isPlaybackMessageUrl(url)) return await playbackMessageRead(url, signal) as T;
     const parsed = new URL(url, window.location.origin);
 
     if (parsed.origin === window.location.origin && parsed.pathname === '/learning/journal') {
@@ -92,6 +94,7 @@ export async function postJson<T>(
     if (isPlaybackResponsePost(url)) return await playbackResponsePost(url, payload) as T;
     if (isPlaybackGrantPost(url)) return await playbackGrantPost(url, payload) as T;
     if (isPlaybackObstaclePost(url)) return await playbackObstaclePost(url, payload) as T;
+    if (isPlaybackMessageUrl(url)) return await playbackMessageWrite('POST', url, payload) as T;
     const groupAction = /^\/learning\/groups\/([a-f0-9-]+)\/(messages|admin-chat-vote|messages\/([a-f0-9-]+)\/resolve)$/.exec(url);
     if (groupAction) {
         const [, groupId, action, messageId] = groupAction;
@@ -145,5 +148,6 @@ export async function patchJson<T>(
 ): Promise<T> {
     if (isJournalWrite('PATCH', url)) return await journalWrite('PATCH', url, payload) as T;
     if (isSharedTaskWrite(url)) return await sharedTaskWrite('PATCH', url, payload) as T;
+    if (isPlaybackMessageUrl(url)) return await playbackMessageWrite('PATCH', url, payload) as T;
     return unavailableOperation();
 }

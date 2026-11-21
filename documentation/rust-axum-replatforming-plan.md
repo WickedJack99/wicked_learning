@@ -2417,6 +2417,85 @@ local development backend remains on the repaired build. Reports are ignored
 `frontend/playwright-report/player-message-completion{,-baseline}/`.
 The existing message-contract rerun command covers all six completion cases.
 
+
+### Whole copied message controls: ordinary-run adapters
+
+Pinned main is still `32c3113a5bc688c9944c20942cdf40a6a5d57d7f`.
+The complete copied `resources/js/features/world/message-activities.tsx`
+remains the presentation owner, including both `MessagePromptActivity` and
+`MessageWallActivity`. Dependencies are `features/world/{api,activity-utils}`,
+`components/{input-error,pagination-controls,ui/button}`, appearance and platform
+translation hooks, `lib/utils`, source learning types and canonical CSS.
+The PHP owners and native prerequisites are recorded immediately above.
+
+| Source seam | Typed Rust adapter and actual contract | Boundary / failure behavior |
+| --- | --- | --- |
+| Six exact `/learning/activities/{id}/messages...` request expressions omit the run | `message-source-transform.ts` adds the actual page-prop run to those six URLs; guarded exact-file Vite transformation adds `usePage` to the two whole controls | Only identity/transport expressions change. Canonical bytes, JSX, local state, styling and controls remain intact; unmatched source shape fails the build. |
+| Peer prompt GET/POST | `playback-message-api.ts` → `/learner/play-runs/{run}/activities/id:{activity}/peer-message` | Project actual `has_contributed` and `topic_title`. The peer prompt never consumes messages, pagination or topic ID; do not fabricate these unused fields. |
+| Private support GET/POST | Same adapter → `/support-request` | Project actual contribution state, nullable own request and its reply IDs/bodies. Null request becomes an empty messages collection; no peer data or invented support response. |
+| Wall GET and source pagination | Same adapter → `/peer-wall?page=...&per_page=...` | Map every consumed message/response flag, body, UUID and all four pagination values. Preserve source 3-row narrow/10-row desktop pages and native 12-row maximum; forward AbortSignal. |
+| Reply POST; helpful mark/clear PATCH | Native `/peer-wall/messages/{message}/responses` and `.../{response}/helpfulness` | Preserve actual response type/body and boolean mark, CSRF, native authorization and idempotence. Unknown/duplicate query keys, invalid/unbound run IDs and unsupported operations reject explicitly. No Laravel request fallback. |
+| Prompt continue/skip and wall close callback | Existing uncached `completePlaybackActivity` and actual completion receipt | Advance only after native success; no fabricated progress or message requirement. Full copied NodePlay/check-in/route ownership is still pending. |
+
+`world-api.ts` dispatches only these exact source-shaped routes. Both copied
+and pinned-main reference modules use the documented transport seam; browser
+comparison proves presentation/local interaction preservation, while native
+contract tests above independently verify backend semantics. The test-only
+`canonical-player-message.{html,tsx}` host binds a real Rust playback document,
+loads actual translations and observes completion/destination callbacks. It
+does not replace the whole owning player or claim full-route activation.
+
+`canonical-player-message-live.spec.ts` uses two independent real learner runs
+and disposable PostgreSQL fixtures, with no response mocks. It covers loading,
+peer/private submission, optional support skip, latest-three private replies,
+empty and paginated walls, typed peer response persistence, helpful mark/clear
+and refresh, failed reads, failed writes retaining drafts and recovery. Controls
+are checked for visible bounds at 1440×900 and 390×844; source/canonical text,
+bounds and screenshot pairs are attached. Guards reject foreign URLs, missing
+or unbound runs and unknown query fields. Successful callbacks are checked
+against actual native receipts and persisted route state. Fixtures are removed
+through the scoped local author API with only their own transition/principal
+cleanup; no production data is used.
+
+**Open source defects, not waived:** the wall's GET catch sets state to null,
+then renders the same copy as a genuinely empty wall. The source close handler
+sets `closing` before awaiting completion and has no catch/finally. A real
+unavailable-node completion rejects with 404, leaves the close control disabled
+and produces an unhandled rejection without advancing native or local state.
+Reload after restored access permits successful completion. The browser cases
+preserve and record these defects on both source and canonical controls; full
+player error acceptance must address recovery at its authorized boundary.
+Prompt skip/previous-contribution continuation similarly has no local error
+catch by source inspection and needs owning-route failure coverage. Visual
+review also shows a desktop wall card crossing the component's right edge and
+being clipped by its overflow container in both source and canonical renders;
+this remains an open layout limitation, not a canonical-source modification.
+Only the previously explicitly accepted Welcome clipping is waived.
+
+This is an ordinary-run component prerequisite. Peer replay open/read/complete,
+replay node identity, other remaining activity controls, anonymous playback and
+the whole player lifecycle remain incomplete. Production NodePlay stays
+explicitly unavailable; these component checks do not count it as migrated.
+
+Verification passed: 299 canonical source files plus CSS, frontend production
+type/build, generated OpenAPI client drift, Rust workspace format/check and
+126 persistence unit tests (six existing database tests ignored). The 22 real
+Rust message browser cases passed in 51.5 seconds; 38 existing Shared Task,
+question/reflection/review, grant and obstacle cases also passed with the shared
+transport dispatch. All 68 screenshot pairs were compared: 64 are pixel-identical;
+four differ only around controls by at most 4/255 per channel (at most 1532
+pixels in a pair). Prompt/support/wall renders were visually inspected at both
+viewports. Known source limitations above remain open, regardless of test pass.
+No canonical UI, backend, OpenAPI or database migration changed in this adapter
+slice. Both interrupted and final message fixtures were removed.
+
+Reports are ignored `frontend/playwright-report/player-message-ui/` and
+`player-message-shared-regression/`. With the real local Rust stack on 8081,
+existing disposable sessions and the whole-source evidence Vite server on 8084
+(`npx vite --host 127.0.0.1 --port 8084 --strictPort --config e2e/learner-layout-vite.config.ts`),
+rerun from `frontend/`:
+`PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-message-live.spec.ts --reporter=line,html`.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

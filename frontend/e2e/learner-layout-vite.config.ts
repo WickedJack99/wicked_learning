@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import base from './journal-vite.config.ts';
 import { transformGrantSource } from '../src/platform/grant-source-transform.ts';
 import { transformObstacleSource } from '../src/platform/obstacle-source-transform.ts';
+import { transformMessageSource } from '../src/platform/message-source-transform.ts';
 
 const sourceRoot = resolve(import.meta.dirname, '../../resources/js');
 export default mergeConfig(base, defineConfig({ cacheDir: 'node_modules/.vite-learner-layout-source', plugins: [{
@@ -21,6 +22,9 @@ export default mergeConfig(base, defineConfig({ cacheDir: 'node_modules/.vite-le
     },
     transform(code, id) {
         if (!id.split('?')[0].startsWith(`${sourceRoot}/`)) return;
+        if (id.split('?')[0] === `${sourceRoot}/features/world/message-activities.tsx`) {
+            code = transformMessageSource(code).replace("from './api'", "from '/src/platform/world-api.ts'");
+        }
         for (const [file, kind] of [['item-obstacle-activity.tsx', 'items'], ['obstacle-activity.tsx', 'tool']] as const) {
             if (id.split('?')[0] === `${sourceRoot}/features/world/${file}`) {
                 code = transformObstacleSource(code, kind).replace("from './api'", "from '/src/platform/world-api.ts'");

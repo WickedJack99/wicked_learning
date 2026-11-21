@@ -4,12 +4,20 @@ import tailwindcss from '@tailwindcss/vite';
 import { dirname, resolve } from 'node:path';
 import { transformGrantSource } from './src/platform/grant-source-transform.ts';
 import { transformObstacleSource } from './src/platform/obstacle-source-transform.ts';
+import { transformMessageSource } from './src/platform/message-source-transform.ts';
 
 const canonicalWorldApi = resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/api');
 const worldApiAdapter = resolve(import.meta.dirname, 'src/platform/world-api.ts');
 
 export default defineConfig({
     plugins: [
+        {
+            name: 'canonical-player-message-seams',
+            enforce: 'pre',
+            transform(code, id) {
+                if (id.split('?')[0] === resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/message-activities.tsx')) return transformMessageSource(code);
+            },
+        },
         {
             name: 'canonical-player-obstacle-seams',
             enforce: 'pre',
