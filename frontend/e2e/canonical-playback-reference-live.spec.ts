@@ -222,9 +222,14 @@ for (const type of types) {
                 const arrived = await arrival.json();
                 expect(arrived.activity.id).toBe(portalTargetId);
                 expect(arrived.node.outgoing_portal_links).toEqual([]);
+                const pendingDeparture = await owner.request.get(`/api/v1/learner/play-runs/${run}`);
+                expect(pendingDeparture.status()).toBe(200);
+                expect((await pendingDeparture.json()).activity.id).toBe(activity);
+                expect((await peer.request.get(`/api/v1/learner/play-runs/${run}`)).status()).toBe(404);
                 for (const state of ['locked', 'hidden']) {
                     sql(`UPDATE learning_nodes SET state='${state}' WHERE id='${node.node_id}'`);
                     expect((await send(ref)).status(), 'An idempotent travel retry must recheck departure access.').toBe(404);
+                    expect((await owner.request.get(`/api/v1/learner/play-runs/${run}`)).status()).toBe(404);
                 }
                 sql(`UPDATE learning_nodes SET state='available',published_at=NULL WHERE id='${node.node_id}'`);
                 expect((await send(ref)).status()).toBe(404);

@@ -1,4 +1,4 @@
-import { transformPlaybackPage } from '../src/platform/playback-page-source-transform.ts';
+import { transformPlaybackPage, transformPortalAction } from '../src/platform/playback-page-source-transform.ts';
 import { bindMarkdownRenderer, transformMarkdownRenderer } from '../src/platform/markdown-source-transform.ts';
 import { transformNpcSource } from '../src/platform/npc-source-transform.ts';
 import { defineConfig, mergeConfig } from 'vite';
@@ -34,6 +34,7 @@ export default mergeConfig(base, defineConfig({ cacheDir: 'node_modules/.vite-le
     },
     transform(code, id) {
         if (!id.split('?')[0].startsWith(`${sourceRoot}/`)) return;
+        if (id.split('?')[0] === `${sourceRoot}/features/world/standard-activities.tsx`) code = transformPortalAction(code);
         if (id.split('?')[0] === `${sourceRoot}/pages/learning/node-play.tsx`) code = transformPlaybackPage(code).replace("from '@/features/world/api'", "from '/src/platform/world-api.ts'");
         if (id.split('?')[0] === `${sourceRoot}/features/world/markdown-activity.tsx`) code = bindMarkdownRenderer(code, `${sourceRoot}/features/platform-info/markdown-renderer.tsx`);
         if (id === `${sourceRoot}/features/platform-info/markdown-renderer.tsx?learner-markdown`) code = transformMarkdownRenderer(code);

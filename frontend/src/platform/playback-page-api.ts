@@ -6,6 +6,7 @@ import { completePlaybackActivityOnce } from './playback-completion';
 import { completeResponseActivity } from './playback-response-api';
 import { completeNpcActivity } from './playback-npc-api';
 import { toSourceActivityReceipt } from './playback-projection';
+import { completeOutputPortal } from './playback-portal-api';
 
 type Playback = components['schemas']['LearnerPlaybackDocument'];
 type Page = { document: Playback; reloadCompanion: (activity: string) => Promise<boolean> };
@@ -73,8 +74,8 @@ export async function playbackPageWrite(method: 'POST' | 'DELETE', url: string, 
             return { progress: toSourceActivityReceipt(receipt, context.activity) };
         }
         if (payload.status !== 'completed' || payload.is_revisit !== (context.document.run_kind === 'revisit')) return unavailable(400);
-        if (context.document.run_kind === 'recall' ||
-            (context.activity.activity_type === 'portal' && context.activity.config.portalMode !== 'input')) return unavailable(501);
+        if (context.document.run_kind === 'recall') return unavailable(501);
+        if (context.activity.activity_type === 'portal' && context.activity.config.portalMode !== 'input') return completeOutputPortal(context);
         const type = context.activity.activity_type;
         const result = ['question', 'reflection', 'review'].includes(type)
             ? await completeResponseActivity(context.id, context.run, {

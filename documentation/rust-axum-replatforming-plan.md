@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins, explicit Companion run context and scoped refresh recovery integrated below | Anonymous and implicit entry, output-portal travel, Recall reconciliation, nonordinary continuation/restart, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
+| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins, Companion context/recovery and ordinary output-portal travel integrated below | Anonymous and implicit entry, Recall reconciliation, nonordinary entry/continuation/restart, other completed-run refreshes, automatic-arrival failure recovery, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -1707,8 +1707,9 @@ canonical source is unchanged. Production player activation remains closed.
 
 Remaining whole-page gates include entry without both run and route,
 anonymous playback, nonordinary entry/local restart/authored continuation,
-atomic output-portal travel and Recall's accepted-contract conflict. Companion
-reload failure/recovery is now verified in its dedicated section below. The
+Recall's accepted-contract conflict, other completed-run refreshes and automatic
+arrival failure recovery. Ordinary atomic output-portal travel and Companion
+reload failure/recovery are now verified in their dedicated sections below. The
 evidence host is not a production resolver or a claim that the route family
 is complete.
 
@@ -1924,11 +1925,12 @@ arrival run, without starting or resetting an authored target route.
 
 | Source requirement | Existing Rust evidence / necessary adapter | Audit finding |
 | --- | --- | --- |
-| `onComplete(activity)` resolves before `onTravel(link)`; the parent consumes actual completed progress and opens the optional departure check-in | `POST /learner/play-runs/{run}/activities/{activity}/portal/travel`; `persistence/src/learner_portal.rs`; shared `learner_playback_activity_state::load` | Existing command commits departure and arrival together but returns no departure receipt. Extend this command's response with its actual transaction-owned activity state; never synthesize a completed timestamp or send ordinary `/complete` first. |
-| Current departure must remain playable | Source `assertCanPlay`, `PostgresLearnerNodeAvailability` | Initial native travel checked destination availability only; the idempotent arrival branch also omitted departure publication/role checks. Revalidate both source and destination on every command/retry before returning success. |
-| Source optional check-in before navigation | Existing run-scoped check-in writer and completed departure progress | Reuse the owned source run; a failed check-in must retain its draft and pending destination. No check-in write when skipped. |
-| Source target node/activity URL | Native travel's opaque arrival ID plus existing `GET /learner/play-runs/{run}` with exact node/activity identities | A narrow page navigation adapter must resolve the validated arrival document, compare it with the source link and build its source URL. Never start a target authored route or accept a browser-selected destination. Not yet integrated. |
-| Unavailable destination, failed travel, duplicate click/retry | Existing 401/403/404/503 native boundaries; source `isTravelling` lifecycle | Failed writes cannot open a check-in or navigate. The source portal lacks its own rejected-promise error display; use a documented framework transport boundary without changing source JSX. Whole-page failure/retry evidence is still required. |
+| `onComplete(activity)` resolves before `onTravel(link)`; the parent consumes actual completed progress and opens the optional departure check-in | `POST /learner/play-runs/{run}/activities/{activity}/portal/travel`; `persistence/src/learner_portal.rs`; shared `learner_playback_activity_state::load` | `playback-portal-api.ts::completeOutputPortal` uses the actual departure receipt, coalesces requests in the owning page and retains only a successful native result. It never synthesizes completion time or sends ordinary `/complete` first. |
+| Current departure must remain playable | Source `assertCanPlay`, `PostgresLearnerNodeAvailability` | Initial travel and the idempotent arrival branch now revalidate both source and destination, including publication and role scope. |
+| Source optional check-in before navigation | Existing run-scoped check-in writer, completed departure progress and `playback-page-api.ts` | Reuse the owned source run; a failed check-in retains its draft and pending destination. Skipping makes no check-in write. |
+| Source target node/activity URL | Native travel's opaque arrival ID plus existing `GET /learner/play-runs/{run}`; `navigatePlaybackPortal` replaces exactly two page visits | Validate the source link against the mounted graph and the actual arrival's run kind, node, map, activity, input mode and absent route start. Build the source URL with its real opaque run. No target authored route is started or reset. |
+| Unavailable destination, failed travel, duplicate click/retry | Native 401/403/404/503 boundaries; source `isTravelling`; `performPortalAction` and `PlaybackPortalRecovery` | The exact source async click and two visits have a dismissible framework error boundary made from whole copied AlertError/Button components. Failed travel cannot open a check-in or navigate. A failed arrival read retries only that read, preserving the already-saved departure/check-in. No source markup or styling is changed. |
+| Refresh after departure, before arrival | Source `LearningPlayRunService` accepts the owned current run even when completed; bounded native playback read extension | Permit only a completed ordinary output portal with its owned arrival still in progress. It retains real completed progress and the original run, so Traverse recovers the same arrival idempotently. Once the arrival completes this departure read closes; other completed-run lifecycle contracts remain open. |
 
 **Verified native prerequisites:** the locked-departure regression first
 returned 200 instead of 404. Initial travel now evaluates departure state, and
@@ -1950,8 +1952,64 @@ check-in persists against the original run and preserves its completion time.
 The focused native test passed against the rebuilt local image. Rust workspace
 check/fmt, 183 API tests (two ignored), one portal application test, 26 playback
 persistence tests, canonical identity, frontend production type/build and
-generated OpenAPI/client drift all passed. This is a native contract repair;
-the whole copied output-portal navigation/error integration is still pending.
+generated OpenAPI/client drift all passed. The whole copied integration now
+uses these native prerequisites as described below.
+
+**Whole copied output-portal integration:** `playback-portal-api.ts` is bound
+and released with the owning player document. Its single in-flight source
+action prevents duplicate callbacks, its departure promise cache discards
+failed/ambiguous requests, and departure writes/arrival reads share the page's
+abort lifetime.
+A dropped response after Rust commits is retried through the native idempotent
+command. Arrival navigation verifies an actual successful read and current
+access; it never trusts a target supplied by the browser. A failed arrival
+read does not repeat a successful travel or optional check-in. Navigation
+away aborts pending transport and prevents late navigation. The two source
+visits and one async portal click are the only new Vite seams; whole source
+components, source local state, authored presentation and URLs remain owned by
+the pinned tree. The framework error region is not claimed as Laravel's exact
+error-page presentation.
+
+The first whole-page regression failed because output completion was explicitly
+unavailable. A subsequent refresh regression reproduced the closed completed
+departure read. The read extension is restricted to an owned pending arrival,
+retains source access checks, and exposes actual stored state. Browser evidence
+uses the entire pinned-main and canonical page/layout trees, checks the entire
+reference React/CSS tree against the pin, and compares both viewports. Native
+travel, check-in, arrival completion and target route progress use real local
+Rust/PostgreSQL. The only injected fault is dropping one successful travel
+response after the real command commits.
+
+`canonical-player-portal-live.spec.ts` covers ordinary departure, refresh before
+arrival, actual source completion/check-in, manual and automatic arrival,
+skipped check-ins, locked destination rejection, dismiss/retry from the source
+control, lost-response recovery, retained draft after rejected check-in,
+revoked arrival read/retry, and arrival refresh/completion/return-to-map. It
+asserts one departure completion and unchanged independent target route
+progress throughout. Retry/dismiss controls are visible, bounded and hit-tested.
+The existing mobile source toolbar obstruction is identified before keyboard
+fallback; it remains unaccepted pointer behavior. Source/copy screenshot
+attachments cover departure, check-in, arrival and both transport failures.
+Production player activation stays closed until the remaining family gates
+are satisfied; automatic-arrival failure handling and completed arrival refresh
+are not established by the automatic-arrival happy path.
+
+Verification: 40 real-stack browser/contract checks passed (2.6 minutes),
+covering all six native run kinds, fourteen activity types, ordinary and
+nonordinary whole-player flows, Companion recovery and the six new portal
+scenarios. Canonical source identity, production frontend type/build and
+generated OpenAPI/client drift, Rust
+workspace check/fmt, 183 API tests (two ignored), 26 playback persistence tests
+and one portal application test passed. The source/copy evidence has 22 portal
+screenshot pairs: 21 are byte-identical; one automatic-arrival narrow pair
+differs in five pixels confined to the check-in heart icon, with no observed
+layout difference. Desktop arrival, narrow arrival and narrow failure controls
+were visually inspected. The ignored report is
+`frontend/playwright-report/player-portal-page-final/`. Reuse the 8084 learner
+evidence Vite host and run `canonical-player-portal-live.spec.ts`, the two
+`canonical-playback-{contract,reference}-live.spec.ts` files, and the ordinary,
+completed-run and Companion-reload whole-player live suites. Restart that host
+when changing its Vite transforms; HMR is disabled for source evidence.
 
 ### Copied player page-prop adapter
 

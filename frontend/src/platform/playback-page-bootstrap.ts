@@ -9,6 +9,7 @@ import { bindPlaybackPage } from './playback-page-api';
 import { playbackIdentity } from './playback-context';
 import { toPlaybackPageProps } from './playback-projection';
 import { PlaybackCompanionRefresh, type CompanionRecovery } from './playback-companion-refresh';
+import { bindPlaybackPortals, type PortalFailure } from './playback-portal-api';
 
 type Props = ReturnType<typeof toPlaybackPageProps> & ReturnType<typeof toLearnerShellProps> & {
     appearance: components['schemas']['CurrentUser']['appearance'];
@@ -22,12 +23,15 @@ type State = { kind: 'loading' } | { kind: 'unavailable'; message: string } | { 
 export function usePlaybackPageDocument(run: string | null, node: string, start: string | null) {
     const [state, setState] = useState<State>({ kind: 'loading' });
     const [companionRecovery, setCompanionRecovery] = useState<CompanionRecovery | null>(null);
+    const [portalFailure, setPortalFailure] = useState<PortalFailure | null>(null);
     useEffect(() => {
         let alive = true; let release: (() => void) | undefined;
         const controller = new AbortController(); const signal = controller.signal;
         let companionRefresh: PlaybackCompanionRefresh | undefined;
+        let releasePortals: (() => void) | undefined;
         setState({ kind: 'loading' });
         setCompanionRecovery(null);
+        setPortalFailure(null);
         void (async () => {
             playbackIdentity(node);
             if (start !== null) playbackIdentity(start);
@@ -78,6 +82,7 @@ export function usePlaybackPageDocument(run: string | null, node: string, start:
                 setState((previous) => previous.kind === 'ready' ? { ...previous, props: { ...previous.props, companion } } : previous);
             }, setCompanionRecovery);
             release = bindPlaybackPage(document, (activity) => companionRefresh!.reload(activity));
+            releasePortals = bindPlaybackPortals(document, setPortalFailure);
             window.localStorage.setItem('appearance', currentUser.data.appearance);
             initializeTheme();
             setState({ kind: 'ready', props: {
@@ -88,7 +93,7 @@ export function usePlaybackPageDocument(run: string | null, node: string, start:
         })().catch((error: unknown) => {
             if (alive) setState({ kind: 'unavailable', message: error instanceof Error ? error.message : 'The player is currently unavailable.' });
         });
-        return () => { alive = false; controller.abort(); companionRefresh?.dispose(); release?.(); };
+        return () => { alive = false; controller.abort(); companionRefresh?.dispose(); releasePortals?.(); release?.(); };
     }, [run, node, start]);
-    return { ...state, companionRecovery };
+    return { ...state, companionRecovery, portalFailure };
 }

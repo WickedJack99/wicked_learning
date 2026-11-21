@@ -2260,6 +2260,10 @@ it cannot fabricate completion time or make a separate ordinary completion
 write. Both initial travel and idempotent retry revalidate departure playability
 as well as destination playability and source/target publication and role
 scope. This does not change the separate arrival-run or target-route boundary.
+The completed departure remains readable only while that owned arrival is
+pending, allowing a refreshed copied page to recover the same arrival through
+the idempotent command. This exception does not reopen arbitrary completed
+ordinary runs or start a target authored route.
 
 **Alternatives:** Posting a target activity or node from the browser would
 trust client graph selection. Starting the target route would incorrectly

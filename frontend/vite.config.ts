@@ -1,4 +1,4 @@
-import { transformPlaybackPage } from './src/platform/playback-page-source-transform.ts';
+import { transformPlaybackPage, transformPortalAction } from './src/platform/playback-page-source-transform.ts';
 import { bindMarkdownRenderer, transformMarkdownRenderer } from './src/platform/markdown-source-transform.ts';
 import { transformNpcSource } from './src/platform/npc-source-transform.ts';
 import { defineConfig } from 'vite';
@@ -66,6 +66,7 @@ export default defineConfig({
             enforce: 'pre',
             transform(code, id) {
                 if (id.split('?')[0] !== resolve(import.meta.dirname, 'canonical-source/resources/js/features/world/standard-activities.tsx')) return;
+                code = transformPortalAction(code);
                 const queue = /queueRecallQuestion\(question\.id\)/g;
                 const remove = /removeRecallQuestion\(question\.id\)/g;
                 const feedback = /saveRecallFeedback\(\s*question\.id,\s*confidenceAfterFeedback,?\s*\)/g;

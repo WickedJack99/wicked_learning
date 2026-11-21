@@ -5678,7 +5678,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read the current activity in an authorized active play run. */
+        /**
+         * Read the current activity in an authorized active play run.
+         * @description A completed ordinary output-portal departure also remains readable while its caller-owned arrival run is in progress, so a source-page refresh can recover that same arrival through idempotent travel. Source publication, role scope and playability still apply. Other completed ordinary runs and completed arrival runs are unavailable.
+         */
         get: operations["getLearnerPlayback"];
         put?: never;
         post?: never;
