@@ -109,6 +109,9 @@ struct SupportPromptCompletionRow {
     activity_type: String,
     principal_id: Uuid,
     route_id: Uuid,
+    node_id: Uuid,
+    node_state: String,
+    node_visual_config: serde_json::Value,
 }
 
 #[derive(FromRow)]
@@ -2383,8 +2386,8 @@ async fn npc_dialogue_reached_end(
 }
 
 /// Source message activities have a dedicated completion path because their
-/// topic must belong to the active map asset. Support prompts require their
-/// one private request; peer prompts and peer walls are explicitly optional.
+/// topic must belong to the active map asset. Both peer and private support
+/// prompts permit the source "Not now" action; message walls are optional too.
 async fn complete_current_message_activity(
     pool: &PgPool,
     principal: &AuthorizedPrincipal,
@@ -2393,11 +2396,11 @@ async fn complete_current_message_activity(
 ) -> Result<Option<LearnerPlaybackCompletionResult>, sqlx::Error> {
     let mut transaction = pool.begin().await?;
     let current = sqlx::query_as::<_, SupportPromptCompletionRow>(
-        "SELECT activities.activity_config, activities.id AS activity_id, activities.activity_type, progress.principal_id, routes.id AS route_id \
+        "SELECT activities.activity_config, activities.id AS activity_id, activities.activity_type, progress.principal_id, routes.id AS route_id, nodes.id AS node_id, nodes.state AS node_state, nodes.visual_config AS node_visual_config \
          FROM learner_route_progress AS progress \
          INNER JOIN application_principals AS principals ON principals.id = progress.principal_id \
          INNER JOIN learning_activity_starts AS starts ON starts.id = progress.activity_start_id \
-         INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id \
+         INNER JOIN learning_nodes AS nodes ON nodes.id = starts.node_id AND nodes.id = progress.node_id \
          INNER JOIN learning_activities AS activities ON activities.id = progress.current_activity_id \
          INNER JOIN learning_routes AS routes ON routes.id = activities.route_id \
          INNER JOIN learning_map_assets AS assets ON assets.id = routes.map_asset_id \
@@ -2405,7 +2408,7 @@ async fn complete_current_message_activity(
          INNER JOIN learning_message_topics AS topics ON topics.id::text = activities.activity_config ->> 'messageTopicId' AND topics.map_asset_id = assets.id \
          WHERE principals.identity_subject_id = $1 AND progress.current_play_run_id = $2 AND progress.status = 'in_progress' \
            AND ($3 = 'id:' || activities.id::text OR (left($3, 3) <> 'id:' AND activities.slug = $3)) \
-           AND ((activities.activity_type = 'message_prompt' AND (activities.activity_config ->> 'messageAudience' = 'peers' OR (activities.activity_config ->> 'messageAudience' = 'support' AND EXISTS (SELECT 1 FROM learner_messages AS messages WHERE messages.topic_id = topics.id AND messages.principal_id = progress.principal_id AND messages.audience = 'support')))) OR (activities.activity_type = 'message_wall' AND activities.activity_config ->> 'messageAudience' = 'peers')) \
+           AND ((activities.activity_type = 'message_prompt' AND activities.activity_config ->> 'messageAudience' IN ('peers', 'support')) OR (activities.activity_type = 'message_wall' AND activities.activity_config ->> 'messageAudience' = 'peers')) \
            AND nodes.map_asset_id = assets.id AND maps.published_at IS NOT NULL AND nodes.published_at IS NOT NULL \
            AND assets.published_at IS NOT NULL AND routes.published_at IS NOT NULL AND activities.published_at IS NOT NULL \
            AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) AS access_role(role) WHERE access_role.role = ANY($4))) \
@@ -2421,6 +2424,22 @@ async fn complete_current_message_activity(
         transaction.commit().await?;
         return Ok(None);
     };
+
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        transaction.commit().await?;
+        return Ok(None);
+    };
+    if !availability
+        .state_for_node(
+            current.node_id,
+            &current.node_state,
+            &current.node_visual_config,
+        )
+        .can_play()
+    {
+        transaction.commit().await?;
+        return Ok(None);
+    }
 
     // Resolve the authored edge before checking its destination. Filtering an
     // invalid destination out of the edge query would falsely complete the run.

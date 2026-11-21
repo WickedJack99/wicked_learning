@@ -2305,7 +2305,7 @@ No message UI is activated by this audit or the prerequisite repair.
 | Responses disabled | Source omits responses and rejects both response/helpfulness writes | Repaired: omit response writing and reject both command types when responses are disabled. |
 | Reply target validation and idempotence | Native `respond` insert/select then wall read | Repaired: lock/validate the target before insertion; reject unknown, hidden, own, support or other-topic targets with 404; preserve existing response body/type on retry. |
 | One helpful response per message | Source locks message then response | Repaired: native writer locks parent before response; concurrent choices serialize and false/unmark remains valid. |
-| Access and lifecycle | Source `assertCanPlay`; native peer route contexts and support route/replay contexts | Access repair below covers these existing contexts. Peer replay, other eligible run kinds and source optional completion still require verification before binding UI. |
+| Access and lifecycle | Source `assertCanPlay`; native peer route contexts and support route/replay contexts | Access repair below covers these existing contexts. Peer replay and other eligible run kinds still require verification before binding UI; ordinary optional completion is repaired below. |
 | Source requests omit run identity | Existing scoped playback binding | Add only exact message read/write routes with the actual bound run and typed mappings; unknown/stale operations stay unavailable. |
 | Failures and whole-page ownership | Source inline prompt/reply/helpfulness errors; wall close completion callback | Test preserved drafts, pagination/refetch, actual completion and failure at both viewports; full NodePlay lifecycle remains separate acceptance work. |
 
@@ -2371,11 +2371,51 @@ are ignored `frontend/playwright-report/player-message-access{,-baseline}/`;
 the message-contract rerun command above covers this extension too.
 
 This is not peer-replay or full-player acceptance. The peer repository still
-has only an ordinary run context. The source support prompt also offers “Not
-now,” while `complete_current_message_activity` still requires a support
-contribution; that completion mismatch remains explicit next work. Replay
-selection among multiple nodes sharing an asset requires the broader recorded
-run/node-identity audit. No missing context is replaced with fabricated data.
+has only an ordinary run context. The source optional-support completion
+mismatch identified here is repaired below. Replay selection among multiple
+nodes sharing an asset requires the broader recorded run/node-identity audit.
+No missing context is replaced with fabricated data.
+
+### Optional message completion and current access
+
+Pinned `message-activities.tsx` exposes “Not now” for both peer and private
+support prompts and a close action for a message wall. These call the owning
+`node-play.tsx::markCompleted` callback without requiring a message. The source
+owners are `LearningWorldController::markActivity` and `LearnerProgressService`;
+the completion regression verifies all four files against the pin.
+
+`learner_playback.rs::complete_current_message_activity` previously required a
+saved support request and omitted evaluated node availability. The ordinary
+message-completion path now accepts either prompt audience without writing a
+message, verifies the start/progress node identity and uses the existing
+availability evaluator before any progress, evidence or run mutation. Existing
+publication, role, topic/asset and authored-next-activity checks remain intact.
+A missing or unavailable authored destination still rejects completion rather
+than turning it into a successful terminal.
+
+Six source-derived native cases cover peer prompt, support prompt and wall,
+each with an authored next activity or terminal. Before repair, all three
+next-activity cases advanced from a locked node and empty support-terminal
+completion returned 404; peer/wall terminal completion already passed. The
+cases verify locked/hidden/scheduled denial without progress/evidence changes,
+unpublished-destination rejection, owner/CSRF boundaries, completion with no
+message rows, actual completion stamps, native next/terminal receipts and a
+rejected stale retry preserving the original stamp/count. These contracts
+support the future whole copied control callbacks; they do not activate a
+partial NodePlay or prove replay lifecycle acceptance.
+
+Verification: all sixteen message-contract cases plus two existing message
+reference cases pass (18 total), along with canonical identity, production
+frontend type/build, OpenAPI client consistency, Rust workspace check/format
+and 66 focused persistence tests (six existing ignored). The corrected baseline
+was rerun against an isolated image built from `349d8a88`: three unavailable-node
+completions returned 200 and empty support-terminal completion returned 404;
+the two existing peer/wall terminal cases passed. An earlier baseline fixture
+omitted a required next-activity description and is not counted as behavioral
+evidence. The isolated service was removed after verification; the current
+local development backend remains on the repaired build. Reports are ignored
+`frontend/playwright-report/player-message-completion{,-baseline}/`.
+The existing message-contract rerun command covers all six completion cases.
 
 ## Status and purpose
 

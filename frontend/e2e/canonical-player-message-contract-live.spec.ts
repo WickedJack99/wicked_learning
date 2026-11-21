@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
 
-for (const scenario of ['reply-order', 'responded-hidden', 'disabled', 'invalid-target', 'helpful-serial', 'pagination', 'access-wall', 'access-prompt', 'access-support', 'access-support-replay'] as const) {
+for (const scenario of ['reply-order', 'responded-hidden', 'disabled', 'invalid-target', 'helpful-serial', 'pagination', 'access-wall', 'access-prompt', 'access-support', 'access-support-replay', 'complete-support', 'complete-prompt', 'complete-wall', 'complete-support-terminal', 'complete-prompt-terminal', 'complete-wall-terminal'] as const) {
     test(`native message wall preserves source ${scenario}`, async ({ browser, baseURL }) => {
         expect(new URL(baseURL!).hostname).toMatch(/^(localhost|127\.0\.0\.1)$/);
         for (const path of ['app/Http/Controllers/LearnerMessageController.php', 'app/Learning/Queries/LoadLearnerMessages.php', 'app/Learning/Actions/CreateLearnerMessageResponse.php', 'app/Learning/Actions/MarkLearnerMessageResponseHelpful.php', 'app/Learning/Services/LearnerActivityAccessService.php', 'app/Learning/Services/LearningNodeStateResolver.php']) {
@@ -24,7 +24,7 @@ for (const scenario of ['reply-order', 'responded-hidden', 'disabled', 'invalid-
         const message = randomUUID(); const ownMessage = randomUUID(); const responses = Array.from({ length: 5 }, () => randomUUID());
         const extraPrincipals = Array.from({ length: 12 }, () => randomUUID()); let map: string | undefined;
         const support = scenario.includes('support');
-        const prompt = support || scenario === 'access-prompt';
+        const prompt = support || scenario.includes('prompt');
         const path = `/api/v1/learner/play-runs/${run}/activities/id:${activity}/${support ? 'support-request' : prompt ? 'peer-message' : 'peer-wall'}`;
         const wall = async (query = '') => { const response = await owner.request.get(path + query); expect(response.status()).toBe(200); return response.json(); };
         const respond = (id: string, body = 'A response to the question') => owner.request.post(`${path}/messages/${id}/responses`, { headers, data: { body, response_type: 'example' } });
@@ -39,14 +39,57 @@ for (const scenario of ['reply-order', 'responded-hidden', 'disabled', 'invalid-
                 UPDATE learning_routes SET published_at=NOW() WHERE map_asset_id='${node.asset_id}';
                 INSERT INTO learning_message_topics (id,map_asset_id,slug,title) VALUES ('${topic}','${node.asset_id}','message-contract','Source message topic');
                 INSERT INTO learning_activities (id,route_id,slug,title,description,position,published_at,activity_type,activity_config)
-                    SELECT '${activity}',id,'wall','Message wall','',0,NOW(),'${prompt ? 'message_prompt' : 'message_wall'}','{"messageTopicId":"${topic}","messageAudience":"${support ? 'support' : 'peers'}","messageAllowResponses":true}' FROM learning_routes WHERE map_asset_id='${node.asset_id}';
+                    SELECT '${activity}',id,'wall','Message wall','',0,NOW(),'${prompt ? 'message_prompt' : 'message_wall'}','{"messageTopicId":"${topic}","messageAudience":"${support ? 'support' : 'peers'}","messageAllowResponses":true,"messagePrompt":"Leave a note","messageInputLabel":"Your note"}' FROM learning_routes WHERE map_asset_id='${node.asset_id}';
                 INSERT INTO learning_activity_starts (id,node_id,activity_id) VALUES ('${start}','${node.node_id}','${activity}');
                 INSERT INTO learner_route_progress (principal_id,node_id,route_id,current_activity_id,status,activity_start_id,current_play_run_id)
                     SELECT '${principal}','${node.node_id}',route_id,id,'in_progress','${start}','${run}' FROM learning_activities WHERE id='${activity}';
                 INSERT INTO learner_messages (id,topic_id,principal_id,audience,body) VALUES ('${message}','${topic}','${other}','peers','Peer question'), ('${ownMessage}','${topic}','${principal}','peers','Own question');
                 ${extraPrincipals.map((id) => `INSERT INTO application_principals (id,identity_subject_id) VALUES ('${id}','${randomUUID()}');`).join('\n')}
                 ${responses.map((id, i) => `INSERT INTO learner_message_responses (id,message_id,responder_principal_id,body,response_type,created_at,helpful_at) VALUES ('${id}','${ownMessage}','${extraPrincipals[i]}','Reply ${i}','example','2024-01-0${i + 1}T12:00:00Z',${i === 0 ? 'NOW()' : 'NULL'});`).join('\n')}`);
-            if (scenario.startsWith('access-')) {
+            if (scenario.startsWith('complete-')) {
+                for (const source of ['resources/js/features/world/message-activities.tsx', 'resources/js/pages/learning/node-play.tsx', 'app/Http/Controllers/LearningWorldController.php', 'app/Learning/Services/LearnerProgressService.php']) {
+                    expect(readFileSync(`../${source}`)).toEqual(execFileSync('git', ['show', `32c3113a5bc688c9944c20942cdf40a6a5d57d7f:${source}`]));
+                }
+                if (support) sql(`UPDATE learner_messages SET audience='support' WHERE id='${ownMessage}'`);
+                const next = scenario.endsWith('terminal') ? null : randomUUID();
+                if (next) sql(`INSERT INTO learning_activities (id,route_id,slug,title,description,position,published_at,activity_type,activity_config) SELECT '${next}',route_id,'next','Next activity','',1,NOW(),'open_practice','{}' FROM learning_activities WHERE id='${activity}'; INSERT INTO learning_activity_transitions (from_activity_id,to_activity_id,from_connector,trigger,label) VALUES ('${activity}','${next}','completed','completed','Continue route')`);
+                const completePath = path.replace(/\/(peer-wall|peer-message|support-request)$/, '/complete');
+                const complete = () => owner.request.post(completePath, { headers, data: {} });
+                const before = sql(`SELECT row_to_json(p) FROM learner_route_progress p WHERE current_play_run_id='${run}'`);
+                const unchanged = () => {
+                    expect(sql(`SELECT row_to_json(p) FROM learner_route_progress p WHERE current_play_run_id='${run}'`)).toBe(before);
+                    expect(sql(`SELECT COUNT(*) FROM learner_activity_progress WHERE activity_id='${activity}'`).trim()).toBe('0');
+                    expect(sql(`SELECT COUNT(*) FROM learner_evidence_events WHERE play_run_id='${run}'`).trim()).toBe('0');
+                };
+                if (next) {
+                    for (const state of ['locked', 'hidden']) {
+                        sql(`UPDATE learning_nodes SET state='${state}' WHERE id='${node.node_id}'`);
+                        expect((await complete()).status()).toBe(404); unchanged();
+                    }
+                    sql(`UPDATE learning_nodes SET state='available',visual_config='{"schedule":{"lockAt":"2020-01-01T00:00:00Z"}}' WHERE id='${node.node_id}'`);
+                    expect((await complete()).status()).toBe(404); unchanged();
+                    sql(`UPDATE learning_nodes SET visual_config='{}' WHERE id='${node.node_id}'`);
+                    sql(`UPDATE learning_activities SET published_at=NULL WHERE id='${next}'`);
+                    expect((await complete()).status()).toBe(404); unchanged();
+                    sql(`UPDATE learning_activities SET published_at=NOW() WHERE id='${next}'`);
+                }
+                expect((await peer.request.post(completePath, { headers: await headersFor(peer), data: {} })).status()).toBe(404);
+                expect((await owner.request.post(completePath, { data: {} })).status()).toBe(403); unchanged();
+                // Source "Not now" and wall close complete without creating a
+                // peer note or requiring a private support request.
+                sql(`DELETE FROM learner_messages WHERE topic_id='${topic}'`);
+                const response = await complete(); expect(response.status()).toBe(200);
+                const receipt = await response.json();
+                expect(receipt).toMatchObject({ play_run_id: run, next_activity_id: next, status: next ? 'in_progress' : 'completed', activity_state: { activity_id: activity, progress: { status: 'completed' } } });
+                expect(sql(`SELECT COUNT(*) FROM learner_messages WHERE topic_id='${topic}'`).trim()).toBe('0');
+                expect(sql(`SELECT status FROM learner_route_progress WHERE current_play_run_id='${run}'`).trim()).toBe(next ? 'in_progress' : 'completed');
+                if (next) expect(sql(`SELECT current_activity_id FROM learner_route_progress WHERE current_play_run_id='${run}'`).trim()).toBe(next);
+                const stamp = sql(`SELECT completed_at FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${activity}'`);
+                expect(stamp.trim()).not.toBe('');
+                expect(sql(`SELECT completion_count FROM learner_route_progress WHERE current_play_run_id='${run}'`).trim()).toBe(next ? '0' : '1');
+                expect((await complete()).status()).toBe(404);
+                expect(sql(`SELECT completed_at FROM learner_activity_progress WHERE principal_id='${principal}' AND activity_id='${activity}'`)).toBe(stamp);
+            } else if (scenario.startsWith('access-')) {
                 if (support) sql(`UPDATE learner_messages SET audience='support' WHERE id='${ownMessage}'`);
                 if (scenario === 'access-support-replay') sql(`DELETE FROM learner_route_progress WHERE current_play_run_id='${run}'; INSERT INTO learner_activity_replay_runs (id,principal_id,activity_id) VALUES ('${run}','${principal}','${activity}')`);
                 const facts = () => sql(`SELECT jsonb_build_object('messages',(SELECT jsonb_agg(to_jsonb(m) ORDER BY m.id) FROM learner_messages m WHERE topic_id='${topic}'),'responses',(SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM learner_message_responses r WHERE message_id IN ('${message}','${ownMessage}')))`);
@@ -140,7 +183,10 @@ for (const scenario of ['reply-order', 'responded-hidden', 'disabled', 'invalid-
                 const absent = await wall('?page=6&per_page=3'); expect(absent.messages).toEqual([]); expect(absent.pagination).toEqual({ current_page: 6, last_page: 5, per_page: 3, total: 14 });
             }
         } finally {
-            if (map) expect((await admin.request.delete(`/api/v1/admin/world-builder/maps/${map}`, { headers: adminHeaders })).status()).toBe(204);
+            if (map) {
+                sql(`DELETE FROM learning_activity_transitions WHERE from_activity_id='${activity}' OR to_activity_id='${activity}'`);
+                expect((await admin.request.delete(`/api/v1/admin/world-builder/maps/${map}`, { headers: adminHeaders })).status()).toBe(204);
+            }
             sql(`DELETE FROM application_principals WHERE id IN (${extraPrincipals.map((id) => `'${id}'`).join(',')})`);
             await Promise.all([admin.close(), owner.close(), peer.close()]);
         }

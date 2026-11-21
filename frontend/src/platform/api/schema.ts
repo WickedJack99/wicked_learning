@@ -5719,7 +5719,7 @@ export interface paths {
         put?: never;
         /**
          * Complete the current authorized simple activity in a play run.
-         * @description Advances the server-selected transition within the current node's MapAsset, including another published route grouping. A non-null destination that is unpublished, outside that MapAsset, or unsupported is unavailable and must not be treated as an authored terminal. The original activity-start and play-run identities are retained.
+         * @description Advances the server-selected transition within the current node's MapAsset, including another published route grouping. A non-null destination that is unpublished, outside that MapAsset, or unsupported is unavailable and must not be treated as an authored terminal. The original activity-start and play-run identities are retained. Message prompts, including private support, and message walls may complete without contributing. Their current node must still be playable; completion never fabricates a message or bypasses publication, map access or authored destination checks.
          */
         post: operations["completeLearnerCurrentActivity"];
         delete?: never;
