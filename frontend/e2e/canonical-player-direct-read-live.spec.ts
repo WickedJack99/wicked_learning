@@ -59,6 +59,57 @@ test('runless node reads preserve empty and unstarted source state without route
         expect((await read()).private_state.activities).toEqual([{ activity_id: activity, status: 'reached', completed_at: null }]);
         expect(sql(`SELECT count(*) FROM learner_route_progress WHERE node_id='${node.node_id}'`).trim()).toBe('0');
         expect(sql(`SELECT count(*) FROM learner_evidence_events WHERE activity_id='${activity}'`).trim()).toBe('0');
+        const completePath = reachPath.replace(/reach$/, 'complete');
+        const checkInPath = reachPath.replace(/reach$/, 'check-ins');
+        expect((await owner.request.post(checkInPath, { headers: reachHeaders, data: { note: 'Before completion' } })).status()).toBe(404);
+        sql(`DELETE FROM learner_activity_progress WHERE activity_id='${activity}'`);
+        const completed = await owner.request.post(completePath, { headers: reachHeaders }); expect(completed.status()).toBe(200);
+        const completedState = await completed.json(); expect(completedState.progress.status).toBe('completed');
+        expect((await read()).private_state.activities).toEqual([completedState.progress]);
+        for (const endpoint of [completePath, checkInPath]) {
+            const data = endpoint === checkInPath ? { note: 'Denied' } : undefined;
+            expect((await anonymous.request.post(endpoint, { data })).status()).toBe(401);
+            expect((await owner.request.post(endpoint, { data })).status()).toBe(403);
+            expect((await owner.request.post(endpoint.replace(activity, randomUUID()), { headers: reachHeaders, data })).status()).toBe(404);
+            sql(`UPDATE learning_nodes SET state='locked' WHERE id='${node.node_id}'`);
+            try { expect((await owner.request.post(endpoint, { headers: reachHeaders, data })).status()).toBe(404); }
+            finally { sql(`UPDATE learning_nodes SET state='available' WHERE id='${node.node_id}'`); }
+        }
+        for (const data of [{}, { note: ' ' }, { note: 'x'.repeat(501) }, { feeling: 'excellent' }, { next_direction: 'invalid' }]) {
+            expect((await owner.request.post(checkInPath, { headers: reachHeaders, data })).status()).toBe(400);
+        }
+        for (let index = 0; index < 32; index++) {
+            const saved = await owner.request.post(checkInPath, { headers: reachHeaders, data: { note: ` Observation ${index} `, feeling: ' forming ', next_direction: 'revisit' } });
+            expect(saved.status()).toBe(200); const receipt = await saved.json();
+            expect(receipt.note).toBe(`Observation ${index}`); expect(receipt.feeling).toBe('forming');
+            expect(receipt.activity_state.progress).toEqual(completedState.progress);
+        }
+        expect(sql(`SELECT count(*) FROM learner_activity_check_ins WHERE activity_id='${activity}' AND play_run_id IS NULL`).trim()).toBe('30');
+        expect(sql(`SELECT note FROM learner_activity_check_ins WHERE activity_id='${activity}' ORDER BY recorded_at LIMIT 1`).trim()).toBe('Observation 2');
+        expect(sql(`SELECT revisit_status='pending' AND revisit_available_at BETWEEN NOW()+INTERVAL '71 hours' AND NOW()+INTERVAL '73 hours' AND revisit_check_in_id IS NOT NULL FROM learner_activity_progress WHERE activity_id='${activity}'`).trim()).toBe('t');
+        const journal = await owner.request.get('/api/v1/learner/journal'); expect(journal.status()).toBe(200);
+        const latest = (await journal.json()).check_ins.find((entry: any) => entry.activity_id === activity);
+        expect(latest.note).toBe('Observation 31'); uuid(latest.id);
+        // Due-return readers and commands must accept an observation whose
+        // originating run is null; only this explicit open creates a revisit.
+        sql(`UPDATE learner_activity_progress SET revisit_available_at=NOW()-INTERVAL '1 day' WHERE activity_id='${activity}'`);
+        const dueJournal = await owner.request.get('/api/v1/learner/journal'); expect(dueJournal.status()).toBe(200);
+        expect((await dueJournal.json()).revisit_invitations.some((entry: any) => entry.check_in_id === latest.id)).toBe(true);
+        const reopened = await owner.request.post(`/api/v1/learner/revisit-invitations/${latest.id}/open`, { headers: reachHeaders }); expect(reopened.status()).toBe(200);
+        const revisitRun = uuid((await reopened.json()).play_run_id);
+        const revisitRead = await owner.request.get(`/api/v1/learner/play-runs/${revisitRun}`); expect(revisitRead.status()).toBe(200);
+        expect((await revisitRead.json()).activity.id).toBe(activity);
+        sql(`DELETE FROM learner_revisit_runs WHERE id='${revisitRun}'`);
+        const settled = await owner.request.post(checkInPath, { headers: reachHeaders, data: { next_direction: 'settle' } }); expect(settled.status()).toBe(200);
+        expect(sql(`SELECT revisit_status='none' AND revisit_available_at IS NULL AND revisit_check_in_id IS NULL FROM learner_activity_progress WHERE activity_id='${activity}'`).trim()).toBe('t');
+        expect((await owner.request.post(checkInPath, { headers: reachHeaders, data: { next_direction: 'revisit' } })).status()).toBe(200);
+        const repeated = await owner.request.post(completePath, { headers: reachHeaders }); expect(repeated.status()).toBe(200);
+        expect(await repeated.json()).toEqual(completedState);
+        expect(sql(`SELECT revisit_status='none' AND revisit_available_at IS NULL AND revisit_check_in_id IS NULL FROM learner_activity_progress WHERE activity_id='${activity}'`).trim()).toBe('t');
+        expect(sql(`SELECT count(*) FROM learner_route_progress WHERE node_id='${node.node_id}'`).trim()).toBe('0');
+        expect(sql(`SELECT count(*) FROM learning_activity_starts WHERE node_id='${node.node_id}'`).trim()).toBe('0');
+        expect(sql(`SELECT count(*) FROM learner_evidence_events WHERE activity_id='${activity}'`).trim()).toBe('0');
+        sql(`DELETE FROM learner_activity_check_ins WHERE activity_id='${activity}'`);
         sql(`DELETE FROM learner_activity_progress WHERE activity_id='${activity}'`);
         noWrites();
         sql(`INSERT INTO learning_activities(id,route_id,slug,title,description,position,published_at,activity_type,activity_config) SELECT gen_random_uuid(),route_id,'overflow-' || n,'Overflow','',n,NOW(),'open_practice','{}' FROM learning_activities CROSS JOIN generate_series(1,1000) n WHERE id='${activity}'`);

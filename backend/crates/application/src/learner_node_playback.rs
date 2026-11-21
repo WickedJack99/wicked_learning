@@ -6,7 +6,9 @@ use wicked_learning_domain::{
     learner_state::{LearnerNodePlaybackDocument, LearnerPlaybackActivityState},
 };
 
-use crate::learner_playback::{LearnerPlaybackReachError, LearnerPlaybackReadError};
+use crate::learner_playback::{
+    LearnerPlaybackCompletionError, LearnerPlaybackReachError, LearnerPlaybackReadError,
+};
 
 pub trait LearnerNodePlaybackRepository {
     fn load_node(
@@ -69,6 +71,39 @@ impl<'repository, Repository: LearnerNodeReachRepository>
     ) -> Result<Option<LearnerPlaybackActivityState>, LearnerPlaybackReachError> {
         self.repository
             .reach_activity(principal, node_id, activity_id)
+            .await
+    }
+}
+
+pub trait LearnerNodeCompletionRepository {
+    fn complete_activity(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        activity_id: Uuid,
+    ) -> impl Future<
+        Output = Result<Option<LearnerPlaybackActivityState>, LearnerPlaybackCompletionError>,
+    > + Send;
+}
+
+pub struct LearnerNodeCompletionCommand<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository: LearnerNodeCompletionRepository>
+    LearnerNodeCompletionCommand<'repository, Repository>
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        activity_id: Uuid,
+    ) -> Result<Option<LearnerPlaybackActivityState>, LearnerPlaybackCompletionError> {
+        self.repository
+            .complete_activity(principal, node_id, activity_id)
             .await
     }
 }

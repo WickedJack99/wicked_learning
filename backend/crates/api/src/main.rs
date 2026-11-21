@@ -1506,6 +1506,14 @@ fn router(state: AppState) -> Router {
             post(learner_playback::reach_node_activity),
         )
         .route(
+            "/api/v1/learner/nodes/{node_id}/activities/{activity_id}/complete",
+            post(learner_playback::complete_node_activity),
+        )
+        .route(
+            "/api/v1/learner/nodes/{node_id}/activities/{activity_id}/check-ins",
+            post(learner_check_in::record_node),
+        )
+        .route(
             "/api/v1/learner/nodes/{node_id}/playback",
             get(learner_playback::show_node),
         )

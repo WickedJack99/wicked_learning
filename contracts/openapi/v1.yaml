@@ -7033,6 +7033,62 @@ paths:
         '403': { description: A valid same-origin CSRF request and application principal are required. }
         '404': { description: This node/activity is unavailable to the learner or has unsupported configuration. }
         '503': { description: Persistence is unavailable. }
+  /learner/nodes/{node_id}/activities/{activity_id}/complete:
+    post:
+      operationId: completeLearnerNodeActivity
+      summary: Complete a playable activity without creating or advancing a run.
+      description: Requires the authenticated principal, same-origin CSRF, published node/map/asset/route/activity membership, map access and evaluated node availability. Persists completed activity progress, preserves the first completion timestamp, and clears its revisit invitation. Does not select or create a route/run, advance route progress, record topic visits or award completion evidence. Returns the actual private activity state; no route authority or competence evidence is issued. This command has no run-specific input or evidence payload.
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: path
+          name: activity_id
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      responses:
+        '200':
+          description: The persisted private activity fact and existing obstacle state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerPlaybackActivityState' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and application principal are required. }
+        '404': { description: This node/activity is unavailable to the learner or has unsupported configuration. }
+        '503': { description: Persistence is unavailable. }
+  /learner/nodes/{node_id}/activities/{activity_id}/check-ins:
+    post:
+      operationId: recordLearnerNodeCheckIn
+      summary: Record a private check-in for a completed playable activity without a run.
+      description: Requires the caller's completed activity fact and currently playable published node/activity. Locks owner progress, appends the actual private observation with no play-run ID, retains the latest thirty observations and updates the optional three-day revisit invitation. Reuses the source-defined phrase, note and direction validation. Does not create or advance routes, award evidence or grant run authority. Existing run-bound check-in authorization remains unchanged.
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: path
+          name: activity_id
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LearnerActivityCheckInRequest' }
+      responses:
+        '200':
+          description: The caller's private observation and persisted activity state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerActivityCheckInResult' }
+        '400': { description: The phrase, direction or note is invalid or empty. }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and application principal are required. }
+        '404': { description: This node/activity is unavailable or lacks the caller's completed progress. }
+        '503': { description: Persistence is unavailable. }
   /learner/nodes/{node_id}/playback:
     get:
       operationId: getLearnerNodePlayback

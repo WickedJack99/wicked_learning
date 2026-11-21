@@ -44,6 +44,29 @@ pub async fn record(
         .ok_or_else(ApiError::not_found)
 }
 
+pub async fn record_node(
+    State(state): State<AppState>,
+    Path((node_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<RecordLearnerCheckInRequest>,
+) -> Result<Json<LearnerActivityCheckInResult>, ApiError> {
+    let node_id = Uuid::parse_str(&node_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let input = parse_input(request).ok_or_else(ApiError::invalid_request)?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresLearnerCheckInRepository::new(&state.application_database);
+
+    wicked_learning_application::learner_check_in::LearnerNodeCheckInCommand::new(&repository)
+        .execute(&principal, node_id, activity_id, &input)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
+}
+
 fn parse_input(request: RecordLearnerCheckInRequest) -> Option<LearnerCheckInInput> {
     let feeling = normalize_optional(request.feeling);
     let note = normalize_optional(request.note);

@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins, Companion context/recovery, ordinary output-portal travel, completed ordinary refresh and clean-URL return integrated below | Anonymous and implicit entry, Recall reconciliation, nonordinary entry/continuation/restart, completed nonordinary and finished-portal refreshes, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
+| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins, Companion context/recovery, ordinary output-portal travel, completed ordinary refresh and clean-URL return integrated below | Anonymous and implicit entry, Recall reconciliation, nonordinary entry/continuation/restart, completed nonordinary and finished-portal refreshes, remaining configuration/media and projection bounds; preserve the explicitly accepted narrow player toolbar defect; other recorded source usability limitations remain open. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -1694,16 +1694,16 @@ identities render unavailable without issuing writes. The subsequent scoped
 entry integration below extends this test to click alternative routes and
 start/resume them from the exact source URL without a run parameter.
 
-**Open source usability defect:** at 390×844, the pinned full-page `Player
-actions` floating toolbar covers the center of both the transition and terminal
-continuation buttons. The same obstruction is asserted in both source trees;
-the test then uses actual keyboard focus/Enter to verify persisted lifecycle
-behavior. This is not pointer-control acceptance or an extension of the
-previous Welcome-only source-defect waiver. Check-in content scrolls inside
-its source container; failure text is scrolled into view for evidence, where
-the same toolbar also obscures part of the inline error. Bounded geometry
-therefore does not establish unobstructed visibility. The
-canonical source is unchanged. Production player activation remains closed.
+**Accepted inherited player source defect:** On 21 November 2026 the user
+explicitly chose “Preserve and record this source defect” for the pinned
+390×844 player toolbar overlap. The full-page `Player actions` toolbar covers
+the center of transition/terminal continuation buttons and part of the check-in
+inline error. Both source trees show the same obstruction. Tests assert that
+parity and use actual keyboard focus/Enter to verify the persisted lifecycle;
+they do not claim unobstructed pointer controls. Preserve the exact copied
+source. This specific defect no longer blocks mobile player parity acceptance;
+it does not waive unrelated World/Companion/header defects or missing backend
+contracts. Production player activation remains closed pending the other gates.
 
 Remaining whole-page gates include entry without both run and route,
 anonymous playback, nonordinary entry/local restart/authored continuation,
@@ -1850,8 +1850,7 @@ These are completed-activity/check-in and scripted Companion acceptance paths,
 not full nonordinary route-family acceptance. Their entry writers, the source's
 local `From beginning` behavior and outgoing transitions versus isolated-run
 semantics, provider-backed assistance, Recall and output-portal travel still
-need end-to-end reconciliation. The mobile toolbar obstruction remains an open
-source defect pending an explicit decision; the production player resolver
+need end-to-end reconciliation. The mobile toolbar obstruction is the accepted source defect recorded above; the production player resolver
 remains unavailable.
 
 ### Player Companion refresh recovery
@@ -1909,7 +1908,7 @@ suite passed 24 checks, then all changed Companion/recovery tests passed again
 (15 checks, 26 seconds) after adding dismissal. The four failure/recovery
 source/copy screenshot pairs were byte-identical. Desktop recovered context
 and narrow error screenshots were visually inspected; the existing mobile
-source toolbar obstruction remains open. Reports are in ignored
+source toolbar obstruction is the accepted defect recorded above. Reports are in ignored
 `frontend/playwright-report/player-companion-recovery-{verified,final}/`;
 rerun the named browser files with the existing 8084 learner evidence host.
 
@@ -2041,8 +2040,8 @@ are inside the viewport and hit-tested. The initial new test caught locked
 arrival completion returning 200. After implementation, test assertions were
 corrected to wait for the actual retried request/check-in and to preserve the
 source's legitimate reached progress rather than expect no row at all.
-Completed-arrival refresh and the inherited narrow toolbar obstruction remain
-open; this refinement does not activate production NodePlay.
+Completed-arrival refresh remains open; the inherited narrow toolbar
+obstruction is accepted as recorded above; this refinement does not activate production NodePlay.
 
 Verification: canonical identity (299 files plus CSS), frontend production
 TypeScript/build, generated OpenAPI/client drift, Rust workspace check/fmt,
@@ -2113,7 +2112,7 @@ Both new completed-refresh screenshot pairs are byte-identical and were
 visually inspected. Of sixteen total whole-page pairs, fourteen are identical;
 the other two narrow check-in pairs differ in three icon pixels at the same
 small bounds, without a layout difference. The inherited mobile toolbar still
-obscures Continue and remains an open source usability limitation; keyboard
+obscures Continue and is the explicitly accepted source defect above; keyboard
 coverage is not pointer acceptance. Reports are ignored under
 `frontend/playwright-report/player-completed-translation/` and
 `frontend/playwright-report/player-completed-translation-contract/`.
@@ -2162,7 +2161,7 @@ without resumable history. The final run, including
 pairs, 15 are pixel-identical; one existing narrow check-in pair differs only
 in the small icon region `(358,553)–(361,555)`. Both clean-return screenshots
 are identical and were visually inspected. The inherited mobile toolbar
-overlap remains an open source-defect acceptance limitation; keyboard fallback
+overlap is the accepted source defect recorded above; keyboard fallback
 does not prove pointer usability.
 
 Frontend canonical identity, production type/build, generated OpenAPI client,
@@ -2209,7 +2208,7 @@ continues the existing start/reset/refresh/check-in lifecycle at both sizes.
 Immediate-entry pairs are pixel-identical and visually inspected. The final
 18 screenshot pairs include 15 identical pairs and three existing narrow
 check-in icon differences within `(358,553)–(361,555)`; the source toolbar
-overlap remains an open acceptance limitation. Evidence reports are
+overlap is the accepted source defect recorded above. Evidence reports are
 `frontend/playwright-report/player-node-activity-entry/` and
 `frontend/playwright-report/player-node-activity-entry-final/`.
 
@@ -2311,15 +2310,67 @@ workspace checks and 183 API tests passed (two explicitly ignored). Report:
 activation; the preceding whole-page regression evidence remains applicable
 to the unchanged ordinary page/adapter.
 
-Completion, check-ins, specialized commands and frontend activation remain
-incomplete. Source `LearnerProgressService::recordCheckIn` requires a completed
-owner/activity fact, retains the last 30 private observations and updates the
-revisit invitation without requiring a play-run ID. The existing Rust
-`learner_check_in.rs` command and migration 0027 require a non-null
-`learner_activity_check_ins.play_run_id`; this is a concrete missing runless
-contract, not justification to mint a synthetic run. Audit its downstream
-readers/revisit joins before changing persistence. Ordinary run-bound
-completion/check-in authority must remain intact.
+The follow-up below closes the runless completion/check-in contract gap,
+including the nullable originating-run schema audit. Specialized commands and
+frontend activation remain incomplete. Ordinary run-bound completion/check-in
+authority remains intact.
+
+### Runless completion and private check-ins
+
+Source owners (unchanged from pinned `32c3113a`):
+`app/Http/Controllers/LearningWorldController.php::{markActivity,recordActivityCheckIn}`,
+`app/Learning/Services/LearnerProgressService.php::{mark,recordCheckIn}` and
+`resources/js/pages/learning/node-play.tsx`. Direct completion has no run,
+review-attempt or route context; source `mark` writes the activity fact and
+clears its revisit invitation, but does not visit topics, enter/exit routes,
+clear run state or award completion evidence. Check-ins require an actual
+completed owner/activity fact, not a play-run ID.
+
+| Source behavior | Rust contract / retained owner | Required evidence |
+| --- | --- | --- |
+| Complete without a run; preserve first completion timestamp | `POST /learner/nodes/{node_id}/activities/{activity_id}/complete`, `completeLearnerNodeActivity`; application/persistence `learner_node_playback.rs`, existing `mark_activity_completed` and activity-state serializer | New/repeated completion, unchanged route/evidence/topic facts; no hidden start/run; invitation cleared. |
+| Private optional observation after completion | `POST /learner/nodes/{node_id}/activities/{activity_id}/check-ins`, `recordLearnerNodeCheckIn`; existing `learner_check_in.rs` validation and shared bounded-history writer | Incomplete/wrong-owner denial, actual saved receipt, last 30 observations, three-day revisit or settle cancellation. |
+| Playable membership and source access | Shared locked node/map/asset/route/activity lookup plus evaluated principal availability; same-origin CSRF | Anonymous/missing CSRF/wrong node or activity/hidden/locked/unpublished/role denial; existing run-bound authority unchanged. |
+| No originating run for direct check-in | Forward application migration `0116_runless_activity_check_ins.sql` drops only `play_run_id` NOT NULL | Existing non-null IDs survive; direct observations use SQL NULL. No fabricated run or changed private ownership. |
+
+Downstream audit: `learner_journal.rs`, `learner_topic_detail.rs`,
+`learner_competence.rs`, `learner_revisit_invitation.rs`,
+`learner_revisit_run.rs`, `learner_playback.rs`, `learner_playback_reach.rs` and
+`learner_question.rs` resolve observations/revisits by check-in ID and
+principal/activity ownership; none requires the originating check-in run ID.
+The check-in response likewise has no run ID. Migration 0028's check-in/activity
+uniqueness and revisit foreign keys remain intact. Existing ordinary and
+completed replay/revisit/arrival commands still resolve and lock their owned
+run before invoking the shared writer; Recall still cannot authorize them.
+
+These backend contracts do not activate the production player. Direct
+specialized activity commands, anonymous playback and the whole direct-entry
+browser adapter/journey remain incomplete.
+
+**Verified:** The new direct-node regression first failed on the missing
+completion endpoint (404). After implementation, all 25 real-stack cases passed:
+14 activity kinds, six existing run-kind contracts, the no-start direct-node
+case and four ordinary whole-player source/copy journeys. Tests cover first
+completion without a reached fact, repeated completion preserving its first
+timestamp, cleared invitations, incomplete/peer/anonymous/CSRF and inaccessible
+content failures, normalized private observations, 32 writes retaining exactly
+the newest 30, three-day scheduling, settle cancellation, Journal reads and an
+explicit due revisit opened from a null-run observation. Existing route rows,
+last-visited topics and competence evidence remain unchanged. Ordinary and
+nonordinary run-bound check-in contracts continue passing.
+
+Migration 0116 applied successfully to the local development stack; existing
+check-in row/non-null run counts were unchanged and the column is now nullable.
+The deployed image matches the verified build and readiness returned 200.
+Canonical identity, production frontend TypeScript/build, OpenAPI/client drift,
+Rust workspace formatting/check, 129 persistence unit tests and 183 API tests
+passed (six persistence and two API tests explicitly ignored in unit runs;
+the native integration coverage above uses the live PostgreSQL stack).
+All 18 ordinary whole-page screenshot pairs at 1440×900 and 390×844 were
+byte-identical. Desktop check-in and narrow retained-error screenshots were
+visually inspected; the accepted narrow toolbar defect remains preserved.
+Evidence: `frontend/playwright-report/player-direct-progress/`. These ordinary
+screenshots guard the shared writer, not a claim of direct-player UI acceptance.
 
 ### Copied player page-prop adapter
 

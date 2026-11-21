@@ -36,6 +36,16 @@ visible bounds in their owning viewport; DOM presence alone is insufficient.
 authoring workflow and visual language. That is not behavioral continuity and
 cannot be accepted as a migration slice.
 
+**Specific accepted source defect — 21 November 2026:** The user explicitly
+approved preserving the pinned player's 390×844 floating toolbar overlap of
+continuation controls and part of the check-in error. Source/copy obstruction
+parity and real keyboard continuation remain required evidence; this is not a
+claim of unobstructed pointer interaction. Preserve canonical source bytes.
+This exception applies only to that player defect, alongside the earlier
+Welcome acceptance, and does not waive other World/header/Companion defects or
+missing contracts. Detailed evidence and remaining gates live in the active
+plan's whole-player section.
+
 ## ADR-001: Initial repository topology
 
 **Status:** Accepted — 1 November 2026

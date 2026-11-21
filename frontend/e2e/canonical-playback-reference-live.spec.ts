@@ -528,6 +528,35 @@ async function verifyDirectNodeRead(owner: BrowserContext, peer: BrowserContext,
         const preserved = await owner.request.post(reachPath, { headers }); expect(preserved.status()).toBe(200);
         expect((await preserved.json()).progress).toEqual({ activity_id: activity, status: 'completed', completed_at: '2026-01-02T00:00:00.000000Z' });
         expect((await (await peer.request.get(path)).json()).private_state.activities[0].status).toBe('reached');
+        const completePath = reachPath.replace(/reach$/, 'complete');
+        const checkInPath = reachPath.replace(/reach$/, 'check-ins');
+        expect((await peer.request.post(checkInPath, { headers: peerHeaders, data: { note: 'Not completed by peer' } })).status()).toBe(404);
+        const completed = await owner.request.post(completePath, { headers }); expect(completed.status()).toBe(200);
+        const completeState = await completed.json(); expect(completeState.progress).toEqual({ activity_id: activity, status: 'completed', completed_at: '2026-01-02T00:00:00.000000Z' });
+        const saved = await owner.request.post(checkInPath, { headers, data: { feeling: 'forming', next_direction: 'revisit', note: 'Private direct observation' } });
+        expect(saved.status()).toBe(200); const checkIn = await saved.json();
+        expect(checkIn.activity_state).toEqual(completeState); expect(checkIn.note).toBe('Private direct observation');
+        expect(sql(`SELECT play_run_id IS NULL FROM learner_activity_check_ins WHERE id='${uuid(checkIn.id)}' AND principal_id='${principal}' AND activity_id='${activity}'`).trim()).toBe('t');
+        expect((await peer.request.post(checkInPath, { headers: peerHeaders, data: { note: 'Still incomplete' } })).status()).toBe(404);
+        expect((await (await peer.request.get(path)).json()).private_state.activities[0].status).toBe('reached');
+        for (const endpoint of [completePath, checkInPath]) {
+            const data = endpoint === checkInPath ? { note: 'Denied' } : undefined;
+            expect((await owner.request.post(endpoint, { data })).status()).toBe(403);
+            expect((await owner.request.post(endpoint.replace(node, randomUUID()), { headers, data })).status()).toBe(404);
+        }
+        if (playback.activity.activity_type === 'open_practice') {
+            for (const [hide, restore] of [
+                [`UPDATE learning_nodes SET state='hidden' WHERE id='${node}'`, `UPDATE learning_nodes SET state='available' WHERE id='${node}'`],
+                [`UPDATE learning_maps SET access_roles='[]' WHERE id='${uuid(playback.node.map_id)}'`, `UPDATE learning_maps SET access_roles='["public"]' WHERE id='${uuid(playback.node.map_id)}'`],
+                [`UPDATE learning_activities SET published_at=NULL WHERE id='${activity}'`, `UPDATE learning_activities SET published_at=NOW() WHERE id='${activity}'`],
+            ]) {
+                sql(hide);
+                try {
+                    expect((await owner.request.post(completePath, { headers })).status()).toBe(404);
+                    expect((await owner.request.post(checkInPath, { headers, data: { note: 'Denied' } })).status()).toBe(404);
+                } finally { sql(restore); }
+            }
+        }
         expect(routeFacts()).toEqual(facts);
-    } finally { sql(`DELETE FROM learner_activity_progress WHERE activity_id='${activity}'`); }
+    } finally { sql(`DELETE FROM learner_activity_check_ins WHERE activity_id='${activity}'; DELETE FROM learner_activity_progress WHERE activity_id='${activity}'`); }
 }

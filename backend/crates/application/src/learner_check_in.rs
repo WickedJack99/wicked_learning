@@ -53,6 +53,41 @@ where
     }
 }
 
+/// A runless source check-in requires the caller's completed activity fact
+/// and currently playable node. It grants no run or route authority.
+pub trait LearnerNodeCheckInRepository {
+    fn record_node_check_in(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        activity_id: Uuid,
+        input: &LearnerCheckInInput,
+    ) -> impl Future<Output = Result<Option<LearnerActivityCheckInResult>, LearnerCheckInError>> + Send;
+}
+
+pub struct LearnerNodeCheckInCommand<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository: LearnerNodeCheckInRepository>
+    LearnerNodeCheckInCommand<'repository, Repository>
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        activity_id: Uuid,
+        input: &LearnerCheckInInput,
+    ) -> Result<Option<LearnerActivityCheckInResult>, LearnerCheckInError> {
+        self.repository
+            .record_node_check_in(principal, node_id, activity_id, input)
+            .await
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{future::Future, sync::Mutex};

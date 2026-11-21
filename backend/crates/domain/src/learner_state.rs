@@ -1610,7 +1610,7 @@ pub struct LearnerRecallSchedule {
 
 /// A private, source-defined observation a learner chooses after completing an
 /// activity. The browser cannot choose the activity or its ownership; those
-/// come from the authorized play run.
+/// come from the authorized play run or playable node and completed owner fact.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerActivityCheckInResult {
     pub activity_slug: String,

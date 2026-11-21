@@ -1,8 +1,12 @@
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::{
-    learner_node_playback::{LearnerNodePlaybackRepository, LearnerNodeReachRepository},
-    learner_playback::{LearnerPlaybackReachError, LearnerPlaybackReadError},
+    learner_node_playback::{
+        LearnerNodeCompletionRepository, LearnerNodePlaybackRepository, LearnerNodeReachRepository,
+    },
+    learner_playback::{
+        LearnerPlaybackCompletionError, LearnerPlaybackReachError, LearnerPlaybackReadError,
+    },
 };
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
@@ -98,7 +102,7 @@ impl LearnerNodeReachRepository for PostgresLearnerNodePlaybackRepository<'_> {
         node_id: Uuid,
         activity_id: Uuid,
     ) -> Result<Option<LearnerPlaybackActivityState>, LearnerPlaybackReachError> {
-        reach(self.pool, principal, node_id, activity_id)
+        record_progress(self.pool, principal, node_id, activity_id, false)
             .await
             .map_err(|error| {
                 tracing::error!(%error, "could not mark a runless learner activity reached");
@@ -107,26 +111,40 @@ impl LearnerNodeReachRepository for PostgresLearnerNodePlaybackRepository<'_> {
     }
 }
 
+impl LearnerNodeCompletionRepository for PostgresLearnerNodePlaybackRepository<'_> {
+    async fn complete_activity(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        activity_id: Uuid,
+    ) -> Result<Option<LearnerPlaybackActivityState>, LearnerPlaybackCompletionError> {
+        record_progress(self.pool, principal, node_id, activity_id, true)
+            .await
+            .map_err(|error| {
+                tracing::error!(%error, "could not mark a runless learner activity completed");
+                LearnerPlaybackCompletionError
+            })
+    }
+}
+
 #[derive(sqlx::FromRow)]
 struct PlayableActivity {
+    activity_slug: String,
     node_state: String,
     node_visual_config: serde_json::Value,
     activity_type: String,
     activity_config: serde_json::Value,
 }
 
-async fn reach(
-    pool: &PgPool,
+pub(crate) async fn playable_activity_slug(
+    transaction: &mut Transaction<'_, Postgres>,
     principal: &AuthorizedPrincipal,
+    availability: &PostgresLearnerNodeAvailability,
     node_id: Uuid,
     activity_id: Uuid,
-) -> Result<Option<LearnerPlaybackActivityState>, sqlx::Error> {
-    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
-        return Ok(None);
-    };
-    let mut transaction = pool.begin().await?;
+) -> Result<Option<String>, sqlx::Error> {
     let activity = sqlx::query_as::<_, PlayableActivity>(
-        "SELECT nodes.state AS node_state,nodes.visual_config AS node_visual_config,activities.activity_type,activities.activity_config \
+        "SELECT activities.slug AS activity_slug,nodes.state AS node_state,nodes.visual_config AS node_visual_config,activities.activity_type,activities.activity_config \
          FROM learning_nodes nodes JOIN learning_maps maps ON maps.id=nodes.map_id \
          JOIN learning_map_assets assets ON assets.id=nodes.map_asset_id AND assets.map_id=maps.id \
          JOIN learning_routes routes ON routes.map_asset_id=assets.id \
@@ -137,7 +155,7 @@ async fn reach(
          AND (maps.access_roles @> '[\"public\"]'::jsonb OR EXISTS \
            (SELECT 1 FROM jsonb_array_elements_text(maps.access_roles) role(value) WHERE role.value=ANY($3))) \
          FOR SHARE OF nodes,maps,assets,routes,activities",
-    ).bind(node_id).bind(activity_id).bind(&principal.roles).fetch_optional(&mut *transaction).await?;
+    ).bind(node_id).bind(activity_id).bind(&principal.roles).fetch_optional(&mut **transaction).await?;
     let Some(activity) = activity else {
         return Ok(None);
     };
@@ -152,12 +170,51 @@ async fn reach(
     {
         return Ok(None);
     }
-    crate::learner_playback::mark_activity_reached(
+    Ok(Some(activity.activity_slug))
+}
+
+async fn record_progress(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    node_id: Uuid,
+    activity_id: Uuid,
+    completed: bool,
+) -> Result<Option<LearnerPlaybackActivityState>, sqlx::Error> {
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
+    let mut transaction = pool.begin().await?;
+    if playable_activity_slug(
         &mut transaction,
-        availability.principal_id(),
+        principal,
+        &availability,
+        node_id,
         activity_id,
     )
-    .await?;
+    .await?
+    .is_none()
+    {
+        return Ok(None);
+    }
+    if completed {
+        crate::learner_playback::mark_activity_completed(
+            &mut transaction,
+            availability.principal_id(),
+            activity_id,
+        )
+        .await?;
+        // Source mark(completed, null run) clears the invitation but never
+        // enters/exits a route, clears run state or awards competence evidence.
+        sqlx::query("UPDATE learner_activity_progress SET revisit_status='none',revisit_available_at=NULL,revisit_check_in_id=NULL WHERE principal_id=$1 AND activity_id=$2")
+            .bind(availability.principal_id()).bind(activity_id).execute(&mut *transaction).await?;
+    } else {
+        crate::learner_playback::mark_activity_reached(
+            &mut transaction,
+            availability.principal_id(),
+            activity_id,
+        )
+        .await?;
+    }
     let state = crate::learner_playback_activity_state::load(
         &mut transaction,
         availability.principal_id(),

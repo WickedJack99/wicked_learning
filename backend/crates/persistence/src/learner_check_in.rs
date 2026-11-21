@@ -3,7 +3,7 @@ use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::learner_check_in::{
     LearnerCheckInError, LearnerCheckInInput,
-    LearnerCheckInRepository as LearnerCheckInRepositoryPort,
+    LearnerCheckInRepository as LearnerCheckInRepositoryPort, LearnerNodeCheckInRepository,
 };
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal, learner_state::LearnerActivityCheckInResult,
@@ -92,16 +92,37 @@ async fn record_completed_activity_check_in(
         return Ok(None);
     }
 
+    let result = save_check_in(
+        &mut transaction,
+        activity.principal_id,
+        activity.activity_id,
+        activity.activity_slug,
+        Some(play_run_id),
+        input,
+    )
+    .await?;
+    transaction.commit().await?;
+    Ok(Some(result))
+}
+
+async fn save_check_in(
+    transaction: &mut Transaction<'_, Postgres>,
+    principal_id: Uuid,
+    activity_id: Uuid,
+    activity_slug: String,
+    play_run_id: Option<Uuid>,
+    input: &LearnerCheckInInput,
+) -> Result<LearnerActivityCheckInResult, sqlx::Error> {
     let check_in = sqlx::query_as::<_, CheckInRow>(
         "INSERT INTO learner_activity_check_ins (principal_id, activity_id, play_run_id, feeling, note, next_direction) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, to_char(recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS recorded_at",
     )
-    .bind(activity.principal_id)
-    .bind(activity.activity_id)
+    .bind(principal_id)
+    .bind(activity_id)
     .bind(play_run_id)
     .bind(&input.feeling)
     .bind(&input.note)
     .bind(&input.next_direction)
-    .fetch_one(&mut *transaction)
+    .fetch_one(&mut **transaction)
     .await?;
 
     // Laravel retains at most thirty observations for one learner/activity.
@@ -109,39 +130,35 @@ async fn record_completed_activity_check_in(
     sqlx::query(
         "DELETE FROM learner_activity_check_ins WHERE id IN (SELECT id FROM learner_activity_check_ins WHERE principal_id = $1 AND activity_id = $2 ORDER BY recorded_at DESC, id DESC OFFSET 30)",
     )
-    .bind(activity.principal_id)
-    .bind(activity.activity_id)
-    .execute(&mut *transaction)
+    .bind(principal_id)
+    .bind(activity_id)
+    .execute(&mut **transaction)
     .await?;
 
     let schedules_revisit = input.next_direction.as_deref() == Some("revisit");
     sqlx::query(
         "UPDATE learner_activity_progress SET revisit_status = CASE WHEN $3 THEN 'pending' ELSE 'none' END, revisit_available_at = CASE WHEN $3 THEN NOW() + INTERVAL '3 days' ELSE NULL END, revisit_check_in_id = CASE WHEN $3 THEN $4 ELSE NULL END, updated_at = NOW() WHERE principal_id = $1 AND activity_id = $2",
     )
-    .bind(activity.principal_id)
-    .bind(activity.activity_id)
+    .bind(principal_id)
+    .bind(activity_id)
     .bind(schedules_revisit)
     .bind(check_in.id)
-    .execute(&mut *transaction)
+    .execute(&mut **transaction)
     .await?;
 
-    let activity_state = crate::learner_playback_activity_state::load(
-        &mut transaction,
-        activity.principal_id,
-        activity.activity_id,
-    )
-    .await?;
-    transaction.commit().await?;
+    let activity_state =
+        crate::learner_playback_activity_state::load(transaction, principal_id, activity_id)
+            .await?;
 
-    Ok(Some(LearnerActivityCheckInResult {
-        activity_slug: activity.activity_slug,
+    Ok(LearnerActivityCheckInResult {
+        activity_slug,
         feeling: input.feeling.clone(),
         id: check_in.id.to_string(),
         next_direction: input.next_direction.clone(),
         note: input.note.clone(),
         recorded_at: check_in.recorded_at,
         activity_state,
-    }))
+    })
 }
 
 async fn load_completed_activity_for_update(
@@ -215,4 +232,61 @@ async fn load_completed_activity_for_update(
         }
     }
     Ok(None)
+}
+
+impl LearnerNodeCheckInRepository for PostgresLearnerCheckInRepository<'_> {
+    async fn record_node_check_in(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        activity_id: Uuid,
+        input: &LearnerCheckInInput,
+    ) -> Result<Option<LearnerActivityCheckInResult>, LearnerCheckInError> {
+        record_node_check_in(self.pool, principal, node_id, activity_id, input)
+            .await
+            .map_err(|error| {
+                tracing::error!(%error, "could not record a runless learner check-in");
+                LearnerCheckInError
+            })
+    }
+}
+
+async fn record_node_check_in(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    node_id: Uuid,
+    activity_id: Uuid,
+    input: &LearnerCheckInInput,
+) -> Result<Option<LearnerActivityCheckInResult>, sqlx::Error> {
+    let Some(availability) = PostgresLearnerNodeAvailability::load(pool, principal).await? else {
+        return Ok(None);
+    };
+    let mut transaction = pool.begin().await?;
+    let Some(activity_slug) = crate::learner_node_playback::playable_activity_slug(
+        &mut transaction,
+        principal,
+        &availability,
+        node_id,
+        activity_id,
+    )
+    .await?
+    else {
+        return Ok(None);
+    };
+    let completed = sqlx::query_scalar::<_, Uuid>("SELECT activity_id FROM learner_activity_progress WHERE principal_id=$1 AND activity_id=$2 AND status='completed' FOR UPDATE")
+        .bind(availability.principal_id()).bind(activity_id).fetch_optional(&mut *transaction).await?;
+    if completed.is_none() {
+        return Ok(None);
+    }
+    let result = save_check_in(
+        &mut transaction,
+        availability.principal_id(),
+        activity_id,
+        activity_slug,
+        None,
+        input,
+    )
+    .await?;
+    transaction.commit().await?;
+    Ok(Some(result))
 }

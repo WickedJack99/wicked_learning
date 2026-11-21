@@ -5711,6 +5711,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/nodes/{node_id}/activities/{activity_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete a playable activity without creating or advancing a run.
+         * @description Requires the authenticated principal, same-origin CSRF, published node/map/asset/route/activity membership, map access and evaluated node availability. Persists completed activity progress, preserves the first completion timestamp, and clears its revisit invitation. Does not select or create a route/run, advance route progress, record topic visits or award completion evidence. Returns the actual private activity state; no route authority or competence evidence is issued. This command has no run-specific input or evidence payload.
+         */
+        post: operations["completeLearnerNodeActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/learner/nodes/{node_id}/activities/{activity_id}/check-ins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a private check-in for a completed playable activity without a run.
+         * @description Requires the caller's completed activity fact and currently playable published node/activity. Locks owner progress, appends the actual private observation with no play-run ID, retains the latest thirty observations and updates the optional three-day revisit invitation. Reuses the source-defined phrase, note and direction validation. Does not create or advance routes, award evidence or grant run authority. Existing run-bound check-in authorization remains unchanged.
+         */
+        post: operations["recordLearnerNodeCheckIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/nodes/{node_id}/playback": {
         parameters: {
             query?: never;
@@ -33202,6 +33242,125 @@ export interface operations {
                 content?: never;
             };
             /** @description This node/activity is unavailable to the learner or has unsupported configuration. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Persistence is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    completeLearnerNodeActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The persisted private activity fact and existing obstacle state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerPlaybackActivityState"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and application principal are required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description This node/activity is unavailable to the learner or has unsupported configuration. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Persistence is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordLearnerNodeCheckIn: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerActivityCheckInRequest"];
+            };
+        };
+        responses: {
+            /** @description The caller's private observation and persisted activity state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerActivityCheckInResult"];
+                };
+            };
+            /** @description The phrase */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and application principal are required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description This node/activity is unavailable or lacks the caller's completed progress. */
             404: {
                 headers: {
                     [name: string]: unknown;
