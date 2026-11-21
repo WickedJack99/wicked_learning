@@ -33,6 +33,7 @@ struct Message {
     id: Uuid,
     body: String,
     principal_id: Uuid,
+    has_responded: bool,
 }
 #[derive(FromRow)]
 struct Reply {
@@ -41,7 +42,6 @@ struct Reply {
     body: String,
     response_type: Option<String>,
     helpful_at: Option<String>,
-    responder_principal_id: Uuid,
 }
 
 impl LearnerPeerMessageRepository for PostgresLearnerPeerMessageRepository<'_> {
@@ -143,13 +143,31 @@ impl LearnerPeerMessageRepository for PostgresLearnerPeerMessageRepository<'_> {
             if !context.allow_responses {
                 return Ok(None);
             };
-            sqlx::query("INSERT INTO learner_message_responses (message_id, responder_principal_id, body, response_type) SELECT id, $2, $3, $4 FROM learner_messages WHERE id = $1 AND topic_id = $5 AND audience = 'peers' AND hidden_at IS NULL AND principal_id <> $2 ON CONFLICT (message_id, responder_principal_id) DO NOTHING")
+            let mut transaction = self
+                .pool
+                .begin()
+                .await
+                .map_err(|_| LearnerPeerMessageError)?;
+            let target = sqlx::query_scalar::<_, Uuid>("SELECT id FROM learner_messages WHERE id = $1 AND topic_id = $2 AND audience = 'peers' AND hidden_at IS NULL AND principal_id <> $3 FOR UPDATE")
+                .bind(message_id)
+                .bind(context.topic_id)
+                .bind(context.principal_id)
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|_| LearnerPeerMessageError)?;
+            if target.is_none() {
+                return Ok(None);
+            }
+            sqlx::query("INSERT INTO learner_message_responses (message_id, responder_principal_id, body, response_type) VALUES ($1, $2, $3, $4) ON CONFLICT (message_id, responder_principal_id) DO NOTHING")
                 .bind(message_id)
                 .bind(context.principal_id)
                 .bind(body)
                 .bind(response_type)
-                .bind(context.topic_id)
-                .execute(self.pool)
+                .execute(&mut *transaction)
+                .await
+                .map_err(|_| LearnerPeerMessageError)?;
+            transaction
+                .commit()
                 .await
                 .map_err(|_| LearnerPeerMessageError)?;
             wall(self.pool, principal, play_run_id, activity_slug, 1, 12)
@@ -180,13 +198,18 @@ impl LearnerPeerMessageRepository for PostgresLearnerPeerMessageRepository<'_> {
             else {
                 return Ok(None);
             };
+            if !context.allow_responses {
+                return Ok(None);
+            }
             let mut transaction = self
                 .pool
                 .begin()
                 .await
                 .map_err(|_| LearnerPeerMessageError)?;
-            let owner = sqlx::query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM learner_messages WHERE id = $1 AND topic_id = $2 AND audience = 'peers' AND principal_id = $3 AND hidden_at IS NULL)").bind(message_id).bind(context.topic_id).bind(context.principal_id).fetch_one(&mut *transaction).await.map_err(|_| LearnerPeerMessageError)?;
-            if !owner {
+            // The source locks the parent first so two different helpful
+            // choices serialize instead of locking responses in opposite order.
+            let owner = sqlx::query_scalar::<_, Uuid>("SELECT id FROM learner_messages WHERE id = $1 AND topic_id = $2 AND audience = 'peers' AND principal_id = $3 AND hidden_at IS NULL FOR UPDATE").bind(message_id).bind(context.topic_id).bind(context.principal_id).fetch_optional(&mut *transaction).await.map_err(|_| LearnerPeerMessageError)?;
+            if owner.is_none() {
                 return Ok(None);
             };
             let response_exists = sqlx::query_scalar::<_, Uuid>("SELECT id FROM learner_message_responses WHERE id = $1 AND message_id = $2 AND hidden_at IS NULL FOR UPDATE")
@@ -270,27 +293,29 @@ async fn wall(
     };
     let total = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM learner_messages WHERE topic_id = $1 AND audience = 'peers' AND hidden_at IS NULL").bind(context.topic_id).fetch_one(pool).await?;
     let per_page = per_page.clamp(1, 12);
-    let page = page.clamp(1, ((total + per_page - 1) / per_page).max(1));
-    let rows = sqlx::query_as::<_, Message>("WITH newest_messages AS (SELECT id, body, principal_id FROM learner_messages WHERE topic_id = $1 AND audience = 'peers' AND hidden_at IS NULL ORDER BY created_at DESC, id DESC LIMIT $3 OFFSET $2) SELECT id, body, principal_id FROM newest_messages ORDER BY RANDOM()")
+    let page = page.max(1);
+    let rows = sqlx::query_as::<_, Message>("WITH newest_messages AS (SELECT id, body, principal_id FROM learner_messages WHERE topic_id = $1 AND audience = 'peers' AND hidden_at IS NULL ORDER BY created_at DESC, id DESC LIMIT $3 OFFSET $2) SELECT id, body, principal_id, EXISTS (SELECT 1 FROM learner_message_responses AS responses WHERE responses.message_id = newest_messages.id AND responses.responder_principal_id = $4) AS has_responded FROM newest_messages ORDER BY RANDOM()")
         .bind(context.topic_id)
         .bind((page - 1) * per_page)
         .bind(per_page)
+        .bind(context.principal_id)
         .fetch_all(pool)
         .await?;
     let ids: Vec<Uuid> = rows.iter().map(|row| row.id).collect();
-    let replies = sqlx::query_as::<_, Reply>("WITH ranked_responses AS (SELECT id, message_id, body, response_type, to_char(helpful_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS helpful_at, responder_principal_id, created_at, ROW_NUMBER() OVER (PARTITION BY message_id ORDER BY created_at DESC, id DESC) AS response_rank, ROW_NUMBER() OVER (PARTITION BY message_id ORDER BY CASE WHEN helpful_at IS NOT NULL THEN 0 ELSE 1 END, helpful_at DESC, created_at DESC, id DESC) AS helpful_rank FROM learner_message_responses WHERE message_id = ANY($1) AND hidden_at IS NULL) SELECT id, message_id, body, response_type, helpful_at, responder_principal_id FROM ranked_responses WHERE response_rank <= 3 OR (helpful_at IS NOT NULL AND helpful_rank = 1) ORDER BY message_id, created_at DESC, id DESC")
+    let replies = if context.allow_responses && !ids.is_empty() {
+        sqlx::query_as::<_, Reply>("WITH ranked_responses AS (SELECT id, message_id, body, response_type, to_char(helpful_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS helpful_at, created_at, ROW_NUMBER() OVER (PARTITION BY message_id ORDER BY created_at DESC, id DESC) AS response_rank, ROW_NUMBER() OVER (PARTITION BY message_id ORDER BY CASE WHEN helpful_at IS NOT NULL THEN 0 ELSE 1 END, helpful_at DESC, created_at DESC, id DESC) AS helpful_rank FROM learner_message_responses WHERE message_id = ANY($1) AND hidden_at IS NULL) SELECT id, message_id, body, response_type, helpful_at FROM ranked_responses WHERE response_rank <= 3 OR (helpful_at IS NOT NULL AND helpful_rank = 1) ORDER BY message_id, created_at ASC, id ASC")
         .bind(&ids)
         .fetch_all(pool)
-        .await?;
+        .await?
+    } else {
+        Vec::new()
+    };
     let messages = rows
         .into_iter()
         .map(|message| LearnerPeerMessage {
             body: message.body,
             can_respond: context.allow_responses && message.principal_id != context.principal_id,
-            has_responded: replies.iter().any(|reply| {
-                reply.message_id == message.id
-                    && reply.responder_principal_id == context.principal_id
-            }),
+            has_responded: context.allow_responses && message.has_responded,
             id: message.id.to_string(),
             responses: replies
                 .iter()

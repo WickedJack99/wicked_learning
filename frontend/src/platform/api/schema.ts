@@ -5811,7 +5811,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read the current learner's authorized peer message wall. */
+        /**
+         * Read the current learner's authorized peer message wall.
+         * @description Messages are selected newest-first for the requested page and shuffled within it. An out-of-range page is empty rather than clamped to the last page. When responses are enabled, each message includes the latest three visible responses plus an older helpful response, in oldest-first order. The private has_responded flag includes earlier or hidden own responses without exposing their writing. Disabled responses are omitted.
+         */
         get: operations["getLearnerPeerWall"];
         put?: never;
         post?: never;
@@ -5830,7 +5833,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Submit the current learner's one response to a visible peer message. */
+        /**
+         * Submit the current learner's one response to a visible peer message.
+         * @description Responses must be enabled. Unknown, hidden, own, support-audience and other-topic targets are rejected; an existing own response is idempotent and retains its original body and type.
+         */
         post: operations["respondLearnerPeerMessage"];
         delete?: never;
         options?: never;

@@ -2091,15 +2091,21 @@ order, with a server maximum of twelve entries (the original client asks for
 ten on desktop and three on narrow screens). It returns the three newest
 visible responses and also a marked-helpful response when it would otherwise
 fall outside that set. A response is unique per message/principal and may not
-target the principal's own note. Helpful selection locks and validates the
-selected visible response before clearing any prior marker for that note.
+target the principal's own note. The visible response subset is displayed in
+oldest-first source order. Own response existence is independent of that subset,
+including hidden or older responses, without returning hidden writing. A page
+beyond the last page remains empty with its requested page number. Disabled
+responses expose neither writing nor response/helpfulness commands. Invalid
+reply targets return 404 rather than a successful unchanged wall; existing
+responses retain their original body and type. Helpful selection locks the
+parent message before the selected response, serializing competing choices
+before clearing any prior marker for that note.
 
-The React components are adapted from the source message prompt/wall rather
-than reconstructed. The ordinary playback reader uses the existing secured
-message-activity path for both message activity types, retaining the map/topic
-join that prevents a malformed configuration from exposing a cross-map form.
-The existing source check-in follows prompt completion before the player loads
-the wall.
+Canonical frontend status: the whole copied message prompt/wall still awaits
+its typed adapters and browser acceptance. Historical reconstructed playback
+is not acceptance evidence. The ordinary playback reader retains the existing
+map/topic join; current-node policy, non-route run support and complete
+NodePlay/check-in ownership remain in the active completion register.
 
 **Why:** This retains source sequencing, anonymity, contribution limits and
 author-only helpfulness while keeping activity ownership, topic selection and

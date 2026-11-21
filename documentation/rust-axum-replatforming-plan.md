@@ -2286,6 +2286,53 @@ Rerun from `frontend/` against local Rust and the 8084 learner-layout evidence
 server: `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-obstacle-live.spec.ts --reporter=line,html`,
 then `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-grant-live.spec.ts e2e/canonical-player-shared-live.spec.ts --reporter=line,html`.
 
+### Message-control source contract audit (activation pending)
+
+The next player dependency is the whole `resources/js/features/world/message-activities.tsx`
+(`MessagePromptActivity`, `MessageWallActivity`), with `InputError`,
+`PaginationControls`, `Button`, appearance/translation hooks and `activity-utils`.
+Server ownership is pinned `LearnerMessageController`, `LoadLearnerMessages`,
+`CreateLearnerMessage`, `CreateLearnerMessageResponse`,
+`MarkLearnerMessageResponseHelpful`, `MessageActivityConfiguration`,
+`MessageTopicForActivity` and `LearnerActivityAccessService` under `app/`.
+No message UI is activated by this audit or the prerequisite repair.
+
+| Source requirement | Existing native contract | Required work before whole-control activation |
+| --- | --- | --- |
+| Prompt read/contribution, peers versus private support | `learner_peer_message.rs`, `learner_support.rs`; typed `/peer-message` and `/support-request` | Map actual topic/title/contributed state and support visibility; inspect every source-consumed field, do not invent messages or pagination. |
+| Wall read, newest page shuffled; narrow 3/desktop 10 rows | `/peer-wall`, `LearnerPeerMessageWall` | Repaired and verified below: requested out-of-range page, 12-row API bound and exact source response ordering. |
+| `hasResponded` survives a hidden/older own response | Source separate existence query; native page query now includes an indexed own-response existence check | Verified for both hidden and older omitted replies; hidden writing stays absent from the response payload. |
+| Responses disabled | Source omits responses and rejects both response/helpfulness writes | Repaired: omit response writing and reject both command types when responses are disabled. |
+| Reply target validation and idempotence | Native `respond` insert/select then wall read | Repaired: lock/validate the target before insertion; reject unknown, hidden, own, support or other-topic targets with 404; preserve existing response body/type on retry. |
+| One helpful response per message | Source locks message then response | Repaired: native writer locks parent before response; concurrent choices serialize and false/unmark remains valid. |
+| Access and lifecycle | Source `assertCanPlay`; ordinary native message contexts | Still audit current node/publication/role policy, replay/recall/revisit support and source auto-completion before binding any UI. |
+| Source requests omit run identity | Existing scoped playback binding | Add only exact message read/write routes with the actual bound run and typed mappings; unknown/stale operations stay unavailable. |
+| Failures and whole-page ownership | Source inline prompt/reply/helpfulness errors; wall close completion callback | Test preserved drafts, pagination/refetch, actual completion and failure at both viewports; full NodePlay lifecycle remains separate acceptance work. |
+
+**Verified native message-wall prerequisite repair:**
+`frontend/e2e/canonical-player-message-contract-live.spec.ts` reproduced all six
+failures before implementation, including a 503 from competing helpful choices.
+After repair, six cases plus the two existing native message prompt/wall
+reference cases pass against the rebuilt local Rust/PostgreSQL stack. Coverage
+includes bounded 3/10/12-row pages, an empty out-of-range page, latest-three plus
+older helpful ordering, hidden/older own-response status, no hidden writing or
+author identifiers, disabled response reads/writes, target rejection without
+writes, original-body idempotence, wrong-run ownership, CSRF, concurrent helpful
+selection and clearing. Parent-message locking follows the pinned source;
+response reads stay batched and the private existence check uses the existing
+message/responder unique index rather than extra requests per row.
+
+Source checks verified nine named PHP/React owners against the pin. OpenAPI now
+records the reader/error behavior and corrects wall `maxItems` from 10 to the
+already supported API bound of 12; generated client evidence is consistent.
+Canonical identity, frontend production type/build, Rust fmt/workspace check,
+the application message validation test and 66 persistence tests pass (six
+existing ignored). No migration or canonical presentation change was needed.
+Reports: ignored `frontend/playwright-report/player-message-contract{,-baseline}/`.
+Rerun from `frontend/`: `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-message-contract-live.spec.ts e2e/canonical-playback-reference-live.spec.ts --grep 'native message|native message_' --reporter=line,html`.
+This establishes the named backend contracts only; message UI, remaining access
+policy/run kinds and whole NodePlay acceptance remain incomplete.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

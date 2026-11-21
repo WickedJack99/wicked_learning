@@ -7182,6 +7182,7 @@ paths:
     get:
       operationId: getLearnerPeerWall
       summary: Read the current learner's authorized peer message wall.
+      description: Messages are selected newest-first for the requested page and shuffled within it. An out-of-range page is empty rather than clamped to the last page. When responses are enabled, each message includes the latest three visible responses plus an older helpful response, in oldest-first order. The private has_responded flag includes earlier or hidden own responses without exposing their writing. Disabled responses are omitted.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7200,6 +7201,7 @@ paths:
     post:
       operationId: respondLearnerPeerMessage
       summary: Submit the current learner's one response to a visible peer message.
+      description: Responses must be enabled. Unknown, hidden, own, support-audience and other-topic targets are rejected; an existing own response is idempotent and retains its original body and type.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7228,7 +7230,7 @@ paths:
         '200': { description: The current helpful marker., content: { application/json: { schema: { $ref: '#/components/schemas/LearnerPeerResponseHelpfulness' } } } }
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '404': { description: The active peer wall, message, response or author permission is unavailable. }
+        '404': { description: The active peer wall, enabled-response setting, message, response or author permission is unavailable. }
         '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/shared-task/submissions:
     post:
@@ -13062,7 +13064,7 @@ components:
       required: [has_contributed, messages, pagination, topic_title]
       properties:
         has_contributed: { type: boolean }
-        messages: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/LearnerPeerMessage' } }
+        messages: { type: array, maxItems: 12, items: { $ref: '#/components/schemas/LearnerPeerMessage' } }
         pagination: { $ref: '#/components/schemas/LearningSupportPagination' }
         topic_title: { type: string }
     LearnerPeerMessage:
