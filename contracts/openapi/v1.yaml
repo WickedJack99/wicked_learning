@@ -7008,6 +7008,31 @@ paths:
         '403': { description: A valid same-origin CSRF request and application principal are required. }
         '404': { description: No authored start for this node/activity, or it is unavailable to this learner. No progress is changed. }
         '503': { description: Persistence is unavailable. }
+  /learner/nodes/{node_id}/playback:
+    get:
+      operationId: getLearnerNodePlayback
+      summary: Read an authorized playable node without creating a route or run.
+      description: Returns the complete bounded published node graph and actual caller-owned progress. A requested activity is selected only when present in this graph; otherwise selection is null and the copied page chooses its default. Empty playable nodes are valid. No run identity or command authority is issued, no transient run-specific state is selected, and no progress, visit or evidence is written. Anonymous playback and direct-entry mutation contracts remain separate.
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: activity_id
+          required: false
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The source-shaped runless node snapshot.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerNodePlaybackDocument' }
+        '400': { description: The activity selection is malformed, repeated or an unknown query parameter is supplied. }
+        '401': { description: Authentication is required. }
+        '403': { description: The identity has no application principal or role assignment. }
+        '404': { description: The node is unavailable to this learner. }
+        '503': { description: Persistence is unavailable or the bounded graph/presentation cannot be represented completely. }
   /learner/nodes/{node_id}/resume:
     get:
       operationId: getLearnerNodeResume
@@ -11040,6 +11065,21 @@ components:
           type: [object, 'null']
           additionalProperties: true
           description: Filtered learner-facing activity copy only. It cannot contain activity graph, correctness, media, or access data.
+    LearnerNodePlaybackDocument:
+      type: object
+      additionalProperties: false
+      required: [selected_activity_id, graph, node, private_state]
+      properties:
+        selected_activity_id:
+          type: [string, 'null']
+          format: uuid
+          description: The requested activity when it belongs to this graph; null retains source default selection.
+        graph:
+          $ref: '#/components/schemas/LearnerPlaybackGraph'
+        node:
+          $ref: '#/components/schemas/LearnerPlaybackNode'
+        private_state:
+          $ref: '#/components/schemas/LearnerPlaybackPrivateState'
     LearnerPlaybackDocument:
       type: object
       additionalProperties: false

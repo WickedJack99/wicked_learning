@@ -1513,7 +1513,7 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                 &availability,
                 row.node_id,
                 row.map_id,
-                row.activity_id,
+                Some(row.activity_id),
             )
             .await
             .map_err(|_| LearnerPlaybackReadError)?
@@ -1524,13 +1524,18 @@ impl LearnerPlaybackRepositoryPort for PostgresLearnerPlaybackRepository<'_> {
                     .map_err(|_| LearnerPlaybackReadError)?;
                 return Ok(None);
             };
-            enrich_graph(&mut transaction, row.principal_id, play_run_id, &mut graph)
-                .await
-                .map_err(|_| LearnerPlaybackReadError)?;
+            enrich_graph(
+                &mut transaction,
+                row.principal_id,
+                Some(play_run_id),
+                &mut graph,
+            )
+            .await
+            .map_err(|_| LearnerPlaybackReadError)?;
             let private_state = crate::learner_playback_private_state::load(
                 &mut transaction,
                 row.principal_id,
-                play_run_id,
+                Some(play_run_id),
                 &graph,
             )
             .await

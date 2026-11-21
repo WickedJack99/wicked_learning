@@ -11,13 +11,34 @@ type Activity = Schema['LearnerPlaybackGraphActivity'];
  * This does not activate the route or acknowledge any player command.
  */
 export function toPlaybackPageProps(document: Playback) {
+    if (document.context.node_id !== document.node.id || document.context.map_id !== document.node.map_id) return unavailable();
+    const selection = {
+        playActivityId: document.activity.id, playRouteId: document.start_id,
+        playRunId: document.play_run_id,
+        recallQuestionId: document.run_kind === 'recall' ? document.activity.id : null,
+        revisitActivityId: document.run_kind === 'revisit' ? document.activity.id : null,
+    };
+    return { ...projectNode(document, selection), ...selection };
+}
+
+/** Runless source page props carry no route/run authority. The copied page
+ * retains its own default activity selection when the requested ID is null. */
+export function toDirectPlaybackPageProps(document: Schema['LearnerNodePlaybackDocument']) {
+    return projectNode(document, {
+        playActivityId: document.selected_activity_id,
+        playRouteId: null, playRunId: null, recallQuestionId: null, revisitActivityId: null,
+    });
+}
+
+function projectNode(document: Pick<Playback, 'node' | 'graph' | 'private_state'>, selection: {
+    playActivityId: string | null; playRouteId: string | null; playRunId: string | null;
+    recallQuestionId: string | null; revisitActivityId: string | null;
+}) {
     const { node, graph, private_state: saved } = document;
     const byId = new Map(graph.activities.map((activity) => [activity.id, activity]));
-    if (graph.node_id !== node.id || document.context.node_id !== node.id ||
-        document.context.map_id !== node.map_id || !byId.has(document.activity.id) ||
-        (document.start_id !== null && !graph.starts.some((start) => start.id === document.start_id))) {
-        return unavailable();
-    }
+    if (graph.node_id !== node.id ||
+        (selection.playActivityId !== null && !byId.has(selection.playActivityId)) ||
+        (selection.playRouteId !== null && !graph.starts.some((start) => start.id === selection.playRouteId))) return unavailable();
     if ((graph.start_activity_id && !byId.has(graph.start_activity_id)) ||
         graph.starts.some((start) => !byId.has(start.activity_id)) ||
         graph.activities.some((activity) => activity.transitions.some((edge) =>
@@ -63,11 +84,7 @@ export function toPlaybackPageProps(document: Playback) {
 
     return {
         isBookmarked: node.is_bookmarked,
-        playActivityId: document.activity.id,
-        playRouteId: document.start_id,
-        playRunId: document.play_run_id,
-        recallQuestionId: document.run_kind === 'recall' ? document.activity.id : null,
-        revisitActivityId: document.run_kind === 'revisit' ? document.activity.id : null,
+        ...selection,
         playState,
         progress: { activities, answers, recallQuestionIds: [...saved.recall_activity_ids] },
         node: {

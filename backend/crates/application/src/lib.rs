@@ -97,6 +97,7 @@ pub mod learner_journal_export;
 pub mod learner_journal_feedback;
 pub mod learner_journal_page;
 pub mod learner_language_preference;
+pub mod learner_node_playback;
 pub mod learner_node_tool;
 pub mod learner_npc_dialogue;
 pub mod learner_obstacle_tool;

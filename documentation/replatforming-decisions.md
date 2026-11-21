@@ -550,6 +550,16 @@ through this same reader; an inaccessible selection does not fall back to an
 older available route. The lookup neither starts nor resets a run, and a
 principal/node index scopes its history query. It does not supply new implicit,
 anonymous or nonordinary entry. Existing read-side visit bookkeeping remains.
+
+**Runless read refinement:** The separate authenticated
+`GET /api/v1/learner/nodes/{node_id}/playback` projection reuses the bounded
+published graph and actual private history without issuing a run or performing
+entry, progress, topic-visit or evidence writes. Missing requested activities
+retain source default selection; empty playable nodes remain empty. Shared
+readers accept an absent run only to omit run-specific NPC/checklist state;
+existing run readers and commands still pass their verified run IDs. This is
+the data prerequisite for source direct entry, not an alternate authorization
+path into the ordinary completion writers or a production route activation.
 The first reader and route-start policy support only `open_practice`; adding a
 different activity type requires its own server validation, OpenAPI contract,
 writer and lifted original React component.

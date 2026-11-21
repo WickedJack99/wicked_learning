@@ -1502,6 +1502,10 @@ fn router(state: AppState) -> Router {
             post(learner_route_run::start_from_activity),
         )
         .route(
+            "/api/v1/learner/nodes/{node_id}/playback",
+            get(learner_playback::show_node),
+        )
+        .route(
             "/api/v1/learner/nodes/{node_id}/resume",
             get(learner_playback::resume_node),
         )
@@ -2130,6 +2134,7 @@ mod tests {
             "/api/v1/learner/world",
             "/api/v1/learner/shell",
             "/api/v1/learner/nodes/00000000-0000-0000-0000-000000000001/resume",
+            "/api/v1/learner/nodes/00000000-0000-0000-0000-000000000001/playback",
             "/api/v1/learner/companion/avatar/00000000-0000-0000-0000-000000000001?surface=desk",
         ] {
             let response = router(state.clone())

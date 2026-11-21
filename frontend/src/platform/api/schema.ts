@@ -5691,6 +5691,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/nodes/{node_id}/playback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an authorized playable node without creating a route or run.
+         * @description Returns the complete bounded published node graph and actual caller-owned progress. A requested activity is selected only when present in this graph; otherwise selection is null and the copied page chooses its default. Empty playable nodes are valid. No run identity or command authority is issued, no transient run-specific state is selected, and no progress, visit or evidence is written. Anonymous playback and direct-entry mutation contracts remain separate.
+         */
+        get: operations["getLearnerNodePlayback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/nodes/{node_id}/resume": {
         parameters: {
             query?: never;
@@ -8323,6 +8343,16 @@ export interface components {
             translation: {
                 [key: string]: unknown;
             } | null;
+        };
+        LearnerNodePlaybackDocument: {
+            /**
+             * Format: uuid
+             * @description The requested activity when it belongs to this graph; null retains source default selection.
+             */
+            selected_activity_id: string | null;
+            graph: components["schemas"]["LearnerPlaybackGraph"];
+            node: components["schemas"]["LearnerPlaybackNode"];
+            private_state: components["schemas"]["LearnerPlaybackPrivateState"];
         };
         LearnerPlaybackDocument: {
             /** Format: uuid */
@@ -33105,6 +33135,65 @@ export interface operations {
                 content?: never;
             };
             /** @description Persistence is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLearnerNodePlayback: {
+        parameters: {
+            query?: {
+                activity_id?: string;
+            };
+            header?: never;
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The source-shaped runless node snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerNodePlaybackDocument"];
+                };
+            };
+            /** @description The activity selection is malformed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The identity has no application principal or role assignment. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The node is unavailable to this learner. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Persistence is unavailable or the bounded graph/presentation cannot be represented completely. */
             503: {
                 headers: {
                     [name: string]: unknown;

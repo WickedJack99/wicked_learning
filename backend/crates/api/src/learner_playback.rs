@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::HeaderMap,
 };
 use axum_login::AuthSession;
@@ -41,6 +41,29 @@ pub async fn reach_current_activity(
     let repository = PostgresLearnerPlaybackReachRepository::new(&state.application_database);
     LearnerPlaybackReachCommand::new(&repository)
         .execute(&principal, run, &reference)
+        .await
+        .map_err(|_| ApiError::service_unavailable())?
+        .map(Json)
+        .ok_or_else(ApiError::not_found)
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NodePlaybackSelection {
+    activity_id: Option<Uuid>,
+}
+
+pub async fn show_node(
+    State(state): State<AppState>,
+    Path(node_id): Path<String>,
+    Query(selection): Query<NodePlaybackSelection>,
+    auth_session: AuthSession<IdentityBackend>,
+) -> Result<Json<wicked_learning_domain::learner_state::LearnerNodePlaybackDocument>, ApiError> {
+    let node = Uuid::parse_str(&node_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    let repository = wicked_learning_persistence::learner_node_playback::PostgresLearnerNodePlaybackRepository::new(&state.application_database);
+    wicked_learning_application::learner_node_playback::LearnerNodePlaybackQuery::new(&repository)
+        .execute(&principal, node, selection.activity_id)
         .await
         .map_err(|_| ApiError::service_unavailable())?
         .map(Json)

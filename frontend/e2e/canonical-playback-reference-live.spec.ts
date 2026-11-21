@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, test, type BrowserContext } from '@playwright/test';
 import { verifyPlaybackProjection } from './canonical-playback-projection-evidence';
-import { toSourceActivityReceipt } from '../src/platform/playback-projection';
+import { toDirectPlaybackPageProps, toSourceActivityReceipt } from '../src/platform/playback-projection';
 import { verifyPlaybackPortals } from './canonical-playback-node-evidence';
 import { verifyPlaybackSharedState } from './canonical-playback-shared-evidence';
 import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
@@ -92,6 +92,7 @@ for (const type of types) {
             const playbackResponse = await owner.request.get(`/api/v1/learner/play-runs/${run}`);
             expect(playbackResponse.status()).toBe(200);
             const playback = await playbackResponse.json();
+            await verifyDirectNodeRead(owner, peer, playback, principal, info);
             if (type !== 'portal') await verifyCompletedOrdinaryRead(owner, peer, headers, run, activity, principal, node.node_id, info);
             await verifyPlaybackReach(owner, peer, run, activity, principal, node.node_id, false, info);
             const sourceProps = verifyPlaybackProjection(playback);
@@ -367,7 +368,15 @@ async function verifyPrivateState(type: string, owner: BrowserContext, peer: Bro
         const response = await owner.request.get(path);
         expect(response.status()).toBe(200);
         const document = await response.json();
-        verifyPlaybackProjection(document);
+        const source = verifyPlaybackProjection(document);
+        const directResponse = await owner.request.get(`/api/v1/learner/nodes/${document.node.id}/playback?activity_id=${activity}`);
+        expect(directResponse.status()).toBe(200);
+        const direct = await directResponse.json();
+        expect(direct.private_state).toEqual({ ...document.private_state, npc_dialogues: [], shared_task_checklists: [] });
+        const directProps = toDirectPlaybackPageProps(direct);
+        expect(directProps.progress).toEqual(source.progress);
+        expect(directProps.playState).toEqual({});
+        expect(directProps.playRunId).toBeNull();
         return document;
     };
     if (type === 'open_practice') {
@@ -459,4 +468,31 @@ async function verifyPrivateState(type: string, owner: BrowserContext, peer: Bro
         expect((await read()).private_state.obstacle_resolutions).toEqual([{ activity_id: activity, resolved_at: '2026-01-02T00:00:00.000000Z' }]);
         sql(`DELETE FROM learner_obstacle_resolutions WHERE principal_id = '${principal}' AND activity_id = '${activity}'; DELETE FROM learner_obstacle_run_passes WHERE principal_id = '${principal}' AND activity_id = '${activity}'`);
     }
+}
+
+async function verifyDirectNodeRead(owner: BrowserContext, peer: BrowserContext, playback: any, principal: string, info: import('@playwright/test').TestInfo) {
+    const node = uuid(playback.node.id), activity = uuid(playback.activity.id);
+    const path = `/api/v1/learner/nodes/${node}/playback`;
+    const snapshot = () => sql(`SELECT json_build_object(
+        'routes',(SELECT json_agg(p ORDER BY p.activity_start_id) FROM learner_route_progress p WHERE p.principal_id='${principal}' AND p.node_id='${node}'),
+        'activities',(SELECT json_agg(p ORDER BY p.activity_id) FROM learner_activity_progress p WHERE p.principal_id='${principal}' AND p.activity_id='${activity}'),
+        'evidence',(SELECT count(*) FROM learner_evidence_events WHERE principal_id='${principal}' AND activity_id='${activity}'),
+        'topics',(SELECT last_competence_topics FROM application_principals WHERE id='${principal}'))::text`).trim();
+    const before = snapshot(), started = performance.now();
+    const response = await owner.request.get(path); expect(response.status()).toBe(200);
+    const document = await response.json();
+    info.annotations.push({ type: 'direct-node-read', description: `${playback.activity.activity_type}: ${Math.round(performance.now() - started)} ms; ${Buffer.byteLength(JSON.stringify(document))} bytes` });
+    expect(document).toEqual({ selected_activity_id: null, graph: playback.graph, node: playback.node, private_state: playback.private_state });
+    const props = toDirectPlaybackPageProps(document);
+    expect(props.playRunId).toBeNull(); expect(props.playRouteId).toBeNull(); expect(props.playActivityId).toBeNull();
+    const selected = await owner.request.get(`${path}?activity_id=${activity}`); expect(selected.status()).toBe(200);
+    expect(toDirectPlaybackPageProps(await selected.json()).playActivityId).toBe(activity);
+    const foreign = await owner.request.get(`${path}?activity_id=${randomUUID()}`); expect(foreign.status()).toBe(200);
+    expect((await foreign.json()).selected_activity_id).toBeNull();
+    for (const query of ['activity_id=invalid', `activity_id=${activity}&activity_id=${activity}`, `principal_id=${principal}`]) expect((await owner.request.get(`${path}?${query}`)).status()).toBe(400);
+    const other = await peer.request.get(path); expect(other.status()).toBe(200);
+    expect((await other.json()).graph.starts.every((start: any) => start.progress === null)).toBe(true);
+    expect(snapshot()).toBe(before);
+    const invalid = structuredClone(document); invalid.graph.node_id = randomUUID();
+    expect(() => toDirectPlaybackPageProps(invalid)).toThrow('player projection is currently unavailable');
 }

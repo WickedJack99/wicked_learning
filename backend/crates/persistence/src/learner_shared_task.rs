@@ -675,7 +675,7 @@ async fn state_for(
     state::load(
         transaction,
         current.principal_id,
-        play_run_id,
+        Some(play_run_id),
         &std::collections::HashMap::from([(current.activity_id, config.clone())]),
     )
     .await?
@@ -688,7 +688,7 @@ async fn state_for(
 pub(crate) async fn enrich_graph(
     transaction: &mut Transaction<'_, Postgres>,
     principal_id: Uuid,
-    play_run_id: Uuid,
+    play_run_id: Option<Uuid>,
     graph: &mut LearnerPlaybackGraph,
 ) -> Result<(), sqlx::Error> {
     let configs = graph

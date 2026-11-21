@@ -69,7 +69,8 @@ struct StartRow {
 }
 
 /// Four bounded reads for the whole node, not one query per activity or edge.
-/// The caller already authorized the run; this boundary rechecks the source's
+/// Run readers may require an active activity; direct readers omit it.
+/// This boundary rechecks the source's
 /// current node visibility/playability before exposing the published graph.
 pub(crate) async fn load(
     transaction: &mut Transaction<'_, Postgres>,
@@ -77,7 +78,7 @@ pub(crate) async fn load(
     availability: &PostgresLearnerNodeAvailability,
     node_id: Uuid,
     map_id: Uuid,
-    active_activity_id: Uuid,
+    active_activity_id: Option<Uuid>,
 ) -> Result<
     Option<(
         LearnerPlaybackGraph,
@@ -123,7 +124,7 @@ pub(crate) async fn load(
         return Err(incomplete_graph());
     }
     let ids: Vec<_> = rows.iter().map(|row| row.id).collect();
-    if !ids.contains(&active_activity_id) {
+    if active_activity_id.is_some_and(|id| !ids.contains(&id)) {
         return Ok(None);
     }
     let transitions = sqlx::query_as::<_, TransitionRow>(

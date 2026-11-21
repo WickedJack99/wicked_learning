@@ -52,7 +52,7 @@ struct ReviewRow {
 pub(super) async fn load(
     transaction: &mut Transaction<'_, Postgres>,
     principal: Uuid,
-    run: Uuid,
+    run: Option<Uuid>,
     configs: &HashMap<Uuid, SharedTaskConfig>,
 ) -> Result<HashMap<Uuid, LearnerSharedTaskState>, sqlx::Error> {
     let ids: Vec<_> = configs.keys().copied().collect();

@@ -74,7 +74,7 @@ struct ResolutionRow {
 pub(crate) async fn load(
     transaction: &mut Transaction<'_, Postgres>,
     principal_id: Uuid,
-    play_run_id: Uuid,
+    play_run_id: Option<Uuid>,
     graph: &LearnerPlaybackGraph,
 ) -> Result<LearnerPlaybackPrivateState, sqlx::Error> {
     let activities: HashMap<_, _> = graph.activities.iter().map(|a| (a.id, a)).collect();

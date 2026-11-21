@@ -2235,6 +2235,54 @@ bounded graph/presentation/access helpers; do not claim that the run-required
 contract. Source tests include `DashboardTest.php`'s requested-activity case
 and public/private node entry cases. These remain incomplete requirements.
 
+### Runless node read projection
+
+The principal-scoped
+`GET /learner/nodes/{node_id}/playback` snapshot is separate from run-authorized
+playback. It reuses the bounded graph/node, presentation/review, shared-task and
+private-progress readers. It returns the requested activity only when it belongs
+to the readable node, otherwise null so the copied source retains its normal
+default selection; an empty published node is a valid empty graph. It issues no
+new run or authored-start authority and performs no entry/progress/evidence writes.
+Without a run, NPC dialogue/checklist transient state must be absent while
+actual owner progress, answers, review history and shared-task submissions
+remain visible. Publication/roles/evaluated node access and oversized/broken
+graph failure gates still apply. The application/persistence implementation is
+`backend/crates/{application,persistence}/src/learner_node_playback.rs`, with
+OpenAPI `getLearnerNodePlayback` / `LearnerNodePlaybackDocument` and the existing
+API playback module. `toDirectPlaybackPageProps` shares the existing pure
+node mapper, retaining source null run/route/default-selection props without
+synthesizing a legacy run document.
+
+**Verified read contract:** `canonical-player-direct-read-live.spec.ts` covers
+an empty node, a populated node with no authored start/history, explicit and
+source-default selection, anonymous/role/publication/locked/hidden rejection,
+1001-activity overflow and unchanged starts/progress/evidence. The existing
+`canonical-playback-reference-live.spec.ts` now checks the read across all 14
+activity kinds, actual saved answers/progress/obstacle facts, principal
+isolation, absence of run-specific NPC/checklist state and retained mapper
+identity checks. Reads took 6–7 ms and returned 4,473–5,936 bytes in these small
+local fixtures, not a production benchmark. No route-progress, evidence or
+last-visited-topic changes occurred during the direct reads.
+
+The combined native/whole-page regression run passed all 25 cases. Existing
+ordinary whole-page source/copy journeys passed at 1440×900 and 390×844 after
+the shared mapper change; 15 of 18 screenshot pairs are identical, with only
+the previously observed small check-in icon region differing in three narrow
+pairs. These are regression screenshots for ordinary playback, not acceptance
+evidence for a runless interactive player. Canonical identity, frontend
+production type/build, OpenAPI client generation, Rust formatting/workspace
+check, 129 persistence unit tests and 183 API tests passed (six persistence and
+two API database tests explicitly ignored in those unit runs). Live report:
+`frontend/playwright-report/player-direct-read/`.
+
+This read alone does not activate direct-entry commands, anonymous playback or
+the production player. Next, map source runless progress/check-in and specialized
+activity commands without routing them through ordinary completion/evidence
+writers. In particular `LearnerProgressService::mark` preserves a prior
+completed status when reached again, and only runs route entry/topic visits
+when `playRunId` is present.
+
 ### Copied player page-prop adapter
 
 Source owners checked against pinned `main`: `resources/js/pages/learning/node-play.tsx`,

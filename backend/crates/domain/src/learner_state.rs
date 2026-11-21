@@ -687,6 +687,16 @@ pub struct LearnerRouteRun {
     pub reset_count: i32,
 }
 
+/// A playable node snapshot without route/run command authority. The copied
+/// page owns default selection when no readable requested activity is supplied.
+#[derive(Clone, Debug, Serialize)]
+pub struct LearnerNodePlaybackDocument {
+    pub selected_activity_id: Option<uuid::Uuid>,
+    pub graph: LearnerPlaybackGraph,
+    pub node: LearnerPlaybackNode,
+    pub private_state: LearnerPlaybackPrivateState,
+}
+
 /// A server-authorized snapshot of the current activity in an active play run.
 /// The browser may render this document but cannot choose its activity or
 /// authored completion transition.
