@@ -55,3 +55,43 @@ where
             .await
     }
 }
+
+/// Runless source answering defers completion and never updates Recall state.
+pub trait LearnerNodeQuestionRepository {
+    fn answer_node_question(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        activity_id: Uuid,
+        option_keys: &[String],
+        confidence: Option<&str>,
+    ) -> impl Future<
+        Output = Result<Option<LearnerQuestionAnswerResult>, LearnerQuestionAnswerError>,
+    > + Send;
+}
+
+pub struct LearnerNodeQuestionAnswerCommand<'repository, Repository> {
+    repository: &'repository Repository,
+}
+
+impl<'repository, Repository> LearnerNodeQuestionAnswerCommand<'repository, Repository>
+where
+    Repository: LearnerNodeQuestionRepository,
+{
+    pub fn new(repository: &'repository Repository) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        activity_id: Uuid,
+        option_keys: &[String],
+        confidence: Option<&str>,
+    ) -> Result<Option<LearnerQuestionAnswerResult>, LearnerQuestionAnswerError> {
+        self.repository
+            .answer_node_question(principal, node_id, activity_id, option_keys, confidence)
+            .await
+    }
+}

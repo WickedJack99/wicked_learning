@@ -1623,11 +1623,11 @@ pub struct LearnerActivityCheckInResult {
 }
 
 /// A learner's evaluated attempt at the question currently authorized by a
-/// play run. Choice keys are opaque authored identifiers; correctness and the
+/// play run or playable node. Choice keys are opaque authored identifiers; correctness and the
 /// next transition are resolved by the server, never the browser.
 #[derive(Clone, Debug, Serialize)]
 pub struct LearnerQuestionAnswerResult {
-    pub play_run_id: String,
+    pub play_run_id: Option<String>,
     pub activity_slug: String,
     pub selected_option_keys: Vec<String>,
     pub is_correct: bool,

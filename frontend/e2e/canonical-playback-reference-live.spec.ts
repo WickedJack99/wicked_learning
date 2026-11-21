@@ -93,6 +93,7 @@ for (const type of types) {
             expect(playbackResponse.status()).toBe(200);
             const playback = await playbackResponse.json();
             await verifyDirectNodeRead(owner, peer, playback, principal, info);
+            if (type === 'question') await verifyDirectQuestion(owner, peer, playback, principal);
             if (type !== 'portal') await verifyCompletedOrdinaryRead(owner, peer, headers, run, activity, principal, node.node_id, info);
             await verifyPlaybackReach(owner, peer, run, activity, principal, node.node_id, false, info);
             const sourceProps = verifyPlaybackProjection(playback);
@@ -559,4 +560,41 @@ async function verifyDirectNodeRead(owner: BrowserContext, peer: BrowserContext,
         }
         expect(routeFacts()).toEqual(facts);
     } finally { sql(`DELETE FROM learner_activity_check_ins WHERE activity_id='${activity}'; DELETE FROM learner_activity_progress WHERE activity_id='${activity}'`); }
+}
+
+async function verifyDirectQuestion(owner: BrowserContext, peer: BrowserContext, playback: any, principal: string) {
+    const node = uuid(playback.node.id), activity = uuid(playback.activity.id);
+    const path = `/api/v1/learner/nodes/${node}/activities/${activity}/answer`;
+    const headers = { Origin: new URL((await owner.request.get('/api/v1/me')).url()).origin, 'X-CSRF-Token': (await (await owner.request.get('/api/v1/security/csrf')).json()).token };
+    const snapshot = () => sql(`SELECT json_build_object('routes',(SELECT json_agg(p ORDER BY p.activity_start_id) FROM learner_route_progress p WHERE p.principal_id='${principal}' AND p.node_id='${node}'),'progress',(SELECT json_agg(p) FROM learner_activity_progress p WHERE p.principal_id='${principal}' AND p.activity_id='${activity}'),'evidence',(SELECT count(*) FROM learner_evidence_events WHERE principal_id='${principal}' AND activity_id='${activity}'),'recall',(SELECT count(*) FROM learner_recall_items WHERE principal_id='${principal}' AND activity_id='${activity}'))::text`).trim();
+    const before = snapshot();
+    try {
+        const answer = await owner.request.post(path, { headers, data: { option_keys: ['choice'], confidence: 'settled' } }); expect(answer.status()).toBe(200);
+        const result = await answer.json();
+        expect(result).toMatchObject({ play_run_id: null, is_correct: true, confidence: 'settled', calibration: 'aligned', attempt_number: 1, selected_option_keys: ['choice'], earlier_attempts: [], recall: null, status: 'in_progress' });
+        expect(result.feedback).toBe('Private answer feedback');
+        const runRead = await owner.request.get(`/api/v1/learner/play-runs/${uuid(playback.play_run_id)}`); expect(runRead.status()).toBe(200);
+        expect((await runRead.json()).activity.question_feedback).toBeNull();
+        expect((await owner.request.post(`/api/v1/learner/play-runs/${playback.play_run_id}/activities/id:${activity}/complete`, { headers, data: {} })).status()).toBe(404);
+        const read = await owner.request.get(`/api/v1/learner/nodes/${node}/playback`); expect(read.status()).toBe(200);
+        expect(toDirectPlaybackPageProps(await read.json()).progress.answers[activity].isCorrect).toBe(true);
+        const peerRead = await peer.request.get(`/api/v1/learner/nodes/${node}/playback`); expect(peerRead.status()).toBe(200);
+        expect(toDirectPlaybackPageProps(await peerRead.json()).progress.answers[activity]).toBeUndefined();
+        const attempts = await Promise.all(Array.from({ length: 4 }, () => owner.request.post(path, { headers, data: { option_keys: ['choice'], confidence: 'exploring' } })));
+        const results = [];
+        for (const response of attempts) { expect(response.status()).toBe(200); results.push(await response.json()); }
+        expect(results.map((entry) => entry.attempt_number).sort()).toEqual([2, 3, 4, 5]);
+        expect(results.find((entry) => entry.attempt_number === 5).earlier_attempts).toHaveLength(3);
+        expect(sql(`SELECT count(*) FROM learner_question_answers WHERE principal_id='${principal}' AND activity_id='${activity}' AND play_run_id IS NULL`).trim()).toBe('5');
+        for (const data of [{ option_keys: [] }, { option_keys: ['unknown'] }, { option_keys: ['choice', 'choice'] }, { option_keys: ['choice'], confidence: 'invalid' }]) {
+            expect((await owner.request.post(path, { headers, data })).status()).toBe(404);
+        }
+        const data = { option_keys: ['choice'] };
+        expect((await owner.request.post(path, { data })).status()).toBe(403);
+        expect((await owner.request.post(path.replace(node, randomUUID()), { headers, data })).status()).toBe(404);
+        sql(`UPDATE learning_nodes SET state='locked' WHERE id='${node}'`);
+        try { expect((await owner.request.post(path, { headers, data })).status()).toBe(404); }
+        finally { sql(`UPDATE learning_nodes SET state='available' WHERE id='${node}'`); }
+        expect(snapshot()).toBe(before);
+    } finally { sql(`DELETE FROM learner_question_answers WHERE principal_id='${principal}' AND activity_id='${activity}' AND play_run_id IS NULL`); }
 }

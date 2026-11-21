@@ -7089,6 +7089,36 @@ paths:
         '403': { description: A valid same-origin CSRF request and application principal are required. }
         '404': { description: This node/activity is unavailable or lacks the caller's completed progress. }
         '503': { description: Persistence is unavailable. }
+  /learner/nodes/{node_id}/activities/{activity_id}/answer:
+    post:
+      operationId: answerLearnerNodeQuestion
+      summary: Evaluate a private question answer at a playable node without a run.
+      description: Authorizes the published question within the currently playable node for the authenticated principal. Reuses source option validation, correctness, feedback, calibration, attempt history and authored transition evaluation. Stores a null originating run and serializes per-learner question history. Completion is deferred as in the copied QuestionActivity; no reached/completed progress, route/run, topic visit, competence evidence or Recall state is written. Existing run-bound answer authorization remains unchanged.
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: path
+          name: activity_id
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/CsrfTokenHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LearnerQuestionAnswerRequest' }
+      responses:
+        '200':
+          description: The actual evaluated answer, private earlier attempts and authored transition.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LearnerQuestionAnswerResult' }
+        '401': { description: Authentication is required. }
+        '403': { description: A valid same-origin CSRF request and application principal are required. }
+        '404': { description: The playable question or selected answer/confidence is invalid or unavailable. }
+        '503': { description: Persistence is unavailable. }
   /learner/nodes/{node_id}/playback:
     get:
       operationId: getLearnerNodePlayback
@@ -12058,7 +12088,7 @@ components:
       additionalProperties: false
       required: [play_run_id, activity_slug, selected_option_keys, is_correct, feedback, explanation, confidence, calibration, attempt_number, earlier_attempts, recall, next_activity_id, next_transition_label, status]
       properties:
-        play_run_id: { type: string, format: uuid }
+        play_run_id: { type: [string, 'null'], format: uuid, description: 'The authorized run ID, or null for direct node answering.' }
         activity_slug: { type: string, pattern: '^[a-z0-9-]+$' }
         selected_option_keys:
           type: array

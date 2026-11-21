@@ -1514,6 +1514,10 @@ fn router(state: AppState) -> Router {
             post(learner_check_in::record_node),
         )
         .route(
+            "/api/v1/learner/nodes/{node_id}/activities/{activity_id}/answer",
+            post(learner_question::answer_node),
+        )
+        .route(
             "/api/v1/learner/nodes/{node_id}/playback",
             get(learner_playback::show_node),
         )

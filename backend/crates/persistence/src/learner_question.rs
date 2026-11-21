@@ -2,7 +2,8 @@ use serde::Deserialize;
 use sqlx::{FromRow, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 use wicked_learning_application::learner_question::{
-    LearnerQuestionAnswerError, LearnerQuestionRepository as LearnerQuestionRepositoryPort,
+    LearnerNodeQuestionRepository, LearnerQuestionAnswerError,
+    LearnerQuestionRepository as LearnerQuestionRepositoryPort,
 };
 use wicked_learning_domain::{
     identity_access::AuthorizedPrincipal,
@@ -143,8 +144,29 @@ async fn answer_current_question(
         transaction.commit().await?;
         return Ok(None);
     };
+    let result = save_answer(
+        &mut transaction,
+        current,
+        Some(play_run_id),
+        option_keys,
+        confidence,
+    )
+    .await?;
+    transaction.commit().await?;
+    Ok(result)
+}
+
+async fn save_answer(
+    transaction: &mut Transaction<'_, Postgres>,
+    current: CurrentQuestionRow,
+    play_run_id: Option<Uuid>,
+    option_keys: &[String],
+    confidence: Option<&str>,
+) -> Result<Option<LearnerQuestionAnswerResult>, sqlx::Error> {
+    if option_keys.is_empty() || option_keys.len() > 24 || !valid_confidence(confidence) {
+        return Ok(None);
+    }
     let Ok(config) = serde_json::from_value::<QuestionConfig>(current.activity_config) else {
-        transaction.commit().await?;
         return Ok(None);
     };
     let selected = config
@@ -157,15 +179,24 @@ async fn answer_current_question(
         || duplicate(option_keys)
         || (!config.allow_multiple && selected.len() != 1)
     {
-        transaction.commit().await?;
         return Ok(None);
     }
     let is_correct = selection_is_correct(&config, &selected);
     let calibration = confidence.map(|value| calibration(is_correct, value).to_owned());
+    // An activity can be answered directly or from different owned runs.
+    // Serialize this learner/question history without inventing progress/run
+    // rows, so concurrent attempts receive distinct source attempt numbers.
+    sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))")
+        .bind(format!(
+            "question:{}:{}",
+            current.principal_id, current.activity_id
+        ))
+        .execute(&mut **transaction)
+        .await?;
     let attempt_number = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM learner_question_answers WHERE principal_id = $1 AND activity_id = $2")
-        .bind(current.principal_id).bind(current.activity_id).fetch_one(&mut *transaction).await? as i32 + 1;
+        .bind(current.principal_id).bind(current.activity_id).fetch_one(&mut **transaction).await? as i32 + 1;
     let transition = transition_for(
-        &mut transaction,
+        transaction,
         current.activity_id,
         transition_choice(&config, &selected, is_correct).0,
         is_correct,
@@ -177,9 +208,9 @@ async fn answer_current_question(
         .collect::<Vec<_>>();
     let feedback = feedback_for_selection(&config, &selected, is_correct);
     sqlx::query("INSERT INTO learner_question_answers (principal_id, activity_id, play_run_id, selected_option_keys, is_correct, confidence, calibration, attempt_number, feedback, feedback_recorded) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE)")
-        .bind(current.principal_id).bind(current.activity_id).bind(play_run_id).bind(serde_json::json!(selected_option_keys)).bind(is_correct).bind(confidence).bind(&calibration).bind(attempt_number).bind(&feedback).execute(&mut *transaction).await?;
+        .bind(current.principal_id).bind(current.activity_id).bind(play_run_id).bind(serde_json::json!(selected_option_keys)).bind(is_correct).bind(confidence).bind(&calibration).bind(attempt_number).bind(&feedback).execute(&mut **transaction).await?;
     let earlier_attempts = earlier_attempts(
-        &mut transaction,
+        transaction,
         current.principal_id,
         current.activity_id,
         attempt_number,
@@ -188,7 +219,7 @@ async fn answer_current_question(
     .await?;
     let recall = if current.is_recall {
         record_recall(
-            &mut transaction,
+            transaction,
             current.principal_id,
             current.activity_id,
             is_correct,
@@ -198,9 +229,8 @@ async fn answer_current_question(
     } else {
         None
     };
-    transaction.commit().await?;
     Ok(Some(LearnerQuestionAnswerResult {
-        play_run_id: play_run_id.to_string(),
+        play_run_id: play_run_id.map(|id| id.to_string()),
         activity_slug: current.activity_slug,
         selected_option_keys,
         is_correct,
@@ -376,7 +406,7 @@ pub(crate) async fn question_feedback_for_playback(
     };
 
     Ok(Some(LearnerQuestionAnswerResult {
-        play_run_id: play_run_id.to_string(),
+        play_run_id: Some(play_run_id.to_string()),
         activity_slug: activity_slug.to_owned(),
         selected_option_keys,
         is_correct: answer.is_correct,
@@ -609,4 +639,66 @@ mod tests {
         assert!(valid_confidence(Some("settled")));
         assert!(!valid_confidence(Some("certain")));
     }
+}
+
+impl LearnerNodeQuestionRepository for PostgresLearnerQuestionRepository<'_> {
+    async fn answer_node_question(
+        &self,
+        principal: &AuthorizedPrincipal,
+        node_id: Uuid,
+        activity_id: Uuid,
+        option_keys: &[String],
+        confidence: Option<&str>,
+    ) -> Result<Option<LearnerQuestionAnswerResult>, LearnerQuestionAnswerError> {
+        answer_node_question(
+            self.pool,
+            principal,
+            node_id,
+            activity_id,
+            option_keys,
+            confidence,
+        )
+        .await
+        .map_err(|error| {
+            tracing::error!(%error, "could not answer a runless learner question");
+            LearnerQuestionAnswerError
+        })
+    }
+}
+
+async fn answer_node_question(
+    pool: &PgPool,
+    principal: &AuthorizedPrincipal,
+    node_id: Uuid,
+    activity_id: Uuid,
+    option_keys: &[String],
+    confidence: Option<&str>,
+) -> Result<Option<LearnerQuestionAnswerResult>, sqlx::Error> {
+    let Some(availability) =
+        crate::learner_node_availability::PostgresLearnerNodeAvailability::load(pool, principal)
+            .await?
+    else {
+        return Ok(None);
+    };
+    let mut transaction = pool.begin().await?;
+    if crate::learner_node_playback::playable_activity_slug(
+        &mut transaction,
+        principal,
+        &availability,
+        node_id,
+        activity_id,
+    )
+    .await?
+    .is_none()
+    {
+        return Ok(None);
+    }
+    let current = sqlx::query_as::<_, CurrentQuestionRow>("SELECT slug AS activity_slug,activity_config,id AS activity_id,FALSE AS is_recall,$2::uuid AS principal_id FROM learning_activities WHERE id=$1 AND activity_type='question'")
+        .bind(activity_id).bind(availability.principal_id()).fetch_optional(&mut *transaction).await?;
+    let Some(current) = current else {
+        return Ok(None);
+    };
+    let result = save_answer(&mut transaction, current, None, option_keys, confidence).await?;
+    transaction.commit().await?;
+    Ok(result)
 }

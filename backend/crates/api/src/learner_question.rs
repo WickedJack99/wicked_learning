@@ -47,3 +47,33 @@ pub async fn answer(
         .map(Json)
         .ok_or_else(ApiError::not_found)
 }
+
+pub async fn answer_node(
+    State(state): State<AppState>,
+    Path((node_id, activity_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    csrf_token: axum_csrf::CsrfToken,
+    auth_session: AuthSession<IdentityBackend>,
+    Json(request): Json<AnswerQuestionRequest>,
+) -> Result<Json<LearnerQuestionAnswerResult>, ApiError> {
+    let node_id = Uuid::parse_str(&node_id).map_err(|_| ApiError::not_found())?;
+    let activity_id = Uuid::parse_str(&activity_id).map_err(|_| ApiError::not_found())?;
+    let principal = authenticated_principal(&state, auth_session).await?;
+    csrf::verify_unsafe_browser_request(&csrf_token, &headers, &state.public_origin)?;
+    let repository = PostgresLearnerQuestionRepository::new(&state.application_database);
+
+    wicked_learning_application::learner_question::LearnerNodeQuestionAnswerCommand::new(
+        &repository,
+    )
+    .execute(
+        &principal,
+        node_id,
+        activity_id,
+        &request.option_keys,
+        request.confidence.as_deref(),
+    )
+    .await
+    .map_err(|_| ApiError::service_unavailable())?
+    .map(Json)
+    .ok_or_else(ApiError::not_found)
+}

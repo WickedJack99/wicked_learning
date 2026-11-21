@@ -2372,6 +2372,76 @@ visually inspected; the accepted narrow toolbar defect remains preserved.
 Evidence: `frontend/playwright-report/player-direct-progress/`. These ordinary
 screenshots guard the shared writer, not a claim of direct-player UI acceptance.
 
+### Runless question answering
+
+Source owners: pinned `LearningWorldController::answerQuestion`,
+`app/Learning/Services/QuestionAnswerService.php`,
+`resources/js/features/world/standard-activities.tsx::QuestionActivity` and
+`pages/learning/node-play.tsx`. The copied form always submits
+`defer_completion: true`; a nullable `play_run_id` selects `assertCanPlay`
+instead of run-active authorization. Saving feedback and continuing are
+separate source actions. The direct context is neither Recall nor revisit.
+
+`POST /learner/nodes/{node_id}/activities/{activity_id}/answer`
+(`answerLearnerNodeQuestion`) reuses Rust's existing option/multiple-selection,
+correctness, confidence/calibration, feedback, authored transition and bounded
+earlier-attempt evaluation. The playable membership helper authorizes and
+shared-locks the exact published node and activity; the activity must actually
+be a Question. The shared evaluator serializes a learner/question history with
+a transaction-scoped advisory lock so concurrent direct and run-bound attempts
+receive distinct attempt numbers. No activity progress, Recall state, run,
+route entry/completion or competence evidence is created by direct answering.
+
+Migration `0117_runless_question_answers.sql` makes only the originating run
+nullable; existing run IDs and the run/activity/attempt uniqueness constraint
+remain. `LearnerQuestionAnswerResult.play_run_id` is correspondingly nullable:
+run endpoints return their actual UUID; the direct endpoint returns null.
+`learner_playback_private_state.rs` reads actual owner/activity history without
+requiring a run, while `learner_question.rs::{latest_answer_for_completion,
+question_feedback_for_playback}` retain exact run equality. Thus a direct
+answer cannot become a run-specific completion attempt or feedback receipt.
+The source form-to-Rust transport binding and direct Recall controls remain
+separate incomplete requirements; this is not player activation.
+
+**Verified:** The new direct-answer test reproduced the absent endpoint before
+implementation. Both direct/native cases now pass: a no-start/no-run Question,
+correct/incorrect single choice, multiple-choice exact selection, confidence
+calibration, actual saved private history, peer isolation, invalid/duplicate
+options and confidence, anonymous/CSRF/wrong-node/locked rejection, and four
+concurrent retry attempts receiving distinct numbers. History is limited to
+three earlier attempts in the receipt. The direct attempt does not populate
+run-specific feedback and cannot satisfy ordinary completion. Route, progress,
+Recall and evidence snapshots remain unchanged.
+
+The 20 existing run-kind, answer-evaluation and source/copy response cases also
+passed, including ordinary/revisit/Recall/replay and single/multiple/Recall/
+transfer/review components at 1440×900 and 390×844. All 16 source/copy screenshot
+pairs were byte-identical; desktop multiple-choice and narrow saved-answer
+screenshots were visually inspected. These are component regression evidence,
+not acceptance of a runless whole-player page. Reports:
+`frontend/playwright-report/player-direct-question/` and
+`frontend/playwright-report/player-direct-question-regression/`.
+
+Canonical identity, frontend production type/build, OpenAPI/client drift,
+Rust workspace check/format, 129 persistence tests and 183 API tests passed
+(six persistence and two API tests explicitly ignored in the unit runs).
+Migration 0117 applied to the local development database, existing row/non-null
+run counts were unchanged, the new column is nullable, and the deployed image
+matches the built image with readiness 200.
+
+**Next source-derived boundary:** `LearningWorldController::{queueQuestionForRecall,
+removeQuestionFromRecall,updateQuestionRecallFeedback}` and
+`LearnerRecallItemService` do not require an originating run; current
+`learner_recall.rs` player commands do. Audit/reuse those owner/question
+operations for direct entry before connecting the copied question controls.
+Conversely, `RecordLearnerReflection::forActivity`,
+`LearnerJournalController::storeActivityReflection`, and the copied
+`standard-activities.tsx` reflection controls explicitly require a run;
+`shared-task-activity.tsx` likewise guards its writers with `playRunId`.
+Preserve those source-disabled states during direct entry instead of inventing
+runless reflection/submission authority. Remaining item/tool/NPC/obstacle/
+message/portal and Companion direct behavior still needs its own source audit.
+
 ### Copied player page-prop adapter
 
 Source owners checked against pinned `main`: `resources/js/pages/learning/node-play.tsx`,

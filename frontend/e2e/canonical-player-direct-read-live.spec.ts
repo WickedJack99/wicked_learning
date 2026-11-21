@@ -112,6 +112,23 @@ test('runless node reads preserve empty and unstarted source state without route
         sql(`DELETE FROM learner_activity_check_ins WHERE activity_id='${activity}'`);
         sql(`DELETE FROM learner_activity_progress WHERE activity_id='${activity}'`);
         noWrites();
+        sql(`UPDATE learning_activities SET activity_type='question',activity_config='{"prompt":"Choose","allowMultiple":false,"feedbackIncorrect":"Try another direction","options":[{"key":"right","label":"A","body":"Right","isCorrect":true},{"key":"wrong","label":"B","body":"Wrong","isCorrect":false}]}' WHERE id='${activity}'`);
+        const answerPath = reachPath.replace(/reach$/, 'answer');
+        expect((await anonymous.request.post(answerPath, { data: { option_keys: ['right'] } })).status()).toBe(401);
+        for (const [keys, correct, calibration] of [[['wrong'], false, 'higher_than_result'], [['right'], true, 'aligned']] as const) {
+            const answered = await owner.request.post(answerPath, { headers: reachHeaders, data: { option_keys: keys, confidence: 'settled' } }); expect(answered.status()).toBe(200);
+            expect(await answered.json()).toMatchObject({ play_run_id: null, is_correct: correct, calibration, recall: null, next_activity_id: null, status: 'in_progress' });
+        }
+        expect((await owner.request.post(answerPath, { headers: reachHeaders, data: { option_keys: ['right', 'wrong'] } })).status()).toBe(404);
+        sql(`UPDATE learning_activities SET activity_config=jsonb_set(activity_config,'{allowMultiple}','true') WHERE id='${activity}'`);
+        for (const [keys, correct] of [[['right', 'wrong'], false], [['right'], true]] as const) {
+            const answered = await owner.request.post(answerPath, { headers: reachHeaders, data: { option_keys: keys } }); expect(answered.status()).toBe(200);
+            expect((await answered.json()).is_correct).toBe(correct);
+        }
+        expect(toDirectPlaybackPageProps(await read()).progress.answers[activity].earlierAttempts).toHaveLength(3);
+        expect(sql(`SELECT count(*) FROM learner_question_answers WHERE activity_id='${activity}' AND play_run_id IS NULL`).trim()).toBe('4');
+        noWrites();
+        sql(`DELETE FROM learner_question_answers WHERE activity_id='${activity}'; UPDATE learning_activities SET activity_type='open_practice',activity_config='{}' WHERE id='${activity}'`);
         sql(`INSERT INTO learning_activities(id,route_id,slug,title,description,position,published_at,activity_type,activity_config) SELECT gen_random_uuid(),route_id,'overflow-' || n,'Overflow','',n,NOW(),'open_practice','{}' FROM learning_activities CROSS JOIN generate_series(1,1000) n WHERE id='${activity}'`);
         expect((await owner.request.get(path)).status()).toBe(503);
         noWrites();

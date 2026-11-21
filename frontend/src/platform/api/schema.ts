@@ -5751,6 +5751,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/learner/nodes/{node_id}/activities/{activity_id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluate a private question answer at a playable node without a run.
+         * @description Authorizes the published question within the currently playable node for the authenticated principal. Reuses source option validation, correctness, feedback, calibration, attempt history and authored transition evaluation. Stores a null originating run and serializes per-learner question history. Completion is deferred as in the copied QuestionActivity; no reached/completed progress, route/run, topic visit, competence evidence or Recall state is written. Existing run-bound answer authorization remains unchanged.
+         */
+        post: operations["answerLearnerNodeQuestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/learner/nodes/{node_id}/playback": {
         parameters: {
             query?: never;
@@ -9064,8 +9084,11 @@ export interface components {
             confidence?: "exploring" | "leaning" | "settled" | null;
         };
         LearnerQuestionAnswerResult: {
-            /** Format: uuid */
-            play_run_id: string;
+            /**
+             * Format: uuid
+             * @description The authorized run ID, or null for direct node answering.
+             */
+            play_run_id: string | null;
             activity_slug: string;
             selected_option_keys: string[];
             is_correct: boolean;
@@ -33361,6 +33384,64 @@ export interface operations {
                 content?: never;
             };
             /** @description This node/activity is unavailable or lacks the caller's completed progress. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Persistence is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    answerLearnerNodeQuestion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token from `GET /security/csrf`; the request must also have the matching protected cookie and an allowed Origin. */
+                "X-CSRF-Token": components["parameters"]["CsrfTokenHeader"];
+            };
+            path: {
+                node_id: string;
+                activity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearnerQuestionAnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description The actual evaluated answer, private earlier attempts and authored transition. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerQuestionAnswerResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A valid same-origin CSRF request and application principal are required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The playable question or selected answer/confidence is invalid or unavailable. */
             404: {
                 headers: {
                     [name: string]: unknown;
