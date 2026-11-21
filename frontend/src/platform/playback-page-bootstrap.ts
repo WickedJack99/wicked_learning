@@ -8,6 +8,7 @@ import { toLearnerShellProps } from './learner-shell-projection';
 import { bindPlaybackPage } from './playback-page-api';
 import { playbackIdentity } from './playback-context';
 import { toPlaybackPageProps } from './playback-projection';
+import { PlaybackCompanionRefresh, type CompanionRecovery } from './playback-companion-refresh';
 
 type Props = ReturnType<typeof toPlaybackPageProps> & ReturnType<typeof toLearnerShellProps> & {
     appearance: components['schemas']['CurrentUser']['appearance'];
@@ -20,11 +21,13 @@ type State = { kind: 'loading' } | { kind: 'unavailable'; message: string } | { 
  * can start/resume only inside its URL node; no default route is fabricated. */
 export function usePlaybackPageDocument(run: string | null, node: string, start: string | null) {
     const [state, setState] = useState<State>({ kind: 'loading' });
+    const [companionRecovery, setCompanionRecovery] = useState<CompanionRecovery | null>(null);
     useEffect(() => {
         let alive = true; let release: (() => void) | undefined;
         const controller = new AbortController(); const signal = controller.signal;
-        let companionController: AbortController | undefined;
+        let companionRefresh: PlaybackCompanionRefresh | undefined;
         setState({ kind: 'loading' });
+        setCompanionRecovery(null);
         void (async () => {
             playbackIdentity(node);
             if (start !== null) playbackIdentity(start);
@@ -71,12 +74,10 @@ export function usePlaybackPageDocument(run: string | null, node: string, start:
             });
             if (!invitation.response.ok || !invitation.data) throw new JsonRequestError('The learner invitation is unavailable.', invitation.response.status);
             if (!alive) return;
-            release = bindPlaybackPage(document, async (activity) => {
-                companionController?.abort(); const refresh = new AbortController(); companionController = refresh;
-                const companion = await companionFor(activity, refresh.signal);
-                if (!alive || refresh.signal.aborted) return;
+            companionRefresh = new PlaybackCompanionRefresh(companion, companionFor, (companion) => {
                 setState((previous) => previous.kind === 'ready' ? { ...previous, props: { ...previous.props, companion } } : previous);
-            });
+            }, setCompanionRecovery);
+            release = bindPlaybackPage(document, (activity) => companionRefresh!.reload(activity));
             window.localStorage.setItem('appearance', currentUser.data.appearance);
             initializeTheme();
             setState({ kind: 'ready', props: {
@@ -87,7 +88,7 @@ export function usePlaybackPageDocument(run: string | null, node: string, start:
         })().catch((error: unknown) => {
             if (alive) setState({ kind: 'unavailable', message: error instanceof Error ? error.message : 'The player is currently unavailable.' });
         });
-        return () => { alive = false; controller.abort(); companionController?.abort(); release?.(); };
+        return () => { alive = false; controller.abort(); companionRefresh?.dispose(); release?.(); };
     }, [run, node, start]);
-    return state;
+    return { ...state, companionRecovery };
 }

@@ -15,7 +15,7 @@ Builder P0 ordering. The canonical source remains pinned to
 | Canonical source baseline | Identity verifier available; rerun per slice | Keep the entire copied JS/CSS tree byte-identical; transport changes live outside it. |
 | Public/information/authentication | Activated portions; full acceptance not reverified | Reconcile page/command coverage, including verification and recovery, against actual source and real Rust tests. |
 | Personal Settings | Activated portions; full acceptance not reverified | Reconcile profile, security, preference and shell tests with all source controls. |
-| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins and explicit Companion run context integrated below | Anonymous and implicit entry, output-portal travel, Recall reconciliation, nonordinary continuation/restart, Companion reload failure recovery, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
+| Learner World and playback | **Incomplete**; whole copied World/layout and player lifecycle evidence, ordinary route entry, completed replay/revisit/arrival check-ins, explicit Companion run context and scoped refresh recovery integrated below | Anonymous and implicit entry, output-portal travel, Recall reconciliation, nonordinary continuation/restart, remaining configuration/media and projection bounds; retain observed source usability defects as open acceptance limitations. |
 | Learner desk, bookmarks, paths, competence, journal | Pending canonical acceptance | Inventory/reuse Rust contracts, mount complete copied route families, verify cross-route continuation and writes. |
 | Topics and platform feedback | Pending canonical acceptance | Source-shaped documents, navigation, submission and failure evidence. |
 | Organizations and access links | Pending canonical acceptance | Whole copied membership/redemption flows and permission/error evidence. |
@@ -1664,7 +1664,7 @@ children and transport adapters; do not build another player presentation.
 | Optional check-in | `POST .../check-ins`, existing state receipt | Bind the run from the exact active page because the source request has no run field. Preserve skip/hide/draft/error behavior. Ordinary and completed replay/revisit/arrival scopes are supported below; Recall remains excluded. |
 | Restart and alternatives | `/learner/activity-starts/{id}/reset` and `/start` | Preserve returned real run/node/start identities and source URLs. Source `route.id > 0` requires an opaque-ID compatibility seam. No invented numeric IDs or fabricated redirect receipt. |
 | Bookmark | Existing map/node-slug bookmark POST/DELETE | Resolve IDs/slugs from the actual page document, and return the actual boolean. Do not require a fabricated full World snapshot to update one bookmark. |
-| Companion activity reload | `loadCompanion({surface:'activity', activity_id, play_run_id})`; verify its returned run identity | Replace only the page's exact `only:['companion']` reload; preserve local page/check-in state and reject stale reloads. The bounded explicit run contract is verified below; failure/recovery remains open. Generic Inertia reload emulation is not permitted. |
+| Companion activity reload | `loadCompanion({surface:'activity', activity_id, play_run_id})`; verify its returned run identity | Replace only the page's exact `only:['companion']` reload; preserve local page/check-in state and reject stale reloads. The bounded explicit run contract and retry/cancellation behavior are verified below. Generic Inertia reload emulation is not permitted. |
 | Recall completion/check-in | ADR-037 forbids ordinary progress/check-ins; native completion returns null ordinary progress | The source parent dereferences a progress receipt and can open an ordinary check-in. Reconcile this actual source/accepted-contract conflict explicitly; do not fabricate persisted progress or silently write forbidden Recall evidence. |
 
 The first browser integration must mount the whole copied page and layout,
@@ -1707,8 +1707,8 @@ canonical source is unchanged. Production player activation remains closed.
 
 Remaining whole-page gates include entry without both run and route,
 anonymous playback, nonordinary entry/local restart/authored continuation,
-atomic output-portal travel, Recall's accepted-contract conflict, and explicit
-Companion reload failure/recovery without losing local draft state. The
+atomic output-portal travel and Recall's accepted-contract conflict. Companion
+reload failure/recovery is now verified in its dedicated section below. The
 evidence host is not a production resolver or a claim that the route family
 is complete.
 
@@ -1852,6 +1852,65 @@ semantics, provider-backed assistance, Recall and output-portal travel still
 need end-to-end reconciliation. The mobile toolbar obstruction remains an open
 source defect pending an explicit decision; the production player resolver
 remains unavailable.
+
+### Player Companion refresh recovery
+
+Pinned-source owners: `resources/js/pages/learning/node-play.tsx`,
+`components/app-side-action-bar.tsx`, `features/world/learning-companion-{panel,dialogue}.tsx`,
+and the complete copied `components/{alert-error,ui/button}.tsx` primitives.
+The source page requests only `companion` after its local activity changes;
+`onSuccess` updates its context reference and `onFinish` clears the pending
+reference. Installed Inertia 3.11's `Response.handleNonInertiaResponse` shows
+a framework error without replacing the page; cancelled requests do not
+publish success. The replacement must retain that partial-update boundary,
+not remount the player or fabricate an empty/disabled Companion on failure.
+
+`playback-companion-refresh.ts` owns the exact activity/run refresh lifetime.
+It retires the prior Companion turn binding immediately, cancels superseded
+reads, and applies only the latest actual projection. Failed HTTP/network
+reads keep the source request pending for an explicit retry; duplicate retry
+clicks share one attempt. Success (including a genuine native 204 disabled
+response) completes the source callback once. Navigation/disposal settles a
+cancelled operation without success, aborts in-flight turns and ignores late
+responses. This cancellation prevents stale browser delivery; it does not
+claim to undo a server action already accepted before cancellation.
+
+`playback-companion-recovery.tsx` composes the whole copied error/button
+primitives as a bounded platform transport-error region. It is framework
+failure UI, not a replacement player or a fabricated Companion prop. The
+normal source layout, controls and check-in state stay mounted and usable.
+The error can be dismissed (including while retrying), cancelling this partial
+reload without pretending it succeeded. This restores access to navigation
+under the narrow error notice; the real-stack test continues through the
+source check-in and return-to-map controls after dismissal. A later activity
+change can load its own new context normally.
+`companion-api.ts` revokes retired projection objects and combines request
+cancellation with their lifetime; stale objects cannot issue another turn.
+There are no backend, OpenAPI, canonical-source or production-resolver changes.
+
+The new real-stack `canonical-player-companion-reload-live.spec.ts` first
+failed on the missing error region. It runs the complete pinned-main and
+copied player/layout trees at both viewports, with actual Rust entry,
+completion, scoped Companion reads and private progress. Only the two failed
+refresh attempts are injected (HTTP 503, then network failure). Recovery reads
+the real second-activity/run context, displays it in the source Companion
+panel, keeps the unsaved check-in draft and URL/run, and sends no document
+reload. Screenshot attachments cover failure and recovery for both trees.
+The shared platform error boundary is not claimed as Laravel error-page
+pixel parity. Focused Companion regressions cover in-flight turn cancellation,
+revoked objects, superseded/late reads, duplicate retry clicks, genuine disabled
+responses, and disposal without late state updates.
+
+Verification: canonical identity and production frontend type/build passed,
+with unchanged generated OpenAPI/client output; Rust fmt and five focused
+application/API Companion checks passed. The combined player/Companion/media
+suite passed 24 checks, then all changed Companion/recovery tests passed again
+(15 checks, 26 seconds) after adding dismissal. The four failure/recovery
+source/copy screenshot pairs were byte-identical. Desktop recovered context
+and narrow error screenshots were visually inspected; the existing mobile
+source toolbar obstruction remains open. Reports are in ignored
+`frontend/playwright-report/player-companion-recovery-{verified,final}/`;
+rerun the named browser files with the existing 8084 learner evidence host.
 
 ### Copied player page-prop adapter
 

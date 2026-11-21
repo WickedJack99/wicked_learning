@@ -9,7 +9,7 @@ type Turn = components['schemas']['CreateLearnerCompanionTurnRequest'];
 // The copied control receives the complete projection, with opaque Rust IDs.
 // Keep its authorized query beside that object, not in fabricated source props
 // or mutable global "current map" state. Server authorization still owns turns.
-const contexts = new WeakMap<object, { document: Companion; query: ContextQuery }>();
+const contexts = new WeakMap<object, { document: Companion; query: ContextQuery; lifetime: AbortController }>();
 
 export function toSourceCompanion(document: Companion, query: ContextQuery) {
     if (document.context.surface !== query.surface) {
@@ -43,8 +43,16 @@ export function toSourceCompanion(document: Companion, query: ContextQuery) {
         enabled: true,
         message: document.message,
     };
-    contexts.set(companion, { document, query: { ...query } });
+    contexts.set(companion, { document, query: { ...query }, lifetime: new AbortController() });
     return companion;
+}
+
+/** A player activity change retires its old projection, including pending
+ * turns. It does not turn a failed replacement read into a disabled Companion. */
+export function releaseCompanion(companion: object | null) {
+    if (!companion) return;
+    contexts.get(companion)?.lifetime.abort();
+    contexts.delete(companion);
 }
 
 export async function loadCompanion(query: ContextQuery, signal?: AbortSignal) {
@@ -89,11 +97,14 @@ export async function companionFetch(companion: object, input: string, init: Req
         dialogue_node_id: payload.dialogue_node_id,
         assistance_level: payload.assistance_level,
     };
+    const csrf = await getCsrfToken();
+    if (context.lifetime.signal.aborted) return failure('The Companion context has changed. Try again after it reconnects.', 409);
     const { data, error, response } = await apiClient.POST('/learner/companion/turn', {
-        params: { header: { 'X-CSRF-Token': await getCsrfToken() } },
+        params: { header: { 'X-CSRF-Token': csrf } },
         body,
-        signal: init.signal ?? undefined,
+        signal: init.signal ? AbortSignal.any([init.signal, context.lifetime.signal]) : context.lifetime.signal,
     });
+    if (context.lifetime.signal.aborted) return failure('The Companion context has changed. Try again after it reconnects.', 409);
     if (!response.ok || !data) {
         return failure(problemTitle(error) ?? 'The companion could not answer this turn. You can continue exploring without it.', response.status);
     }

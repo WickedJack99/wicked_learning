@@ -9,6 +9,7 @@ import AlertError from '../canonical-source/resources/js/components/alert-error'
 import { Spinner } from '../canonical-source/resources/js/components/ui/spinner';
 import { SourcePageProjectionProvider } from '../src/platform/page-props';
 import { usePlaybackPageDocument } from '../src/platform/playback-page-bootstrap';
+import { PlaybackCompanionRecovery } from '../src/platform/playback-companion-recovery';
 import '../canonical-source/resources/css/app.css';
 
 // A whole-page source comparison, using real Rust documents/commands. The
@@ -22,6 +23,7 @@ function Evidence() {
     const Page = original ? MainPage : CopiedPage;
     const Layout = original ? MainLayout : CopiedLayout;
     return <SourcePageProjectionProvider value={{ component: 'learning/node-play', props: state.props }}>
+        <PlaybackCompanionRecovery state={state.companionRecovery} />
         <Layout><Page {...state.props as any} /></Layout>
     </SourcePageProjectionProvider>;
 }

@@ -8,7 +8,7 @@ import { completeNpcActivity } from './playback-npc-api';
 import { toSourceActivityReceipt } from './playback-projection';
 
 type Playback = components['schemas']['LearnerPlaybackDocument'];
-type Page = { document: Playback; reloadCompanion: (activity: string) => Promise<void> };
+type Page = { document: Playback; reloadCompanion: (activity: string) => Promise<boolean> };
 const pages = new Map<string, Page>();
 const activityPath = /^\/learning\/activities\/([a-f0-9-]+)\/(progress|translation|check-in)$/;
 const bookmarkPath = /^\/learning\/nodes\/([a-f0-9-]+)\/bookmark$/;
@@ -115,7 +115,7 @@ export async function playbackPageWrite(method: 'POST' | 'DELETE', url: string, 
 export async function reloadPlaybackCompanion(run: unknown, activity: unknown, options: { only: string[]; onSuccess?: () => void; onFinish?: () => void }) {
     const context = contextForActivity(activity, run);
     if (options.only.length !== 1 || options.only[0] !== 'companion') return unavailable(400);
-    try { await pages.get(context.run)!.reloadCompanion(context.id); options.onSuccess?.(); }
+    try { if (await pages.get(context.run)!.reloadCompanion(context.id)) options.onSuccess?.(); }
     finally { options.onFinish?.(); }
 }
 

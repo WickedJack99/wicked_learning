@@ -51,6 +51,60 @@ async function panelEvidence(page: Page) {
     }));
 }
 
+test('retired Companion projections cannot send another turn or deliver an in-flight response', async ({ page }) => {
+    await page.route('**/api/v1/learner/companion?*', (route) => route.fulfill({ status: 204 }));
+    await page.route('**/api/v1/security/csrf', (route) => route.fulfill({ json: { token: 'native-csrf' } }));
+    let received!: () => void;
+    const arrived = new Promise<void>((resolve) => { received = resolve; });
+    let respond!: () => void;
+    const held = new Promise<void>((resolve) => { respond = resolve; });
+    let requests = 0;
+    await page.route('**/api/v1/learner/companion/turn', async (route) => {
+        requests++; received(); await held;
+        await route.fulfill({ json: { node_id: 'ai', text: 'Obsolete answer', assistance_level: 'hint' } });
+    });
+    await page.goto(`${evidence}/e2e/canonical-companion.html`);
+    await page.evaluate(async (document) => {
+        const { toSourceCompanion, companionFetch } = await import('/src/platform/companion-api.ts');
+        const companion = toSourceCompanion(document, { surface: 'world', map_slug: 'test-map' });
+        const send = () => companionFetch(companion, '/learning/companion/turn', { method: 'POST', body: JSON.stringify({ surface: 'world', map_id: document.context.map.id, dialogue_node_id: 'ai', assistance_level: 'hint' }) });
+        window.retiredCompanionEvidence = { companion, send, pending: send().then((response) => response.status, () => 'cancelled') };
+    }, native);
+    await arrived;
+    const statuses = await page.evaluate(async () => {
+        const { releaseCompanion } = await import('/src/platform/companion-api.ts');
+        const fixture = window.retiredCompanionEvidence;
+        releaseCompanion(fixture.companion);
+        return [await fixture.pending, (await fixture.send()).status];
+    });
+    respond();
+    expect(statuses).toEqual(['cancelled', 409]); expect(requests).toBe(1);
+});
+
+test('player Companion reload retires stale requests, retries once, and distinguishes disabled from failure', async ({ page }) => {
+    await page.route('**/api/v1/learner/companion?*', (route) => route.fulfill({ status: 204 }));
+    await page.goto(`${evidence}/e2e/canonical-companion.html`);
+    const result = await page.evaluate(async () => {
+        const { PlaybackCompanionRefresh } = await import('/src/platform/playback-companion-refresh.ts');
+        const calls = []; const applied = []; let recovery = null;
+        const refresh = new PlaybackCompanionRefresh(null, (activity, signal) => new Promise((resolve, reject) => calls.push({ activity, signal, resolve, reject })), (value) => applied.push(value), (value) => { recovery = value; });
+        const first = refresh.reload('first'); const second = refresh.reload('second');
+        const retired = await first; const aborted = calls[0].signal.aborted;
+        calls[0].resolve(null); await Promise.resolve();
+        const staleDidNotApply = applied.length === 0;
+        calls[1].reject(new Error('network')); await Promise.resolve();
+        const failedDidNotApply = applied.length === 0 && recovery?.pending === false;
+        const retry = recovery.retry; retry(); retry();
+        const boundedRetries = calls.length === 3 && recovery.pending === true;
+        calls[2].resolve(null); const disabledSucceeded = await second;
+        const disabled = applied.length === 1 && applied[0] === null && recovery === null;
+        const third = refresh.reload('third'); refresh.dispose();
+        const disposed = await third; calls[3].resolve(null); await Promise.resolve();
+        return { retired, aborted, staleDidNotApply, failedDidNotApply, boundedRetries, disabledSucceeded, disabled, disposed, noLateApply: applied.length === 1, closed: await refresh.reload('fourth') };
+    });
+    expect(result).toEqual({ retired: false, aborted: true, staleDidNotApply: true, failedDidNotApply: true, boundedRetries: true, disabledSucceeded: true, disabled: true, disposed: false, noLateApply: true, closed: false });
+});
+
 test('turn adapter keeps each loaded context separate and rejects forged context before sending', async ({ page }) => {
     await page.route('**/api/v1/learner/companion?*', (route) => route.fulfill({ status: 204 }));
     await page.route('**/api/v1/security/csrf', (route) => route.fulfill({ json: { token: 'native-csrf' } }));
