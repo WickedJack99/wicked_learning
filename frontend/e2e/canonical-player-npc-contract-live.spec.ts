@@ -50,6 +50,7 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
                 'tools',(SELECT jsonb_agg(to_jsonb(t)) FROM learner_tools t WHERE principal_id='${principal}' AND tool_id='${tool}'),
                 'reflections',(SELECT jsonb_agg(to_jsonb(r)) FROM learner_reflections r WHERE principal_id='${principal}' AND activity_id='${activity}'),
                 'journal',(SELECT jsonb_agg(to_jsonb(j)) FROM learner_journal_pages j WHERE principal_id='${principal}' AND topic='${topic}'))`);
+            if (action === 'reflection' && kind === 'replay') sql(`INSERT INTO learner_journal_pages (principal_id,title,topic,subtopic,markdown) VALUES ('${principal}','Existing private page','${topic}','Dialogue','Keep my earlier note.')`);
             const before = facts();
             const denied = async () => { expect((await write()).status()).toBe(404); expect(facts()).toBe(before); };
             for (const state of ['locked', 'hidden']) {
@@ -79,12 +80,26 @@ for (const kind of ['route', 'replay'] as const) for (const action of ['continue
             expect((await owner.request.post(path, { headers: { Origin: new URL(baseURL!).origin }, data })).status()).toBe(403);
             expect(facts()).toBe(before);
             sql(`UPDATE learning_nodes SET state='locked' WHERE id='${node.node_id}'; UPDATE learner_node_manual_unlocks SET revoked_at=NULL WHERE principal_id='${principal}' AND node_id='${node.node_id}'`);
+            if (action === 'reflection') {
+                sql(`DELETE FROM learning_npc_dialogue_transitions WHERE activity_id='${activity}' AND from_node_id='${reflection}'`);
+                await denied();
+                sql(`INSERT INTO learning_npc_dialogue_transitions (activity_id,from_node_id,to_node_id,from_connector) VALUES ('${activity}','${reflection}','${end}','out')`);
+                for (const body of [' ', 'x'.repeat(2001)]) {
+                    sql(`UPDATE learning_npc_dialogue_nodes SET body='${body}' WHERE id='${reflection}'`); await denied();
+                }
+                sql(`UPDATE learning_npc_dialogue_nodes SET body='What did you notice?' WHERE id='${reflection}'; DELETE FROM learner_npc_dialogue_states WHERE principal_id='${principal}' AND activity_id='${activity}' AND play_run_id='${run}'`);
+                const withoutState = facts();
+                // The authored initial node is a monologue, so reflection is invalid.
+                expect((await write()).status()).toBe(404); expect(facts()).toBe(withoutState);
+                sql(`INSERT INTO learner_npc_dialogue_states (principal_id,activity_id,play_run_id,current_node_id,history) VALUES ('${principal}','${activity}','${run}','${reflection}','[]')`);
+            }
             const accepted = await write(); expect(accepted.status()).toBe(200);
             const target = action === 'continue' ? question : action === 'answer' ? answer : action === 'back' ? first : end;
             expect(await accepted.json()).toMatchObject({ current_node_id: target, history: action === 'continue' ? [first] : action === 'reflection' ? [reflection] : [] });
             expect(facts()).not.toBe(before);
             expect(sql(`SELECT COUNT(*) FROM learner_tools WHERE principal_id='${principal}' AND tool_id='${tool}'`).trim()).toBe(action === 'continue' ? '1' : '0');
             expect(sql(`SELECT COUNT(*) FROM learner_reflections WHERE principal_id='${principal}' AND activity_id='${activity}'`).trim()).toBe(action === 'reflection' ? '1' : '0');
+            if (action === 'reflection' && kind === 'replay') expect(sql(`SELECT markdown FROM learner_journal_pages WHERE principal_id='${principal}' AND topic='${topic}'`)).toContain('Keep my earlier note.');
         } finally {
             sql(`DELETE FROM learner_journal_pages WHERE principal_id='${principal}' AND topic='${topic}'; DELETE FROM learning_tools WHERE id='${tool}'`);
             expect((await admin.request.delete(`/api/v1/admin/world-builder/maps/${map}`, { headers: adminHeaders })).status()).toBe(204);

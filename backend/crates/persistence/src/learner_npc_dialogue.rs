@@ -346,24 +346,40 @@ async fn save_current_dialogue_reflection(
     )
     .await?
     else {
-        transaction.commit().await?;
+        transaction.rollback().await?;
         return Ok(None);
     };
     let Some(state) = ensure_state_for_update(&mut transaction, &current, play_run_id).await?
     else {
-        transaction.commit().await?;
+        transaction.rollback().await?;
         return Ok(None);
     };
     let Some(node) =
         dialogue_node(&mut transaction, current.activity_id, state.current_node_id).await?
     else {
-        transaction.commit().await?;
+        transaction.rollback().await?;
         return Ok(None);
     };
     if node.node_type != "reflection" {
-        transaction.commit().await?;
+        transaction.rollback().await?;
         return Ok(None);
     }
+    let question = node.body.as_deref().unwrap_or(&node.title).trim();
+    if question.is_empty() || question.chars().count() > 2_000 {
+        transaction.rollback().await?;
+        return Ok(None);
+    }
+    let Some(next_node_id) = next_node_id(
+        &mut transaction,
+        current.activity_id,
+        state.current_node_id,
+        "out",
+    )
+    .await?
+    else {
+        transaction.rollback().await?;
+        return Ok(None);
+    };
     let topic = node
         .config
         .get("journalTopic")
@@ -386,11 +402,6 @@ async fn save_current_dialogue_reflection(
     .bind(page_id)
     .fetch_one(&mut *transaction)
     .await?;
-    let question = node.body.as_deref().unwrap_or(&node.title).trim();
-    if question.is_empty() || question.chars().count() > 2_000 {
-        transaction.commit().await?;
-        return Ok(None);
-    }
     let reflection_title = format!("{} - {}", current.node_title, node.title);
     sqlx::query(
         "INSERT INTO learner_reflections (principal_id, learner_journal_page_id, activity_id, activity_start_id, play_run_id, title, question, reflection, response_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'reflection')",
@@ -418,17 +429,6 @@ async fn save_current_dialogue_reflection(
         .bind(markdown)
         .execute(&mut *transaction)
         .await?;
-    let Some(next_node_id) = next_node_id(
-        &mut transaction,
-        current.activity_id,
-        state.current_node_id,
-        "out",
-    )
-    .await?
-    else {
-        transaction.commit().await?;
-        return Ok(None);
-    };
     let next = advance_state(
         &mut transaction,
         &current,

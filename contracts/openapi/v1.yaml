@@ -7428,7 +7428,7 @@ paths:
               schema: { $ref: '#/components/schemas/LearnerNpcDialogueState' }
         '401': { description: Authentication is required. }
         '403': { description: A valid same-origin CSRF request is required. }
-        '404': { description: The active dialogue node is not a writable reflection owned by this learner. }
+        '404': { description: The active dialogue node is not a writable reflection owned by this learner. Rejected requests leave the dialogue cursor, journal and reflection records unchanged. }
         '503': { description: The application database is unavailable. }
   /learner/play-runs/{play_run_id}/activities/{activity_slug}/grant-items:
     post:

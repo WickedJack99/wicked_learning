@@ -34160,7 +34160,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description The active dialogue node is not a writable reflection owned by this learner. */
+            /** @description The active dialogue node is not a writable reflection owned by this learner. Rejected requests leave the dialogue cursor */
             404: {
                 headers: {
                     [name: string]: unknown;

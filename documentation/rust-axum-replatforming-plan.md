@@ -2516,7 +2516,7 @@ No NPC presentation is activated by this prerequisite.
 | Local forward/back stores current node and last 40 history entries | Source `updateNpcDialogueState`; native `/npc-dialogue/{continue,back}` own server navigation | These are not interchangeable requests. Define a bounded, authorized state mapping preserving source navigation and history, rather than silently dropping state writes or recreating navigation UI. |
 | Answer validates authored question/answer, stores answer and applies authored node events | Source `NpcDialogueAnswerService` and `LearnerNodeAnswerEventService`; native `/npc-dialogue/answer` currently validates an edge and advances a cursor only | Persist source answer evidence and hide/unlock effects, return real selected-answer facts, and reconcile source skipping the answer display node with native cursor movement. No fabricated successful answer projection. |
 | Tool grant on the current source dialogue node, including initial node and already-owned skip | Source `grantNpcDialogueTool`; native grants a configured tool when advancing into a node | Complete initial/current-node grant semantics and inventory refresh before binding copied grant controls. Preserve actual configured identity and managed media. |
-| Private reflection and authored route exit | Existing `/npc-dialogue/reflection`, generic completion/receipts | Reconcile source reflection/exit behavior and labelled end transitions. Audit failed reflection atomicity: current native code can create a journal page before rejecting an invalid question/absent next edge. Whole callback failure coverage remains required. |
+| Private reflection and authored route exit | Existing `/npc-dialogue/reflection`, generic completion/receipts | Reconcile source reflection/exit behavior and labelled end transitions. Failed reflection atomicity is repaired below; invalid question/absent next edge must not create or change journal content. Whole callback failure coverage remains required. |
 | Current node access before every command | Existing `learner_npc_dialogue.rs` checked publication and map roles but omitted computed availability | Repair below reuses the shared evaluator for ordinary and existing replay command contexts before state/tool/reflection writes. Replay node identity among multiple nodes sharing an asset remains part of the broader unresolved run-binding audit. |
 
 The eight new native access regressions reproduced successful writes from a
@@ -2550,6 +2550,44 @@ The readiness endpoint reports healthy. No source UI or migration changed;
 this backend-only slice has no new visual-parity claim. Reports are ignored
 `frontend/playwright-report/player-npc-access{,-baseline}/`. Rerun from
 `frontend/`: `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-npc-contract-live.spec.ts e2e/canonical-playback-reference-live.spec.ts --grep 'native NPC|native npc_dialogue' --reporter=line,html`.
+
+### NPC reflection rejection is atomic
+
+The NPC audit identified a concrete mismatch with the existing native operation's
+atomicity promise: `save_current_dialogue_reflection` resolved its next edge only
+after inserting a private reflection and appending journal markdown. A missing
+edge therefore returned 404 while committing those writes; an invalid authored
+question could also leave a newly created empty journal page. Initializing the
+dialogue cursor before rejecting a wrong initial node could leave state behind.
+
+The same ordinary/replay integration fixtures reproduced journal/reflection
+changes after a rejected missing-edge command in both run kinds. The repository
+now validates the question and authored next edge before any journal/reflection
+write and rolls back every rejected reflection transaction, including provisional
+cursor initialization. Successful reflection, journal append and cursor advance
+still commit together. This changes neither source UI nor the native decision
+that an invalid reflection/edge is unavailable.
+
+The focused regression extension checks missing next edges, blank/oversized
+authored questions and wrong initial node without any pre-existing dialogue
+state. Rejected calls preserve exact cursor/history, tool, reflection and journal
+rows. One fixture begins without a journal page; the replay fixture begins with
+existing private markdown and verifies that successful recovery retains it.
+The previously verified access/CSRF/publication/run guards remain covered.
+OpenAPI now states the no-mutation guarantee explicitly. Remaining source
+reflection mapping and whole NPC/NodePlay acceptance are still pending.
+
+Verification: both missing-edge baseline cases returned 404 with changed private
+rows. After repair, all nine native NPC access/playback cases pass in 20.8 seconds,
+including malformed-question, provisional-state rollback and successful retry
+checks. Canonical source identity, frontend production type/build, generated
+client consistency, Rust workspace format/check and 126 persistence unit tests
+pass (six existing database tests ignored). The rebuilt local service is ready;
+no canonical presentation or database migration changed. Reports are ignored
+`frontend/playwright-report/player-npc-reflection{,-baseline}/`; the NPC rerun
+command above covers these cases. Next: complete the audited source cursor,
+answer/event, initial-node grant and reflection/exit contracts before adding
+whole-control adapters; do not reinterpret these native repairs as UI completion.
 
 ## Status and purpose
 
