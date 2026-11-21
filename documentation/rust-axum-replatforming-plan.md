@@ -2496,6 +2496,61 @@ existing disposable sessions and the whole-source evidence Vite server on 8084
 rerun from `frontend/`:
 `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-message-live.spec.ts --reporter=line,html`.
 
+### NPC dialogue source contracts and command access
+
+The next complete control is pinned
+`resources/js/features/world/npc-dialogue-player.tsx`, including its scene,
+question, reflection, typing and navigation implementations. Dependencies include
+`features/world/api`, `features/sounds/dialogue-typing-sound-player`,
+`features/tools/tool-selection`, `components/ui/button`, appearance/translation
+hooks, source learning types, source page props and CSS. Server owners are
+`LearningWorldController::{updateNpcDialogueState,answerNpcDialogue,grantNpcDialogueTool}`,
+`LearnerJournalController::storeDialogueReflection`,
+`LearnerActivityPlayStateService`, `NpcDialogueAnswerService`,
+`LearnerNodeAnswerEventService` and `LearnerActivityAccessService` under `app/`.
+No NPC presentation is activated by this prerequisite.
+
+| Source requirement | Existing Rust evidence | Concrete remaining integration work |
+| --- | --- | --- |
+| Complete graph, private cursor/history and typing sound definitions | `learner_playback{,_presentation,_private_state}.rs`, existing `playback-projection.ts` | Preserve real node/tool/sound UUIDs through exact source numeric-identity seams; test typing/media behavior, history restore and local controls. |
+| Local forward/back stores current node and last 40 history entries | Source `updateNpcDialogueState`; native `/npc-dialogue/{continue,back}` own server navigation | These are not interchangeable requests. Define a bounded, authorized state mapping preserving source navigation and history, rather than silently dropping state writes or recreating navigation UI. |
+| Answer validates authored question/answer, stores answer and applies authored node events | Source `NpcDialogueAnswerService` and `LearnerNodeAnswerEventService`; native `/npc-dialogue/answer` currently validates an edge and advances a cursor only | Persist source answer evidence and hide/unlock effects, return real selected-answer facts, and reconcile source skipping the answer display node with native cursor movement. No fabricated successful answer projection. |
+| Tool grant on the current source dialogue node, including initial node and already-owned skip | Source `grantNpcDialogueTool`; native grants a configured tool when advancing into a node | Complete initial/current-node grant semantics and inventory refresh before binding copied grant controls. Preserve actual configured identity and managed media. |
+| Private reflection and authored route exit | Existing `/npc-dialogue/reflection`, generic completion/receipts | Reconcile source reflection/exit behavior and labelled end transitions. Audit failed reflection atomicity: current native code can create a journal page before rejecting an invalid question/absent next edge. Whole callback failure coverage remains required. |
+| Current node access before every command | Existing `learner_npc_dialogue.rs` checked publication and map roles but omitted computed availability | Repair below reuses the shared evaluator for ordinary and existing replay command contexts before state/tool/reflection writes. Replay node identity among multiple nodes sharing an asset remains part of the broader unresolved run-binding audit. |
+
+The eight new native access regressions reproduced successful writes from a
+locked node for continue, answer, back and reflection in both ordinary and
+replay runs. `learner_npc_dialogue.rs` now projects the owning node ID/state/
+visual configuration, checks that ordinary start and progress refer to the
+same node, and evaluates current availability before state initialization or
+any command mutation. It loads the existing availability facts once per command,
+not per graph node; publication, map roles, ownership, CSRF, graph edge checks
+and transaction boundaries remain in place. OpenAPI descriptions now record
+these access requirements for all four operations.
+
+`canonical-player-npc-contract-live.spec.ts` uses disposable local author-created
+maps, actual route/replay rows and the real Rust API. It checks locked/hidden/
+scheduled rejection, each publication layer, removed roles, revoked manual
+unlock, completed runs, wrong owners/unknown runs, absent CSRF and ordinary
+start/progress node mismatch. Failed commands must leave exact cursor/history,
+tool holdings, reflection and fixture journal rows unchanged. An active manual
+unlock permits the real command, with its actual target/history and tool or
+private reflection persistence. Fixtures and journal/tool records are removed.
+This verifies the existing native command access boundary, not whole copied
+NPC control parity or replay identity in a multi-node asset.
+
+Verification: eight access cases failed before the repair with HTTP 200 instead
+of 404 on a locked node. All eight now pass, together with the existing native
+NPC playback identity/graph/private-state regression (nine tests, 21.9 seconds)
+against the rebuilt local backend. Canonical identity, production frontend
+type/build, generated OpenAPI client consistency, Rust workspace format/check
+and 126 persistence unit tests pass (six existing database tests ignored).
+The readiness endpoint reports healthy. No source UI or migration changed;
+this backend-only slice has no new visual-parity claim. Reports are ignored
+`frontend/playwright-report/player-npc-access{,-baseline}/`. Rerun from
+`frontend/`: `PLAYWRIGHT_HTML_OPEN=never npx playwright test e2e/canonical-player-npc-contract-live.spec.ts e2e/canonical-playback-reference-live.spec.ts --grep 'native NPC|native npc_dialogue' --reporter=line,html`.
+
 ## Status and purpose
 
 This is the active development/test implementation plan for replacing the

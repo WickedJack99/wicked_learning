@@ -1,0 +1,96 @@
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { expect, test } from '@playwright/test';
+import { administratorStorageStatePath, collaborationStorageStatePath } from './session-state';
+
+for (const kind of ['route', 'replay'] as const) for (const action of ['continue', 'answer', 'back', 'reflection'] as const) {
+    test(`native NPC ${kind} ${action} rechecks source node access`, async ({ browser, baseURL }) => {
+        expect(new URL(baseURL!).hostname).toMatch(/^(localhost|127\.0\.0\.1)$/);
+        for (const path of ['app/Http/Controllers/LearningWorldController.php', 'app/Learning/Services/LearnerActivityAccessService.php', 'app/Learning/Services/LearningNodeStateResolver.php', 'app/Http/Controllers/LearnerJournalController.php']) {
+            expect(readFileSync(`../${path}`)).toEqual(execFileSync('git', ['show', `32c3113a5bc688c9944c20942cdf40a6a5d57d7f:${path}`]));
+        }
+        const admin = await browser.newContext({ baseURL, storageState: administratorStorageStatePath });
+        const owner = await browser.newContext({ baseURL, storageState: collaborationStorageStatePath('first') });
+        const peer = await browser.newContext({ baseURL, storageState: collaborationStorageStatePath('second') });
+        const headersFor = async (context: typeof admin) => ({ Origin: new URL(baseURL!).origin, 'X-CSRF-Token': (await (await context.request.get('/api/v1/security/csrf')).json()).token });
+        const adminHeaders = await headersFor(admin); const headers = await headersFor(owner); const peerHeaders = await headersFor(peer);
+        const me = await owner.request.get('/api/v1/me'); expect(me.status()).toBe(200);
+        const principal = uuid(sql(`SELECT id FROM application_principals WHERE identity_subject_id='${uuid((await me.json()).subject_id)}'`).trim());
+        const created = await admin.request.post('/api/v1/admin/world-builder/maps', { headers: adminHeaders, data: { title: `NPC access ${randomUUID()}`, description: null, slug: null } });
+        expect(created.status()).toBe(201); const map = uuid((await created.json()).map_id);
+        const activity = randomUUID(), run = randomUUID(), start = randomUUID(), tool = randomUUID();
+        const first = randomUUID(), question = randomUUID(), answer = randomUUID(), reflection = randomUUID(), end = randomUUID();
+        const topic = `NPC access ${activity}`;
+        try {
+            const result = await admin.request.post(`/api/v1/admin/world-builder/maps/${map}/nodes`, { headers: adminHeaders, data: { title: topic, description: null, position_q: 0, position_r: 0, state: 'available', visual_config: {} } });
+            expect(result.status()).toBe(201); const node = await result.json(); uuid(node.node_id); uuid(node.asset_id);
+            sql(`UPDATE learning_maps SET published_at=NOW(),access_roles='["public"]' WHERE id='${map}'; UPDATE learning_nodes SET published_at=NOW() WHERE id='${node.node_id}'; UPDATE learning_map_assets SET published_at=NOW() WHERE id='${node.asset_id}'; UPDATE learning_routes SET published_at=NOW() WHERE map_asset_id='${node.asset_id}';
+                INSERT INTO learning_tools (id,slug,title,published_at) VALUES ('${tool}','${tool}','NPC test tool',NOW());
+                INSERT INTO learning_activities (id,route_id,slug,title,description,position,published_at,activity_type,activity_config) SELECT '${activity}',id,'dialogue','Dialogue','',0,NOW(),'npc_dialogue','{}' FROM learning_routes WHERE map_asset_id='${node.asset_id}';
+                INSERT INTO learning_activity_starts (id,node_id,activity_id) VALUES ('${start}','${node.node_id}','${activity}');
+                INSERT INTO learning_npc_dialogue_nodes (id,activity_id,node_type,title,body,node_config,sort_order) VALUES
+                ('${first}','${activity}','npc_monologue','First','Notice this.','{}',0),
+                ('${question}','${activity}','npc_question','Question','Which clue?','{"toolId":"${tool}"}',1),
+                ('${answer}','${activity}','answer','Answer','A clue.','{}',2),
+                ('${reflection}','${activity}','reflection','Reflection','What did you notice?','{}',3),
+                ('${end}','${activity}','end','End','Finished.','{}',4);
+                INSERT INTO learning_npc_dialogue_transitions (activity_id,from_node_id,to_node_id,from_connector) VALUES
+                ('${activity}',NULL,'${first}','out'),('${activity}','${first}','${question}','out'),('${activity}','${question}','${answer}','answer-0'),('${activity}','${answer}','${reflection}','out'),('${activity}','${reflection}','${end}','out');`);
+            if (kind === 'route') sql(`INSERT INTO learner_route_progress (principal_id,node_id,route_id,current_activity_id,status,activity_start_id,current_play_run_id) SELECT '${principal}','${node.node_id}',route_id,id,'in_progress','${start}','${run}' FROM learning_activities WHERE id='${activity}'`);
+            else sql(`INSERT INTO learner_activity_replay_runs (id,principal_id,activity_id) VALUES ('${run}','${principal}','${activity}')`);
+            const current = action === 'continue' ? first : action === 'reflection' ? reflection : question;
+            const history = action === 'back' ? [first] : [];
+            sql(`INSERT INTO learner_npc_dialogue_states (principal_id,activity_id,play_run_id,current_node_id,history) VALUES ('${principal}','${activity}','${run}','${current}','${JSON.stringify(history)}')`);
+            const path = `/api/v1/learner/play-runs/${run}/activities/id:${activity}/npc-dialogue/${action}`;
+            const data = action === 'answer' ? { answer_node_id: answer } : action === 'reflection' ? { reflection: 'I noticed two different clues.' } : {};
+            const write = () => owner.request.post(path, { headers, data });
+            const facts = () => sql(`SELECT jsonb_build_object(
+                'state',(SELECT to_jsonb(s) FROM learner_npc_dialogue_states s WHERE principal_id='${principal}' AND play_run_id='${run}' AND activity_id='${activity}'),
+                'tools',(SELECT jsonb_agg(to_jsonb(t)) FROM learner_tools t WHERE principal_id='${principal}' AND tool_id='${tool}'),
+                'reflections',(SELECT jsonb_agg(to_jsonb(r)) FROM learner_reflections r WHERE principal_id='${principal}' AND activity_id='${activity}'),
+                'journal',(SELECT jsonb_agg(to_jsonb(j)) FROM learner_journal_pages j WHERE principal_id='${principal}' AND topic='${topic}'))`);
+            const before = facts();
+            const denied = async () => { expect((await write()).status()).toBe(404); expect(facts()).toBe(before); };
+            for (const state of ['locked', 'hidden']) {
+                sql(`UPDATE learning_nodes SET state='${state}' WHERE id='${node.node_id}'`); await denied();
+            }
+            sql(`UPDATE learning_nodes SET state='available',visual_config='{"schedule":{"lockAt":"2020-01-01T00:00:00Z"}}' WHERE id='${node.node_id}'`); await denied();
+            sql(`UPDATE learning_nodes SET visual_config='{}' WHERE id='${node.node_id}'`);
+            for (const [table, predicate] of [['learning_maps', `id='${map}'`], ['learning_nodes', `id='${node.node_id}'`], ['learning_map_assets', `id='${node.asset_id}'`], ['learning_routes', `map_asset_id='${node.asset_id}'`], ['learning_activities', `id='${activity}'`]]) {
+                sql(`UPDATE ${table} SET published_at=NULL WHERE ${predicate}`); await denied(); sql(`UPDATE ${table} SET published_at=NOW() WHERE ${predicate}`);
+            }
+            sql(`UPDATE learning_maps SET access_roles='[]' WHERE id='${map}'`); await denied(); sql(`UPDATE learning_maps SET access_roles='["public"]' WHERE id='${map}'`);
+            sql(`UPDATE learning_nodes SET state='locked' WHERE id='${node.node_id}'; INSERT INTO learner_node_manual_unlocks (principal_id,node_id,revoked_at) VALUES ('${principal}','${node.node_id}',NOW())`); await denied();
+            sql(`UPDATE learning_nodes SET state='available' WHERE id='${node.node_id}'`);
+            if (kind === 'route') sql(`UPDATE learner_route_progress SET status='completed' WHERE current_play_run_id='${run}'`);
+            else sql(`UPDATE learner_activity_replay_runs SET status='completed',completed_at=NOW() WHERE id='${run}'`);
+            await denied();
+            if (kind === 'route') sql(`UPDATE learner_route_progress SET status='in_progress' WHERE current_play_run_id='${run}'`);
+            else sql(`UPDATE learner_activity_replay_runs SET status='in_progress',completed_at=NULL WHERE id='${run}'`);
+            if (kind === 'route') {
+                const different = await admin.request.post(`/api/v1/admin/world-builder/maps/${map}/nodes`, { headers: adminHeaders, data: { title: 'Different place', description: null, position_q: 1, position_r: 0, state: 'available', visual_config: {} } });
+                expect(different.status()).toBe(201); const otherNode = uuid((await different.json()).node_id);
+                sql(`UPDATE learner_route_progress SET node_id='${otherNode}' WHERE current_play_run_id='${run}'`); await denied();
+                sql(`UPDATE learner_route_progress SET node_id='${node.node_id}' WHERE current_play_run_id='${run}'`);
+            }
+            expect((await peer.request.post(path, { headers: peerHeaders, data })).status()).toBe(404);
+            expect((await owner.request.post(path.replace(run, randomUUID()), { headers, data })).status()).toBe(404);
+            expect((await owner.request.post(path, { headers: { Origin: new URL(baseURL!).origin }, data })).status()).toBe(403);
+            expect(facts()).toBe(before);
+            sql(`UPDATE learning_nodes SET state='locked' WHERE id='${node.node_id}'; UPDATE learner_node_manual_unlocks SET revoked_at=NULL WHERE principal_id='${principal}' AND node_id='${node.node_id}'`);
+            const accepted = await write(); expect(accepted.status()).toBe(200);
+            const target = action === 'continue' ? question : action === 'answer' ? answer : action === 'back' ? first : end;
+            expect(await accepted.json()).toMatchObject({ current_node_id: target, history: action === 'continue' ? [first] : action === 'reflection' ? [reflection] : [] });
+            expect(facts()).not.toBe(before);
+            expect(sql(`SELECT COUNT(*) FROM learner_tools WHERE principal_id='${principal}' AND tool_id='${tool}'`).trim()).toBe(action === 'continue' ? '1' : '0');
+            expect(sql(`SELECT COUNT(*) FROM learner_reflections WHERE principal_id='${principal}' AND activity_id='${activity}'`).trim()).toBe(action === 'reflection' ? '1' : '0');
+        } finally {
+            sql(`DELETE FROM learner_journal_pages WHERE principal_id='${principal}' AND topic='${topic}'; DELETE FROM learning_tools WHERE id='${tool}'`);
+            expect((await admin.request.delete(`/api/v1/admin/world-builder/maps/${map}`, { headers: adminHeaders })).status()).toBe(204);
+            await Promise.all([admin.close(), owner.close(), peer.close()]);
+        }
+    });
+}
+function uuid(value: string) { expect(value).toMatch(/^[a-f0-9-]{36}$/); return value; }
+function sql(input: string) { return execFileSync('docker', ['exec', '-i', 'wicked_learning-application-db-1', 'psql', '-tA', '-v', 'ON_ERROR_STOP=1', '-U', 'wicked_application', '-d', 'wicked_application'], { input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }); }

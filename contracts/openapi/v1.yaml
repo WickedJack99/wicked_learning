@@ -7348,7 +7348,7 @@ paths:
     post:
       operationId: continueLearnerNpcDialogue
       summary: Advance one authorized authored NPC dialogue edge.
-      description: The server resolves the current node and its `out` edge from the active route run. The browser never supplies a next node.
+      description: The server resolves the current node and its `out` edge from the active route or replay run. The browser never supplies a next node. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7367,7 +7367,7 @@ paths:
     post:
       operationId: answerLearnerNpcDialogue
       summary: Select an authored answer from the active NPC dialogue question.
-      description: The submitted node must be an authored outgoing `answer-*` edge from the current server-owned question node.
+      description: The submitted node must be an authored outgoing `answer-*` edge from the current server-owned question node. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7391,6 +7391,7 @@ paths:
     post:
       operationId: goBackLearnerNpcDialogue
       summary: Return to the previous server-recorded NPC dialogue node.
+      description: Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'
@@ -7409,7 +7410,7 @@ paths:
     post:
       operationId: saveLearnerNpcDialogueReflection
       summary: Save a private reflection from the active NPC dialogue node.
-      description: The server requires the current authored node to be a reflection node, writes the learner-owned journal entry, and resolves the authored next edge atomically.
+      description: The server requires the current authored node to be a reflection node, writes the learner-owned journal entry, and resolves the authored next edge atomically. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
       parameters:
         - $ref: '#/components/parameters/PlayRunId'
         - $ref: '#/components/parameters/ActivitySlug'

@@ -5989,7 +5989,7 @@ export interface paths {
         put?: never;
         /**
          * Advance one authorized authored NPC dialogue edge.
-         * @description The server resolves the current node and its `out` edge from the active route run. The browser never supplies a next node.
+         * @description The server resolves the current node and its `out` edge from the active route or replay run. The browser never supplies a next node. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
          */
         post: operations["continueLearnerNpcDialogue"];
         delete?: never;
@@ -6009,7 +6009,7 @@ export interface paths {
         put?: never;
         /**
          * Select an authored answer from the active NPC dialogue question.
-         * @description The submitted node must be an authored outgoing `answer-*` edge from the current server-owned question node.
+         * @description The submitted node must be an authored outgoing `answer-*` edge from the current server-owned question node. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
          */
         post: operations["answerLearnerNpcDialogue"];
         delete?: never;
@@ -6027,7 +6027,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Return to the previous server-recorded NPC dialogue node. */
+        /**
+         * Return to the previous server-recorded NPC dialogue node.
+         * @description Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
+         */
         post: operations["goBackLearnerNpcDialogue"];
         delete?: never;
         options?: never;
@@ -6046,7 +6049,7 @@ export interface paths {
         put?: never;
         /**
          * Save a private reflection from the active NPC dialogue node.
-         * @description The server requires the current authored node to be a reflection node, writes the learner-owned journal entry, and resolves the authored next edge atomically.
+         * @description The server requires the current authored node to be a reflection node, writes the learner-owned journal entry, and resolves the authored next edge atomically. Every command rechecks current publication, map roles and evaluated node availability before cursor, tool or journal changes.
          */
         post: operations["saveLearnerNpcDialogueReflection"];
         delete?: never;
